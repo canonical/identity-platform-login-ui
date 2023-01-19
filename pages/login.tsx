@@ -10,7 +10,7 @@ import { useEffect, useState } from "react"
 
 import { handleGetFlowError, handleFlowError } from "../components/errors"
 import { Flow } from "../components/Flow"
-import ory from "../components/sdk"
+import { kratos } from "../components/sdk"
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>()
@@ -35,10 +35,14 @@ const Login: NextPage = () => {
       return
     }
 
+    const { login_challenge } = router.query;
+    if (!login_challenge) {
+      return
+    }
 
     // If ?flow=.. was in the URL, we fetch it
     if (flowId) {
-      ory
+      kratos
         .getLoginFlow({ id: String(flowId) })
         .then(({ data }) => {
           setFlow(data)
@@ -48,11 +52,12 @@ const Login: NextPage = () => {
     }
 
     // Otherwise we initialize it
-    ory
+    kratos
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),
         aal: aal ? String(aal) : undefined,
         returnTo: returnTo ? String(returnTo) : undefined,
+        loginChallenge: login_challenge ? String(login_challenge) : login_challenge[0],
       })
       .then(({ data }) => {
         setFlow(data)
@@ -65,7 +70,7 @@ const Login: NextPage = () => {
       // his data when she/he reloads the page.
       .push(`/login?flow=${flow?.id}`, undefined, { shallow: true })
       .then(() =>
-        ory
+        kratos
           .updateLoginFlow({
             flow: String(flow?.id),
             updateLoginFlowBody: values,
