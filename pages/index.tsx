@@ -4,7 +4,7 @@ import { useRouter } from "next/router"
 import type { NextPage } from "next"
 import { useEffect, useState } from "react"
 import Head from "next/head"
-import kratos from "../components/sdk"
+import { ory } from "../components/sdk"
 
 const Home: NextPage = () => {
   const [session, setSession] = useState<string>(
@@ -14,7 +14,7 @@ const Home: NextPage = () => {
   const router = useRouter()
 
   useEffect(() => {
-    kratos
+    ory
       .toSession()
       .then(({ data }) => {
         setSession(JSON.stringify(data, null, 2))

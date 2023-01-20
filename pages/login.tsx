@@ -10,7 +10,7 @@ import { useEffect, useState } from "react"
 
 import { handleGetFlowError, handleFlowError } from "../components/errors"
 import { Flow } from "../components/Flow"
-import { kratos } from "../components/sdk"
+import { ory } from "../components/sdk"
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>()
@@ -26,8 +26,8 @@ const Login: NextPage = () => {
     // AAL = Authorization Assurance Level. This implies that we want to upgrade the AAL, meaning that we want
     // to perform two-factor authentication/verification.
     aal,
+    login_challenge,
   } = router.query
-
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
@@ -35,14 +35,9 @@ const Login: NextPage = () => {
       return
     }
 
-    const { login_challenge } = router.query;
-    if (!login_challenge) {
-      return
-    }
-
     // If ?flow=.. was in the URL, we fetch it
     if (flowId) {
-      kratos
+      ory
         .getLoginFlow({ id: String(flowId) })
         .then(({ data }) => {
           setFlow(data)
@@ -52,12 +47,12 @@ const Login: NextPage = () => {
     }
 
     // Otherwise we initialize it
-    kratos
+    ory
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),
         aal: aal ? String(aal) : undefined,
         returnTo: returnTo ? String(returnTo) : undefined,
-        loginChallenge: login_challenge ? String(login_challenge) : login_challenge[0],
+        loginChallenge: login_challenge ? String(login_challenge) : undefined,
       })
       .then(({ data }) => {
         setFlow(data)
@@ -70,7 +65,7 @@ const Login: NextPage = () => {
       // his data when she/he reloads the page.
       .push(`/login?flow=${flow?.id}`, undefined, { shallow: true })
       .then(() =>
-        kratos
+        ory
           .updateLoginFlow({
             flow: String(flow?.id),
             updateLoginFlowBody: values,
