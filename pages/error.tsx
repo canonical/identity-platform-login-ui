@@ -5,7 +5,7 @@ import type { NextPage } from "next"
 import { useRouter } from "next/router"
 import { useEffect, useState } from "react"
 
-import { ory } from "../components/sdk"
+import { kratos } from "../components/sdk"
 
 const Login: NextPage = () => {
   const [error, setError] = useState<FlowError | string>()
@@ -20,7 +20,7 @@ const Login: NextPage = () => {
       return
     }
 
-    ory
+    kratos
       .getFlowError({ id: String(id) })
       .then(({ data }) => {
         setError(data)

@@ -14,7 +14,7 @@ import { Flow } from "../components/Flow"
 import { CenterLink } from "../components/Link"
 import { handleFlowError } from "../components/errors"
 // Import the SDK
-import { ory } from "../components/sdk"
+import { kratos } from "../components/sdk"
 
 // Renders the registration page
 const Registration: NextPage = () => {
@@ -36,7 +36,7 @@ const Registration: NextPage = () => {
 
     // If ?flow=.. was in the URL, we fetch it
     if (flowId) {
-      ory
+      kratos
         .getRegistrationFlow({ id: String(flowId) })
         .then(({ data }) => {
           // We received the flow - let's use its data and render the form!
@@ -47,7 +47,7 @@ const Registration: NextPage = () => {
     }
 
     // Otherwise we initialize it
-    ory
+    kratos
       .createBrowserRegistrationFlow({
         returnTo: returnTo ? String(returnTo) : undefined,
       })
@@ -63,7 +63,7 @@ const Registration: NextPage = () => {
       // his data when she/he reloads the page.
       .push(`/registration?flow=${flow?.id}`, undefined, { shallow: true })
       .then(() =>
-        ory
+        kratos
           .updateRegistrationFlow({
             flow: String(flow?.id),
             updateRegistrationFlowBody: values,

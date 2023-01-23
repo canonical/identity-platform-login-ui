@@ -9,5 +9,5 @@ export default createApiHandler({
   // vercel.app is not possible.
   dontUseTldForCookieDomain: true,
   fallbackToPlayground: false,
-  apiBaseUrlOverride: process.env.ORY_KRATOS_URL,
+  apiBaseUrlOverride: process.env.HYDRA_ADMIN_URL,
 })

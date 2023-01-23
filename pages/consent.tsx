@@ -7,22 +7,18 @@ import { hydraAdmin } from "../components/hydra"
 const Consent: NextPage = () => {
   const router = useRouter()
   const { consent_challenge } = router.query;
-  const redirect_to = ""
 
   useEffect(() => {
     if (!router.isReady) {
       return
     }
 
-    console.log(consent_challenge)
-    console.log(process.env.HYDRA_ADMIN_URL)
     hydraAdmin
       .getOAuth2ConsentRequest({
         consentChallenge: consent_challenge ? String(consent_challenge) : undefined,
       })
       // This will be called if the HTTP request was successful
       .then(({ data: body }) => {
-        console.log(body)
         // If a user has granted this application the requested scope, hydra will tell us to not show the UI.
         const skip = true || body.skip
         if (skip) {
@@ -48,14 +44,15 @@ const Consent: NextPage = () => {
             })
             .then(({ data: body2 }) => {
               // All we need to do now is to redirect the user back to hydra!
-              console.log(body2)
               window.location.href = body2.redirect_to
             })
         }
       })
       // This will handle any error that happens when making HTTP calls to hydra
-      .catch()
-    }, [redirect_to, router])
+      .catch((err) => {
+        console.log(err)
+      })
+    }, [router])
 
     return (<></>)
 }
