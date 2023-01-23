@@ -58,7 +58,7 @@ const Login: NextPage = () => {
         setFlow(data)
       })
       .catch(handleFlowError(router, "login", setFlow))
-  }, [flowId, router, router.isReady, aal, refresh, returnTo, flow])
+  }, [flowId, router, router.isReady, aal, refresh, returnTo, flow, login_challenge])
   const onSubmit = (values: UpdateLoginFlowBody) =>
     router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing

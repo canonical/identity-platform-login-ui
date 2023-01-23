@@ -1,5 +1,5 @@
 import type { NextPage } from "next"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/router"
 import { hydraAdmin } from "../components/hydra"
 
@@ -52,7 +52,7 @@ const Consent: NextPage = () => {
       .catch((err) => {
         console.log(err)
       })
-    }, [router])
+    }, [router, consent_challenge])
 
     return (<></>)
 }

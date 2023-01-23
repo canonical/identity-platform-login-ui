@@ -10,7 +10,6 @@ const Home: NextPage = () => {
   const [session, setSession] = useState<string>(
     "No valid Ory Session was found.\nPlease sign in to receive one.",
   )
-  const [hasSession, setHasSession] = useState<boolean>(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -18,7 +17,6 @@ const Home: NextPage = () => {
       .toSession()
       .then(({ data }) => {
         setSession(JSON.stringify(data, null, 2))
-        setHasSession(true)
       })
       .catch((err: AxiosError) => {
         switch (err.response?.status) {
