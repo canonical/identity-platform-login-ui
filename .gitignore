@@ -12,6 +12,9 @@
 # production
 /build
 /ui/dist
+/bin
+/tmp
+/ory_ui
 
 # misc
 .DS_Store
