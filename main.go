@@ -10,10 +10,12 @@ import (
 
 const defaultPort = "8080"
 
-var (
-	//go:embed ui/dist
-	ui embed.FS
-)
+//go:embed ui/dist
+//go:embed ui/dist/_next
+//go:embed ui/dist/_next/static/chunks/pages/*.js
+//go:embed ui/dist/_next/static/*/*.js
+//go:embed ui/dist/_next/static/*/*.css
+var ui embed.FS
 
 func main() {
 	dist, _ := fs.Sub(ui, "ui/dist")
@@ -28,6 +30,7 @@ func main() {
 		port = defaultPort
 	}
 
+	log.Println("Starting server on port " + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
