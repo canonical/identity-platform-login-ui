@@ -10,6 +10,9 @@ export function NodeInputOIDC(props: NodeInputProps) {
   const { node, value = "", setValue, disabled, dispatchSubmit} = props;
   const attributes: UiNodeInputAttributes = props.attributes;
   const provider = attributes.value.split('_')[0];
+  if (provider === "hydra") {
+    return
+  }
   const label = "Sign in with " + provider;
   node.meta.label.text = label;
   var p = {
