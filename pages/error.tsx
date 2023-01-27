@@ -1,5 +1,5 @@
 import { FlowError } from "@ory/client"
-import { CardTitle, CodeBox, Card } from "@ory/themes"
+import { CardTitle, Card } from "@ory/themes"
 import { AxiosError } from "axios"
 import type { NextPage } from "next"
 import { useRouter } from "next/router"
@@ -7,7 +7,7 @@ import { useEffect, useState } from "react"
 
 import { kratos } from "../components/sdk"
 
-const Login: NextPage = () => {
+const Error: NextPage = () => {
   const [error, setError] = useState<FlowError | string>()
 
   // Get ?id=... from the URL
@@ -50,10 +50,12 @@ const Login: NextPage = () => {
     <>
       <Card wide>
         <CardTitle>An error occurred</CardTitle>
-        <CodeBox code={JSON.stringify(error, null, 2)} />
+        <div>
+          <pre className="codebox" >{JSON.stringify(error, null, 2)}</pre>
+        </div>
       </Card>
     </>
   )
 }
 
-export default Login
+export default Error
