@@ -4,6 +4,48 @@ import { useEffect } from "react"
 import { useRouter } from "next/router"
 import { hydraAdmin } from "../components/hydra"
 import { kratos } from "../components/sdk"
+import {Identity} from "@ory/client"
+
+
+function exportClaims({traits}: Identity, scopes) {
+  const scopes_to_claims = {
+    openid: ["sub"],
+    profile:  [
+      "name",
+      "family_name",
+      "given_name",
+      "middle_name",
+      "nickname",
+      "preferred_username",
+      "profile",
+      "picture",
+      "website",
+      "gender",
+      "birthdate",
+      "zoneinfo",
+      "locale",
+      "updated_at"
+    ],
+    email: ["email", "email_verified"],
+    address: ["address"],
+    phone: ["phone_number", "phone_number_verified"]
+  }
+
+  const claims = scopes.reduce(
+    (res, key) => {
+      if (!(key in scopes_to_claims)) {
+        return res
+      }
+      return [...res, ...scopes_to_claims[key]]
+    }, []
+  )
+
+  return claims.reduce((res, key) => {
+    res[key] = traits[key]
+    return res
+  }, {}
+  )
+}
 
 
 const Consent: NextPage = () => {
@@ -40,7 +82,7 @@ const Consent: NextPage = () => {
                 grant_access_token_audience: body.requested_access_token_audience,
                 // The session allows us to set session data for id and access tokens
                 session: {
-                  id_token: user_identity.identity,
+                  id_token: exportClaims(user_identity.identity, body.requested_scope),
                 },
               }
             })
