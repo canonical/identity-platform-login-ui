@@ -1,7 +1,5 @@
 import { LoginFlow, UpdateLoginFlowBody } from "@ory/client"
-import {
-  Card,
-} from "@ory/themes"
+import { Card } from "@canonical/react-components";
 import { AxiosError } from "axios"
 import type { NextPage } from "next"
 import Head from "next/head"
@@ -97,9 +95,15 @@ const Login: NextPage = () => {
         <title>Sign in - Ory NextJS Integration Example</title>
         <meta name="description" content="NextJS + React + Vercel + Ory" />
       </Head>
-      <Card>
-        <Flow onSubmit={onSubmit} flow={flow} />
-      </Card>
+      <div className="p-strip">
+        <div className="login-card">
+          <div>
+          <Card title="Choose Provider" >
+            <Flow onSubmit={onSubmit} flow={flow} />
+          </Card>
+          </div>
+        </div>
+      </div>
     </>
   )
 }

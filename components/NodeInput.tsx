@@ -13,7 +13,7 @@ export function NodeInputOIDC(props: NodeInputProps) {
   if (provider === "hydra") {
     return
   }
-  const label = "Sign in with " + provider;
+  const label = provider.charAt(0).toUpperCase() + provider.slice(1);
   node.meta.label.text = label;
   var p = {
     node: node, attributes: attributes, value: value, setValue: setValue, disabled: disabled, dispatchSubmit: dispatchSubmit

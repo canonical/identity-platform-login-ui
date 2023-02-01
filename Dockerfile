@@ -9,7 +9,7 @@ COPY package.json .
 COPY package-lock.json .
 
 # Use force due to version conflict
-RUN npm ci --fetch-timeout=600000 --force
+RUN npm ci --fetch-timeout=600000
 
 COPY . /usr/src/app
 

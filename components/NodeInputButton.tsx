@@ -1,5 +1,5 @@
 import { getNodeLabel } from "@ory/integrations/ui"
-import { Button } from "@ory/themes"
+import { Button } from "@canonical/react-components";
 import { FormEvent } from "react"
 
 import { NodeInputProps } from "./helpers"
@@ -32,11 +32,11 @@ export function NodeInputButton({
   return (
     <>
       <Button
-        name={attributes.name}
+        // name={attributes.name}
         onClick={(e) => {
           onClick(e)
         }}
-        value={attributes.value || ""}
+        // value={attributes.value || ""}
         disabled={attributes.disabled || disabled}
       >
         {getNodeLabel(node)}

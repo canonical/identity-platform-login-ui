@@ -1,14 +1,13 @@
-import { Card, P, H3, CodeBox } from "@ory/themes"
+import { Row, CodeSnippet } from "@canonical/react-components";
 import { AxiosError } from "axios"
 import { useRouter } from "next/router"
 import type { NextPage } from "next"
 import { useEffect, useState } from "react"
-import Head from "next/head"
 import { kratos } from "../components/sdk"
 
 const Home: NextPage = () => {
   const [session, setSession] = useState<string>(
-    "No valid Ory Session was found.\nPlease sign in to receive one.",
+    "No valid Session was found.\nPlease sign in to receive one.",
   )
   const router = useRouter()
 
@@ -40,24 +39,14 @@ const Home: NextPage = () => {
   }, [router])
 
   return (
-    <div className={"container-fluid"}>
-      <Head>
-        <title>Welcome to the Kratos UI</title>
-      </Head>
-      <Card wide>
-        <div className="row">
-          <div className="col-md-8 col-xs-12">
-            <div className="box">
-              <H3>Session Information</H3>
-              <P>
-                Below you will find the decoded Ory Session if you are logged
-                in.
-              </P>
-              <CodeBox className="codebox" data-testid="session-content" code={session} />
-            </div>
-          </div>
-        </div>
-      </Card>
+    <div className="p-code-snippet">
+      <Row >
+              <CodeSnippet blocks={[{
+                title: "Session Information",
+                wrapLines: true,
+                code: session
+              }]} />
+              </Row>
     </div>
   );
 }

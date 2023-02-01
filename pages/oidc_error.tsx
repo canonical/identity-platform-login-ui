@@ -1,16 +1,13 @@
-import { CardTitle, Card } from "@ory/themes"
+import React, { useState, useEffect } from 'react';
+import { Card } from "@canonical/react-components";
 import type { NextPage } from "next"
 import { useRouter } from "next/router"
-import { useEffect } from "react"
 
 
 const OIDCError: NextPage = () => {
+  const [error_msg, setErrorMsg] = useState<string>("");
   const router = useRouter()
   const { error, error_description } = router.query
-  const error_msg = {
-    error: error,
-    error_description: error_description
-  }
 
   useEffect(() => {
     // If the router is not ready yet, or we already have an error, do nothing.
@@ -18,15 +15,20 @@ const OIDCError: NextPage = () => {
       return
     }
 
-    console.log(JSON.stringify(error_msg, null, 2))
-  }, [error, error_description, error_msg, router, router.isReady])
+    setErrorMsg(JSON.stringify({
+        error: error,
+        error_description: error_description
+      },
+      null,
+      2
+    ))
+  }, [error, error_description, router, router.isReady])
 
   return (
     <>
-      <Card wide >
-        <CardTitle>An error occurred</CardTitle>
+      <Card title="An error occurred" >
         <div>
-          <pre className="codebox" >{JSON.stringify(error_msg, null, 2)}</pre>
+          <pre className="codebox" >{error_msg}</pre>
         </div>
       </Card>
     </>

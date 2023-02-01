@@ -1,5 +1,5 @@
 import { FlowError } from "@ory/client"
-import { CardTitle, Card } from "@ory/themes"
+import { Card } from "@canonical/react-components";
 import { AxiosError } from "axios"
 import type { NextPage } from "next"
 import { useRouter } from "next/router"
@@ -48,8 +48,7 @@ const Error: NextPage = () => {
 
   return (
     <>
-      <Card wide>
-        <CardTitle>An error occurred</CardTitle>
+      <Card title="An error occurred">
         <div>
           <pre className="codebox" >{JSON.stringify(error, null, 2)}</pre>
         </div>

@@ -1,7 +1,15 @@
 import { getNodeLabel } from "@ory/integrations/ui"
-import { Checkbox } from "@ory/themes"
 
 import { NodeInputProps } from "./helpers"
+
+const Checkbox = ({ label, value, onChange }) => {
+  return (
+    <label>
+      <input type="checkbox" checked={value} onChange={onChange} />
+      {label}
+    </label>
+  );
+}
 
 export function NodeInputCheckbox({
   node,
@@ -12,7 +20,12 @@ export function NodeInputCheckbox({
   // Render a checkbox.s
   return (
     <>
-      <Checkbox
+    <Checkbox
+      label={getNodeLabel(node)}
+      value={node.messages.map(({ text }) => text).join("\n")}
+      onChange={(e) => setValue(e.target.checked)}
+    />
+      {/* <Checkbox
         name={attributes.name}
         defaultChecked={attributes.value === true}
         onChange={(e) => setValue(e.target.checked)}
@@ -24,7 +37,7 @@ export function NodeInputCheckbox({
             : undefined
         }
         subtitle={node.messages.map(({ text }) => text).join("\n")}
-      />
+      /> */}
     </>
   )
 }

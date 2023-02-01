@@ -1,5 +1,5 @@
 
-import "../styles/globals.css"
+import "../static/css/styles.css"
 import type { AppProps } from "next/app"
 import { useRouter } from "next/router"
 import { ToastContainer } from "react-toastify"

@@ -1,8 +1,5 @@
 import { RegistrationFlow, UpdateRegistrationFlowBody } from "@ory/client"
-import {
-  Card,
-} from "@ory/themes"
-import { CardTitle } from "@ory/themes"
+import { Card } from "@canonical/react-components";
 import { AxiosError } from "axios"
 import type { NextPage } from "next"
 import Head from "next/head"
@@ -11,7 +8,7 @@ import { useEffect, useState } from "react"
 
 // Import render helpers
 import { Flow } from "../components/Flow"
-import { CenterLink } from "../components/Link"
+import Link from "next/link"
 import { handleFlowError } from "../components/errors"
 // Import the SDK
 import { kratos } from "../components/sdk"
@@ -96,14 +93,13 @@ const Registration: NextPage = () => {
         <title>Create account - Ory NextJS Integration Example</title>
         <meta name="description" content="NextJS + React + Vercel + Ory" />
       </Head>
-      <Card>
-        <CardTitle>Create account</CardTitle>
+      <Card title="Create account">
         <Flow onSubmit={onSubmit} flow={flow} />
       </Card>
       <Card>
-        <CenterLink data-testid="cta-link" href="/login">
+        <Link  href="/login">
           Sign in
-        </CenterLink>
+        </Link>
       </Card>
     </>
   )
