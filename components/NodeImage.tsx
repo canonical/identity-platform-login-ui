@@ -1,4 +1,3 @@
-import Image from "next/image"
 import { UiNode, UiNodeImageAttributes } from "@ory/client"
 
 interface Props {
@@ -8,7 +7,7 @@ interface Props {
 
 export const NodeImage = ({ node, attributes }: Props) => {
   return (
-    <Image
+    <img
       data-testid={`node/image/${attributes.id}`}
       src={attributes.src}
       alt={node.meta.label?.text}

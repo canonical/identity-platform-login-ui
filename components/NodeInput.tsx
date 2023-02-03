@@ -11,7 +11,7 @@ export function NodeInputOIDC(props: NodeInputProps) {
   const attributes: UiNodeInputAttributes = props.attributes;
   const provider = attributes.value.split('_')[0];
   if (provider === "hydra") {
-    return
+    return <></>
   }
   const label = provider.charAt(0).toUpperCase() + provider.slice(1);
   node.meta.label.text = label;

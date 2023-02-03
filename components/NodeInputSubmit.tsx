@@ -10,21 +10,17 @@ export function NodeInputSubmit({
   disabled,
   dispatchSubmit,
 }: NodeInputProps) {
-  console.log(attributes)
-  console.log(getNodeLabel(node))
   return (
-    <>
-      <Button
-        // name={attributes.name}
-        onClick={(e) => {
-          // On click, we set this value, and once set, dispatch the submission!
-          setValue(attributes.value).then(() => dispatchSubmit(e))
-        }}
-        disabled={attributes.disabled || disabled}
-        className="login-button"
-      >
-        {getNodeLabel(node)}
-      </Button>
-    </>
+    <Button
+      // name={attributes.name}
+      onClick={(e) => {
+        // On click, we set this value, and once set, dispatch the submission!
+        setValue(attributes.value).then(() => dispatchSubmit(e))
+      }}
+      disabled={attributes.disabled || disabled}
+      className="login-button"
+    >
+      {getNodeLabel(node)}
+    </Button>
   )
 }

@@ -1,5 +1,1 @@
-module.exports = {
-    images: {
-      unoptimized: true,
-    },
-  }
+module.exports = {}
