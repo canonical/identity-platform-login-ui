@@ -1,5 +1,5 @@
 import { LoginFlow, UpdateLoginFlowBody } from "@ory/client"
-import { Card } from "@canonical/react-components";
+import { Card, Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios"
 import type { NextPage } from "next"
 import Head from "next/head"
@@ -53,6 +53,10 @@ const Login: NextPage = () => {
         loginChallenge: login_challenge ? String(login_challenge) : undefined,
       })
       .then(({ data }) => {
+        if (data["redirect_to"] != undefined) {
+          window.location.href = data["redirect_to"]
+          return
+        }
         setFlow(data)
       })
       .catch(handleFlowError(router, "login", setFlow))
@@ -98,9 +102,12 @@ const Login: NextPage = () => {
       <div className="p-strip">
         <div className="login-card">
           <div>
+          {flow ?
           <Card title="Choose Provider" >
             <Flow onSubmit={onSubmit} flow={flow} />
-          </Card>
+          </Card>:
+          <Spinner></Spinner>
+          }
           </div>
         </div>
       </div>
