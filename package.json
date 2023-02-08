@@ -9,7 +9,7 @@
     "@ory/integrations": "^1.1.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^12.1.5",
-    "@testing-library/user-event": "^13.5.0",
+    "@testing-library/user-event": "^14.0.0",
     "next": "^12.1.2",
     "node-sass-chokidar": "^2.0.0",
     "react": "17.0.2",
