@@ -15,6 +15,7 @@
 /bin
 /tmp
 /ory_ui
+*.rock
 
 # misc
 .DS_Store
