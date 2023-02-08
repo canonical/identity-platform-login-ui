@@ -20,6 +20,9 @@
     "vanilla-framework": "^3.11.0",
     "web-vitals": "^2.1.4"
   },
+  "engines": {
+    "node": "18"
+  },
   "scripts": {
     "clean": "rm -rf node_modules css static/css *.log _site/ .next/",
     "dev": "npm run build-css && next dev",
