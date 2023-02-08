@@ -4,7 +4,7 @@ import { AxiosError } from "axios"
 import type { NextPage } from "next"
 import Head from "next/head"
 import { useRouter } from "next/router"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 
 import { handleGetFlowError, handleFlowError } from "../components/errors"
 import { Flow } from "../components/Flow"
@@ -57,7 +57,7 @@ const Login: NextPage = () => {
       })
       .catch(handleFlowError(router, "login", setFlow))
   }, [flowId, router, router.isReady, aal, refresh, returnTo, flow, login_challenge])
-  const onSubmit = (values: UpdateLoginFlowBody) =>
+  const onSubmit = useCallback((values: UpdateLoginFlowBody) =>
     router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
       // his data when she/he reloads the page.
@@ -88,7 +88,7 @@ const Login: NextPage = () => {
 
             return Promise.reject(err)
           }),
-      )
+      ), [flow, router, ])
   return (
     <>
       <Head>

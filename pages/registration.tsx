@@ -4,7 +4,7 @@ import { AxiosError } from "axios"
 import type { NextPage } from "next"
 import Head from "next/head"
 import { useRouter } from "next/router"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 
 // Import render helpers
 import { Flow } from "../components/Flow"
@@ -54,7 +54,7 @@ const Registration: NextPage = () => {
       .catch(handleFlowError(router, "registration", setFlow))
   }, [flowId, router, router.isReady, returnTo, flow])
 
-  const onSubmit = (values: UpdateRegistrationFlowBody) =>
+  const onSubmit = useCallback((values: UpdateRegistrationFlowBody) =>
     router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
       // his data when she/he reloads the page.
@@ -66,12 +66,6 @@ const Registration: NextPage = () => {
             updateRegistrationFlowBody: values,
           })
           .then(({ data }) => {
-            // If we ended up here, it means we are successfully signed up!
-            //
-            // You can do cool stuff here, like having access to the identity which just signed up:
-            console.log("This is the user session: ", data, data.identity)
-
-            // For now however we just want to redirect home!
             return router.push(flow?.return_to || "/").then(() => {})
           })
           .catch(handleFlowError(router, "registration", setFlow))
@@ -85,7 +79,7 @@ const Registration: NextPage = () => {
 
             return Promise.reject(err)
           }),
-      )
+      ), [flow, router])
 
     return (
     <>
