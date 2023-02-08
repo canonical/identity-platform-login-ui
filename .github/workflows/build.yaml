@@ -1,0 +1,50 @@
+name: Build ROCK
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup LXD
+      uses: whywaita/setup-lxd@v1
+      with:
+        lxd_version: latest/stable
+
+    - name: Install dependencies
+      run: |
+        sudo snap install --classic --channel edge rockcraft
+        sudo iptables -F FORWARD
+        sudo iptables -P FORWARD ACCEPT
+    - name: Build ROCK
+      run: rockcraft pack --verbose
+
+    - name: Install Skopeo
+      run: sudo snap install --devmode --channel edge skopeo
+
+    - name: Upload ROCK to ghcr.io
+      run: |
+        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./identity-platform-login-ui_*.rock) docker://ghcr.io/canonical/kratos-ui:latest --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
+    - name: Install Syft
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+    - name: Create SBOM
+      run: syft $(realpath ./identity-platform-login-ui_*.rock) -o spdx-json=identity_platform_login_ui.sbom.json
+
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v3
+      with:
+        name: kratos-ui-sbom
+        path: "identity_platform_login_ui.sbom.json"
+    - name: Upload locally built ROCK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: kratos-ui-rock
+        path: "identity-platform-login-ui*.rock"

@@ -1,5 +1,5 @@
 name: identity-platform-login-ui
-base: ubuntu:22.04
+base: bare
 build-base: ubuntu:22.04
 version: '0.1'
 summary: Canonical Identity platform login UI
@@ -30,6 +30,8 @@ parts:
     override-build: |
       cp -r ~/parts/frontend/build/dist ./ui
       craftctl default
+    stage-packages:
+      - libc6
     after:
       - frontend
 
