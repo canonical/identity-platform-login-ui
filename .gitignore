@@ -14,7 +14,7 @@
 /ui/dist
 /bin
 /tmp
-/ory_ui
+/identity_platform_login_ui
 *.rock
 
 # misc

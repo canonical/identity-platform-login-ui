@@ -31,7 +31,7 @@ jobs:
 
     - name: Upload ROCK to ghcr.io
       run: |
-        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./identity-platform-login-ui_*.rock) docker://ghcr.io/canonical/kratos-ui:latest --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
+        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./identity-platform-login-ui_*.rock) docker://ghcr.io/canonical/identity-platform-login-ui:latest --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
     - name: Install Syft
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -41,10 +41,10 @@ jobs:
     - name: Upload SBOM
       uses: actions/upload-artifact@v3
       with:
-        name: kratos-ui-sbom
+        name: identity-platform-login-ui-sbom
         path: "identity_platform_login_ui.sbom.json"
     - name: Upload locally built ROCK artifact
       uses: actions/upload-artifact@v3
       with:
-        name: kratos-ui-rock
+        name: identity-platform-login-ui-rock
         path: "identity-platform-login-ui*.rock"

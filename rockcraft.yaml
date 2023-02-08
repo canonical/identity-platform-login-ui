@@ -9,7 +9,7 @@ description: |
 license: GPL-3.0
 platforms:
   amd64:
-entrypoint: ["ory_ui"]
+entrypoint: ["identity_platform_login_ui"]
 
 parts:
   frontend:

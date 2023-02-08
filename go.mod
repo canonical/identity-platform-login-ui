@@ -1,4 +1,4 @@
-module ory_ui
+module identity_platform_login_ui
 
 go 1.18
 
