@@ -1,6 +1,6 @@
-# Getting Started with Create React App
+# Identity Platform Login UI
 
-This is a UI for the Ory Kratos identity server. It was based on the [kratos-selfservice-ui-react-nextjs](https://github.com/ory/kratos-selfservice-ui-react-nextjs/).
+This is the UI for the Canonical Identity Platform.
 
 # Running the UI
 ## Binary
@@ -38,5 +38,3 @@ sudo /snap/rockcraft/current/bin/skopeo --insecure-policy copy oci-archive:./my-
 # Run the image
 docker run identity-platform-ui:1.0
 ```
-
-
