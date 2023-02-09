@@ -12,6 +12,7 @@
 # production
 /build
 /ui/dist
+/ui/static/css
 /bin
 /tmp
 /identity_platform_login_ui
