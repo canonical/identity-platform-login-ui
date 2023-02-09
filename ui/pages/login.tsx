@@ -53,7 +53,7 @@ const Login: NextPage = () => {
         loginChallenge: login_challenge ? String(login_challenge) : undefined,
       })
       .then(({ data }) => {
-        if (data["redirect_to"] != undefined) {
+        if (data["redirect_to"] !== undefined) {
           window.location.href = data["redirect_to"]
           return
         }

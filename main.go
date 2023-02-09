@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -53,9 +54,12 @@ func NewHydraClient() *hydra_client.APIClient {
 }
 
 func main() {
-	fs := http.FileServer(http.Dir("ui/dist"))
+	dist, _ := fs.Sub(ui, "ui/dist")
+	fs := http.FileServer(http.FS(dist))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if ext := path.Ext(r.URL.Path); ext == "" {
+		// Add the html suffix if missing
+		// This allows us to serve /login.html in the /login URL
+		if ext := path.Ext(r.URL.Path); ext == "" && r.URL.Path != "/" {
 			r.URL.Path += ".html"
 		}
 		fs.ServeHTTP(w, r)
@@ -107,8 +111,6 @@ func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 		log.Println(resp.Body)
 		writeResponse(w, resp)
-		// w.WriteHeader(200)
-		// w.Write(resp.Body)
 
 		return
 	}
@@ -237,8 +239,6 @@ func writeResponse(w http.ResponseWriter, r *http.Response) {
 	// We need to set the headers before setting the status code, otherwise
 	// the response writer freaks out
 	w.WriteHeader(r.StatusCode)
-	// This assumes POST
-	// TODO: Handle other response methods
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Fatalf("ERROR: %s", err)
