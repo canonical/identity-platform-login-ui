@@ -3,7 +3,7 @@ module identity_platform_login_ui
 go 1.18
 
 require (
-	github.com/ory/hydra-client-go v1.11.8
+	github.com/ory/hydra-client-go/v2 v2.0.3
 	github.com/ory/kratos-client-go v0.11.1
 )
 
