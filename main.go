@@ -119,23 +119,24 @@ func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			if e != nil {
 				log.Printf("Error when calling `FrontendApi.ToSession`: %v\n", e)
 				log.Printf("Full HTTP response: %v\n", session_resp)
-			}
-			accept := hydra_client.NewAcceptLoginRequest(session.Identity.Id)
-			hydra := NewHydraClient()
-			_, resp, e := hydra.AdminApi.AcceptLoginRequest(context.Background()).
-				LoginChallenge(q.Get("login_challenge")).
-				AcceptLoginRequest(*accept).
-				Execute()
-			if e != nil {
-				log.Printf("Error when calling `AdminApi.AcceptLoginRequest`: %v\n", e)
-				log.Printf("Full HTTP response: %v\n", resp)
+			} else {
+				accept := hydra_client.NewAcceptLoginRequest(session.Identity.Id)
+				hydra := NewHydraClient()
+				_, resp, e := hydra.AdminApi.AcceptLoginRequest(context.Background()).
+					LoginChallenge(q.Get("login_challenge")).
+					AcceptLoginRequest(*accept).
+					Execute()
+				if e != nil {
+					log.Printf("Error when calling `AdminApi.AcceptLoginRequest`: %v\n", e)
+					log.Printf("Full HTTP response: %v\n", resp)
+					return
+				}
+
+				log.Println(resp.Body)
+				writeResponse(w, resp)
+
 				return
 			}
-
-			log.Println(resp.Body)
-			writeResponse(w, resp)
-
-			return
 		}
 	}
 
@@ -192,6 +193,7 @@ func handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 func handleKratosError(w http.ResponseWriter, _ *http.Request) {
 	// kratos := NewKratosClient()
+
 	return
 }
 
