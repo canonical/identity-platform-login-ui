@@ -49,8 +49,8 @@ jobs:
       with:
         name: identity-platform-login-ui-rock
         path: "identity-platform-login-ui*.rock"
-    - name: Scan image with Trivy
 
+    - name: Scan image with Trivy
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: "ghcr.io/canonical/identity-platform-login-ui:latest"
