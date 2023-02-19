@@ -43,8 +43,21 @@ jobs:
       with:
         name: identity-platform-login-ui-sbom
         path: "identity_platform_login_ui.sbom.json"
+
     - name: Upload locally built ROCK artifact
       uses: actions/upload-artifact@v3
       with:
         name: identity-platform-login-ui-rock
         path: "identity-platform-login-ui*.rock"
+    - name: Scan image with Trivy
+
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: "ghcr.io/canonical/identity-platform-login-ui:latest"
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload scan results to GitHub
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
