@@ -14,11 +14,34 @@ import (
 	"strconv"
 	"strings"
 
-	hydra_client "github.com/ory/hydra-client-go"
+	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
 )
 
 const defaultPort = "8080"
+
+var oidcScopeMapping = map[string][]string{
+	"openid": {"sub"},
+	"profile": {
+		"name",
+		"family_name",
+		"given_name",
+		"middle_name",
+		"nickname",
+		"preferred_username",
+		"profile",
+		"picture",
+		"website",
+		"gender",
+		"birthdate",
+		"zoneinfo",
+		"locale",
+		"updated_at",
+	},
+	"email":   {"email", "email_verified"},
+	"address": {"address"},
+	"phone":   {"phone_number", "phone_number_verified"},
+}
 
 //go:embed ui/dist
 //go:embed ui/dist/_next
@@ -91,28 +114,30 @@ func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		session, session_resp, e := kratos.FrontendApi.ToSession(context.Background()).
 			Cookie(cookiesToString(r.Cookies())).
 			Execute()
-		if e != nil {
-			log.Printf("Error when calling `FrontendApi.ToSession`: %v\n", e)
-			log.Printf("Full HTTP response: %v\n", session_resp)
-			return
+
+		if session_resp.StatusCode != 401 {
+			if e != nil {
+				log.Printf("Error when calling `FrontendApi.ToSession`: %v\n", e)
+				log.Printf("Full HTTP response: %v\n", session_resp)
+			} else {
+				accept := hydra_client.NewAcceptOAuth2LoginRequest(session.Identity.Id)
+				hydra := NewHydraClient()
+				_, resp, e := hydra.OAuth2Api.AcceptOAuth2LoginRequest(context.Background()).
+					LoginChallenge(q.Get("login_challenge")).
+					AcceptOAuth2LoginRequest(*accept).
+					Execute()
+				if e != nil {
+					log.Printf("Error when calling `AdminApi.AcceptLoginRequest`: %v\n", e)
+					log.Printf("Full HTTP response: %v\n", resp)
+					return
+				}
+
+				log.Println(resp.Body)
+				writeResponse(w, resp)
+
+				return
+			}
 		}
-
-		accept := hydra_client.NewAcceptLoginRequest(session.Identity.Id)
-		hydra := NewHydraClient()
-		_, resp, e := hydra.AdminApi.AcceptLoginRequest(context.Background()).
-			LoginChallenge(q.Get("login_challenge")).
-			AcceptLoginRequest(*accept).
-			Execute()
-		if e != nil {
-			log.Printf("Error when calling `AdminApi.AcceptLoginRequest`: %v\n", e)
-			log.Printf("Full HTTP response: %v\n", resp)
-			return
-		}
-
-		log.Println(resp.Body)
-		writeResponse(w, resp)
-
-		return
 	}
 
 	refresh, err := strconv.ParseBool(q.Get("refresh"))
@@ -195,18 +220,8 @@ func handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ses, ok := session.Identity.Traits.(map[string]interface{})
-	if !ok {
-		// We should never end up here
-		log.Printf("Unexpected traits format: %v\n", ok)
-	}
-	for k, v := range ses {
-		log.Printf("%v == %v\n", k, v)
-
-	}
-
 	// Get the consent request
-	consent, consent_resp, e := hydra.AdminApi.GetConsentRequest(context.Background()).
+	consent, consent_resp, e := hydra.OAuth2Api.GetOAuth2ConsentRequest(context.Background()).
 		ConsentChallenge(q.Get("consent_challenge")).
 		Execute()
 	if e != nil {
@@ -215,12 +230,15 @@ func handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accept_consent_req := hydra_client.NewAcceptConsentRequest()
+	consent_session := hydra_client.NewAcceptOAuth2ConsentRequestSession()
+	consent_session.SetIdToken(getUserClaims(session.Identity, *consent))
+	accept_consent_req := hydra_client.NewAcceptOAuth2ConsentRequest()
 	accept_consent_req.SetGrantScope(consent.RequestedScope)
 	accept_consent_req.SetGrantAccessTokenAudience(consent.RequestedAccessTokenAudience)
-	accept, accept_resp, e := hydra.AdminApi.AcceptConsentRequest(context.Background()).
+	accept_consent_req.SetSession(*consent_session)
+	accept, accept_resp, e := hydra.OAuth2Api.AcceptOAuth2ConsentRequest(context.Background()).
 		ConsentChallenge(q.Get("consent_challenge")).
-		AcceptConsentRequest(*accept_consent_req).
+		AcceptOAuth2ConsentRequest(*accept_consent_req).
 		Execute()
 	if e != nil {
 		log.Printf("Error when calling `AdminApi.AcceptConsentRequest`: %v\n", e)
@@ -271,4 +289,31 @@ func parseBody(r *http.Request, body interface{}) *interface{} {
 		log.Println(err)
 	}
 	return &body
+}
+
+func getUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentRequest) map[string]interface{} {
+	ret := make(map[string]interface{})
+	// Export the user claims and filter them based on the requested scopes
+	traits, ok := i.Traits.(map[string]interface{})
+	if !ok {
+		// We should never end up here
+		log.Printf("Unexpected traits format: %v\n", ok)
+	}
+	log.Println(traits)
+	for _, s := range cr.RequestedScope {
+		cs, ok := oidcScopeMapping[s]
+		if !ok {
+			continue
+		}
+		log.Println(cs)
+		log.Println(s)
+		for _, c := range cs {
+			val, ok := traits[c]
+			if ok {
+				ret[c] = val
+			}
+		}
+	}
+
+	return ret
 }
