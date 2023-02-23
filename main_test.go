@@ -23,12 +23,6 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	//create request and response objects
 	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test", nil)
 	req.Header.Set("Content-Type", "application/json")
-	/* 	cookie := &http.Cookie{
-	   		Name:   "ory_kratos_session",
-	   		Value:  "test-token",
-	   		MaxAge: 300,
-	   	}
-	   	req.AddCookie(cookie) */
 	w := httptest.NewRecorder()
 
 	//test and evaluate test
@@ -56,7 +50,7 @@ func TestHandleCreateFlowWithCookie(t *testing.T) {
 	defer serverClose()
 
 	//create request and response objects
-	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=test_challange&refresh=false&return_to=http://test.test", nil)
+	req := httptest.NewRequest(http.MethodPut, "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=test_challange&refresh=false&return_to=http://test.test", nil)
 	req.Header.Set("Content-Type", "application/json")
 	cookie := &http.Cookie{
 		Name:   "ory_kratos_session",

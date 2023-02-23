@@ -36,7 +36,7 @@ func createHydraMockServer() *httptest.Server {
 	mux.HandleFunc("/admin/oauth2/auth/requests/consent", testConsent.Oauth2AuthRequestConsentHandler)
 	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", testConsent.Oauth2AuthRequestConsentAcceptHandler)
 	s := httptest.NewServer(mux)
-	os.Setenv("HYDRA_ADMIN_URL", s.URL+"/")
+	os.Setenv("HYDRA_ADMIN_URL", s.URL)
 	return s
 }
 
