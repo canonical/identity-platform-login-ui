@@ -1,0 +1,17 @@
+{
+ "$id": "test_identity.schema.json",
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "Test",
+ "type": "object",
+ "properties": {
+  "traits": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+        }
+      }
+    }
+  }
+ }
+

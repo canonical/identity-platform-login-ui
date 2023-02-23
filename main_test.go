@@ -1,74 +1,142 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	testConsent "identity_platform_login_ui/ory_mocking/Consent"
+	testErrors "identity_platform_login_ui/ory_mocking/Errors"
+	testLoginUpdate "identity_platform_login_ui/ory_mocking/Login"
+	testLoginBrowser "identity_platform_login_ui/ory_mocking/LoginBrowser"
+	testServers "identity_platform_login_ui/ory_mocking/Testservers"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
-	"time"
 )
 
-func CreateKratosMockServer() *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/self-service/errors", SelfServiceErrorsHandler)
-	mux.HandleFunc("/sessions/whoami", SessionWhoAmIHandler)
-	mux.HandleFunc("/self-service/login/browser", SelfServiceLoginBrowserHandler)
-	//Post /self-service/login
-	mux.HandleFunc("/self-service/login", SelfServiceLoginHandler)
+// test checks request without cookie
+func TestHandleCreateFlowWithoutCookie(t *testing.T) {
+	//init clients
+	close := testServers.CreateTestServers()
+	defer close()
 
-	s := httptest.NewServer(mux)
-	os.Setenv("KRATOS_PUBLIC_URL", s.URL+"/")
-	return s
-}
-func CreateHydraMockServer() *httptest.Server {
-	mux := http.NewServeMux()
-
-	s := httptest.NewServer(mux)
-	os.Setenv("HYDRA_ADMIN_URL", s.URL+"/")
-	return s
-}
-
-// kratos GET //self-service/login/browser?aal=&login_challenge=&refresh=false&return_to= HTTP/1.1
-// hydra Put /oauth2/auth/requests/login/accept
-func TestHandleCreateFlow(t *testing.T) {
-	kratosClient := CreateKratosMockServer()
-	hydraClient := CreateHydraMockServer()
-	defer kratosClient.Close()
-	defer hydraClient.Close()
-	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/login/browser", nil)
+	//create request and response objects
+	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test", nil)
+	req.Header.Set("Content-Type", "application/json")
+	/* 	cookie := &http.Cookie{
+	   		Name:   "ory_kratos_session",
+	   		Value:  "test-token",
+	   		MaxAge: 300,
+	   	}
+	   	req.AddCookie(cookie) */
 	w := httptest.NewRecorder()
+
+	//test and evaluate test
 	handleCreateFlow(w, req)
 	res := w.Result()
 	defer res.Body.Close()
-	_, err := ioutil.ReadAll(res.Body)
+	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
+	lbr := new(testLoginBrowser.LoginBrowserResponse)
+	if err := json.Unmarshal(data, lbr); err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	if lbr.Id != "test_id" {
+		t.Errorf("expected test_id, got %v", string(data))
+	}
 }
 
-// POST //self-service/login?flow= HTTP/1.1
-func TestHandleUpdateFlow(t *testing.T) {
-	kratosClient := CreateKratosMockServer()
-	hydraClient := CreateHydraMockServer()
-	defer kratosClient.Close()
-	defer hydraClient.Close()
-	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/login", nil)
+// NOT WORKING:
+// PROBLEM: Hydra client sends empty body to endpoint
+func TestHandleCreateFlowWithCookie(t *testing.T) {
+	//init clients
+	close := testServers.CreateTestServers()
+	defer close()
+
+	//create request and response objects
+	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=test_challange&refresh=false&return_to=http://test.test", nil)
+	req.Header.Set("Content-Type", "application/json")
+	cookie := &http.Cookie{
+		Name:   "ory_kratos_session",
+		Value:  "test-token",
+		MaxAge: 300,
+	}
+	req.AddCookie(cookie)
 	w := httptest.NewRecorder()
-	handleUpdateFlow(w, req)
+
+	//test and evaluate test
+	handleCreateFlow(w, req)
 	res := w.Result()
 	defer res.Body.Close()
-	_, err := ioutil.ReadAll(res.Body)
+	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
+	}
+	if res.StatusCode != 200 {
+		t.Errorf("expected StatusCode to be 200 got %v", res.StatusCode)
+	}
+	requestLoginResponse := new(testLoginBrowser.OAuth2RequestLoginResponse)
+	if err := json.Unmarshal(data, requestLoginResponse); err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	if requestLoginResponse.Redirect_to != "test.test" {
+		t.Errorf("expected test.test, got %v", string(data))
+	}
+}
+
+func TestHandleUpdateFlow(t *testing.T) {
+	//init clients
+	close := testServers.CreateTestServers()
+	defer close()
+
+	//create request
+	body := testLoginBrowser.LoginBody{
+		Method:   "oidc",
+		Provider: "microsoft",
+	}
+	bodyJson, err := json.Marshal(body)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	bodyReader := bytes.NewReader(bodyJson)
+	req := httptest.NewRequest(http.MethodPost, "/api/kratos/self-service/login?flow=1111", bodyReader)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Session-Token", "test-x-session-token")
+	cookie := &http.Cookie{
+		Name:   "ory_kratos_session",
+		Value:  "test-token",
+		MaxAge: 300,
+	}
+	req.AddCookie(cookie)
+
+	//create response
+	w := httptest.NewRecorder()
+	//start function
+	handleUpdateFlow(w, req)
+	//check results
+	res := w.Result()
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	loginUpdateResponse := new(testLoginUpdate.LoginUpdateResponse)
+	if err := json.Unmarshal(data, loginUpdateResponse); err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	if loginUpdateResponse.Session_token != "test-token" {
+		t.Errorf("expected test-token, got %v", string(data))
+	}
+	if loginUpdateResponse.Session.Id != "test-1111" {
+		t.Errorf("expected test-1111, got %v", string(data))
 	}
 }
 
 func TestHandleKratosError(t *testing.T) {
-	client := CreateKratosMockServer()
-	defer client.Close()
+	close := testServers.CreateTestServers()
+	defer close()
 	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/errors?id=1111", nil)
 	w := httptest.NewRecorder()
 	handleKratosError(w, req)
@@ -78,7 +146,7 @@ func TestHandleKratosError(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	te := new(TestErrorReport)
+	te := new(testErrors.TestErrorReport)
 	if err := json.Unmarshal(data, te); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
@@ -87,70 +155,25 @@ func TestHandleKratosError(t *testing.T) {
 	}
 }
 
-// GET //sessions/whoami HTTP/1.1
-// hydra Get /oauth2/auth/requests/consent
-// hydra Put /oauth2/auth/requests/consent/accept
 func TestHandleConsent(t *testing.T) {
-	kratosClient := CreateKratosMockServer()
-	hydraClient := CreateHydraMockServer()
-	defer kratosClient.Close()
-	defer hydraClient.Close()
-	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+	close := testServers.CreateTestServers()
+	defer close()
+	t.Logf("\nbefore calling\n")
+	req := httptest.NewRequest(http.MethodGet, "/api/consent?consent_challenge=test_challange", nil)
 	w := httptest.NewRecorder()
 	handleConsent(w, req)
+	t.Logf("\nafter calling\n")
 	res := w.Result()
 	defer res.Body.Close()
-	_, err := ioutil.ReadAll(res.Body)
+	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-}
-
-type TestErrorReport struct {
-	Id         string    `json:"id"`
-	Error      TestError `json:"error"`
-	Created_at string    `json:"created_at"`
-	Updated_at string    `json:"updated_at"`
-}
-
-type TestError struct {
-	Code    int    `json:"code"`
-	Status  string `json:"status"`
-	Reason  string `json:"reason"`
-	Message string `json:"message"`
-}
-
-func SelfServiceErrorsHandler(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	id := q.Get("id")
-	e := TestError{
-		Code:    400,
-		Status:  "Bad Request",
-		Reason:  "This is a test",
-		Message: "This is a test",
+	responseRedirect := new(testConsent.OAuth2ConsentAcceptResponse)
+	if err := json.Unmarshal(data, responseRedirect); err != nil {
+		t.Errorf("expected error to be nil got %v", err)
 	}
-	et := TestErrorReport{
-		Id:         id,
-		Error:      e,
-		Created_at: time.Now().Format("2006-01-02T15:04:05Z07:00"),
-		Updated_at: time.Now().Format("2006-01-02T15:04:05Z07:00"),
+	if responseRedirect.Redirect_to != "test.test" {
+		t.Errorf("expected test.test, got %v", string(data))
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	response, err := json.Marshal(et)
-	if err != nil {
-		log.Printf("Bug in test: CreateKratosMockServer\nerror: %s", err.Error())
-	}
-	w.Write(response)
-	return
-}
-
-func SessionWhoAmIHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-func SelfServiceLoginBrowserHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-func SelfServiceLoginHandler(w http.ResponseWriter, r *http.Request) {
-
 }
