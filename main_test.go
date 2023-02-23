@@ -17,8 +17,8 @@ import (
 // test checks request without cookie
 func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	//init clients
-	close := testServers.CreateTestServers()
-	defer close()
+	serverClose := testServers.CreateTestServers()
+	defer serverClose()
 
 	//create request and response objects
 	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test", nil)
@@ -52,8 +52,8 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 // PROBLEM: Hydra client sends empty body to endpoint
 func TestHandleCreateFlowWithCookie(t *testing.T) {
 	//init clients
-	close := testServers.CreateTestServers()
-	defer close()
+	serverClose := testServers.CreateTestServers()
+	defer serverClose()
 
 	//create request and response objects
 	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=test_challange&refresh=false&return_to=http://test.test", nil)
@@ -88,8 +88,8 @@ func TestHandleCreateFlowWithCookie(t *testing.T) {
 
 func TestHandleUpdateFlow(t *testing.T) {
 	//init clients
-	close := testServers.CreateTestServers()
-	defer close()
+	serverClose := testServers.CreateTestServers()
+	defer serverClose()
 
 	//create request
 	body := testLoginBrowser.LoginBody{
@@ -135,8 +135,8 @@ func TestHandleUpdateFlow(t *testing.T) {
 }
 
 func TestHandleKratosError(t *testing.T) {
-	close := testServers.CreateTestServers()
-	defer close()
+	serverClose := testServers.CreateTestServers()
+	defer serverClose()
 	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/errors?id=1111", nil)
 	w := httptest.NewRecorder()
 	handleKratosError(w, req)
@@ -156,8 +156,8 @@ func TestHandleKratosError(t *testing.T) {
 }
 
 func TestHandleConsent(t *testing.T) {
-	close := testServers.CreateTestServers()
-	defer close()
+	serverClose := testServers.CreateTestServers()
+	defer serverClose()
 	t.Logf("\nbefore calling\n")
 	req := httptest.NewRequest(http.MethodGet, "/api/consent?consent_challenge=test_challange", nil)
 	w := httptest.NewRecorder()
