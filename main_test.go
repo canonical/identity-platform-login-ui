@@ -42,8 +42,6 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	}
 }
 
-// NOT WORKING:
-// PROBLEM: Hydra client sends empty body to endpoint
 func TestHandleCreateFlowWithCookie(t *testing.T) {
 	//init clients
 	serverClose := testServers.CreateTestServers()
