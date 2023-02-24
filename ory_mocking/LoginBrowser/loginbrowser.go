@@ -63,8 +63,6 @@ func Oauth2AuthRequestLoginAcceptHandler(w http.ResponseWriter, r *http.Request)
 		log.Printf("Bug in test: Oauth2AuthRequestLoginAcceptHandler\nerror: %s", err.Error())
 	}
 	r.ParseForm()
-	log.Printf("form: %s\n\n", r.Form.Get("subject"))
-	log.Printf("data: %s\n\n", string(data))
 	if err = json.Unmarshal(data, login); err != nil {
 		log.Printf("Bug in test: Oauth2AuthRequestLoginAcceptHandler\nerror: %s", err.Error())
 	}

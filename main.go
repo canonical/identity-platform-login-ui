@@ -114,7 +114,7 @@ func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		session, session_resp, e := kratos.FrontendApi.ToSession(context.Background()).
 			Cookie(cookiesToString(r.Cookies())).
 			Execute()
-
+		//added now
 		if session_resp.StatusCode != 401 {
 			if e != nil {
 				log.Printf("Error when calling `FrontendApi.ToSession`: %v\n", e)

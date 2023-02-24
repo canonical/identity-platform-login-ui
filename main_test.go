@@ -8,13 +8,16 @@ import (
 	testLoginUpdate "identity_platform_login_ui/ory_mocking/Login"
 	testLoginBrowser "identity_platform_login_ui/ory_mocking/LoginBrowser"
 	testServers "identity_platform_login_ui/ory_mocking/Testservers"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-// test checks request without cookie
+// --------------------------------------------
+// TESTING WITH CORRECT SERVERS
+// --------------------------------------------
 func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	//init clients
 	serverClose := testServers.CreateTestServers()
@@ -150,11 +153,9 @@ func TestHandleKratosError(t *testing.T) {
 func TestHandleConsent(t *testing.T) {
 	serverClose := testServers.CreateTestServers()
 	defer serverClose()
-	t.Logf("\nbefore calling\n")
 	req := httptest.NewRequest(http.MethodGet, "/api/consent?consent_challenge=test_challange", nil)
 	w := httptest.NewRecorder()
 	handleConsent(w, req)
-	t.Logf("\nafter calling\n")
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
@@ -168,4 +169,123 @@ func TestHandleConsent(t *testing.T) {
 	if responseRedirect.Redirect_to != "test.test" {
 		t.Errorf("expected test.test, got %v", string(data))
 	}
+}
+
+// --------------------------------------------
+// TESTING WITH TIMEOUT SERVERS
+// currently only prints out results main.go needs pr to handle timeouts
+// --------------------------------------------
+func TestHandleCreateFlowTimeout(t *testing.T) {
+	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodPut,
+		"/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test",
+		nil, handleCreateFlow)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	t.Logf("Result:\n%s\n", string(data))
+}
+func TestHandleUpdateFlowTimeout(t *testing.T) {
+	//create request
+	body := testLoginBrowser.LoginBody{
+		Method:   "oidc",
+		Provider: "microsoft",
+	}
+	bodyJson, err := json.Marshal(body)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	bodyReader := bytes.NewReader(bodyJson)
+	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodPost,
+		"/api/kratos/self-service/login?flow=1111",
+		bodyReader, handleUpdateFlow)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	t.Logf("Result:\n%s\n", string(data))
+}
+func TestHandleKratosErrorTimeout(t *testing.T) {
+	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodGet,
+		"/api/kratos/self-service/errors?id=1111",
+		nil, handleKratosError)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	t.Logf("Result:\n%s\n", string(data))
+}
+func TestHandleConsentTimeout(t *testing.T) {
+	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodGet,
+		"/api/consent?consent_challenge=test_challange",
+		nil, handleConsent)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	t.Logf("Result:\n%s\n", string(data))
+}
+
+// --------------------------------------------
+// TESTING WITH ERROR SERVERS
+// currently only prints out results main.go needs pr to handle errors
+// --------------------------------------------
+func TestHandleCreateFlowError(t *testing.T) {
+	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodPut,
+		"/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test",
+		nil, handleCreateFlow)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	t.Logf("Result:\n%s\n", string(data))
+}
+func TestHandleUpdateFlowError(t *testing.T) {
+	//create request
+	body := testLoginBrowser.LoginBody{
+		Method:   "oidc",
+		Provider: "microsoft",
+	}
+	bodyJson, err := json.Marshal(body)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	bodyReader := bytes.NewReader(bodyJson)
+	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodPost,
+		"/api/kratos/self-service/login?flow=1111",
+		bodyReader, handleUpdateFlow)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	t.Logf("Result:\n%s\n", string(data))
+}
+func TestHandleKratosErrorError(t *testing.T) {
+	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodGet,
+		"/api/kratos/self-service/errors?id=1111",
+		nil, handleKratosError)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	t.Logf("Result:\n%s\n", string(data))
+}
+func TestHandleConsentError(t *testing.T) {
+	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodGet,
+		"/api/consent?consent_challenge=test_challange",
+		nil, handleConsent)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	t.Logf("Result:\n%s\n", string(data))
+}
+
+// This is a helper function to speed up development
+func CreateGenericTest(serverCreater func() func(), HttpMethod string, reqHTTPEndpoint string, RequestBody io.Reader, testFunction func(w http.ResponseWriter, r *http.Request)) ([]byte, error) {
+	serverClose := serverCreater()
+	defer serverClose()
+	req := httptest.NewRequest(http.MethodGet, "/api/consent?consent_challenge=test_challange", nil)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	testFunction(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
