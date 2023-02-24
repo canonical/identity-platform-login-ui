@@ -1,0 +1,23 @@
+name: Upload Go Unit tests
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+      - name: Install dependencies
+        run: go get .
+      - name: Test with Go
+        run: go test -json > TestResults.json
+      - name: Upload Go test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: Go-results
+          path: TestResults.json

@@ -7,6 +7,8 @@ on:
       - main
 
 jobs:
+  unit-test:
+    uses: ./.github/workflows/unittest.yaml
   main:
     runs-on: ubuntu-latest
     steps:
@@ -50,14 +52,6 @@ jobs:
         name: identity-platform-login-ui-rock
         path: "identity-platform-login-ui*.rock"
 
-    - name: Scan image with Trivy
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: "ghcr.io/canonical/identity-platform-login-ui:latest"
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
-    - name: Upload scan results to GitHub
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: 'trivy-results.sarif'
+  scan:
+    needs: main
+    uses: ./.github/workflows/scan.yaml
