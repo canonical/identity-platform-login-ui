@@ -3,16 +3,29 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	testConsent "identity_platform_login_ui/ory_mocking/Consent"
-	testErrors "identity_platform_login_ui/ory_mocking/Errors"
-	testLoginUpdate "identity_platform_login_ui/ory_mocking/Login"
-	testLoginBrowser "identity_platform_login_ui/ory_mocking/LoginBrowser"
+	handlers "identity_platform_login_ui/ory_mocking/Handlers"
 	testServers "identity_platform_login_ui/ory_mocking/Testservers"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	hydra_client "github.com/ory/hydra-client-go/v2"
+	kratos_client "github.com/ory/kratos-client-go"
+	"github.com/stretchr/testify/assert"
+)
+
+const (
+	EXPECTED_NIL_ERROR_MESSAGE   = "expected error to be nil got %v"
+	HANDLE_CREATE_FLOW_URL       = "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test"
+	COOKIE_NAME                  = "ory_kratos_session"
+	COOKIE_VALUE                 = "test-token"
+	UPDATE_LOGIN_FLOW_METHOD     = "oidc"
+	UPDATE_LOGIN_FLOW_PROVIDER   = "microsoft"
+	HANDLE_UPDATE_LOGIN_FLOW_URL = "/api/kratos/self-service/login?flow=1111"
+	HANDLE_ERROR_URL             = "/api/kratos/self-service/errors?id=1111"
+	HANDLE_CONSENT_URL           = "/api/consent?consent_challenge=test_challange"
 )
 
 // --------------------------------------------
@@ -20,11 +33,10 @@ import (
 // --------------------------------------------
 func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	//init clients
-	serverClose := testServers.CreateTestServers()
-	defer serverClose()
+	t.Cleanup(testServers.CreateTestServers())
 
 	//create request and response objects
-	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test", nil)
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -36,26 +48,23 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	lbr := new(testLoginBrowser.LoginBrowserResponse)
-	if err := json.Unmarshal(data, lbr); err != nil {
+	loginFlow := kratos_client.NewLoginFlowWithDefaults()
+	if err := json.Unmarshal(data, loginFlow); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	if lbr.Id != "test_id" {
-		t.Errorf("expected test_id, got %v", string(data))
-	}
+	assert.Equalf(t, handlers.BROWSER_LOGIN_ID, loginFlow.Id, "Expected %s, got %s", handlers.BROWSER_LOGIN_ID, loginFlow.Id)
 }
 
 func TestHandleCreateFlowWithCookie(t *testing.T) {
 	//init clients
-	serverClose := testServers.CreateTestServers()
-	defer serverClose()
+	t.Cleanup(testServers.CreateTestServers())
 
 	//create request and response objects
-	req := httptest.NewRequest(http.MethodPut, "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=test_challange&refresh=false&return_to=http://test.test", nil)
+	req := httptest.NewRequest(http.MethodPut, HANDLE_CREATE_FLOW_URL, nil)
 	req.Header.Set("Content-Type", "application/json")
 	cookie := &http.Cookie{
-		Name:   "ory_kratos_session",
-		Value:  "test-token",
+		Name:   COOKIE_NAME,
+		Value:  COOKIE_VALUE,
 		MaxAge: 300,
 	}
 	req.AddCookie(cookie)
@@ -72,36 +81,33 @@ func TestHandleCreateFlowWithCookie(t *testing.T) {
 	if res.StatusCode != 200 {
 		t.Errorf("expected StatusCode to be 200 got %v", res.StatusCode)
 	}
-	requestLoginResponse := new(testLoginBrowser.OAuth2RequestLoginResponse)
+	requestLoginResponse := hydra_client.NewOAuth2RedirectToWithDefaults()
 	if err := json.Unmarshal(data, requestLoginResponse); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	if requestLoginResponse.Redirect_to != "test.test" {
+	if requestLoginResponse.RedirectTo != handlers.REDIRECT {
 		t.Errorf("expected test.test, got %v", string(data))
 	}
+	assert.Equalf(t, handlers.REDIRECT, requestLoginResponse.RedirectTo, "Expected %s, got %s", handlers.REDIRECT, requestLoginResponse.RedirectTo)
 }
 
 func TestHandleUpdateFlow(t *testing.T) {
 	//init clients
-	serverClose := testServers.CreateTestServers()
-	defer serverClose()
+	t.Cleanup(testServers.CreateTestServers())
 
 	//create request
-	body := testLoginBrowser.LoginBody{
-		Method:   "oidc",
-		Provider: "microsoft",
-	}
-	bodyJson, err := json.Marshal(body)
+	body := kratos_client.NewUpdateLoginFlowWithOidcMethod(UPDATE_LOGIN_FLOW_METHOD, UPDATE_LOGIN_FLOW_PROVIDER)
+	bodyJson, err := json.Marshal(*body)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 	bodyReader := bytes.NewReader(bodyJson)
-	req := httptest.NewRequest(http.MethodPost, "/api/kratos/self-service/login?flow=1111", bodyReader)
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_LOGIN_FLOW_URL, bodyReader)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Session-Token", "test-x-session-token")
 	cookie := &http.Cookie{
-		Name:   "ory_kratos_session",
-		Value:  "test-token",
+		Name:   COOKIE_NAME,
+		Value:  COOKIE_VALUE,
 		MaxAge: 300,
 	}
 	req.AddCookie(cookie)
@@ -117,22 +123,17 @@ func TestHandleUpdateFlow(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	loginUpdateResponse := new(testLoginUpdate.LoginUpdateResponse)
+	loginUpdateResponse := kratos_client.NewSuccessfulNativeLoginWithDefaults()
 	if err := json.Unmarshal(data, loginUpdateResponse); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	if loginUpdateResponse.Session_token != "test-token" {
-		t.Errorf("expected test-token, got %v", string(data))
-	}
-	if loginUpdateResponse.Session.Id != "test-1111" {
-		t.Errorf("expected test-1111, got %v", string(data))
-	}
+	assert.Equalf(t, handlers.SESSION_ID, loginUpdateResponse.Session.Id, "Expected %s, got %s", handlers.SESSION_ID, loginUpdateResponse.Session.Id)
 }
 
 func TestHandleKratosError(t *testing.T) {
-	serverClose := testServers.CreateTestServers()
-	defer serverClose()
-	req := httptest.NewRequest(http.MethodGet, "/api/kratos/self-service/errors?id=1111", nil)
+	t.Cleanup(testServers.CreateTestServers())
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_ERROR_URL, nil)
 	w := httptest.NewRecorder()
 	handleKratosError(w, req)
 	res := w.Result()
@@ -141,19 +142,18 @@ func TestHandleKratosError(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	te := new(testErrors.TestErrorReport)
+	te := new(handlers.TestErrorReport)
 	if err := json.Unmarshal(data, te); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	if te.Error.Message != "This is a test" {
-		t.Errorf("expected This is a test, got %v", string(data))
-	}
+	assert.Equalf(t, handlers.ERROR_MESSAGE, te.Error.Message, "Expected %s, got %s", handlers.ERROR_MESSAGE, te.Error.Message)
+
 }
 
 func TestHandleConsent(t *testing.T) {
-	serverClose := testServers.CreateTestServers()
-	defer serverClose()
-	req := httptest.NewRequest(http.MethodGet, "/api/consent?consent_challenge=test_challange", nil)
+	t.Cleanup(testServers.CreateTestServers())
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CONSENT_URL, nil)
 	w := httptest.NewRecorder()
 	handleConsent(w, req)
 	res := w.Result()
@@ -162,13 +162,15 @@ func TestHandleConsent(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	responseRedirect := new(testConsent.OAuth2ConsentAcceptResponse)
+	responseRedirect := hydra_client.NewOAuth2RedirectToWithDefaults()
 	if err := json.Unmarshal(data, responseRedirect); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	if responseRedirect.Redirect_to != "test.test" {
+
+	if responseRedirect.RedirectTo != "test.test" {
 		t.Errorf("expected test.test, got %v", string(data))
 	}
+	assert.Equalf(t, "test.test", responseRedirect.RedirectTo, "Expected %s, got %s.", "test.test", responseRedirect.RedirectTo)
 }
 
 // --------------------------------------------
@@ -177,7 +179,7 @@ func TestHandleConsent(t *testing.T) {
 // --------------------------------------------
 func TestHandleCreateFlowTimeout(t *testing.T) {
 	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodPut,
-		"/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test",
+		HANDLE_CREATE_FLOW_URL,
 		nil, handleCreateFlow)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -186,17 +188,14 @@ func TestHandleCreateFlowTimeout(t *testing.T) {
 }
 func TestHandleUpdateFlowTimeout(t *testing.T) {
 	//create request
-	body := testLoginBrowser.LoginBody{
-		Method:   "oidc",
-		Provider: "microsoft",
-	}
-	bodyJson, err := json.Marshal(body)
+	body := kratos_client.NewUpdateLoginFlowWithOidcMethod(UPDATE_LOGIN_FLOW_METHOD, UPDATE_LOGIN_FLOW_PROVIDER)
+	bodyJson, err := json.Marshal(*body)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 	bodyReader := bytes.NewReader(bodyJson)
 	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodPost,
-		"/api/kratos/self-service/login?flow=1111",
+		HANDLE_UPDATE_LOGIN_FLOW_URL,
 		bodyReader, handleUpdateFlow)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -205,7 +204,7 @@ func TestHandleUpdateFlowTimeout(t *testing.T) {
 }
 func TestHandleKratosErrorTimeout(t *testing.T) {
 	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodGet,
-		"/api/kratos/self-service/errors?id=1111",
+		HANDLE_ERROR_URL,
 		nil, handleKratosError)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -214,7 +213,7 @@ func TestHandleKratosErrorTimeout(t *testing.T) {
 }
 func TestHandleConsentTimeout(t *testing.T) {
 	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodGet,
-		"/api/consent?consent_challenge=test_challange",
+		HANDLE_CONSENT_URL,
 		nil, handleConsent)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -228,7 +227,7 @@ func TestHandleConsentTimeout(t *testing.T) {
 // --------------------------------------------
 func TestHandleCreateFlowError(t *testing.T) {
 	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodPut,
-		"/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test",
+		HANDLE_CREATE_FLOW_URL,
 		nil, handleCreateFlow)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -237,17 +236,14 @@ func TestHandleCreateFlowError(t *testing.T) {
 }
 func TestHandleUpdateFlowError(t *testing.T) {
 	//create request
-	body := testLoginBrowser.LoginBody{
-		Method:   "oidc",
-		Provider: "microsoft",
-	}
-	bodyJson, err := json.Marshal(body)
+	body := kratos_client.NewUpdateLoginFlowWithOidcMethod(UPDATE_LOGIN_FLOW_METHOD, UPDATE_LOGIN_FLOW_PROVIDER)
+	bodyJson, err := json.Marshal(*body)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 	bodyReader := bytes.NewReader(bodyJson)
 	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodPost,
-		"/api/kratos/self-service/login?flow=1111",
+		HANDLE_UPDATE_LOGIN_FLOW_URL,
 		bodyReader, handleUpdateFlow)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -256,7 +252,7 @@ func TestHandleUpdateFlowError(t *testing.T) {
 }
 func TestHandleKratosErrorError(t *testing.T) {
 	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodGet,
-		"/api/kratos/self-service/errors?id=1111",
+		HANDLE_ERROR_URL,
 		nil, handleKratosError)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -265,7 +261,7 @@ func TestHandleKratosErrorError(t *testing.T) {
 }
 func TestHandleConsentError(t *testing.T) {
 	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodGet,
-		"/api/consent?consent_challenge=test_challange",
+		HANDLE_CONSENT_URL,
 		nil, handleConsent)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -277,7 +273,7 @@ func TestHandleConsentError(t *testing.T) {
 func CreateGenericTest(serverCreater func() func(), HttpMethod string, reqHTTPEndpoint string, RequestBody io.Reader, testFunction func(w http.ResponseWriter, r *http.Request)) ([]byte, error) {
 	serverClose := serverCreater()
 	defer serverClose()
-	req := httptest.NewRequest(http.MethodGet, "/api/consent?consent_challenge=test_challange", nil)
+	req := httptest.NewRequest(http.MethodGet, reqHTTPEndpoint, nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	testFunction(w, req)

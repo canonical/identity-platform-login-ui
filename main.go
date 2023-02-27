@@ -102,6 +102,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
+// TODO: Validate response when server error handling is implemented
 func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	kratos := NewKratosClient()
@@ -114,7 +115,6 @@ func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		session, session_resp, e := kratos.FrontendApi.ToSession(context.Background()).
 			Cookie(cookiesToString(r.Cookies())).
 			Execute()
-		//added now
 		if session_resp.StatusCode != 401 {
 			if e != nil {
 				log.Printf("Error when calling `FrontendApi.ToSession`: %v\n", e)
@@ -164,6 +164,7 @@ func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// TODO: Validate response when server error handling is implemented
 func handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	kratos := NewKratosClient()
@@ -191,6 +192,7 @@ func handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// TODO: Validate response when server error handling is implemented
 func handleKratosError(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	id := q.Get("id")
@@ -205,6 +207,7 @@ func handleKratosError(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// TODO: Validate response when server error handling is implemented
 func handleConsent(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	kratos := NewKratosClient()

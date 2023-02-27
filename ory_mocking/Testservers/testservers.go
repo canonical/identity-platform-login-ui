@@ -2,12 +2,7 @@ package Testservers
 
 import (
 	"fmt"
-	testConsent "identity_platform_login_ui/ory_mocking/Consent"
-	testErrors "identity_platform_login_ui/ory_mocking/Errors"
-	testLoginUpdate "identity_platform_login_ui/ory_mocking/Login"
-	testLoginBrowser "identity_platform_login_ui/ory_mocking/LoginBrowser"
-	serverError "identity_platform_login_ui/ory_mocking/ServerError"
-	testSession "identity_platform_login_ui/ory_mocking/Session"
+	handlers "identity_platform_login_ui/ory_mocking/Handlers"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -22,20 +17,20 @@ var schema *httptest.Server
 
 func createKratosMockServer() *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/self-service/errors", testErrors.SelfServiceErrorsHandler)
-	mux.HandleFunc("/sessions/whoami", testSession.SessionWhoAmIHandler)
-	mux.HandleFunc("/self-service/login/browser", testLoginBrowser.SelfServiceLoginBrowserHandler)
-	mux.HandleFunc("/self-service/login", testLoginUpdate.SelfServiceLoginHandler)
+	mux.HandleFunc("/self-service/errors", handlers.SelfServiceErrorsHandler)
+	mux.HandleFunc("/sessions/whoami", handlers.SessionWhoAmIHandler)
+	mux.HandleFunc("/self-service/login/browser", handlers.SelfServiceLoginBrowserHandler)
+	mux.HandleFunc("/self-service/login", handlers.SelfServiceLoginHandler)
 
 	s := httptest.NewServer(mux)
-	os.Setenv("KRATOS_PUBLIC_URL", s.URL+"/")
+	os.Setenv("KRATOS_PUBLIC_URL", s.URL)
 	return s
 }
 func createHydraMockServer() *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", testLoginBrowser.Oauth2AuthRequestLoginAcceptHandler)
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent", testConsent.Oauth2AuthRequestConsentHandler)
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", testConsent.Oauth2AuthRequestConsentAcceptHandler)
+	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", handlers.Oauth2AuthRequestLoginAcceptHandler)
+	mux.HandleFunc("/admin/oauth2/auth/requests/consent", handlers.Oauth2AuthRequestConsentHandler)
+	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", handlers.Oauth2AuthRequestConsentAcceptHandler)
 	s := httptest.NewServer(mux)
 	os.Setenv("HYDRA_ADMIN_URL", s.URL)
 	return s
@@ -46,8 +41,8 @@ func createSchemaMockServer() *httptest.Server {
 	mux.HandleFunc("/testschema", SchemaHandler)
 	s := httptest.NewServer(mux)
 	schema_server_url = s.URL
-	testSession.SetSchemaServerURL(s.URL)
-	testLoginUpdate.SetSchemaServerURL(s.URL)
+	handlers.SetSchemaServerURL(s.URL)
+	handlers.SetSchemaServerURL(s.URL)
 	return s
 }
 
@@ -78,10 +73,10 @@ func CreateTestServers() func() {
 
 func createKratosTimeoutMockServer() *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/self-service/errors", serverError.TimeoutHandler)
-	mux.HandleFunc("/sessions/whoami", serverError.TimeoutHandler)
-	mux.HandleFunc("/self-service/login/browser", serverError.TimeoutHandler)
-	mux.HandleFunc("/self-service/login", serverError.TimeoutHandler)
+	mux.HandleFunc("/self-service/errors", handlers.TimeoutHandler)
+	mux.HandleFunc("/sessions/whoami", handlers.TimeoutHandler)
+	mux.HandleFunc("/self-service/login/browser", handlers.TimeoutHandler)
+	mux.HandleFunc("/self-service/login", handlers.TimeoutHandler)
 
 	s := httptest.NewServer(mux)
 	os.Setenv("KRATOS_PUBLIC_URL", s.URL+"/")
@@ -89,9 +84,9 @@ func createKratosTimeoutMockServer() *httptest.Server {
 }
 func createHydraTimeoutMockServer() *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", serverError.TimeoutHandler)
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent", serverError.TimeoutHandler)
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", serverError.TimeoutHandler)
+	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", handlers.TimeoutHandler)
+	mux.HandleFunc("/admin/oauth2/auth/requests/consent", handlers.TimeoutHandler)
+	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", handlers.TimeoutHandler)
 	s := httptest.NewServer(mux)
 	os.Setenv("HYDRA_ADMIN_URL", s.URL)
 	return s
@@ -108,10 +103,10 @@ func CreateTimeoutServers() func() {
 
 func createKratosErrorMockServer() *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/self-service/errors", serverError.CreateHandlerWithError("SelfServiceErrorsHandler"))
-	mux.HandleFunc("/sessions/whoami", serverError.CreateHandlerWithError("SessionWhoAmIHandler"))
-	mux.HandleFunc("/self-service/login/browser", serverError.CreateHandlerWithError("SelfServiceLoginBrowserHandler"))
-	mux.HandleFunc("/self-service/login", serverError.CreateHandlerWithError("SelfServiceLoginHandler"))
+	mux.HandleFunc("/self-service/errors", handlers.CreateHandlerWithError("SelfServiceErrorsHandler"))
+	mux.HandleFunc("/sessions/whoami", handlers.CreateHandlerWithError("SessionWhoAmIHandler"))
+	mux.HandleFunc("/self-service/login/browser", handlers.CreateHandlerWithError("SelfServiceLoginBrowserHandler"))
+	mux.HandleFunc("/self-service/login", handlers.CreateHandlerWithError("SelfServiceLoginHandler"))
 
 	s := httptest.NewServer(mux)
 	os.Setenv("KRATOS_PUBLIC_URL", s.URL+"/")
@@ -119,9 +114,9 @@ func createKratosErrorMockServer() *httptest.Server {
 }
 func createHydraErrorMockServer() *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", serverError.CreateHandlerWithError("Oauth2AuthRequestLoginAcceptHandler"))
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent", serverError.CreateHandlerWithError("Oauth2AuthRequestConsentHandler"))
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", serverError.CreateHandlerWithError("Oauth2AuthRequestConsentAcceptHandler"))
+	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", handlers.CreateHandlerWithError("Oauth2AuthRequestLoginAcceptHandler"))
+	mux.HandleFunc("/admin/oauth2/auth/requests/consent", handlers.CreateHandlerWithError("Oauth2AuthRequestConsentHandler"))
+	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", handlers.CreateHandlerWithError("Oauth2AuthRequestConsentAcceptHandler"))
 	s := httptest.NewServer(mux)
 	os.Setenv("HYDRA_ADMIN_URL", s.URL)
 	return s
