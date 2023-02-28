@@ -16,7 +16,8 @@ const (
 	BROWSER_LOGIN_ID        = "test_id"
 	BROWSER_LOGIN_TYPE      = "browser"
 	OAUTH2_SUBJECT          = "test1234"
-	REDIRECT                = "test.test"
+	CONSENT_REDIRECT        = "test.test"
+	AUTHORIZATION_REDIRECT  = "test.test"
 	TEST_ERROR_CODE         = 599
 	TRAITS_NAME             = "TestName"
 	IDENTITY_ID             = "test1234"
@@ -27,7 +28,7 @@ const (
 	ERROR_REASON            = "This is a test"
 	ERROR_MESSAGE           = "This is a test"
 	DEFAULT_ERROR_CODE      = 599
-	TEST_CHALLANGE          = "test_challange"
+	CONSENT_CHALLANGE       = "test_challange"
 	AUTHORIZATION_CHALLANGE = "test_authorization_challenge"
 )
 
@@ -104,7 +105,7 @@ func Oauth2AuthRequestLoginAcceptHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(TEST_ERROR_CODE)
 		return
 	}
-	response := hydra_client.NewOAuth2RedirectTo(REDIRECT)
+	response := hydra_client.NewOAuth2RedirectTo(AUTHORIZATION_REDIRECT)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	jsonResp, err := json.Marshal(response)
@@ -172,7 +173,7 @@ func SelfServiceErrorsHandler(w http.ResponseWriter, r *http.Request) {
 func Oauth2AuthRequestConsentHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	challange := q.Get("consent_challenge")
-	if challange != TEST_CHALLANGE {
+	if challange != CONSENT_CHALLANGE {
 		w.WriteHeader(TEST_ERROR_CODE)
 		return
 	}
@@ -187,7 +188,7 @@ func Oauth2AuthRequestConsentHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 func Oauth2AuthRequestConsentAcceptHandler(w http.ResponseWriter, r *http.Request) {
-	response := hydra_client.NewOAuth2RedirectTo(REDIRECT)
+	response := hydra_client.NewOAuth2RedirectTo(CONSENT_REDIRECT)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	jsonResp, err := json.Marshal(*response)

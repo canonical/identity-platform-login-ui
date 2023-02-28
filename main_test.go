@@ -33,7 +33,7 @@ const (
 // --------------------------------------------
 func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	//init clients
-	t.Cleanup(testServers.CreateTestServers())
+	testServers.CreateTestServers(t)
 
 	//create request and response objects
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
@@ -57,7 +57,7 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 
 func TestHandleCreateFlowWithCookie(t *testing.T) {
 	//init clients
-	t.Cleanup(testServers.CreateTestServers())
+	testServers.CreateTestServers(t)
 
 	//create request and response objects
 	req := httptest.NewRequest(http.MethodPut, HANDLE_CREATE_FLOW_URL, nil)
@@ -85,15 +85,13 @@ func TestHandleCreateFlowWithCookie(t *testing.T) {
 	if err := json.Unmarshal(data, requestLoginResponse); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	if requestLoginResponse.RedirectTo != handlers.REDIRECT {
-		t.Errorf("expected test.test, got %v", string(data))
-	}
-	assert.Equalf(t, handlers.REDIRECT, requestLoginResponse.RedirectTo, "Expected %s, got %s", handlers.REDIRECT, requestLoginResponse.RedirectTo)
+
+	assert.Equalf(t, handlers.AUTHORIZATION_REDIRECT, requestLoginResponse.RedirectTo, "Expected %s, got %s", handlers.AUTHORIZATION_REDIRECT, requestLoginResponse.RedirectTo)
 }
 
 func TestHandleUpdateFlow(t *testing.T) {
 	//init clients
-	t.Cleanup(testServers.CreateTestServers())
+	testServers.CreateTestServers(t)
 
 	//create request
 	body := kratos_client.NewUpdateLoginFlowWithOidcMethod(UPDATE_LOGIN_FLOW_METHOD, UPDATE_LOGIN_FLOW_PROVIDER)
@@ -131,7 +129,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 }
 
 func TestHandleKratosError(t *testing.T) {
-	t.Cleanup(testServers.CreateTestServers())
+	testServers.CreateTestServers(t)
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ERROR_URL, nil)
 	w := httptest.NewRecorder()
@@ -151,7 +149,7 @@ func TestHandleKratosError(t *testing.T) {
 }
 
 func TestHandleConsent(t *testing.T) {
-	t.Cleanup(testServers.CreateTestServers())
+	testServers.CreateTestServers(t)
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CONSENT_URL, nil)
 	w := httptest.NewRecorder()
@@ -167,10 +165,7 @@ func TestHandleConsent(t *testing.T) {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 
-	if responseRedirect.RedirectTo != "test.test" {
-		t.Errorf("expected test.test, got %v", string(data))
-	}
-	assert.Equalf(t, "test.test", responseRedirect.RedirectTo, "Expected %s, got %s.", "test.test", responseRedirect.RedirectTo)
+	assert.Equalf(t, handlers.CONSENT_REDIRECT, responseRedirect.RedirectTo, "Expected %s, got %s.", handlers.CONSENT_REDIRECT, responseRedirect.RedirectTo)
 }
 
 // --------------------------------------------
@@ -178,7 +173,7 @@ func TestHandleConsent(t *testing.T) {
 // currently only prints out results main.go needs pr to handle timeouts
 // --------------------------------------------
 func TestHandleCreateFlowTimeout(t *testing.T) {
-	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodPut,
+	data, err := CreateGenericTest(t, testServers.CreateTimeoutServers, http.MethodPut,
 		HANDLE_CREATE_FLOW_URL,
 		nil, handleCreateFlow)
 	if err != nil {
@@ -194,7 +189,7 @@ func TestHandleUpdateFlowTimeout(t *testing.T) {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 	bodyReader := bytes.NewReader(bodyJson)
-	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodPost,
+	data, err := CreateGenericTest(t, testServers.CreateTimeoutServers, http.MethodPost,
 		HANDLE_UPDATE_LOGIN_FLOW_URL,
 		bodyReader, handleUpdateFlow)
 	if err != nil {
@@ -203,7 +198,7 @@ func TestHandleUpdateFlowTimeout(t *testing.T) {
 	t.Logf("Result:\n%s\n", string(data))
 }
 func TestHandleKratosErrorTimeout(t *testing.T) {
-	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodGet,
+	data, err := CreateGenericTest(t, testServers.CreateTimeoutServers, http.MethodGet,
 		HANDLE_ERROR_URL,
 		nil, handleKratosError)
 	if err != nil {
@@ -212,7 +207,7 @@ func TestHandleKratosErrorTimeout(t *testing.T) {
 	t.Logf("Result:\n%s\n", string(data))
 }
 func TestHandleConsentTimeout(t *testing.T) {
-	data, err := CreateGenericTest(testServers.CreateTimeoutServers, http.MethodGet,
+	data, err := CreateGenericTest(t, testServers.CreateTimeoutServers, http.MethodGet,
 		HANDLE_CONSENT_URL,
 		nil, handleConsent)
 	if err != nil {
@@ -226,7 +221,7 @@ func TestHandleConsentTimeout(t *testing.T) {
 // currently only prints out results main.go needs pr to handle errors
 // --------------------------------------------
 func TestHandleCreateFlowError(t *testing.T) {
-	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodPut,
+	data, err := CreateGenericTest(t, testServers.CreateErrorServers, http.MethodPut,
 		HANDLE_CREATE_FLOW_URL,
 		nil, handleCreateFlow)
 	if err != nil {
@@ -242,7 +237,7 @@ func TestHandleUpdateFlowError(t *testing.T) {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 	bodyReader := bytes.NewReader(bodyJson)
-	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodPost,
+	data, err := CreateGenericTest(t, testServers.CreateErrorServers, http.MethodPost,
 		HANDLE_UPDATE_LOGIN_FLOW_URL,
 		bodyReader, handleUpdateFlow)
 	if err != nil {
@@ -251,7 +246,7 @@ func TestHandleUpdateFlowError(t *testing.T) {
 	t.Logf("Result:\n%s\n", string(data))
 }
 func TestHandleKratosErrorError(t *testing.T) {
-	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodGet,
+	data, err := CreateGenericTest(t, testServers.CreateErrorServers, http.MethodGet,
 		HANDLE_ERROR_URL,
 		nil, handleKratosError)
 	if err != nil {
@@ -260,7 +255,7 @@ func TestHandleKratosErrorError(t *testing.T) {
 	t.Logf("Result:\n%s\n", string(data))
 }
 func TestHandleConsentError(t *testing.T) {
-	data, err := CreateGenericTest(testServers.CreateErrorServers, http.MethodGet,
+	data, err := CreateGenericTest(t, testServers.CreateErrorServers, http.MethodGet,
 		HANDLE_CONSENT_URL,
 		nil, handleConsent)
 	if err != nil {
@@ -270,9 +265,8 @@ func TestHandleConsentError(t *testing.T) {
 }
 
 // This is a helper function to speed up development
-func CreateGenericTest(serverCreater func() func(), HttpMethod string, reqHTTPEndpoint string, RequestBody io.Reader, testFunction func(w http.ResponseWriter, r *http.Request)) ([]byte, error) {
-	serverClose := serverCreater()
-	defer serverClose()
+func CreateGenericTest(t *testing.T, serverCreater func(t *testing.T), HttpMethod string, reqHTTPEndpoint string, RequestBody io.Reader, testFunction func(w http.ResponseWriter, r *http.Request)) ([]byte, error) {
+	serverCreater(t)
 	req := httptest.NewRequest(http.MethodGet, reqHTTPEndpoint, nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

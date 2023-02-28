@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"testing"
 )
 
-var schema_server_url string
-var kratos *httptest.Server
-var hydra *httptest.Server
-var schema *httptest.Server
+const DEFAULT_SCHEMA_SERVER_URL = "test_default.json"
+
+var schema_server_url string = DEFAULT_SCHEMA_SERVER_URL
 
 func createKratosMockServer() *httptest.Server {
 	mux := http.NewServeMux()
@@ -36,6 +36,7 @@ func createHydraMockServer() *httptest.Server {
 	return s
 }
 
+// Function is kept for future unit tests where validation of Identity Traits Object Schema is needed
 func createSchemaMockServer() *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/testschema", SchemaHandler)
@@ -51,24 +52,18 @@ func GetSchemaUrl() string {
 }
 
 func SchemaHandler(w http.ResponseWriter, r *http.Request) {
-	schema, err := ioutil.ReadFile("./test_identity.schema.json")
+	schema, err := ioutil.ReadFile("./ory_mocking/test_identity.schema.json")
 	if err != nil {
 		log.Fatal("Error when opening file: ", err)
 	}
 	fmt.Fprint(w, string(schema))
 }
 
-func CloseServers() {
-	kratos.Close()
-	hydra.Close()
-	schema.Close()
-}
-
-func CreateTestServers() func() {
-	kratos = createKratosMockServer()
-	hydra = createHydraMockServer()
-	schema = createSchemaMockServer()
-	return CloseServers
+func CreateTestServers(t *testing.T) {
+	kratos := createKratosMockServer()
+	hydra := createHydraMockServer()
+	t.Cleanup(kratos.Close)
+	t.Cleanup(hydra.Close)
 }
 
 func createKratosTimeoutMockServer() *httptest.Server {
@@ -92,13 +87,11 @@ func createHydraTimeoutMockServer() *httptest.Server {
 	return s
 }
 
-func CreateTimeoutServers() func() {
+func CreateTimeoutServers(t *testing.T) {
 	tkratos := createKratosTimeoutMockServer()
 	thydra := createHydraTimeoutMockServer()
-	return func() {
-		tkratos.Close()
-		thydra.Close()
-	}
+	t.Cleanup(tkratos.Close)
+	t.Cleanup(thydra.Close)
 }
 
 func createKratosErrorMockServer() *httptest.Server {
@@ -121,11 +114,9 @@ func createHydraErrorMockServer() *httptest.Server {
 	os.Setenv("HYDRA_ADMIN_URL", s.URL)
 	return s
 }
-func CreateErrorServers() func() {
+func CreateErrorServers(t *testing.T) {
 	ekratos := createKratosErrorMockServer()
 	ehydra := createHydraErrorMockServer()
-	return func() {
-		ekratos.Close()
-		ehydra.Close()
-	}
+	t.Cleanup(ekratos.Close)
+	t.Cleanup(ehydra.Close)
 }
