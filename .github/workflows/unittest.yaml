@@ -11,6 +11,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
+      - name: Install SASS
+        run: npm install -g node-sass
       - name: Build UI
         run: |
           cd ./ui
