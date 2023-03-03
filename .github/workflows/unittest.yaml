@@ -24,6 +24,7 @@ jobs:
           pwd
           cd ./ui
           pwd
+          npm ci
           npm run build
           pwd
           cd ..
