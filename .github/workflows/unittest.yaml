@@ -13,7 +13,9 @@ jobs:
           apt update && apt install -y wget
           wget https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh
           bash install.sh
-          source ~/.bashrc
+          source /home/runner/.bashrc
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           nvm install v18
           nvm use 18
           sudo apt install -y gcc g++ make
