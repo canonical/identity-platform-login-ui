@@ -21,9 +21,13 @@ jobs:
           sudo apt install -y gcc g++ make
       - name: Build UI
         run: |
+          pwd
           cd ./ui
+          pwd
           npm run build
+          pwd
           cd ..
+          pwd
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
