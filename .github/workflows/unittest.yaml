@@ -8,17 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Clean Install of Node version 18
-        run: |
-          apt update && apt install -y wget
-          wget https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh
-          bash install.sh
-          source /home/runner/.bashrc
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          nvm install v18
-          nvm use 18
-          sudo apt install -y gcc g++ make
+      - uses: dcodeIO/setup-node-nvm@master
+        with:
+          node-version: 18
       - name: Build UI
         run: |
           cd ./ui
