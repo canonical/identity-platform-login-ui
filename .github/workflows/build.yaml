@@ -1,15 +1,10 @@
-name: Build ROCK
+name: Build
 
 on:
-  workflow_dispatch: {}
-  push:
-    branches:
-      - main
+  workflow_call:
 
 jobs:
-  unit-test:
-    uses: ./.github/workflows/unittest.yaml
-  main:
+  build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -25,15 +20,10 @@ jobs:
         sudo snap install --classic --channel edge rockcraft
         sudo iptables -F FORWARD
         sudo iptables -P FORWARD ACCEPT
+
     - name: Build ROCK
       run: rockcraft pack --verbose
 
-    - name: Install Skopeo
-      run: sudo snap install --devmode --channel edge skopeo
-
-    - name: Upload ROCK to ghcr.io
-      run: |
-        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./identity-platform-login-ui_*.rock) docker://ghcr.io/canonical/identity-platform-login-ui:latest --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
     - name: Install Syft
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -51,7 +41,3 @@ jobs:
       with:
         name: identity-platform-login-ui-rock
         path: "identity-platform-login-ui*.rock"
-
-  scan:
-    needs: main
-    uses: ./.github/workflows/scan.yaml
