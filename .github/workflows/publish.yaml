@@ -1,0 +1,24 @@
+name: Publish
+
+on:
+  workflow_call:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Download Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: identity-platform-login-ui-rock
+
+    - name: Install Skopeo
+      run: sudo snap install --devmode --channel edge skopeo
+
+    - name: Upload ROCK to ghcr.io
+      run: |
+        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./identity-platform-login-ui*.rock) docker://ghcr.io/canonical/identity-platform-login-ui:latest --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
+ 

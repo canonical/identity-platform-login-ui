@@ -1,13 +1,10 @@
-name: Build ROCK
+name: Build
 
 on:
-  workflow_dispatch: {}
-  push:
-    branches:
-      - main
+  workflow_call:
 
 jobs:
-  main:
+  build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -23,15 +20,10 @@ jobs:
         sudo snap install --classic --channel edge rockcraft
         sudo iptables -F FORWARD
         sudo iptables -P FORWARD ACCEPT
+
     - name: Build ROCK
       run: rockcraft pack --verbose
 
-    - name: Install Skopeo
-      run: sudo snap install --devmode --channel edge skopeo
-
-    - name: Upload ROCK to ghcr.io
-      run: |
-        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./identity-platform-login-ui_*.rock) docker://ghcr.io/canonical/identity-platform-login-ui:latest --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
     - name: Install Syft
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -43,6 +35,7 @@ jobs:
       with:
         name: identity-platform-login-ui-sbom
         path: "identity_platform_login_ui.sbom.json"
+
     - name: Upload locally built ROCK artifact
       uses: actions/upload-artifact@v3
       with:
