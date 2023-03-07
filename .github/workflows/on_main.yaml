@@ -8,13 +8,13 @@ on:
 
 jobs:
   unit-test:
-    uses: ./.github/workflows/unittest.yaml
+    uses: ./.github/workflows/unittest.yaml@main
   build:
     needs: unit-test
-    uses: ./.github/workflow/build.yaml
+    uses: ./.github/workflow/build.yaml@main
   publish:
     needs: build
-    uses: ./.github/workflow/publish.yaml
+    uses: ./.github/workflow/publish.yaml@main
   scan:
     needs: publish
-    uses: ./.github/workflows/scan.yaml
+    uses: ./.github/workflows/scan.yaml@main
