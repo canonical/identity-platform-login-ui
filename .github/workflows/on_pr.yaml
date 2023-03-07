@@ -8,7 +8,7 @@ on:
 
 jobs:
   unit-test:
-    uses: ./.github/workflows/unittest.yaml@main
+    uses: ./.github/workflows/unittest.yaml
   build:
     needs: unit-test
-    uses: ./.github/workflow/build.yaml@main
+    uses: ./.github/workflow/build.yaml
