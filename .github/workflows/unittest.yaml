@@ -1,4 +1,4 @@
-name: Upload Go Unit tests
+name: Go Unit Tests
 
 on:
   workflow_call:
