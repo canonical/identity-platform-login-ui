@@ -6,7 +6,7 @@ summary: Canonical Identity platform login UI
 description: |
   This is the Canonical Identity platform login UI used for connecting
   Ory Kratos with Ory Hydra.
-license: GPL-3.0
+license: Apache-2.0
 platforms:
   amd64:
 
