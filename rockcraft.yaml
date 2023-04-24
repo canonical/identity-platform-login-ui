@@ -9,7 +9,12 @@ description: |
 license: GPL-3.0
 platforms:
   amd64:
-entrypoint: ["identity_platform_login_ui"]
+
+services:
+  login-ui:
+    override: replace
+    command: identity_platform_login_ui
+    startup: enabled
 
 parts:
   frontend:
