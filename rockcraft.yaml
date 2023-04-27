@@ -30,12 +30,13 @@ parts:
     plugin: go
     build-snaps:
       - go/1.19/stable
+    build-environment:
+      - GOFLAGS: -ldflags=-w -ldflags=-s
+      - CGO_ENABLED: 0
     source: .
     source-type: local
     override-build: |
       cp -r ~/parts/frontend/build/dist ./ui
       craftctl default
-    stage-packages:
-      - libc6
     after:
       - frontend
