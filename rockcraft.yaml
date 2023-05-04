@@ -6,10 +6,15 @@ summary: Canonical Identity platform login UI
 description: |
   This is the Canonical Identity platform login UI used for connecting
   Ory Kratos with Ory Hydra.
-license: GPL-3.0
+license: Apache-2.0
 platforms:
   amd64:
-entrypoint: ["identity_platform_login_ui"]
+
+services:
+  login-ui:
+    override: replace
+    command: identity_platform_login_ui
+    startup: enabled
 
 parts:
   frontend:
@@ -25,12 +30,13 @@ parts:
     plugin: go
     build-snaps:
       - go/1.19/stable
+    build-environment:
+      - GOFLAGS: -ldflags=-w -ldflags=-s
+      - CGO_ENABLED: 0
     source: .
     source-type: local
     override-build: |
       cp -r ~/parts/frontend/build/dist ./ui
       craftctl default
-    stage-packages:
-      - libc6
     after:
       - frontend
