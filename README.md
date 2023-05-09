@@ -13,11 +13,11 @@ cd ..
 go build
 ```
 
-<!-- TODO: Change the name once we move repositories -->
-This will produce a binary called `ory_ui` which you can run with:
+This will produce a binary called `identity_platform_login_ui` which you can run with:
 ```console
-PORT=some-port ./ory_ui
+PORT=1234 ./identity_platform_login_ui &
 ```
+(replace 1234 with an available port of your choice)
 
 ## Container
 To build the UI oci image, you will need [rockcraft](https://canonical-rockcraft.readthedocs-hosted.com).
@@ -34,7 +34,7 @@ rockcraft pack
 In order to run the produced image with docker run:
 ```console
 # Import the image to Docker
-sudo /snap/rockcraft/current/bin/skopeo --insecure-policy copy oci-archive:./my-rock-name_0.1_amd64.rock docker-daemon:identity-platform-ui:1.0
+sudo /snap/rockcraft/current/bin/skopeo --insecure-policy copy oci-archive:./identity-platform-login-ui_0.1_amd64.rock docker-daemon:localhost:32000/identity-platform-login-ui:registry
 # Run the image
-docker run identity-platform-ui:1.0
+docker run -p 8080:8080 -it --name login-ui --rm localhost:32000/identity-platform-login-ui:registry start login-ui &
 ```
