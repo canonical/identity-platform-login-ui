@@ -88,6 +88,7 @@ func main() {
 		fs.ServeHTTP(w, r)
 	})
 	http.HandleFunc("/api/kratos/self-service/login/browser", handleCreateFlow)
+	http.HandleFunc("/api/kratos/self-service/login/flows", handleLoginFlow)
 	http.HandleFunc("/api/kratos/self-service/login", handleUpdateFlow)
 	http.HandleFunc("/api/kratos/self-service/errors", handleKratosError)
 	http.HandleFunc("/api/consent", handleConsent)
@@ -155,6 +156,27 @@ func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		Execute()
 	if e != nil {
 		log.Printf("Error when calling `FrontendApi.CreateBrowserLoginFlow`: %v\n", e)
+		log.Printf("Full HTTP response: %v\n", resp)
+		return
+	}
+
+	writeResponse(w, resp)
+
+	return
+}
+
+// TODO: Validate response when server error handling is implemented
+func handleLoginFlow(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	kratos := NewKratosClient()
+
+	_, resp, e := kratos.FrontendApi.
+		GetLoginFlow(context.Background()).
+		Id(q.Get("id")).
+		Cookie(cookiesToString(r.Cookies())).
+		Execute()
+	if e != nil && resp.StatusCode != 422 {
+		log.Printf("Error when calling `FrontendApi.GetLoginFlow`: %v\n", e)
 		log.Printf("Full HTTP response: %v\n", resp)
 		return
 	}
