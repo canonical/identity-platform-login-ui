@@ -2,7 +2,7 @@ module identity_platform_login_ui
 
 go 1.18
 
-require github.com/ory/kratos-client-go v0.11.1
+require github.com/ory/kratos-client-go v0.13.1
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
