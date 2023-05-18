@@ -109,7 +109,7 @@ const Login: NextPage = () => {
               <Card title="Choose Provider" >
                 <Flow onSubmit={onSubmit} flow={flow} />
               </Card> :
-              <Spinner></Spinner>
+              <Spinner />
             }
           </div>
         </div>
