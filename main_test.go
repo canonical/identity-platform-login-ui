@@ -24,6 +24,7 @@ const (
 	UPDATE_LOGIN_FLOW_METHOD     = "oidc"
 	UPDATE_LOGIN_FLOW_PROVIDER   = "microsoft"
 	HANDLE_UPDATE_LOGIN_FLOW_URL = "/api/kratos/self-service/login?flow=1111"
+	HANDLE_GET_LOGIN_FLOW_URL    = "/api/kratos/self-service/login/flows?id=1111"
 	HANDLE_ERROR_URL             = "/api/kratos/self-service/errors?id=1111"
 	HANDLE_CONSENT_URL           = "/api/consent?consent_challenge=test_challange"
 )
@@ -126,6 +127,39 @@ func TestHandleUpdateFlow(t *testing.T) {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 	assert.Equalf(t, handlers.SESSION_ID, loginUpdateResponse.Session.Id, "Expected %s, got %s", handlers.SESSION_ID, loginUpdateResponse.Session.Id)
+}
+
+func TestHandleGetLoginFlow(t *testing.T) {
+	//init clients
+	testServers.CreateTestServers(t)
+
+	//create request
+	req := httptest.NewRequest(http.MethodPost, HANDLE_GET_LOGIN_FLOW_URL, nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Session-Token", "test-x-session-token")
+	cookie := &http.Cookie{
+		Name:   COOKIE_NAME,
+		Value:  COOKIE_VALUE,
+		MaxAge: 300,
+	}
+	req.AddCookie(cookie)
+
+	//create response
+	w := httptest.NewRecorder()
+	//start function
+	handleLoginFlow(w, req)
+	//check results
+	res := w.Result()
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	loginFlow := kratos_client.NewLoginFlowWithDefaults()
+	if err := json.Unmarshal(data, loginFlow); err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	assert.Equalf(t, handlers.BROWSER_LOGIN_ID, loginFlow.Id, "Expected %s, got %s", handlers.BROWSER_LOGIN_ID, loginFlow.Id)
 }
 
 func TestHandleKratosError(t *testing.T) {
