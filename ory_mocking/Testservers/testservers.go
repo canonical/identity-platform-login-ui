@@ -20,6 +20,7 @@ func createKratosMockServer() *httptest.Server {
 	mux.HandleFunc("/self-service/errors", handlers.SelfServiceErrorsHandler)
 	mux.HandleFunc("/sessions/whoami", handlers.SessionWhoAmIHandler)
 	mux.HandleFunc("/self-service/login/browser", handlers.SelfServiceLoginBrowserHandler)
+	mux.HandleFunc("/self-service/login/flows", handlers.SelfServiceGetLoginHandler)
 	mux.HandleFunc("/self-service/login", handlers.SelfServiceLoginHandler)
 
 	s := httptest.NewServer(mux)
@@ -99,6 +100,7 @@ func createKratosErrorMockServer() *httptest.Server {
 	mux.HandleFunc("/self-service/errors", handlers.CreateHandlerWithError("SelfServiceErrorsHandler"))
 	mux.HandleFunc("/sessions/whoami", handlers.CreateHandlerWithError("SessionWhoAmIHandler"))
 	mux.HandleFunc("/self-service/login/browser", handlers.CreateHandlerWithError("SelfServiceLoginBrowserHandler"))
+	mux.HandleFunc("/self-service/login/flows", handlers.CreateHandlerWithError("SelfServiceGetLoginHandler"))
 	mux.HandleFunc("/self-service/login", handlers.CreateHandlerWithError("SelfServiceLoginHandler"))
 
 	s := httptest.NewServer(mux)

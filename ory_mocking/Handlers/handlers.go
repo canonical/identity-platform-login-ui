@@ -92,6 +92,19 @@ func SelfServiceLoginBrowserHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func SelfServiceGetLoginHandler(w http.ResponseWriter, r *http.Request) {
+	uiContainer := kratos_client.NewUiContainerWithDefaults()
+	response := kratos_client.NewLoginFlow(time.Now(), BROWSER_LOGIN_ID, time.Now(), r.URL.Path, BROWSER_LOGIN_TYPE, *uiContainer)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	jsonResp, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("Bug in test: SelfServiceGetLogin\nerror: %s", err.Error())
+	}
+	w.Write(jsonResp)
+	return
+}
+
 func Oauth2AuthRequestLoginAcceptHandler(w http.ResponseWriter, r *http.Request) {
 	login := hydra_client.NewAcceptOAuth2LoginRequestWithDefaults()
 	data, err := ioutil.ReadAll(r.Body)

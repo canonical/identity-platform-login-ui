@@ -1,7 +1,8 @@
 import { Configuration, FrontendApi } from "@ory/client"
 
 export const kratos = new FrontendApi(  new Configuration({
-  basePath: "/api/kratos",
+  // Use relative path so that this works when served in a subpath
+  basePath: "./api/kratos",
   baseOptions: {
     withCredentials: true,
   },

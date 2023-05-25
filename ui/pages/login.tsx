@@ -61,38 +61,41 @@ const Login: NextPage = () => {
       })
       .catch(handleFlowError(router, "login", setFlow))
   }, [flowId, router, router.isReady, aal, refresh, returnTo, flow, login_challenge])
-  const onSubmit = useCallback((values: UpdateLoginFlowBody) =>
-    router
-      // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
-      // his data when she/he reloads the page.
-      .push(`/login?flow=${flow?.id}`, undefined, { shallow: true })
-      .then(() =>
-        kratos
-          .updateLoginFlow({
-            flow: String(flow?.id),
-            updateLoginFlowBody: values,
-          })
-          // We logged in successfully! Let's bring the user home.
-          .then(() => {
-            if (flow?.return_to) {
-              window.location.href = flow?.return_to
-              return
-            }
-            router.push("/")
-          })
-          .then(() => {})
-          .catch(handleFlowError(router, "login", setFlow))
-          .catch((err: AxiosError) => {
-            // If the previous handler did not catch the error it's most likely a form validation error
-            if (err.response?.status === 400) {
-              // Yup, it is!
-              setFlow(err.response?.data)
-              return
-            }
+  const onSubmit = useCallback((values: UpdateLoginFlowBody) => {
+    // if (!router.query.flow) {
+    //   // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
+    //   // his data when she/he reloads the page.
+    //   // We use relative path so that this works when behind traefik (traefik will serve this
+    //   // page on a subpath)
+    //   router.push(`${window.location.pathname}/?flow=${flow?.id}`, undefined, { shallow: true })
+    //   navigate({pathname: ".", })
+    // }
+    return kratos
+      .updateLoginFlow({
+        flow: String(flow?.id),
+        updateLoginFlowBody: values,
+      })
+      // We logged in successfully! Let's bring the user home.
+      .then(() => {
+        if (flow?.return_to) {
+          window.location.href = flow?.return_to
+          return
+        }
+        router.push("/")
+      })
+      .then(() => { })
+      .catch(handleFlowError(router, "login", setFlow))
+      .catch((err: AxiosError) => {
+        // If the previous handler did not catch the error it's most likely a form validation error
+        if (err.response?.status === 400) {
+          // Yup, it is!
+          setFlow(err.response?.data)
+          return
+        }
 
-            return Promise.reject(err)
-          }),
-      ), [flow, router, ])
+        return Promise.reject(err)
+      })
+  }, [flow, router])
   return (
     <>
       <Head>
@@ -102,12 +105,12 @@ const Login: NextPage = () => {
       <div className="p-strip">
         <div className="login-card">
           <div>
-          {flow ?
-          <Card title="Choose Provider" >
-            <Flow onSubmit={onSubmit} flow={flow} />
-          </Card>:
-          <Spinner></Spinner>
-          }
+            {flow ?
+              <Card title="Choose Provider" >
+                <Flow onSubmit={onSubmit} flow={flow} />
+              </Card> :
+              <Spinner />
+            }
           </div>
         </div>
       </div>
