@@ -44,6 +44,10 @@ func SetUnReady(msg string) {
 	}
 }
 
+func SetReady() {
+	readySingleton = Status{Status: okValue}
+}
+
 func HandleAlive(w http.ResponseWriter, r *http.Request) {
 	status := getAlive()
 	w.Header().Set("Content-Type", "application/json")

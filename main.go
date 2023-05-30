@@ -14,6 +14,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
@@ -78,6 +79,9 @@ func NewHydraClient() *hydra_client.APIClient {
 }
 
 func main() {
+	health.SetUnReady("Ory backend have not been confirmed to be available")
+	go ReadinessChecker()
+
 	dist, _ := fs.Sub(ui, "ui/dist")
 	fs := http.FileServer(http.FS(dist))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -344,4 +348,46 @@ func getUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentReques
 	}
 
 	return ret
+}
+
+func ReadinessChecker() {
+	done := make(chan bool)
+
+	kratos := NewKratosClient()
+	hydra := NewHydraClient()
+
+	Ticker := time.NewTicker(10 * time.Second)
+
+	CheckReady := func() {
+		_, r, err := kratos.MetadataApi.IsReady(context.Background()).Execute()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error when calling Kratos with `MetadataApi.IsReady``: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+			return
+		} else if r.StatusCode != 200 {
+			return
+		}
+		_, r, err = hydra.MetadataApi.IsReady(context.Background()).Execute()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error when calling Hydra with `MetadataApi.IsReady``: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+			return
+		} else if r.StatusCode != 200 {
+			return
+		}
+		Ticker.Stop()
+		done <- true
+	}
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				health.SetReady()
+				return
+			case <-Ticker.C:
+				CheckReady()
+			}
+		}
+	}()
 }
