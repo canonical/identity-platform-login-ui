@@ -379,15 +379,13 @@ func ReadinessChecker() {
 		done <- true
 	}
 
-	go func() {
-		for {
-			select {
-			case <-done:
-				health.SetReady()
-				return
-			case <-Ticker.C:
-				CheckReady()
-			}
+	for {
+		select {
+		case <-done:
+			health.SetReady()
+			return
+		case <-Ticker.C:
+			CheckReady()
 		}
-	}()
+	}
 }
