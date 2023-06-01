@@ -153,6 +153,9 @@ func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		refresh = false
 	}
 
+	// We redirect the user back to this endpoint with the login_challenge, after they log in, to bypass
+	// Kratos bug where the user is not redirected to hydra the first time they log in.
+	// Relevant issue https://github.com/ory/kratos/issues/3052
 	_, resp, e := kratos.FrontendApi.
 		CreateBrowserLoginFlow(context.Background()).
 		Aal(q.Get("aal")).
