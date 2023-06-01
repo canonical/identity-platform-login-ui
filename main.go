@@ -76,6 +76,13 @@ func NewHydraClient() *hydra_client.APIClient {
 	return apiClient
 }
 
+func getBaseURL(r *http.Request) string {
+	if url := os.Getenv("BASE_URL"); url != "" {
+		return url
+	}
+	return fmt.Sprintf("%s://%s/%s", r.URL.Scheme, r.Host, r.URL.Path)
+}
+
 func main() {
 	dist, _ := fs.Sub(ui, "ui/dist")
 	fs := http.FileServer(http.FS(dist))
@@ -142,16 +149,17 @@ func handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	refresh, err := strconv.ParseBool(q.Get("refresh"))
-
 	if err == nil {
 		refresh = false
 	}
+
 	_, resp, e := kratos.FrontendApi.
 		CreateBrowserLoginFlow(context.Background()).
 		Aal(q.Get("aal")).
 		ReturnTo(q.Get("return_to")).
 		LoginChallenge(q.Get("login_challenge")).
 		Refresh(refresh).
+		ReturnTo(getBaseURL(r) + "/login?login_challenge=" + q.Get("login_challenge")).
 		Cookie(cookiesToString(r.Cookies())).
 		Execute()
 	if e != nil {
