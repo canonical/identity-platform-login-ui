@@ -62,6 +62,10 @@ type GenericError struct {
 	Status  string `json:"status"`
 }
 
+type Status struct {
+	Status string `json:"status"`
+}
+
 func GenericErrorConstructor(testname string) GenericError {
 	error := GenericError{
 		Code:    DEFAULT_ERROR_CODE,
@@ -229,5 +233,33 @@ func CreateHandlerWithError(testname string) func(w http.ResponseWriter, r *http
 
 func TimeoutHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusGatewayTimeout)
+	return
+}
+
+func GetOKStatus(w http.ResponseWriter, r *http.Request) {
+	status := Status{
+		Status: "ok",
+	}
+	jsonResp, err := json.Marshal(status)
+	if err != nil {
+		log.Printf("Bug in test handler: GetOKStatus\nerror: %s", err.Error())
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	w.Write(jsonResp)
+	return
+}
+
+func GetErrorStatus(w http.ResponseWriter, r *http.Request) {
+	status := Status{
+		Status: http.StatusText(503),
+	}
+	jsonResp, err := json.Marshal(status)
+	if err != nil {
+		log.Printf("Bug in test handler: GetOKStatus\nerror: %s", err.Error())
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	w.Write(jsonResp)
 	return
 }

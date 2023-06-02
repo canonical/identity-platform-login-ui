@@ -22,6 +22,8 @@ func createKratosMockServer() *httptest.Server {
 	mux.HandleFunc("/self-service/login/browser", handlers.SelfServiceLoginBrowserHandler)
 	mux.HandleFunc("/self-service/login/flows", handlers.SelfServiceGetLoginHandler)
 	mux.HandleFunc("/self-service/login", handlers.SelfServiceLoginHandler)
+	mux.HandleFunc("/health/alive", handlers.GetOKStatus)
+	mux.HandleFunc("/health/ready", handlers.GetOKStatus)
 
 	s := httptest.NewServer(mux)
 	os.Setenv("KRATOS_PUBLIC_URL", s.URL)
@@ -32,6 +34,9 @@ func createHydraMockServer() *httptest.Server {
 	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", handlers.Oauth2AuthRequestLoginAcceptHandler)
 	mux.HandleFunc("/admin/oauth2/auth/requests/consent", handlers.Oauth2AuthRequestConsentHandler)
 	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", handlers.Oauth2AuthRequestConsentAcceptHandler)
+	mux.HandleFunc("/health/alive", handlers.GetOKStatus)
+	mux.HandleFunc("/health/ready", handlers.GetOKStatus)
+
 	s := httptest.NewServer(mux)
 	os.Setenv("HYDRA_ADMIN_URL", s.URL)
 	return s
@@ -102,6 +107,8 @@ func createKratosErrorMockServer() *httptest.Server {
 	mux.HandleFunc("/self-service/login/browser", handlers.CreateHandlerWithError("SelfServiceLoginBrowserHandler"))
 	mux.HandleFunc("/self-service/login/flows", handlers.CreateHandlerWithError("SelfServiceGetLoginHandler"))
 	mux.HandleFunc("/self-service/login", handlers.CreateHandlerWithError("SelfServiceLoginHandler"))
+	mux.HandleFunc("/health/alive", handlers.GetErrorStatus)
+	mux.HandleFunc("/health/ready", handlers.GetErrorStatus)
 
 	s := httptest.NewServer(mux)
 	os.Setenv("KRATOS_PUBLIC_URL", s.URL+"/")
@@ -112,6 +119,9 @@ func createHydraErrorMockServer() *httptest.Server {
 	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", handlers.CreateHandlerWithError("Oauth2AuthRequestLoginAcceptHandler"))
 	mux.HandleFunc("/admin/oauth2/auth/requests/consent", handlers.CreateHandlerWithError("Oauth2AuthRequestConsentHandler"))
 	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", handlers.CreateHandlerWithError("Oauth2AuthRequestConsentAcceptHandler"))
+	mux.HandleFunc("/health/alive", handlers.GetErrorStatus)
+	mux.HandleFunc("/health/ready", handlers.GetErrorStatus)
+
 	s := httptest.NewServer(mux)
 	os.Setenv("HYDRA_ADMIN_URL", s.URL)
 	return s

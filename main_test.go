@@ -307,7 +307,7 @@ func TestHandleConsentError(t *testing.T) {
 func TestAliveOK(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
-	health.HandleAlive(w, req)
+	health.TestHandleAlive(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
@@ -323,10 +323,11 @@ func TestAliveOK(t *testing.T) {
 
 func TestAliveFail(t *testing.T) {
 	testMessage := "Liveness Check failed for test"
+	health.TestSetUnalive(testMessage)
+
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
-	health.SetUnAlive(testMessage)
-	health.HandleAlive(w, req)
+	health.TestHandleAlive(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
@@ -342,9 +343,13 @@ func TestAliveFail(t *testing.T) {
 }
 
 func TestReadyOK(t *testing.T) {
+	//init clients
+	testServers.CreateTestServers(t)
+	health.SetApiClients(NewKratosClient(), NewHydraClient())
+
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
-	health.HandleReady(w, req)
+	health.TestHandleReady(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
@@ -359,11 +364,14 @@ func TestReadyOK(t *testing.T) {
 }
 
 func TestReadyFail(t *testing.T) {
-	testMessage := "Readiness Check failed for test"
+	testMessage := "Ory backend have not been confirmed to be available"
+	testServers.CreateErrorServers(t)
+	health.SetApiClients(NewKratosClient(), NewHydraClient())
+
 	req := httptest.NewRequest(http.MethodGet, HANDLE_READY_URL, nil)
 	w := httptest.NewRecorder()
-	health.SetUnReady(testMessage)
-	health.HandleReady(w, req)
+	//health.TestSetUnready(testMessage)
+	health.TestHandleReady(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
