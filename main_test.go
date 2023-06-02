@@ -305,6 +305,7 @@ func TestHandleConsentError(t *testing.T) {
 // TESTING HEALTH CHECKS
 // --------------------------------------------
 func TestAliveOK(t *testing.T) {
+	health.TestResetHealth()
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
 	health.TestHandleAlive(w, req)
@@ -322,6 +323,7 @@ func TestAliveOK(t *testing.T) {
 }
 
 func TestAliveFail(t *testing.T) {
+	health.TestResetHealth()
 	testMessage := "Liveness Check failed for test"
 	health.TestSetUnalive(testMessage)
 
@@ -344,6 +346,7 @@ func TestAliveFail(t *testing.T) {
 
 func TestReadyOK(t *testing.T) {
 	//init clients
+	health.TestResetHealth()
 	testServers.CreateTestServers(t)
 	health.SetApiClients(NewKratosClient(), NewHydraClient())
 
@@ -364,6 +367,7 @@ func TestReadyOK(t *testing.T) {
 }
 
 func TestReadyFail(t *testing.T) {
+	health.TestResetHealth()
 	testMessage := "Ory backend have not been confirmed to be available"
 	testServers.CreateErrorServers(t)
 	health.SetApiClients(NewKratosClient(), NewHydraClient())

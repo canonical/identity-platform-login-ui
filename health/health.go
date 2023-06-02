@@ -120,24 +120,25 @@ func EmptyStatus() *Status {
 }
 
 func readinessChecker() bool {
-	fmt.Fprintf(os.Stderr, "debug- checkready start kratos\n")
 	_, r, err := kratos.MetadataApi.IsReady(context.Background()).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when calling Kratos with `MetadataApi.IsReady``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 		return false
 	} else if r.StatusCode != 200 {
-		fmt.Fprintf(os.Stderr, "debug- status not 200 kratos\n")
+		fmt.Fprintf(os.Stderr, "Error when calling Kratos with `MetadataApi.IsReady``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 		return false
 	}
-	fmt.Fprintf(os.Stderr, "debug- heckready start hydra")
+
 	_, r, err = hydra.MetadataApi.IsReady(context.Background()).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when calling Hydra with `MetadataApi.IsReady``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 		return false
 	} else if r.StatusCode != 200 {
-		fmt.Fprintf(os.Stderr, "debug- status not 200 hydra\n")
+		fmt.Fprintf(os.Stderr, "Error when calling Hydra with `MetadataApi.IsReady``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 		return false
 	}
 	return true
@@ -153,4 +154,12 @@ func TestHandleAlive(w http.ResponseWriter, r *http.Request) {
 
 func TestHandleReady(w http.ResponseWriter, r *http.Request) {
 	handleReady(w, r)
+}
+
+func TestResetHealth() {
+	aliveSingleton = Status{}
+	readySingleton = Status{}
+	kratos = nil
+	hydra = nil
+	apiClientSet = false
 }
