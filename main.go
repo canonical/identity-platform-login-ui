@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 
+	prometheus "identity_platform_login_ui/prometheus"
+
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
 )
@@ -85,6 +87,8 @@ func getBaseURL(r *http.Request) string {
 }
 
 func main() {
+	metricsManager := setUpPrometheus()
+
 	dist, _ := fs.Sub(ui, "ui/dist")
 	fs := http.FileServer(http.FS(dist))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -93,14 +97,15 @@ func main() {
 		if ext := path.Ext(r.URL.Path); ext == "" && r.URL.Path != "/" {
 			r.URL.Path += ".html"
 		}
-		fs.ServeHTTP(w, r)
+		metricsManager.Middleware(fs.ServeHTTP)(w, r)
 	})
-	http.HandleFunc("/api/kratos/self-service/login/browser", handleCreateFlow)
-	http.HandleFunc("/api/kratos/self-service/login/flows", handleLoginFlow)
-	http.HandleFunc("/api/kratos/self-service/login", handleUpdateFlow)
-	http.HandleFunc("/api/kratos/self-service/errors", handleKratosError)
-	http.HandleFunc("/api/consent", handleConsent)
-	http.HandleFunc("/health/alive", health.HandleAlive)
+
+	http.HandleFunc("/api/kratos/self-service/login/browser", metricsManager.Middleware(handleCreateFlow))
+	http.HandleFunc("/api/kratos/self-service/login/flows", metricsManager.Middleware(handleLoginFlow))
+	http.HandleFunc("/api/kratos/self-service/login", metricsManager.Middleware(handleUpdateFlow))
+	http.HandleFunc("/api/kratos/self-service/errors", metricsManager.Middleware(handleKratosError))
+	http.HandleFunc("/api/consent", metricsManager.Middleware(handleConsent))
+	http.HandleFunc(prometheus.PrometheusPath, metricsManager.Middleware(prometheus.PrometheusMetrics))
 
 	port := os.Getenv("PORT")
 
@@ -354,4 +359,24 @@ func getUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentReques
 	}
 
 	return ret
+}
+
+func setUpPrometheus() *prometheus.MetricsManager {
+	mm := prometheus.NewMetricsManagerWithPrefix("identity-platform-login-ui-operator", "http", "", "", "")
+	mm.RegisterRoutes(
+		"/api/kratos/self-service/login/browser",
+		"/api/kratos/self-service/login/flows",
+		"/api/kratos/self-service/login",
+		"/api/kratos/self-service/errors",
+		"/api/consent",
+		"/consent",
+		"/error",
+		"/index",
+		"/login",
+		"/",
+		"",
+		"/oidc_error",
+		"/registration",
+	)
+	return mm
 }
