@@ -5,7 +5,6 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"identity_platform_login_ui/health"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -99,21 +98,12 @@ func main() {
 		}
 		metricsManager.Middleware(fs.ServeHTTP)(w, r)
 	})
-<<<<<<< HEAD
-	http.HandleFunc("/api/kratos/self-service/login/browser", handleCreateFlow)
-	http.HandleFunc("/api/kratos/self-service/login/flows", handleLoginFlow)
-	http.HandleFunc("/api/kratos/self-service/login", handleUpdateFlow)
-	http.HandleFunc("/api/kratos/self-service/errors", handleKratosError)
-	http.HandleFunc("/api/consent", handleConsent)
-	http.HandleFunc("/health/alive", health.HandleAlive)
-=======
 	http.HandleFunc("/api/kratos/self-service/login/browser", metricsManager.Middleware(handleCreateFlow))
 	http.HandleFunc("/api/kratos/self-service/login/flows", metricsManager.Middleware(handleLoginFlow))
 	http.HandleFunc("/api/kratos/self-service/login", metricsManager.Middleware(handleUpdateFlow))
 	http.HandleFunc("/api/kratos/self-service/errors", metricsManager.Middleware(handleKratosError))
 	http.HandleFunc("/api/consent", metricsManager.Middleware(handleConsent))
 	http.HandleFunc(prometheus.PrometheusPath, metricsManager.Middleware(prometheus.PrometheusMetrics))
->>>>>>> a97a165 (feat: implemented login ui prometheus instrumentation without unit tests)
 
 	port := os.Getenv("PORT")
 

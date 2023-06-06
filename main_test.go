@@ -3,13 +3,18 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"identity_platform_login_ui/health"
 	handlers "identity_platform_login_ui/ory_mocking/Handlers"
 	testServers "identity_platform_login_ui/ory_mocking/Testservers"
+	prometheus "identity_platform_login_ui/prometheus"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
@@ -29,6 +34,7 @@ const (
 	HANDLE_ERROR_URL             = "/api/kratos/self-service/errors?id=1111"
 	HANDLE_CONSENT_URL           = "/api/consent?consent_challenge=test_challange"
 	HANDLE_ALIVE_URL             = "/health/alive"
+	PROMETHEUS_ENDPOINT          = prometheus.PrometheusPath
 )
 
 // --------------------------------------------
@@ -317,6 +323,8 @@ func CreateGenericTest(t *testing.T, serverCreater func(t *testing.T), HttpMetho
 }
 
 // --------------------------------------------
+
+// --------------------------------------------
 // TESTING HEALTH CHECK
 // --------------------------------------------
 func TestAliveOK(t *testing.T) {
@@ -334,4 +342,76 @@ func TestAliveOK(t *testing.T) {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 	assert.Equalf(t, "ok", receivedStatus.Status, "Expected %s, got %s", "ok", receivedStatus.Status)
+}
+
+// --------------------------------------------
+// TESTING 	PROMETHEUS INSTRUMENTATION
+// --------------------------------------------
+func TestHandlePrometheusInstrumentation(t *testing.T) {
+	//test strings
+	prefix := "http_"
+	app := "identity-platform-login-ui-operator"
+	requests_duration_seconds_count_format := "%srequests_duration_seconds_count{app=\"%s\",buildTime=\"\",code=\"200\",endpoint=\"%s\",hash=\"\",method=\"get\",version=\"\"} 1"
+	requests_size_bytes_count_format := "%srequests_size_bytes_count{app=\"%s\",buildTime=\"\",code=\"200\",hash=\"\",method=\"get\",version=\"\"} 3"
+	requests_total_format := "%srequests_total{app=\"%s\",buildTime=\"\",code=\"200\",endpoint=\"%s\",hash=\"\",method=\"get\",version=\"\"} 1"
+	response_size_bytes_count_format := "%sresponse_size_bytes_count{app=\"%s\",buildTime=\"\",code=\"200\",hash=\"\",method=\"get\",version=\"\"} 3"
+	response_time_seconds_count_format := "%sresponse_time_seconds_count{app=\"%s\",buildTime=\"\",endpoint=\"%s\",hash=\"\",version=\"\"} 1"
+	metric_handler_requests_total := "promhttp_metric_handler_requests_total{code=\"200\"} 0"
+
+	formatHelper := func(handlerURL string) (r1 string, r2 string, r3 string, r4 string, r5 string) {
+		endpoint, err := url.Parse(handlerURL)
+		if err != nil {
+			t.Errorf("expected error to be nil got %v", err)
+		}
+		log.Println("Reference URL: " + endpoint.Path)
+		r1 = fmt.Sprintf(requests_duration_seconds_count_format, prefix, app, endpoint.Path)
+		r2 = fmt.Sprintf(requests_size_bytes_count_format, prefix, app)
+		r3 = fmt.Sprintf(requests_total_format, prefix, app, endpoint.Path)
+		r4 = fmt.Sprintf(response_size_bytes_count_format, prefix, app)
+		r5 = fmt.Sprintf(response_time_seconds_count_format, prefix, app, endpoint.Path)
+		return
+	}
+
+	//init clients and middleware
+	testServers.CreateTestServers(t)
+	metricsManager := setUpPrometheus()
+	t.Cleanup(prometheus.Cleanup(metricsManager))
+
+	//make requests to different urls
+	//create flow
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleCreateFlow))(w, req)
+	//self-service errors
+	req = httptest.NewRequest(http.MethodGet, HANDLE_ERROR_URL, nil)
+	w = httptest.NewRecorder()
+	http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleKratosError))(w, req)
+	//handle consent
+	req = httptest.NewRequest(http.MethodGet, HANDLE_CONSENT_URL, nil)
+	w = httptest.NewRecorder()
+	http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleConsent))(w, req)
+
+	//make request to prometheus endpoint and evaluate test
+	req = httptest.NewRequest(http.MethodGet, PROMETHEUS_ENDPOINT, nil)
+	w = httptest.NewRecorder()
+	http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(prometheus.PrometheusMetrics))(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	dataStrings := strings.Split(string(data), "\n")
+
+	assertHelper := func(compareStrings ...string) {
+		for _, comparison := range compareStrings {
+			assert.Containsf(t, dataStrings, comparison, "Error in test: Reference string of invalid value: %s", comparison)
+		}
+	}
+
+	assertHelper(formatHelper(HANDLE_CREATE_FLOW_URL))
+	assertHelper(formatHelper(HANDLE_ERROR_URL))
+	assertHelper(formatHelper(HANDLE_CONSENT_URL))
+	assert.Containsf(t, dataStrings, metric_handler_requests_total, "Error in test: Reference string of invalid value: %s", metric_handler_requests_total)
 }
