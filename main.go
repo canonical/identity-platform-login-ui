@@ -369,14 +369,15 @@ func setUpPrometheus() *prometheus.MetricsManager {
 		"/api/kratos/self-service/login",
 		"/api/kratos/self-service/errors",
 		"/api/consent",
-		"/consent",
-		"/error",
-		"/index",
-		"/login",
+		"/consent.html",
+		"/error.html",
+		"/index.html",
+		"/login.html",
 		"/",
 		"",
 		"/oidc_error",
 		"/registration",
+		prometheus.PrometheusPath,
 	)
 	return mm
 }

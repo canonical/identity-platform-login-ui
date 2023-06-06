@@ -30,15 +30,11 @@ func (pmm *MetricsManager) Middleware(next http.HandlerFunc) func(rw http.Respon
 
 func (pmm *MetricsManager) RegisterRoutes(routes ...string) {
 	for _, route := range routes {
-		pmm.RegisterRoute(route)
+		pmm.routes = append(pmm.routes, route)
 	}
 }
 
-func (pmm *MetricsManager) RegisterRoute(route string) {
-	pmm.routes = append(pmm.routes, route)
-}
-
-// The URLs we Proxy for Ory APIs do not use path parameters
+// This method fetches the path for a call for labeling. The URLs we Proxy for Ory APIs do not use path parameters.
 func (pmm *MetricsManager) getLabelForPath(r *http.Request) string {
 	if !pmm.lookupRoutes(r.URL.Path) {
 		return "{unmatched}"
