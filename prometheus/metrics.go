@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ory/x/httpx"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -105,7 +104,7 @@ func (h Metrics) instrumentHandlerStatusBucket(next http.Handler) http.HandlerFu
 	return func(rw http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(rw, r)
 
-		status := 200 //needs function to get status code
+		status := getResponseStatus(rw)
 
 		statusBucket := "unknown"
 		switch {
@@ -128,7 +127,7 @@ func (h Metrics) instrumentHandlerStatusBucket(next http.Handler) http.HandlerFu
 func (h Metrics) Instrument(rw http.ResponseWriter, next http.HandlerFunc, endpoint string) http.HandlerFunc {
 	labels := prometheus.Labels{}
 	labelsWithEndpoint := prometheus.Labels{"endpoint": endpoint}
-	if status, _ := httpx.GetResponseMeta(rw); status != 0 {
+	if status := getResponseStatus(rw); status != 0 {
 		labels = prometheus.Labels{"code": strconv.Itoa(status)}
 		labelsWithEndpoint["code"] = labels["code"]
 	}
@@ -140,4 +139,14 @@ func (h Metrics) Instrument(rw http.ResponseWriter, next http.HandlerFunc, endpo
 	wrapped = h.instrumentHandlerStatusBucket(wrapped)
 
 	return wrapped.ServeHTTP
+}
+
+// Unpacks response status from ResponseWriter
+func getResponseStatus(w http.ResponseWriter) (status int) {
+	switch t := w.(type) {
+	case interface{ Status() int }:
+		status = t.Status()
+	}
+
+	return
 }
