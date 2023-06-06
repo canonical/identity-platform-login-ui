@@ -1,39 +1,27 @@
 package health
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-
-	hydra_client "github.com/ory/hydra-client-go/v2"
-	kratos_client "github.com/ory/kratos-client-go"
 )
 
 const okValue = "ok"
+const kratosEnvar = "KRATOS_PUBLIC_URL"
+const hydraEnvar = "HYDRA_ADMIN_URL"
 
 var aliveSingleton Status
 var readySingleton Status
-var kratos *kratos_client.APIClient
-var hydra *hydra_client.APIClient
-var apiClientSet bool = false
 
 type Status struct {
 	Status  string `json:"status"`
 	Message string `json:"message,omitempty"`
 }
 
-func SetApiClients(k *kratos_client.APIClient, h *hydra_client.APIClient) {
-	kratos = k
-	hydra = h
-	apiClientSet = true
-}
-
 func getAlive() Status {
-	if aliveSingleton.Status == "" {
+	if aliveSingleton.Status == EmptyStatus().Status {
 		aliveSingleton = Status{Status: okValue}
 	}
 	return aliveSingleton
@@ -41,11 +29,11 @@ func getAlive() Status {
 
 func getReady() Status {
 	if readySingleton.Status != okValue {
-		isReady := readinessChecker()
+		isReady, msg := readinessChecker()
 		if isReady {
 			setReady()
 		} else {
-			setUnReady("Ory backend have not been confirmed to be available")
+			setUnReady(msg)
 		}
 	}
 	return readySingleton
@@ -69,21 +57,7 @@ func setReady() {
 	readySingleton = Status{Status: okValue}
 }
 
-func GetAliveHandler() (func(w http.ResponseWriter, r *http.Request), error) {
-	if apiClientSet {
-		return handleAlive, nil
-	}
-	return nil, errors.New("API Clients not set")
-}
-
-func GetReadyHandler() (func(w http.ResponseWriter, r *http.Request), error) {
-	if apiClientSet {
-		return handleReady, nil
-	}
-	return nil, errors.New("API Clients not set")
-}
-
-func handleAlive(w http.ResponseWriter, r *http.Request) {
+func HandleAlive(w http.ResponseWriter, r *http.Request) {
 	status := getAlive()
 	w.Header().Set("Content-Type", "application/json")
 	if status.Status == okValue {
@@ -99,7 +73,7 @@ func handleAlive(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func handleReady(w http.ResponseWriter, r *http.Request) {
+func HandleReady(w http.ResponseWriter, r *http.Request) {
 	status := getReady()
 	w.Header().Set("Content-Type", "application/json")
 	if status.Status == okValue {
@@ -119,47 +93,29 @@ func EmptyStatus() *Status {
 	return &Status{}
 }
 
-func readinessChecker() bool {
-	_, r, err := kratos.MetadataApi.IsReady(context.Background()).Execute()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling Kratos with `MetadataApi.IsReady``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		return false
-	} else if r.StatusCode != 200 {
-		fmt.Fprintf(os.Stderr, "Error when calling Kratos with `MetadataApi.IsReady``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		return false
+func readinessChecker() (bool, string) {
+	result := true
+	errorMessage := "Error:"
+	if kratosURL := os.Getenv(kratosEnvar); kratosURL == "" {
+		errorMessage = fmt.Sprintf("%s Kratos endpoint not set.", errorMessage)
+		result = false
+	}
+	if hydraURL := os.Getenv(hydraEnvar); hydraURL == "" {
+		errorMessage = fmt.Sprintf("%s Hydra endpoint not set.", errorMessage)
+		result = false
 	}
 
-	_, r, err = hydra.MetadataApi.IsReady(context.Background()).Execute()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling Hydra with `MetadataApi.IsReady``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		return false
-	} else if r.StatusCode != 200 {
-		fmt.Fprintf(os.Stderr, "Error when calling Hydra with `MetadataApi.IsReady``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-		return false
+	if result {
+		return result, ""
 	}
-	return true
+	return result, errorMessage
 }
 
 func TestSetUnalive(msg string) {
 	setUnAlive(msg)
 }
 
-func TestHandleAlive(w http.ResponseWriter, r *http.Request) {
-	handleAlive(w, r)
-}
-
-func TestHandleReady(w http.ResponseWriter, r *http.Request) {
-	handleReady(w, r)
-}
-
 func TestResetHealth() {
 	aliveSingleton = Status{}
 	readySingleton = Status{}
-	kratos = nil
-	hydra = nil
-	apiClientSet = false
 }

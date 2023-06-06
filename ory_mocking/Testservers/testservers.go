@@ -132,3 +132,20 @@ func CreateErrorServers(t *testing.T) {
 	t.Cleanup(ekratos.Close)
 	t.Cleanup(ehydra.Close)
 }
+
+func ClearEnvars(t *testing.T) {
+	if _, ok := os.LookupEnv("HYDRA_ADMIN_URL"); ok {
+		err := os.Unsetenv("HYDRA_ADMIN_URL")
+		if err != nil {
+			t.Errorf("expected error to be nil got %v", err)
+		}
+	}
+	if _, ok := os.LookupEnv("KRATOS_PUBLIC_URL"); ok {
+		err := os.Unsetenv("KRATOS_PUBLIC_URL")
+		if err != nil {
+			t.Errorf("expected error to be nil got %v", err)
+		}
+	}
+
+	return
+}

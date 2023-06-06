@@ -306,9 +306,10 @@ func TestHandleConsentError(t *testing.T) {
 // --------------------------------------------
 func TestAliveOK(t *testing.T) {
 	health.TestResetHealth()
+	testServers.ClearEnvars(t)
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
-	health.TestHandleAlive(w, req)
+	health.HandleAlive(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
@@ -324,12 +325,13 @@ func TestAliveOK(t *testing.T) {
 
 func TestAliveFail(t *testing.T) {
 	health.TestResetHealth()
+	testServers.ClearEnvars(t)
 	testMessage := "Liveness Check failed for test"
 	health.TestSetUnalive(testMessage)
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
-	health.TestHandleAlive(w, req)
+	health.HandleAlive(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
@@ -347,12 +349,12 @@ func TestAliveFail(t *testing.T) {
 func TestReadyOK(t *testing.T) {
 	//init clients
 	health.TestResetHealth()
+	testServers.ClearEnvars(t)
 	testServers.CreateTestServers(t)
-	health.SetApiClients(NewKratosClient(), NewHydraClient())
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
-	health.TestHandleReady(w, req)
+	health.HandleReady(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
@@ -368,14 +370,13 @@ func TestReadyOK(t *testing.T) {
 
 func TestReadyFail(t *testing.T) {
 	health.TestResetHealth()
-	testMessage := "Ory backend have not been confirmed to be available"
-	testServers.CreateErrorServers(t)
-	health.SetApiClients(NewKratosClient(), NewHydraClient())
+	testServers.ClearEnvars(t)
+	testMessage := "Error: Kratos endpoint not set. Hydra endpoint not set."
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_READY_URL, nil)
 	w := httptest.NewRecorder()
 	//health.TestSetUnready(testMessage)
-	health.TestHandleReady(w, req)
+	health.HandleReady(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)

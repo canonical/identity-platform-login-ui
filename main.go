@@ -78,18 +78,6 @@ func NewHydraClient() *hydra_client.APIClient {
 }
 
 func main() {
-	health.SetApiClients(NewKratosClient(), NewHydraClient())
-	handleAlive, err := health.GetAliveHandler()
-	if err != nil {
-		log.Printf("%v\n", err)
-		return
-	}
-	handleReady, err := health.GetReadyHandler()
-	if err != nil {
-		log.Printf("%v\n", err)
-		return
-	}
-
 	dist, _ := fs.Sub(ui, "ui/dist")
 	fs := http.FileServer(http.FS(dist))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -105,8 +93,8 @@ func main() {
 	http.HandleFunc("/api/kratos/self-service/login", handleUpdateFlow)
 	http.HandleFunc("/api/kratos/self-service/errors", handleKratosError)
 	http.HandleFunc("/api/consent", handleConsent)
-	http.HandleFunc("/health/alive", handleAlive)
-	http.HandleFunc("/health/ready", handleReady)
+	http.HandleFunc("/health/alive", health.HandleAlive)
+	http.HandleFunc("/health/ready", health.HandleReady)
 
 	port := os.Getenv("PORT")
 
