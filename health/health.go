@@ -73,14 +73,14 @@ func GetAliveHandler() (func(w http.ResponseWriter, r *http.Request), error) {
 	if apiClientSet {
 		return handleAlive, nil
 	}
-	return nil, errors.New("API Clients not set in health")
+	return nil, errors.New("API Clients not set")
 }
 
 func GetReadyHandler() (func(w http.ResponseWriter, r *http.Request), error) {
 	if apiClientSet {
 		return handleReady, nil
 	}
-	return nil, errors.New("API Clients not set health")
+	return nil, errors.New("API Clients not set")
 }
 
 func handleAlive(w http.ResponseWriter, r *http.Request) {
