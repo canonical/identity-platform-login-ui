@@ -306,7 +306,6 @@ func TestHandleConsentError(t *testing.T) {
 // --------------------------------------------
 func TestAliveOK(t *testing.T) {
 	health.TestResetHealth()
-	testServers.ClearEnvars(t)
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
 	health.HandleAlive(w, req)
@@ -325,7 +324,6 @@ func TestAliveOK(t *testing.T) {
 
 func TestAliveFail(t *testing.T) {
 	health.TestResetHealth()
-	testServers.ClearEnvars(t)
 	testMessage := "Liveness Check failed for test"
 	health.TestSetUnalive(testMessage)
 
@@ -349,8 +347,6 @@ func TestAliveFail(t *testing.T) {
 func TestReadyOK(t *testing.T) {
 	//init clients
 	health.TestResetHealth()
-	testServers.ClearEnvars(t)
-	testServers.CreateTestServers(t)
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
@@ -371,11 +367,11 @@ func TestReadyOK(t *testing.T) {
 func TestReadyFail(t *testing.T) {
 	health.TestResetHealth()
 	testServers.ClearEnvars(t)
-	testMessage := "Error: Kratos endpoint not set. Hydra endpoint not set."
+	testMessage := "Readiness Check failed for test"
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_READY_URL, nil)
 	w := httptest.NewRecorder()
-	//health.TestSetUnready(testMessage)
+	health.TestSetUnready(testMessage)
 	health.HandleReady(w, req)
 	res := w.Result()
 	defer res.Body.Close()

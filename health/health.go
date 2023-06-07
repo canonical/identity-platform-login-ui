@@ -2,15 +2,11 @@ package health
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
 const okValue = "ok"
-const kratosEnvar = "KRATOS_PUBLIC_URL"
-const hydraEnvar = "HYDRA_ADMIN_URL"
 
 var aliveSingleton Status
 var readySingleton Status
@@ -22,19 +18,14 @@ type Status struct {
 
 func getAlive() Status {
 	if aliveSingleton.Status == EmptyStatus().Status {
-		aliveSingleton = Status{Status: okValue}
+		setAlive()
 	}
 	return aliveSingleton
 }
 
 func getReady() Status {
-	if readySingleton.Status != okValue {
-		isReady, msg := readinessChecker()
-		if isReady {
-			setReady()
-		} else {
-			setUnReady(msg)
-		}
+	if readySingleton.Status == EmptyStatus().Status {
+		setReady()
 	}
 	return readySingleton
 }
@@ -55,6 +46,10 @@ func setUnReady(msg string) {
 
 func setReady() {
 	readySingleton = Status{Status: okValue}
+}
+
+func setAlive() {
+	aliveSingleton = Status{Status: okValue}
 }
 
 func HandleAlive(w http.ResponseWriter, r *http.Request) {
@@ -93,26 +88,12 @@ func EmptyStatus() *Status {
 	return &Status{}
 }
 
-func readinessChecker() (bool, string) {
-	result := true
-	errorMessage := "Error:"
-	if kratosURL := os.Getenv(kratosEnvar); kratosURL == "" {
-		errorMessage = fmt.Sprintf("%s Kratos endpoint not set.", errorMessage)
-		result = false
-	}
-	if hydraURL := os.Getenv(hydraEnvar); hydraURL == "" {
-		errorMessage = fmt.Sprintf("%s Hydra endpoint not set.", errorMessage)
-		result = false
-	}
-
-	if result {
-		return result, ""
-	}
-	return result, errorMessage
-}
-
 func TestSetUnalive(msg string) {
 	setUnAlive(msg)
+}
+
+func TestSetUnready(msg string) {
+	setUnReady(msg)
 }
 
 func TestResetHealth() {
