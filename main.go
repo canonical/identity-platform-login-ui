@@ -372,7 +372,6 @@ func setUpPrometheus() *prometheus.MetricsManager {
 		"/index",
 		"/login",
 		"/",
-		"",
 		"/oidc_error",
 		"/registration",
 	)
