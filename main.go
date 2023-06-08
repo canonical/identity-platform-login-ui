@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"identity_platform_login_ui/health"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -99,6 +100,7 @@ func main() {
 	http.HandleFunc("/api/kratos/self-service/login", handleUpdateFlow)
 	http.HandleFunc("/api/kratos/self-service/errors", handleKratosError)
 	http.HandleFunc("/api/consent", handleConsent)
+	http.HandleFunc("/health/alive", health.HandleAlive)
 
 	port := os.Getenv("PORT")
 

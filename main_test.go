@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"identity_platform_login_ui/health"
 	handlers "identity_platform_login_ui/ory_mocking/Handlers"
 	testServers "identity_platform_login_ui/ory_mocking/Testservers"
 	"io"
@@ -27,6 +28,7 @@ const (
 	HANDLE_GET_LOGIN_FLOW_URL    = "/api/kratos/self-service/login/flows?id=1111"
 	HANDLE_ERROR_URL             = "/api/kratos/self-service/errors?id=1111"
 	HANDLE_CONSENT_URL           = "/api/consent?consent_challenge=test_challange"
+	HANDLE_ALIVE_URL             = "/health/alive"
 )
 
 // --------------------------------------------
@@ -312,4 +314,47 @@ func CreateGenericTest(t *testing.T, serverCreater func(t *testing.T), HttpMetho
 		return nil, err
 	}
 	return data, nil
+}
+
+// --------------------------------------------
+// TESTING HEALTH CHECK
+// --------------------------------------------
+func TestAliveOK(t *testing.T) {
+	health.TestResetHealth()
+	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
+	w := httptest.NewRecorder()
+	health.HandleAlive(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	recievedStatus := health.EmptyStatus()
+	if err := json.Unmarshal(data, recievedStatus); err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	assert.Equalf(t, "ok", recievedStatus.Status, "Expected %s, got %s", "ok", recievedStatus.Status)
+}
+
+func TestAliveFail(t *testing.T) {
+	health.TestResetHealth()
+	testMessage := "Liveness Check failed for test"
+	health.SetUnAlive(testMessage)
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
+	w := httptest.NewRecorder()
+	health.HandleAlive(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	recievedStatus := health.EmptyStatus()
+	if err := json.Unmarshal(data, recievedStatus); err != nil {
+		t.Errorf("expected error to be nil got %v", err)
+	}
+	assert.Equalf(t, http.StatusText(503), recievedStatus.Status, "Expected %s, got %s", http.StatusText(503), recievedStatus.Status)
+	assert.Equalf(t, testMessage, recievedStatus.Message, "Expected %s, got %s", testMessage, recievedStatus.Message)
 }
