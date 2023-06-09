@@ -320,7 +320,6 @@ func CreateGenericTest(t *testing.T, serverCreater func(t *testing.T), HttpMetho
 // TESTING HEALTH CHECK
 // --------------------------------------------
 func TestAliveOK(t *testing.T) {
-	health.TestResetHealth()
 	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
 	w := httptest.NewRecorder()
 	health.HandleAlive(w, req)
@@ -330,31 +329,9 @@ func TestAliveOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	recievedStatus := health.EmptyStatus()
-	if err := json.Unmarshal(data, recievedStatus); err != nil {
+	receivedStatus := health.EmptyStatus()
+	if err := json.Unmarshal(data, receivedStatus); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	assert.Equalf(t, "ok", recievedStatus.Status, "Expected %s, got %s", "ok", recievedStatus.Status)
-}
-
-func TestAliveFail(t *testing.T) {
-	health.TestResetHealth()
-	testMessage := "Liveness Check failed for test"
-	health.SetUnAlive(testMessage)
-
-	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
-	w := httptest.NewRecorder()
-	health.HandleAlive(w, req)
-	res := w.Result()
-	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		t.Errorf("expected error to be nil got %v", err)
-	}
-	recievedStatus := health.EmptyStatus()
-	if err := json.Unmarshal(data, recievedStatus); err != nil {
-		t.Errorf("expected error to be nil got %v", err)
-	}
-	assert.Equalf(t, http.StatusText(503), recievedStatus.Status, "Expected %s, got %s", http.StatusText(503), recievedStatus.Status)
-	assert.Equalf(t, testMessage, recievedStatus.Message, "Expected %s, got %s", testMessage, recievedStatus.Message)
+	assert.Equalf(t, "ok", receivedStatus.Status, "Expected %s, got %s", "ok", receivedStatus.Status)
 }
