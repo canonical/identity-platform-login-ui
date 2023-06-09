@@ -367,13 +367,28 @@ func setUpPrometheus() *prometheus.MetricsManager {
 		"/api/kratos/self-service/login",
 		"/api/kratos/self-service/errors",
 		"/api/consent",
-		"/consent",
-		"/error",
-		"/index",
-		"/login",
-		"/",
-		"/oidc_error",
-		"/registration",
+		prometheus.PrometheusPath,
 	)
+
+	pages, err := ui.ReadDir("ui/dist/_next/static/chunks/pages")
+	if err != nil {
+		log.Printf("Error when calling `setUpPrometheus`: %v\n", err)
+	}
+	registerHelper(pages...)
+	mm.RegisterRoutes(registerHelper(pages...)...)
 	return mm
+}
+
+func registerHelper(dirs ...fs.DirEntry) []string {
+	ret := make([]string, 0)
+	for _, d := range dirs {
+		name := d.Name()
+		if name[0] == '_' {
+			continue
+		}
+		ret = append(ret, fmt.Sprintf("/%s.html", strings.Split(name, "-")[0]))
+	}
+	ret = append(ret, "/")
+
+	return ret
 }
