@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"identity_platform_login_ui/health"
 	handlers "identity_platform_login_ui/ory_mocking/Handlers"
 	testServers "identity_platform_login_ui/ory_mocking/Testservers"
 	prometheus "identity_platform_login_ui/prometheus"
