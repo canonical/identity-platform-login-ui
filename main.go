@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -372,23 +373,22 @@ func setUpPrometheus() *prometheus.MetricsManager {
 		prometheus.PrometheusPath,
 	)
 
-	pages, err := ui.ReadDir("ui/dist/_next/static/chunks/pages")
+	pages, err := ui.ReadDir("ui/dist")
 	if err != nil {
 		log.Printf("Error when calling `setUpPrometheus`: %v\n", err)
 	}
-	registerHelper(pages...)
 	mm.RegisterRoutes(registerHelper(pages...)...)
 	return mm
 }
 
 func registerHelper(dirs ...fs.DirEntry) []string {
+	r, _ := regexp.Compile("html")
 	ret := make([]string, 0)
 	for _, d := range dirs {
 		name := d.Name()
-		if name[0] == '_' {
-			continue
+		if r.MatchString(name) {
+			ret = append(ret, name)
 		}
-		ret = append(ret, fmt.Sprintf("/%s.html", strings.Split(name, "-")[0]))
 	}
 	ret = append(ret, "/")
 
