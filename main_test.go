@@ -329,7 +329,7 @@ func TestAliveOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	receivedStatus := health.EmptyStatus()
+	receivedStatus := new(health.Status)
 	if err := json.Unmarshal(data, receivedStatus); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
