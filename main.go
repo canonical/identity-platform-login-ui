@@ -368,6 +368,7 @@ func setUpPrometheus() *prometheus.MetricsManager {
 		"/api/kratos/self-service/login",
 		"/api/kratos/self-service/errors",
 		"/api/consent",
+		"/health/alive",
 		prometheus.PrometheusPath,
 	)
 
