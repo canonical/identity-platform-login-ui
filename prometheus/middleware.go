@@ -6,7 +6,7 @@ import (
 
 type MetricsManager struct {
 	prometheusMetrics *Metrics
-	routes            []string
+	routes            map[string]bool
 }
 
 func NewMetricsManager(app, version, hash, buildTime string) *MetricsManager {
@@ -18,6 +18,7 @@ func NewMetricsManager(app, version, hash, buildTime string) *MetricsManager {
 func NewMetricsManagerWithPrefix(app, metricsPrefix, version, hash, buildTime string) *MetricsManager {
 	return &MetricsManager{
 		prometheusMetrics: NewMetrics(app, metricsPrefix, version, hash, buildTime),
+		routes:            make(map[string]bool),
 	}
 }
 
@@ -30,7 +31,7 @@ func (pmm *MetricsManager) Middleware(next http.HandlerFunc) func(rw http.Respon
 
 func (pmm *MetricsManager) RegisterRoutes(routes ...string) {
 	for _, route := range routes {
-		pmm.routes = append(pmm.routes, route)
+		pmm.routes[route] = true
 	}
 }
 
@@ -44,11 +45,7 @@ func (pmm *MetricsManager) getLabelForPath(r *http.Request) string {
 
 // lookupRoutes returns true if url is registered with Middleware Manager
 func (pmm *MetricsManager) lookupRoutes(url string) bool {
-	for _, v := range pmm.routes {
-		if v == url {
-			return true
-		}
-	}
+	_, ok := pmm.routes[url]
 
-	return false
+	return ok
 }
