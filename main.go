@@ -15,9 +15,9 @@ import (
 	"strconv"
 	"strings"
 
-	"identity_platform_login_ui/health"
-	"identity_platform_login_ui/http_meta"
-	prometheus "identity_platform_login_ui/prometheus"
+	"github.com/canonical/identity_platform_login_ui/health"
+	"github.com/canonical/identity_platform_login_ui/http_meta"
+	prometheus "github.com/canonical/identity_platform_login_ui/prometheus"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
