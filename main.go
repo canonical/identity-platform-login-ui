@@ -99,6 +99,7 @@ func main() {
 		}
 		metricsManager.Middleware(fs.ServeHTTP)(w, r)
 	})
+	//status_code.ResponseWithStatusCodeMiddleware()
 	http.HandleFunc("/api/kratos/self-service/login/browser", metricsManager.Middleware(handleCreateFlow))
 	http.HandleFunc("/api/kratos/self-service/login/flows", metricsManager.Middleware(handleLoginFlow))
 	http.HandleFunc("/api/kratos/self-service/login", metricsManager.Middleware(handleUpdateFlow))
