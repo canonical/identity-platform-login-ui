@@ -2,13 +2,14 @@ package Testservers
 
 import (
 	"fmt"
-	handlers "identity_platform_login_ui/ory_mocking/Handlers"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	handlers "github.com/canonical/identity_platform_login_ui/ory_mocking/Handlers"
 )
 
 const DEFAULT_SCHEMA_SERVER_URL = "test_default.json"
