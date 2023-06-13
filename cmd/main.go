@@ -10,10 +10,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/canonical/identity_platform_login_ui/health"
 	"github.com/canonical/identity_platform_login_ui/http_meta"
@@ -93,6 +96,7 @@ func main() {
 
 	dist, _ := fs.Sub(ui, "ui/dist")
 	fs := http.FileServer(http.FS(dist))
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Add the html suffix if missing
 		// This allows us to serve /login.html in the /login URL
@@ -117,7 +121,39 @@ func main() {
 	}
 
 	log.Println("Starting server on port " + port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+
+	srv := &http.Server{
+		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		Handler:      http.DefaultServeMux,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	// Block until we receive our signal.
+	<-c
+
+	// Create a deadline to wait for.
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	// Doesn't block if no connections, but will otherwise wait
+	// until the timeout deadline.
+	srv.Shutdown(ctx)
+	// Optionally, you could run srv.Shutdown in a goroutine and block on
+	// <-ctx.Done() if your application should wait for other services
+	// to finalize based on context cancellation.
+	log.Println("Shutting down")
+	os.Exit(0)
+
 }
 
 // TODO: Validate response when server error handling is implemented
