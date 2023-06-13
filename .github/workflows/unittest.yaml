@@ -8,25 +8,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dcodeIO/setup-node-nvm@master
-        with:
-          node-version: 18
-      - name: Build UI
-        run: |
-          cd ./ui
-          npm ci
-          npm run build
-          cd ..
-      - name: Setup Go
-        uses: actions/setup-go@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: '1.18'
-      - name: Install dependencies
-        run: go get .
-      - name: Test with Go
-        run: go test -json > TestResults.json
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      
+      - name: Build js UI
+        working-directory: ./ui
+        run: 
+          npm ci
+          npm run build
+      
+      - name: Build Go code
+        run: make test
+
+      - uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.out        
       - name: Upload Go test results
         uses: actions/upload-artifact@v3
         with:
           name: Go-results
-          path: TestResults.json
+          path: test.json
