@@ -1,4 +1,5 @@
 name: identity-platform-login-ui
+
 base: bare
 build-base: ubuntu:22.04
 version: '0.1'
@@ -7,36 +8,29 @@ description: |
   This is the Canonical Identity platform login UI used for connecting
   Ory Kratos with Ory Hydra.
 license: Apache-2.0
+
 platforms:
   amd64:
 
 services:
   login-ui:
     override: replace
-    command: identity_platform_login_ui
+    command: /usr/bin/identity-platform-login-ui
     startup: enabled
 
 parts:
-  frontend:
-    plugin: npm
-    source: ./ui
-    source-type: local
-    build-snaps:
-    - node/18/stable
-    override-build: |
-      npm ci --frozen-lockfile
-      npm run build
-  backend:
+  go-build:
     plugin: go
-    build-snaps:
-      - go/1.19/stable
-    build-environment:
-      - GOFLAGS: -ldflags=-w -ldflags=-s
-      - CGO_ENABLED: 0
     source: .
     source-type: local
+    build-snaps:
+      - go/1.19/stable
+      - node/18/stable
+    build-packages:
+      - make
+      - git
     override-build: |
-      cp -r ~/parts/frontend/build/dist ./ui
-      craftctl default
-    after:
-      - frontend
+      make npm-build build
+      install -D -m755 cmd/app ${CRAFT_PART_INSTALL}/opt/identity-platform-login-ui/bin/app
+    organize:
+      opt/identity-platform-login-ui/bin/app: usr/bin/identity-platform-login-ui
