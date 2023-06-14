@@ -16,14 +16,14 @@ const middleware_testPath = "/middleware-test"
 func TestMetricsManagerGetLabelForPath(t *testing.T) {
 	t.Run("case=no-endpoint-registered", func(t *testing.T) {
 		mm := NewMetricsManagerWithPrefix(middleware_testApp, "http", "", "", "")
-		t.Cleanup(cleanup(mm))
+		t.Cleanup(Cleanup(mm))
 		r := httptest.NewRequest("GET", middleware_testPath, strings.NewReader(""))
 		assert.Equal(t, "{unmatched}", mm.getLabelForPath(r))
 	})
 
 	t.Run("case=registered-routers-match-no-params", func(t *testing.T) {
 		mm := NewMetricsManagerWithPrefix(middleware_testApp, "http", "", "", "")
-		t.Cleanup(cleanup(mm))
+		t.Cleanup(Cleanup(mm))
 		mm.RegisterRoutes(middleware_testPath)
 		r := httptest.NewRequest("GET", middleware_testPath, strings.NewReader(""))
 		assert.Equal(t, middleware_testPath, mm.getLabelForPath(r))
@@ -32,7 +32,7 @@ func TestMetricsManagerGetLabelForPath(t *testing.T) {
 
 func TestMiddleware(t *testing.T) {
 	mm := NewMetricsManagerWithPrefix(middleware_testApp, "http", "", "", "")
-	t.Cleanup(cleanup(mm))
+	t.Cleanup(Cleanup(mm))
 	mm.RegisterRoutes(PrometheusPath, middleware_testPath)
 
 	req := httptest.NewRequest(http.MethodGet, middleware_testPath, nil)

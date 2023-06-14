@@ -16,7 +16,7 @@ const metrics_testApp = "metrics-test"
 
 func TestInstrument(t *testing.T) {
 	mm := NewMetricsManagerWithPrefix(metrics_testApp, "http", "", "", "")
-	t.Cleanup(cleanup(mm))
+	t.Cleanup(Cleanup(mm))
 	mm.RegisterRoutes(PrometheusPath, metrics_testPath)
 
 	req := httptest.NewRequest(http.MethodGet, metrics_testPath, nil)

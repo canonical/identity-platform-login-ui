@@ -366,6 +366,7 @@ func TestHandlePrometheusInstrumentation(t *testing.T) {
 	//init clients and middleware
 	testServers.CreateTestServers(t)
 	metricsManager := setUpPrometheus()
+	t.Cleanup(prometheus.Cleanup(metricsManager))
 
 	//make requests to different urls
 	//create flow
