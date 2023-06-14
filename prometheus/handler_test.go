@@ -14,7 +14,7 @@ const handler_testApp = "handler-test"
 
 func TestPrometheusHandler(t *testing.T) {
 	mm := NewMetricsManagerWithPrefix(handler_testApp, "http", "", "", "")
-	t.Cleanup(cleanup(mm))
+	t.Cleanup(Cleanup(mm))
 	mm.RegisterRoutes(PrometheusPath)
 
 	req := httptest.NewRequest(http.MethodGet, handler_testPath, nil)
