@@ -1,4 +1,4 @@
-package Handlers
+package mocks
 
 import (
 	"encoding/json"
