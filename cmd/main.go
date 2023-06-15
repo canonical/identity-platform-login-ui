@@ -10,24 +10,17 @@ import (
 	"os"
 	"os/signal"
 	"path"
-<<<<<<< HEAD
 	"regexp"
-	"strconv"
-	"strings"
+
 	"syscall"
 	"time"
 
-	"github.com/canonical/identity_platform_login_ui/health"
-	"github.com/canonical/identity_platform_login_ui/http_meta"
 	prometheus "github.com/canonical/identity_platform_login_ui/prometheus"
-=======
-	"syscall"
-	"time"
 
 	"github.com/canonical/identity_platform_login_ui/pkg/extra"
-	"github.com/canonical/identity_platform_login_ui/pkg/health"
 	"github.com/canonical/identity_platform_login_ui/pkg/kratos"
->>>>>>> 895f89c (feat: offload logic to packages)
+
+	"github.com/canonical/identity_platform_login_ui/pkg/status"
 
 	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
 	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
@@ -85,7 +78,7 @@ func main() {
 
 	kratos.NewAPI(kClient, hClient).RegisterEndpoints(http.DefaultServeMux)
 	extra.NewAPI(kClient, hClient).RegisterEndpoints(http.DefaultServeMux)
-	http.HandleFunc("/health/alive", health.HandleAlive)
+	status.NewAPI().RegisterEndpoints(http.DefaultServeMux)
 
 	port := os.Getenv("PORT")
 
@@ -129,7 +122,6 @@ func main() {
 
 }
 
-
 func setUpPrometheus() *prometheus.MetricsManager {
 	mm := prometheus.NewMetricsManagerWithPrefix("identity-platform-login-ui-operator", "http", "", "", "")
 	mm.RegisterRoutes(
@@ -163,4 +155,3 @@ func registerHelper(dirs ...fs.DirEntry) []string {
 
 	return ret
 }
-
