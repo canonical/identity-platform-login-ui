@@ -1,11 +1,12 @@
 package prometheus
 
 import (
-	"identity_platform_login_ui/http_meta"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/canonical/identity_platform_login_ui/http_meta"
 
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/assert"

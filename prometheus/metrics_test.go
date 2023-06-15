@@ -2,10 +2,11 @@ package prometheus
 
 import (
 	"encoding/json"
-	"identity_platform_login_ui/http_meta"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/canonical/identity_platform_login_ui/http_meta"
 
 	ioprometheusclient "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
