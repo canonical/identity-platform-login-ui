@@ -21,7 +21,7 @@ func NewMetricsManagerWithPrefix(app, metricsPrefix, version, hash, buildTime st
 // Middleware Implementation method to collect metrics for Prometheus.
 func (pmm *MetricsManager) Middleware(next http.HandlerFunc) func(rw http.ResponseWriter, r *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		ResponseWithStatusCodeMiddleware(pmm.prometheusMetrics.Instrument(rw, next, pmm.getLabelForPath(r)))(rw, r)
+		pmm.prometheusMetrics.Instrument(rw, next, pmm.getLabelForPath(r))(rw, r)
 	}
 }
 

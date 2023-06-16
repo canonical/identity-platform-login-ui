@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"encoding/json"
+	"identity_platform_login_ui/http_meta"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,14 +23,14 @@ func TestInstrument(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, metrics_testPath, nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	ResponseWithStatusCodeMiddleware(mm.prometheusMetrics.Instrument(w, testHandler, mm.getLabelForPath(req)))(w, req)
+	http_meta.ResponseWriterMetaMiddleware(mm.prometheusMetrics.Instrument(w, testHandler, mm.getLabelForPath(req)))(w, req)
 	resp := w.Result()
 	assert.Equalf(t, http.StatusBadRequest, resp.StatusCode, "Expected %s, got %s", http.StatusBadRequest, resp.StatusCode)
 
 	req = httptest.NewRequest(http.MethodGet, PrometheusPath, nil)
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
-	ResponseWithStatusCodeMiddleware(mm.prometheusMetrics.Instrument(w, PrometheusMetrics, mm.getLabelForPath(req)))(w, req)
+	http_meta.ResponseWriterMetaMiddleware(mm.prometheusMetrics.Instrument(w, PrometheusMetrics, mm.getLabelForPath(req)))(w, req)
 	resp = w.Result()
 
 	textParser := expfmt.TextParser{}
