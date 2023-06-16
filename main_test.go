@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"identity_platform_login_ui/health"
+	"identity_platform_login_ui/http_meta"
 	handlers "identity_platform_login_ui/ory_mocking/Handlers"
 	testServers "identity_platform_login_ui/ory_mocking/Testservers"
 	prometheus "identity_platform_login_ui/prometheus"
@@ -330,6 +331,9 @@ func TestAliveOK(t *testing.T) {
 	w := httptest.NewRecorder()
 	health.HandleAlive(w, req)
 	receivedStatus := new(health.Status)
+	res := w.Result()
+	defer res.Body.Close()
+	data, _ := ioutil.ReadAll(res.Body)
 	if err := json.Unmarshal(data, receivedStatus); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
@@ -373,20 +377,20 @@ func TestHandlePrometheusInstrumentation(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	metricsManager.Middleware(handleCreateFlow)(w, req)
+	http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleCreateFlow))(w, req)
 	//self-service errors
 	req = httptest.NewRequest(http.MethodGet, HANDLE_ERROR_URL, nil)
 	w = httptest.NewRecorder()
-	metricsManager.Middleware(handleKratosError)(w, req)
+	http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleKratosError))(w, req)
 	//handle consent
 	req = httptest.NewRequest(http.MethodGet, HANDLE_CONSENT_URL, nil)
 	w = httptest.NewRecorder()
-	metricsManager.Middleware(handleConsent)(w, req)
+	http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleConsent))(w, req)
 
 	//make request to prometheus endpoint and evaluate test
 	req = httptest.NewRequest(http.MethodGet, PROMETHEUS_ENDPOINT, nil)
 	w = httptest.NewRecorder()
-	metricsManager.Middleware(prometheus.PrometheusMetrics)(w, req)
+	http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(prometheus.PrometheusMetrics))(w, req)
 	res := w.Result()
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
