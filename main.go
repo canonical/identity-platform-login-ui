@@ -5,15 +5,19 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"identity_platform_login_ui/health"
 	"io/fs"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
+
+	"identity_platform_login_ui/health"
+	"identity_platform_login_ui/http_meta"
+	prometheus "identity_platform_login_ui/prometheus"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
@@ -85,6 +89,8 @@ func getBaseURL(r *http.Request) string {
 }
 
 func main() {
+	metricsManager := setUpPrometheus()
+
 	dist, _ := fs.Sub(ui, "ui/dist")
 	fs := http.FileServer(http.FS(dist))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -93,14 +99,16 @@ func main() {
 		if ext := path.Ext(r.URL.Path); ext == "" && r.URL.Path != "/" {
 			r.URL.Path += ".html"
 		}
-		fs.ServeHTTP(w, r)
+		metricsManager.Middleware(fs.ServeHTTP)(w, r)
 	})
-	http.HandleFunc("/api/kratos/self-service/login/browser", handleCreateFlow)
-	http.HandleFunc("/api/kratos/self-service/login/flows", handleLoginFlow)
-	http.HandleFunc("/api/kratos/self-service/login", handleUpdateFlow)
-	http.HandleFunc("/api/kratos/self-service/errors", handleKratosError)
-	http.HandleFunc("/api/consent", handleConsent)
-	http.HandleFunc("/health/alive", health.HandleAlive)
+
+	http.HandleFunc("/api/kratos/self-service/login/browser", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleCreateFlow)))
+	http.HandleFunc("/api/kratos/self-service/login/flows", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleLoginFlow)))
+	http.HandleFunc("/api/kratos/self-service/login", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleUpdateFlow)))
+	http.HandleFunc("/api/kratos/self-service/errors", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleKratosError)))
+	http.HandleFunc("/api/consent", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleConsent)))
+	http.HandleFunc("/health/alive", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(health.HandleAlive)))
+	http.HandleFunc(prometheus.PrometheusPath, http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(prometheus.PrometheusMetrics)))
 
 	port := os.Getenv("PORT")
 
@@ -352,6 +360,40 @@ func getUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentReques
 			}
 		}
 	}
+
+	return ret
+}
+
+func setUpPrometheus() *prometheus.MetricsManager {
+	mm := prometheus.NewMetricsManagerWithPrefix("identity-platform-login-ui-operator", "http", "", "", "")
+	mm.RegisterRoutes(
+		"/api/kratos/self-service/login/browser",
+		"/api/kratos/self-service/login/flows",
+		"/api/kratos/self-service/login",
+		"/api/kratos/self-service/errors",
+		"/api/consent",
+		"/health/alive",
+		prometheus.PrometheusPath,
+	)
+
+	pages, err := ui.ReadDir("ui/dist")
+	if err != nil {
+		log.Printf("Error when calling `setUpPrometheus`: %v\n", err)
+	}
+	mm.RegisterRoutes(registerHelper(pages...)...)
+	return mm
+}
+
+func registerHelper(dirs ...fs.DirEntry) []string {
+	r, _ := regexp.Compile("html")
+	ret := make([]string, 0)
+	for _, d := range dirs {
+		name := d.Name()
+		if r.MatchString(name) {
+			ret = append(ret, name)
+		}
+	}
+	ret = append(ret, "/")
 
 	return ret
 }
