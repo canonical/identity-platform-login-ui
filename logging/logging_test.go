@@ -3,11 +3,12 @@ package logging
 import (
 	"encoding/json"
 	"fmt"
-	"identity_platform_login_ui/http_meta"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/canonical/identity_platform_login_ui/http_meta"
 
 	"github.com/stretchr/testify/assert"
 )
