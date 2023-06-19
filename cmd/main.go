@@ -10,16 +10,13 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"regexp"
 
 	"syscall"
 	"time"
 
-	prometheus "github.com/canonical/identity_platform_login_ui/prometheus"
-
 	"github.com/canonical/identity_platform_login_ui/pkg/extra"
 	"github.com/canonical/identity_platform_login_ui/pkg/kratos"
-
+	"github.com/canonical/identity_platform_login_ui/pkg/prometheus"
 	"github.com/canonical/identity_platform_login_ui/pkg/status"
 
 	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
@@ -59,7 +56,6 @@ var oidcScopeMapping = map[string][]string{
 var ui embed.FS
 
 func main() {
-	metricsManager := setUpPrometheus()
 
 	dist, _ := fs.Sub(ui, "ui/dist")
 	fs := http.FileServer(http.FS(dist))
@@ -79,6 +75,24 @@ func main() {
 	kratos.NewAPI(kClient, hClient).RegisterEndpoints(http.DefaultServeMux)
 	extra.NewAPI(kClient, hClient).RegisterEndpoints(http.DefaultServeMux)
 	status.NewAPI().RegisterEndpoints(http.DefaultServeMux)
+	ui.NewAPI(distFS).RegisterEndpoints(http.DefaultServeMux)
+	prometheus.NewAPI().RegisterEndpoints(http.DefaultServeMux)
+
+	prometheus.NewMetricsManagerWithPrefix(
+		"identity-platform-login-ui-operator",
+		"http",
+		"",
+		"",
+		"",
+	).RegisterRoutes(
+		"/api/kratos/self-service/login/browser",
+		"/api/kratos/self-service/login/flows",
+		"/api/kratos/self-service/login",
+		"/api/kratos/self-service/errors",
+		"/api/consent",
+		"/health/alive",
+		"/metrics/prometheus",
+	)
 
 	port := os.Getenv("PORT")
 
@@ -120,38 +134,4 @@ func main() {
 	log.Println("Shutting down")
 	os.Exit(0)
 
-}
-
-func setUpPrometheus() *prometheus.MetricsManager {
-	mm := prometheus.NewMetricsManagerWithPrefix("identity-platform-login-ui-operator", "http", "", "", "")
-	mm.RegisterRoutes(
-		"/api/kratos/self-service/login/browser",
-		"/api/kratos/self-service/login/flows",
-		"/api/kratos/self-service/login",
-		"/api/kratos/self-service/errors",
-		"/api/consent",
-		"/health/alive",
-		prometheus.PrometheusPath,
-	)
-
-	pages, err := ui.ReadDir("ui/dist")
-	if err != nil {
-		log.Printf("Error when calling `setUpPrometheus`: %v\n", err)
-	}
-	mm.RegisterRoutes(registerHelper(pages...)...)
-	return mm
-}
-
-func registerHelper(dirs ...fs.DirEntry) []string {
-	r, _ := regexp.Compile("html")
-	ret := make([]string, 0)
-	for _, d := range dirs {
-		name := d.Name()
-		if r.MatchString(name) {
-			ret = append(ret, name)
-		}
-	}
-	ret = append(ret, "/")
-
-	return ret
 }

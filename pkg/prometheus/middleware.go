@@ -1,8 +1,14 @@
 package prometheus
 
 import (
+	"embed"
+	"io/fs"
+	"log"
 	"net/http"
+	"regexp"
 )
+
+const PrometheusPath = "/metrics/prometheus"
 
 type MetricsManager struct {
 	prometheusMetrics *Metrics
@@ -44,4 +50,38 @@ func (pmm *MetricsManager) lookupRoutes(url string) bool {
 	_, ok := pmm.routes[url]
 
 	return ok
+}
+
+func setUpPrometheus(jsFS embed.FS) *MetricsManager {
+	mm := NewMetricsManagerWithPrefix("identity-platform-login-ui-operator", "http", "", "", "")
+	mm.RegisterRoutes(
+		"/api/kratos/self-service/login/browser",
+		"/api/kratos/self-service/login/flows",
+		"/api/kratos/self-service/login",
+		"/api/kratos/self-service/errors",
+		"/api/consent",
+		"/health/alive",
+		PrometheusPath,
+	)
+
+	pages, err := jsFS.ReadDir("ui/dist")
+	if err != nil {
+		log.Printf("Error when calling `setUpPrometheus`: %v\n", err)
+	}
+	mm.RegisterRoutes(registerHelper(pages...)...)
+	return mm
+}
+
+func registerHelper(dirs ...fs.DirEntry) []string {
+	r, _ := regexp.Compile("html")
+	ret := make([]string, 0)
+	for _, d := range dirs {
+		name := d.Name()
+		if r.MatchString(name) {
+			ret = append(ret, name)
+		}
+	}
+	ret = append(ret, "/")
+
+	return ret
 }

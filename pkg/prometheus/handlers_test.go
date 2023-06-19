@@ -13,7 +13,18 @@ const (
 	HANDLE_CONSENT_URL           = "/api/consent?consent_challenge=test_challange"
 	HANDLE_ALIVE_URL             = "/health/alive"
 	PROMETHEUS_ENDPOINT          = PrometheusPath
+	handler_testPath             = "/handler-test"
+	handler_testApp              = "handler-test"
 )
+
+// import (
+// 	"net/http"
+// 	"net/http/httptest"
+// 	"testing"
+
+// 	"github.com/prometheus/common/expfmt"
+// 	"github.com/stretchr/testify/assert"
+// )
 
 // // --------------------------------------------
 // // TESTING 	PROMETHEUS INSTRUMENTATION
@@ -85,4 +96,21 @@ const (
 // 	assertHelper(formatHelper(HANDLE_ERROR_URL))
 // 	assertHelper(formatHelper(HANDLE_CONSENT_URL))
 // 	assert.Containsf(t, dataStrings, metric_handler_requests_total, "Error in test: Reference string of invalid value: %s", metric_handler_requests_total)
+// }
+
+// func TestPrometheusHandler(t *testing.T) {
+// 	mm := NewMetricsManagerWithPrefix(handler_testApp, "http", "", "", "")
+// 	t.Cleanup(Cleanup(mm))
+// 	mm.RegisterRoutes(PrometheusPath)
+
+// 	req := httptest.NewRequest(http.MethodGet, handler_testPath, nil)
+// 	req.Header.Set("Content-Type", "application/json")
+// 	w := httptest.NewRecorder()
+// 	mm.Middleware(PrometheusMetrics)(w, req)
+// 	resp := w.Result()
+// 	assert.Equalf(t, http.StatusOK, resp.StatusCode, "Expected %s, got %s", http.StatusOK, resp.StatusCode)
+// 	textParser := expfmt.TextParser{}
+// 	text, err := textParser.TextToMetricFamilies(resp.Body)
+// 	assert.Nilf(t, err, "Expected nil, got %s", err)
+// 	assert.Equalf(t, "go_info", *text["go_info"].Name, "Expected %s, got %s", "go_info", *text["go_info"].Name)
 // }
