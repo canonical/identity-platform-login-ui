@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 
+	"identity_platform_login_ui/health"
+	"identity_platform_login_ui/http_meta"
 	prometheus "identity_platform_login_ui/prometheus"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
@@ -99,13 +101,14 @@ func main() {
 		}
 		metricsManager.Middleware(fs.ServeHTTP)(w, r)
 	})
-	//status_code.ResponseWithStatusCodeMiddleware()
-	http.HandleFunc("/api/kratos/self-service/login/browser", metricsManager.Middleware(handleCreateFlow))
-	http.HandleFunc("/api/kratos/self-service/login/flows", metricsManager.Middleware(handleLoginFlow))
-	http.HandleFunc("/api/kratos/self-service/login", metricsManager.Middleware(handleUpdateFlow))
-	http.HandleFunc("/api/kratos/self-service/errors", metricsManager.Middleware(handleKratosError))
-	http.HandleFunc("/api/consent", metricsManager.Middleware(handleConsent))
-	http.HandleFunc(prometheus.PrometheusPath, metricsManager.Middleware(prometheus.PrometheusMetrics))
+
+	http.HandleFunc("/api/kratos/self-service/login/browser", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleCreateFlow)))
+	http.HandleFunc("/api/kratos/self-service/login/flows", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleLoginFlow)))
+	http.HandleFunc("/api/kratos/self-service/login", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleUpdateFlow)))
+	http.HandleFunc("/api/kratos/self-service/errors", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleKratosError)))
+	http.HandleFunc("/api/consent", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(handleConsent)))
+	http.HandleFunc("/health/alive", http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(health.HandleAlive)))
+	http.HandleFunc(prometheus.PrometheusPath, http_meta.ResponseWriterMetaMiddleware(metricsManager.Middleware(prometheus.PrometheusMetrics)))
 
 	port := os.Getenv("PORT")
 
