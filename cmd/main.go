@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path"
 
 	"syscall"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/canonical/identity_platform_login_ui/pkg/kratos"
 	"github.com/canonical/identity_platform_login_ui/pkg/prometheus"
 	"github.com/canonical/identity_platform_login_ui/pkg/status"
+	"github.com/canonical/identity_platform_login_ui/pkg/ui"
 
 	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
 	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
@@ -25,49 +25,20 @@ import (
 
 const defaultPort = "8080"
 
-var oidcScopeMapping = map[string][]string{
-	"openid": {"sub"},
-	"profile": {
-		"name",
-		"family_name",
-		"given_name",
-		"middle_name",
-		"nickname",
-		"preferred_username",
-		"profile",
-		"picture",
-		"website",
-		"gender",
-		"birthdate",
-		"zoneinfo",
-		"locale",
-		"updated_at",
-	},
-	"email":   {"email", "email_verified"},
-	"address": {"address"},
-	"phone":   {"phone_number", "phone_number_verified"},
-}
-
 //go:embed ui/dist
 //go:embed ui/dist/_next
 //go:embed ui/dist/_next/static/chunks/pages/*.js
 //go:embed ui/dist/_next/static/*/*.js
 //go:embed ui/dist/_next/static/*/*.css
-var ui embed.FS
+var jsFS embed.FS
 
 func main() {
 
-	dist, _ := fs.Sub(ui, "ui/dist")
-	fs := http.FileServer(http.FS(dist))
+	distFS, err := fs.Sub(jsFS, "ui/dist")
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Add the html suffix if missing
-		// This allows us to serve /login.html in the /login URL
-		if ext := path.Ext(r.URL.Path); ext == "" && r.URL.Path != "/" {
-			r.URL.Path += ".html"
-		}
-		metricsManager.Middleware(fs.ServeHTTP)(w, r)
-	})
+	if err != nil {
+		log.Fatalf("issue with js distribution files %s", err)
+	}
 
 	kClient := ik.NewClient(os.Getenv("KRATOS_PUBLIC_URL"))
 	hClient := ih.NewClient(os.Getenv("HYDRA_ADMIN_URL"))
