@@ -17,6 +17,20 @@ services:
     startup: enabled
 
 parts:
+  util:
+    plugin: nil
+    stage-packages:
+      # This is needed to pipe the stdout/stderr to a file for log forwarding
+      - coreutils
+    prime:
+      - usr/bin/tee
+
+  shell:
+    plugin: nil
+    stage-packages:
+      # This is needed to pipe the stdout/stderr to a file for log forwarding
+      - dash
+
   frontend:
     plugin: npm
     source: ./ui
