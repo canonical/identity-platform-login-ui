@@ -21,6 +21,7 @@ import (
 
 	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
 	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
+	"github.com/canonical/identity_platform_login_ui/internal/logging"
 )
 
 const defaultPort = "8080"
@@ -33,6 +34,7 @@ const defaultPort = "8080"
 var jsFS embed.FS
 
 func main() {
+	logger := logging.NewLogger(os.Getenv("LOG_LEVEL"))
 
 	distFS, err := fs.Sub(jsFS, "ui/dist")
 
@@ -43,11 +45,11 @@ func main() {
 	kClient := ik.NewClient(os.Getenv("KRATOS_PUBLIC_URL"))
 	hClient := ih.NewClient(os.Getenv("HYDRA_ADMIN_URL"))
 
-	kratos.NewAPI(kClient, hClient).RegisterEndpoints(http.DefaultServeMux)
-	extra.NewAPI(kClient, hClient).RegisterEndpoints(http.DefaultServeMux)
-	status.NewAPI().RegisterEndpoints(http.DefaultServeMux)
-	ui.NewAPI(distFS).RegisterEndpoints(http.DefaultServeMux)
-	prometheus.NewAPI().RegisterEndpoints(http.DefaultServeMux)
+	kratos.NewAPI(kClient, hClient, logger).RegisterEndpoints(http.DefaultServeMux)
+	extra.NewAPI(kClient, hClient, logger).RegisterEndpoints(http.DefaultServeMux)
+	status.NewAPI(logger).RegisterEndpoints(http.DefaultServeMux)
+	ui.NewAPI(distFS, logger).RegisterEndpoints(http.DefaultServeMux)
+	prometheus.NewAPI(logger).RegisterEndpoints(http.DefaultServeMux)
 
 	prometheus.NewMetricsManagerWithPrefix(
 		"identity-platform-login-ui-operator",
@@ -99,6 +101,9 @@ func main() {
 	// Doesn't block if no connections, but will otherwise wait
 	// until the timeout deadline.
 	srv.Shutdown(ctx)
+
+	logger.Desugar().Sync()
+
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.

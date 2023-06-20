@@ -11,6 +11,8 @@ import (
 	"github.com/canonical/identity_platform_login_ui/internal/hydra"
 	"github.com/canonical/identity_platform_login_ui/internal/kratos"
 	"github.com/canonical/identity_platform_login_ui/internal/ory/mocks"
+	"github.com/go-chi/chi/v5"
+	gomock "github.com/golang/mock/gomock"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
@@ -31,10 +33,17 @@ const (
 	HANDLE_ALIVE_URL             = "/health/alive"
 )
 
+//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
+
 // --------------------------------------------
 // TESTING WITH CORRECT SERVERS
 // --------------------------------------------
 func TestHandleCreateFlowWithoutCookie(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+
 	kratosStub := mocks.NewKratosServerStub()
 	hydraStub := mocks.NewHydraServerStub()
 
@@ -43,8 +52,8 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	mux := http.NewServeMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL)).RegisterEndpoints(mux)
+	mux := chi.NewMux()
+	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -62,6 +71,10 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 }
 
 func TestHandleCreateFlowWithCookie(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
 	kratosStub := mocks.NewKratosServerStub()
 	hydraStub := mocks.NewHydraServerStub()
 
@@ -79,8 +92,8 @@ func TestHandleCreateFlowWithCookie(t *testing.T) {
 	req.AddCookie(cookie)
 	w := httptest.NewRecorder()
 
-	mux := http.NewServeMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL)).RegisterEndpoints(mux)
+	mux := chi.NewMux()
+	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -102,6 +115,10 @@ func TestHandleCreateFlowWithCookie(t *testing.T) {
 }
 
 func TestHandleUpdateFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
 	kratosStub := mocks.NewKratosServerStub()
 	hydraStub := mocks.NewHydraServerStub()
 
@@ -128,8 +145,8 @@ func TestHandleUpdateFlow(t *testing.T) {
 	//create response
 	w := httptest.NewRecorder()
 
-	mux := http.NewServeMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL)).RegisterEndpoints(mux)
+	mux := chi.NewMux()
+	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 	//check results
@@ -147,6 +164,10 @@ func TestHandleUpdateFlow(t *testing.T) {
 }
 
 func TestHandleGetLoginFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
 	kratosStub := mocks.NewKratosServerStub()
 	hydraStub := mocks.NewHydraServerStub()
 
@@ -166,8 +187,8 @@ func TestHandleGetLoginFlow(t *testing.T) {
 
 	//create response
 	w := httptest.NewRecorder()
-	mux := http.NewServeMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL)).RegisterEndpoints(mux)
+	mux := chi.NewMux()
+	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 	//check results

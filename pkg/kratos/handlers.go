@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/canonical/identity_platform_login_ui/internal/logging"
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
 
@@ -15,6 +16,8 @@ import (
 type API struct {
 	kratos KratosClientInterface
 	hydra  HydraClientInterface
+
+	logger logging.LoggerInterface
 }
 
 func (a *API) RegisterEndpoints(mux *http.ServeMux) {
@@ -38,8 +41,8 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			Execute()
 		if session_resp.StatusCode != 401 {
 			if e != nil {
-				log.Printf("Error when calling `FrontendApi.ToSession`: %v\n", e)
-				log.Printf("Full HTTP response: %v\n", session_resp)
+				a.logger.Errorf("Error when calling `FrontendApi.ToSession`: %v\n", e)
+				a.logger.Errorf("Full HTTP response: %v\n", session_resp)
 			} else {
 				accept := hydra_client.NewAcceptOAuth2LoginRequest(session.Identity.Id)
 
@@ -48,8 +51,8 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 					AcceptOAuth2LoginRequest(*accept).
 					Execute()
 				if e != nil {
-					log.Printf("Error when calling `AdminApi.AcceptLoginRequest`: %v\n", e)
-					log.Printf("Full HTTP response: %v\n", resp)
+					a.logger.Errorf("Error when calling `AdminApi.AcceptLoginRequest`: %v\n", e)
+					a.logger.Errorf("Full HTTP response: %v\n", resp)
 					return
 				}
 
@@ -79,8 +82,8 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		Cookie(misc.CookiesToString(r.Cookies())).
 		Execute()
 	if e != nil {
-		log.Printf("Error when calling `FrontendApi.CreateBrowserLoginFlow`: %v\n", e)
-		log.Printf("Full HTTP response: %v\n", resp)
+		a.logger.Errorf("Error when calling `FrontendApi.CreateBrowserLoginFlow`: %v\n", e)
+		a.logger.Errorf("Full HTTP response: %v\n", resp)
 		return
 	}
 
@@ -99,8 +102,8 @@ func (a *API) handleLoginFlow(w http.ResponseWriter, r *http.Request) {
 		Cookie(misc.CookiesToString(r.Cookies())).
 		Execute()
 	if e != nil && resp.StatusCode != 422 {
-		log.Printf("Error when calling `FrontendApi.GetLoginFlow`: %v\n", e)
-		log.Printf("Full HTTP response: %v\n", resp)
+		a.logger.Errorf("Error when calling `FrontendApi.GetLoginFlow`: %v\n", e)
+		a.logger.Errorf("Full HTTP response: %v\n", resp)
 		return
 	}
 
@@ -127,8 +130,8 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		Cookie(misc.CookiesToString(r.Cookies())).
 		Execute()
 	if e != nil && resp.StatusCode != 422 {
-		log.Printf("Error when calling `FrontendApi.UpdateLoginFlow`: %v\n", e)
-		log.Printf("Full HTTP response: %v\n", resp)
+		a.logger.Errorf("Error when calling `FrontendApi.UpdateLoginFlow`: %v\n", e)
+		a.logger.Errorf("Full HTTP response: %v\n", resp)
 		return
 	}
 
@@ -144,19 +147,21 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 
 	_, resp, e := a.kratos.FrontendApi().GetFlowError(context.Background()).Id(id).Execute()
 	if e != nil {
-		log.Printf("Error when calling `FrontendApi.GetFlowError`: %v\n", e)
-		log.Printf("Full HTTP response: %v\n", resp)
+		a.logger.Errorf("Error when calling `FrontendApi.GetFlowError`: %v\n", e)
+		a.logger.Errorf("Full HTTP response: %v\n", resp)
 		return
 	}
 	misc.WriteResponse(w, resp)
 	return
 }
 
-func NewAPI(kratos KratosClientInterface, hydra HydraClientInterface) *API {
+func NewAPI(kratos KratosClientInterface, hydra HydraClientInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.kratos = kratos
 	a.hydra = hydra
+
+	a.logger = logger
 
 	return a
 }
