@@ -13,11 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/canonical/identity_platform_login_ui/pkg/extra"
-	"github.com/canonical/identity_platform_login_ui/pkg/kratos"
 	"github.com/canonical/identity_platform_login_ui/pkg/prometheus"
-	"github.com/canonical/identity_platform_login_ui/pkg/status"
-	"github.com/canonical/identity_platform_login_ui/pkg/ui"
+	"github.com/canonical/identity_platform_login_ui/pkg/web"
 
 	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
 	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
@@ -45,11 +42,7 @@ func main() {
 	kClient := ik.NewClient(os.Getenv("KRATOS_PUBLIC_URL"))
 	hClient := ih.NewClient(os.Getenv("HYDRA_ADMIN_URL"))
 
-	kratos.NewAPI(kClient, hClient, logger).RegisterEndpoints(http.DefaultServeMux)
-	extra.NewAPI(kClient, hClient, logger).RegisterEndpoints(http.DefaultServeMux)
-	status.NewAPI(logger).RegisterEndpoints(http.DefaultServeMux)
-	ui.NewAPI(distFS, logger).RegisterEndpoints(http.DefaultServeMux)
-	prometheus.NewAPI(logger).RegisterEndpoints(http.DefaultServeMux)
+	router := web.NewRouter(kClient, hClient, distFS, logger)
 
 	prometheus.NewMetricsManagerWithPrefix(
 		"identity-platform-login-ui-operator",
@@ -80,7 +73,7 @@ func main() {
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler:      http.DefaultServeMux,
+		Handler:      router,
 	}
 
 	go func() {
