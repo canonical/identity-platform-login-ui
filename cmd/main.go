@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/canonical/identity_platform_login_ui/pkg/prometheus"
+	pMonitor "github.com/canonical/identity_platform_login_ui/internal/monitoring/prometheus"
 	"github.com/canonical/identity_platform_login_ui/pkg/web"
 
 	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
@@ -33,6 +33,8 @@ var jsFS embed.FS
 func main() {
 	logger := logging.NewLogger(os.Getenv("LOG_LEVEL"))
 
+	monitor := pMonitor.NewMonitor("identity-login-ui", logger)
+
 	distFS, err := fs.Sub(jsFS, "ui/dist")
 
 	if err != nil {
@@ -42,23 +44,7 @@ func main() {
 	kClient := ik.NewClient(os.Getenv("KRATOS_PUBLIC_URL"))
 	hClient := ih.NewClient(os.Getenv("HYDRA_ADMIN_URL"))
 
-	router := web.NewRouter(kClient, hClient, distFS, logger)
-
-	prometheus.NewMetricsManagerWithPrefix(
-		"identity-platform-login-ui-operator",
-		"http",
-		"",
-		"",
-		"",
-	).RegisterRoutes(
-		"/api/kratos/self-service/login/browser",
-		"/api/kratos/self-service/login/flows",
-		"/api/kratos/self-service/login",
-		"/api/kratos/self-service/errors",
-		"/api/consent",
-		"/health/alive",
-		"/metrics/prometheus",
-	)
+	router := web.NewRouter(kClient, hClient, distFS, monitor, logger)
 
 	port := os.Getenv("PORT")
 
