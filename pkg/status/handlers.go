@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/canonical/identity_platform_login_ui/internal/logging"
+	"github.com/go-chi/chi/v5"
 )
 
 const okValue = "ok"
@@ -18,9 +19,9 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
-func (a *API) RegisterEndpoints(mux *http.ServeMux) {
-	mux.HandleFunc("/health/alive", a.handleAlive)
-	mux.HandleFunc("/health/version", a.version)
+func (a *API) RegisterEndpoints(mux *chi.Mux) {
+	mux.Get("/api/v0/status", a.handleAlive)
+	mux.Get("/api/v0/version", a.version)
 
 }
 

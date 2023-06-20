@@ -69,31 +69,3 @@ func TestHandleConsent(t *testing.T) {
 
 	assert.Equalf(t, mocks.CONSENT_REDIRECT, responseRedirect.RedirectTo, "Expected %s, got %s.", mocks.CONSENT_REDIRECT, responseRedirect.RedirectTo)
 }
-
-// --------------------------------------------
-// TESTING WITH TIMEOUT SERVERS
-// currently only prints out results main.go needs pr to handle timeouts
-// --------------------------------------------
-// func TestHandleConsentTimeout(t *testing.T) {
-// 	data, err := CreateGenericTest(t, mocks.CreateTimeoutServers, http.MethodGet,
-// 		HANDLE_CONSENT_URL,
-// 		nil, handleConsent)
-// 	if err != nil {
-// 		t.Errorf("expected error to be nil got %v", err)
-// 	}
-// 	t.Logf("Result:\n%s\n", string(data))
-// }
-
-// // --------------------------------------------
-// // TESTING WITH ERROR SERVERS
-// // currently only prints out results main.go needs pr to handle errors
-// // --------------------------------------------
-// func TestHandleConsentError(t *testing.T) {
-// 	data, err := CreateGenericTest(t, mocks.CreateErrorServers, http.MethodGet,
-// 		HANDLE_CONSENT_URL,
-// 		nil, handleConsent)
-// 	if err != nil {
-// 		t.Errorf("expected error to be nil got %v", err)
-// 	}
-// 	t.Logf("Result:\n%s\n", string(data))
-// }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/canonical/identity_platform_login_ui/internal/logging"
+	"github.com/go-chi/chi/v5"
 	hydra_client "github.com/ory/hydra-client-go/v2"
 
 	misc "github.com/canonical/identity_platform_login_ui/internal/misc/http"
@@ -17,8 +18,8 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
-func (a *API) RegisterEndpoints(mux *http.ServeMux) {
-	mux.HandleFunc("/api/consent", a.handleConsent)
+func (a *API) RegisterEndpoints(mux *chi.Mux) {
+	mux.Get("/api/consent", a.handleConsent)
 }
 
 // TODO: Validate response when server error handling is implemented

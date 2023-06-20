@@ -15,17 +15,13 @@ import (
 
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 
-const (
-	HANDLE_ALIVE_URL = "/health/alive"
-)
-
 func TestAliveOK(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 
-	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/status", nil)
 	w := httptest.NewRecorder()
 
 	mux := chi.NewMux()

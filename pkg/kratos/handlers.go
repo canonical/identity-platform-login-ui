@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/canonical/identity_platform_login_ui/internal/logging"
+	"github.com/go-chi/chi/v5"
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
 
@@ -20,11 +21,11 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
-func (a *API) RegisterEndpoints(mux *http.ServeMux) {
-	mux.HandleFunc("/api/kratos/self-service/login/browser", a.handleCreateFlow)
-	mux.HandleFunc("/api/kratos/self-service/login/flows", a.handleLoginFlow)
-	mux.HandleFunc("/api/kratos/self-service/login", a.handleUpdateFlow)
-	mux.HandleFunc("/api/kratos/self-service/errors", a.handleKratosError)
+func (a *API) RegisterEndpoints(mux *chi.Mux) {
+	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
+	mux.Get("/api/kratos/self-service/login/flows", a.handleLoginFlow)
+	mux.Post("/api/kratos/self-service/login", a.handleUpdateFlow)
+	mux.Get("/api/kratos/self-service/errors", a.handleKratosError)
 }
 
 // TODO: Validate response when server error handling is implemented

@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/canonical/identity_platform_login_ui/internal/logging"
+	"github.com/go-chi/chi/v5"
 )
 
 type API struct {
@@ -14,7 +15,8 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
-func (a *API) RegisterEndpoints(mux *http.ServeMux) {
+func (a *API) RegisterEndpoints(mux *chi.Mux) {
+	// TODO @shipperizer unsure if we deal with any POST/PUT/PATCH via js
 	mux.HandleFunc("/", a.uiFiles)
 }
 

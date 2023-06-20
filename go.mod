@@ -3,6 +3,7 @@ module github.com/canonical/identity_platform_login_ui
 go 1.18
 
 require (
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/golang/mock v1.6.0
 	github.com/ory/hydra-client-go/v2 v2.1.1
 	github.com/ory/kratos-client-go v0.13.1
