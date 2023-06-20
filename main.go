@@ -393,6 +393,7 @@ func registerHelper(dirs ...fs.DirEntry) []string {
 			ret = append(ret, name)
 		}
 	}
+
 	ret = append(ret, "/")
 
 	return ret
