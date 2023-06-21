@@ -17,7 +17,7 @@ type API struct {
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	// TODO @shipperizer unsure if we deal with any POST/PUT/PATCH via js
-	mux.HandleFunc("/", a.uiFiles)
+	mux.HandleFunc("/*", a.uiFiles)
 }
 
 // TODO: Validate response when server error handling is implemented
