@@ -1,13 +1,11 @@
-import { Configuration, OAuth2Api } from "@ory/client";
+import { Configuration, FrontendApi } from "@ory/client";
 
-const hydraAdmin = new OAuth2Api(
+export const kratos = new FrontendApi(
   new Configuration({
     // Use relative path so that this works when served in a subpath
-    basePath: "./api/hydra",
+    basePath: "./api/kratos",
     baseOptions: {
       withCredentials: true,
     },
   })
 );
-
-export { hydraAdmin };
