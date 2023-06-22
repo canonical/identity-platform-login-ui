@@ -3,11 +3,12 @@ package logging
 import (
 	"encoding/json"
 	"fmt"
-	"identity_platform_login_ui/http_meta"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/canonical/identity_platform_login_ui/internal/http_meta"
 )
 
 const version = "master"
