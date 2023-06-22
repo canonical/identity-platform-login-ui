@@ -22,7 +22,7 @@
     "build": "npm run build-css && next build && next export -o dist",
     "start": "next start",
     "lint": "next lint",
-    "build-css": "sass --load-path node_modules --source-map static/sass:static/css && postcss --map false --use autoprefixer --replace 'static/css/**/*.css'"
+    "build-css": "node_modules/sass/sass.js --load-path node_modules --source-map static/sass:static/css && postcss --map false --use autoprefixer --replace 'static/css/**/*.css'"
   },
   "eslintConfig": {
     "extends": [
