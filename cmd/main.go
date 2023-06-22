@@ -12,15 +12,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/canonical/identity_platform_login_ui/pkg/web"
+	"github.com/kelseyhightower/envconfig"
 
+	"github.com/canonical/identity_platform_login_ui/internal/config"
 	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
 	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
 	"github.com/canonical/identity_platform_login_ui/internal/logging"
 	"github.com/canonical/identity_platform_login_ui/internal/monitoring/prometheus"
+	"github.com/canonical/identity_platform_login_ui/pkg/web"
 )
-
-const defaultPort = "8080"
 
 //go:embed ui/dist
 //go:embed ui/dist/_next
@@ -30,7 +30,14 @@ const defaultPort = "8080"
 var jsFS embed.FS
 
 func main() {
-	logger := logging.NewLogger(os.Getenv("LOG_LEVEL"), os.Getenv("LOG_FILE"))
+
+	specs := new(config.EnvSpec)
+
+	if err := envconfig.Process("", specs); err != nil {
+		panic(fmt.Errorf("issues with environment sourcing: %s", err))
+	}
+
+	logger := logging.NewLogger(specs.LogLevel, specs.LogFile)
 
 	monitor := prometheus.NewMonitor("identity-login-ui", logger)
 
@@ -40,21 +47,15 @@ func main() {
 		logger.Fatalf("issue with js distribution files %s", err)
 	}
 
-	kClient := ik.NewClient(os.Getenv("KRATOS_PUBLIC_URL"))
-	hClient := ih.NewClient(os.Getenv("HYDRA_ADMIN_URL"))
+	kClient := ik.NewClient(specs.KratosPublicURL)
+	hClient := ih.NewClient(specs.HydraAdminURL)
 
 	router := web.NewRouter(kClient, hClient, distFS, monitor, logger)
 
-	port := os.Getenv("PORT")
-
-	if port == "" {
-		port = defaultPort
-	}
-
-	logger.Infof("Starting server on port %v", port)
+	logger.Infof("Starting server on port %v", specs.Port)
 
 	srv := &http.Server{
-		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
+		Addr:         fmt.Sprintf("0.0.0.0:%v", specs.Port),
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
