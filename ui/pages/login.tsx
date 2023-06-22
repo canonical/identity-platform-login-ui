@@ -1,5 +1,5 @@
 import { LoginFlow, UpdateLoginFlowBody } from "@ory/client";
-import { Card, Spinner } from "@canonical/react-components";
+import { Card, Row, Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
 import Head from "next/head";
@@ -104,7 +104,7 @@ const Login: NextPage = () => {
       <Head>
         <title>Sign in</title>
       </Head>
-      <div className="p-strip">
+      <Row className="p-strip">
         <div className="login-card">
           <div>
             {flow ? (
@@ -116,7 +116,7 @@ const Login: NextPage = () => {
             )}
           </div>
         </div>
-      </div>
+      </Row>
     </>
   );
 };

@@ -1,5 +1,5 @@
 import { FlowError } from "@ory/client";
-import { Col, Notification, Row } from "@canonical/react-components";
+import { Notification, Row } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
@@ -49,16 +49,14 @@ const Error: NextPage = () => {
         <title>Login failed</title>
       </Head>
       <Row className="p-strip">
-        <Col size={12}>
-          <h1 className="p-heading--3">Login failed</h1>
-          {router.isReady && error?.error ? (
-            <Notification title="An error occurred" severity="negative">
-              {JSON.stringify(error.error, null, 2)}
-            </Notification>
-          ) : (
-            <Notification title="An error occurred" severity="negative" />
-          )}
-        </Col>
+        <h1 className="p-heading--3">Login failed</h1>
+        {router.isReady && error?.error ? (
+          <Notification title="An error occurred" severity="negative">
+            {JSON.stringify(error.error, null, 2)}
+          </Notification>
+        ) : (
+          <Notification title="An error occurred" severity="negative" />
+        )}
       </Row>
     </>
   );

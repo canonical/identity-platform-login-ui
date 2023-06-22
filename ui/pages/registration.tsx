@@ -3,7 +3,7 @@ import {
   RegistrationFlow,
   UpdateRegistrationFlowBody,
 } from "@ory/client";
-import { Card } from "@canonical/react-components";
+import { Card, Row } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
 import Head from "next/head";
@@ -94,12 +94,14 @@ const Registration: NextPage = () => {
       <Head>
         <title>Create account</title>
       </Head>
-      <Card title="Create account">
-        <Flow onSubmit={handleSubmit} flow={flow} />
-      </Card>
-      <Card>
-        <Link href="/login">Sign in</Link>
-      </Card>
+      <Row className="p-strip">
+        <Card title="Create account">
+          <Flow onSubmit={handleSubmit} flow={flow} />
+        </Card>
+        <Card>
+          <Link href="/login">Sign in</Link>
+        </Card>
+      </Row>
     </>
   );
 };

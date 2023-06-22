@@ -45,19 +45,17 @@ const Home: NextPage = () => {
       <Head>
         <title>Session Information</title>
       </Head>
-      <div className="p-code-snippet">
-        <Row>
-          <CodeSnippet
-            blocks={[
-              {
-                title: "Session Information",
-                wrapLines: true,
-                code: session,
-              },
-            ]}
-          />
-        </Row>
-      </div>
+      <Row className="p-strip">
+        <CodeSnippet
+          blocks={[
+            {
+              title: "Session Information",
+              wrapLines: true,
+              code: session,
+            },
+          ]}
+        />
+      </Row>
     </>
   );
 };

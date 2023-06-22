@@ -1,5 +1,5 @@
 import React from "react";
-import { Col, Notification, Row } from "@canonical/react-components";
+import { Notification, Row } from "@canonical/react-components";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -14,16 +14,14 @@ const OIDCError: NextPage = () => {
         <title>Login failed</title>
       </Head>
       <Row className="p-strip">
-        <Col size={12}>
-          <h1 className="p-heading--3">Login failed</h1>
-          {router.isReady && error ? (
-            <Notification title={error} severity="negative">
-              {error_description}
-            </Notification>
-          ) : (
-            <Notification title="An error occurred" severity="negative" />
-          )}
-        </Col>
+        <h1 className="p-heading--3">Login failed</h1>
+        {router.isReady && error ? (
+          <Notification title={error} severity="negative">
+            {error_description}
+          </Notification>
+        ) : (
+          <Notification title="An error occurred" severity="negative" />
+        )}
       </Row>
     </>
   );

@@ -8,7 +8,7 @@ import React, { FC } from "react";
 const App: FC<AppProps> = ({ Component, pageProps }) => {
   const router = useRouter();
   return (
-    <div data-testid="app-react">
+    <div>
       {router.pathname !== "/consent" ? <Logo /> : null}
       <Component {...pageProps} />
       <ToastContainer />
