@@ -19,6 +19,7 @@ import (
 	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
 	"github.com/canonical/identity_platform_login_ui/internal/logging"
 	"github.com/canonical/identity_platform_login_ui/internal/monitoring/prometheus"
+	"github.com/canonical/identity_platform_login_ui/internal/tracing"
 	"github.com/canonical/identity_platform_login_ui/pkg/web"
 )
 
@@ -40,6 +41,7 @@ func main() {
 	logger := logging.NewLogger(specs.LogLevel, specs.LogFile)
 
 	monitor := prometheus.NewMonitor("identity-login-ui", logger)
+	tracer := tracing.NewTracer(tracing.NewConfig(specs.JaegerEndpoint, logger))
 
 	distFS, err := fs.Sub(jsFS, "ui/dist")
 
@@ -50,7 +52,7 @@ func main() {
 	kClient := ik.NewClient(specs.KratosPublicURL)
 	hClient := ih.NewClient(specs.HydraAdminURL)
 
-	router := web.NewRouter(kClient, hClient, distFS, monitor, logger)
+	router := web.NewRouter(kClient, hClient, distFS, tracer, monitor, logger)
 
 	logger.Infof("Starting server on port %v", specs.Port)
 
