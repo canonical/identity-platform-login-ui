@@ -23,9 +23,7 @@ const Error: NextPage = () => {
 
     kratos
       .getFlowError({ id: String(id) })
-      .then(({ data }) => {
-        setError(data);
-      })
+      .then(void setError)
       .catch((err: AxiosError) => {
         switch (err.response?.status) {
           case 404:

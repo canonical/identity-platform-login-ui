@@ -6,19 +6,16 @@ import { useEffect, useState } from "react";
 import { kratos } from "../api/kratos";
 import React from "react";
 import Head from "next/head";
+import { Session } from "@ory/client/api";
 
 const Home: NextPage = () => {
-  const [session, setSession] = useState<string>(
-    "No valid Session was found.\nPlease sign in to receive one."
-  );
+  const [session, setSession] = useState<Session>();
   const router = useRouter();
 
   useEffect(() => {
     kratos
       .toSession()
-      .then(({ data }) => {
-        setSession(JSON.stringify(data, null, 2));
-      })
+      .then(void setSession)
       .catch((err: AxiosError) => {
         switch (err.response?.status) {
           case 403:
@@ -51,7 +48,9 @@ const Home: NextPage = () => {
             {
               title: "Session Information",
               wrapLines: true,
-              code: session,
+              code: session
+                ? JSON.stringify(session, null, 2)
+                : "No valid Session was found.\nPlease sign in to receive one.",
             },
           ]}
         />
