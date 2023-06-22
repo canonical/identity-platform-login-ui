@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,12 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	pMonitor "github.com/canonical/identity_platform_login_ui/internal/monitoring/prometheus"
 	"github.com/canonical/identity_platform_login_ui/pkg/web"
 
 	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
 	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
 	"github.com/canonical/identity_platform_login_ui/internal/logging"
+	"github.com/canonical/identity_platform_login_ui/internal/monitoring/prometheus"
 )
 
 const defaultPort = "8080"
@@ -31,14 +30,14 @@ const defaultPort = "8080"
 var jsFS embed.FS
 
 func main() {
-	logger := logging.NewLogger(os.Getenv("LOG_LEVEL"))
+	logger := logging.NewLogger(os.Getenv("LOG_LEVEL"), os.Getenv("LOG_FILE"))
 
-	monitor := pMonitor.NewMonitor("identity-login-ui", logger)
+	monitor := prometheus.NewMonitor("identity-login-ui", logger)
 
 	distFS, err := fs.Sub(jsFS, "ui/dist")
 
 	if err != nil {
-		log.Fatalf("issue with js distribution files %s", err)
+		logger.Fatalf("issue with js distribution files %s", err)
 	}
 
 	kClient := ik.NewClient(os.Getenv("KRATOS_PUBLIC_URL"))
@@ -52,7 +51,7 @@ func main() {
 		port = defaultPort
 	}
 
-	log.Println("Starting server on port " + port)
+	logger.Infof("Starting server on port %v", port)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
@@ -64,7 +63,7 @@ func main() {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 	}()
 
@@ -86,7 +85,7 @@ func main() {
 	// Optionally, you could run srv.Shutdown in a goroutine and block on
 	// <-ctx.Done() if your application should wait for other services
 	// to finalize based on context cancellation.
-	log.Println("Shutting down")
+	logger.Info("Shutting down")
 	os.Exit(0)
 
 }
