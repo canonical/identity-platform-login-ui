@@ -1,4 +1,4 @@
-package kratos
+package http
 
 import (
 	"encoding/json"
@@ -17,14 +17,14 @@ import (
 
 // dump these in here for now
 
-func getBaseURL(r *http.Request) string {
+func GetBaseURL(r *http.Request) string {
 	if url := os.Getenv("BASE_URL"); url != "" {
 		return url
 	}
 	return fmt.Sprintf("%s://%s/%s", r.URL.Scheme, r.Host, r.URL.Path)
 }
 
-func writeResponse(w http.ResponseWriter, r *http.Response) {
+func WriteResponse(w http.ResponseWriter, r *http.Response) {
 	for k, vs := range r.Header {
 		for _, v := range vs {
 			w.Header().Set(k, v)
@@ -40,7 +40,7 @@ func writeResponse(w http.ResponseWriter, r *http.Response) {
 	fmt.Fprint(w, string(body))
 }
 
-func cookiesToString(cookies []*http.Cookie) string {
+func CookiesToString(cookies []*http.Cookie) string {
 	var ret []string
 	ret = make([]string, len(cookies))
 	for i, c := range cookies {
@@ -49,7 +49,7 @@ func cookiesToString(cookies []*http.Cookie) string {
 	return strings.Join(ret, "; ")
 }
 
-func parseBody(r *http.Request, body interface{}) *interface{} {
+func ParseBody(r *http.Request, body interface{}) *interface{} {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(body)
 	if err != nil {
@@ -58,7 +58,7 @@ func parseBody(r *http.Request, body interface{}) *interface{} {
 	return &body
 }
 
-func getUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentRequest) map[string]interface{} {
+func GetUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentRequest) map[string]interface{} {
 	ret := make(map[string]interface{})
 	// Export the user claims and filter them based on the requested scopes
 	traits, ok := i.Traits.(map[string]interface{})

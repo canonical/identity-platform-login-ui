@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
+
+	misc "github.com/canonical/identity_platform_login_ui/internal/misc/http"
 )
 
 type API struct {
@@ -23,7 +25,7 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 
 	// Get the Kratos session to make sure that the user is actually logged in
 	session, session_resp, e := a.kratos.FrontendApi().ToSession(context.Background()).
-		Cookie(cookiesToString(r.Cookies())).
+		Cookie(misc.CookiesToString(r.Cookies())).
 		Execute()
 	if e != nil {
 		log.Printf("Error when calling `FrontendApi.ToSession`: %v\n", e)
@@ -42,7 +44,7 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	consent_session := hydra_client.NewAcceptOAuth2ConsentRequestSession()
-	consent_session.SetIdToken(getUserClaims(session.Identity, *consent))
+	consent_session.SetIdToken(misc.GetUserClaims(session.Identity, *consent))
 	accept_consent_req := hydra_client.NewAcceptOAuth2ConsentRequest()
 	accept_consent_req.SetGrantScope(consent.RequestedScope)
 	accept_consent_req.SetGrantAccessTokenAudience(consent.RequestedAccessTokenAudience)

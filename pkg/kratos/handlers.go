@@ -8,6 +8,8 @@ import (
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
+
+	misc "github.com/canonical/identity_platform_login_ui/internal/misc/http"
 )
 
 type API struct {
@@ -32,7 +34,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// to avoid this bug.
 	if c, _ := r.Cookie("ory_kratos_session"); c != nil {
 		session, session_resp, e := a.kratos.FrontendApi().ToSession(context.Background()).
-			Cookie(cookiesToString(r.Cookies())).
+			Cookie(misc.CookiesToString(r.Cookies())).
 			Execute()
 		if session_resp.StatusCode != 401 {
 			if e != nil {
@@ -52,7 +54,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 				}
 
 				log.Println(resp.Body)
-				writeResponse(w, resp)
+				misc.WriteResponse(w, resp)
 
 				return
 			}
@@ -73,8 +75,8 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		ReturnTo(q.Get("return_to")).
 		LoginChallenge(q.Get("login_challenge")).
 		Refresh(refresh).
-		ReturnTo(getBaseURL(r) + "/login?login_challenge=" + q.Get("login_challenge")).
-		Cookie(cookiesToString(r.Cookies())).
+		ReturnTo(misc.GetBaseURL(r) + "/login?login_challenge=" + q.Get("login_challenge")).
+		Cookie(misc.CookiesToString(r.Cookies())).
 		Execute()
 	if e != nil {
 		log.Printf("Error when calling `FrontendApi.CreateBrowserLoginFlow`: %v\n", e)
@@ -82,7 +84,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeResponse(w, resp)
+	misc.WriteResponse(w, resp)
 
 	return
 }
@@ -94,7 +96,7 @@ func (a *API) handleLoginFlow(w http.ResponseWriter, r *http.Request) {
 	_, resp, e := a.kratos.FrontendApi().
 		GetLoginFlow(context.Background()).
 		Id(q.Get("id")).
-		Cookie(cookiesToString(r.Cookies())).
+		Cookie(misc.CookiesToString(r.Cookies())).
 		Execute()
 	if e != nil && resp.StatusCode != 422 {
 		log.Printf("Error when calling `FrontendApi.GetLoginFlow`: %v\n", e)
@@ -102,7 +104,7 @@ func (a *API) handleLoginFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeResponse(w, resp)
+	misc.WriteResponse(w, resp)
 
 	return
 }
@@ -112,7 +114,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	body := new(kratos_client.UpdateLoginFlowWithOidcMethod)
-	parseBody(r, body)
+	misc.ParseBody(r, body)
 
 	_, resp, e := a.kratos.FrontendApi().
 		UpdateLoginFlow(context.Background()).
@@ -122,7 +124,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 				body,
 			),
 		).
-		Cookie(cookiesToString(r.Cookies())).
+		Cookie(misc.CookiesToString(r.Cookies())).
 		Execute()
 	if e != nil && resp.StatusCode != 422 {
 		log.Printf("Error when calling `FrontendApi.UpdateLoginFlow`: %v\n", e)
@@ -130,7 +132,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeResponse(w, resp)
+	misc.WriteResponse(w, resp)
 
 	return
 }
@@ -146,7 +148,7 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Full HTTP response: %v\n", resp)
 		return
 	}
-	writeResponse(w, resp)
+	misc.WriteResponse(w, resp)
 	return
 }
 
