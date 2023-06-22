@@ -1,4 +1,4 @@
-package prometheus
+package metrics
 
 import (
 	"net/http"
@@ -13,7 +13,7 @@ type API struct {
 }
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
-	mux.Get("/metrics/prometheus", a.prometheusHTTP)
+	mux.Get("/api/v0/metrics", a.prometheusHTTP)
 }
 
 func (a *API) prometheusHTTP(w http.ResponseWriter, r *http.Request) {
