@@ -6,9 +6,9 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback } from "react";
 import React from "react";
-import { handleFlowError } from "../components/errors";
+import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
-import { kratos } from "../components/kratos";
+import { kratos } from "../api/kratos";
 import { FlowResponse } from "./consent";
 
 const Login: NextPage = () => {
@@ -102,8 +102,7 @@ const Login: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Sign in - Ory NextJS Integration Example</title>
-        <meta name="description" content="NextJS + React + Vercel + Ory" />
+        <title>Sign in</title>
       </Head>
       <div className="p-strip">
         <div className="login-card">

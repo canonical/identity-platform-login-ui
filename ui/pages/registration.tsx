@@ -12,8 +12,8 @@ import { useEffect, useState, useCallback } from "react";
 // Import render helpers
 import { Flow } from "../components/Flow";
 import Link from "next/link";
-import { handleFlowError } from "../components/errors";
-import { kratos } from "../components/kratos";
+import { handleFlowError } from "../util/handleFlowError";
+import { kratos } from "../api/kratos";
 import React from "react";
 
 // Renders the registration page
@@ -92,8 +92,7 @@ const Registration: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Create account - Ory NextJS Integration Example</title>
-        <meta name="description" content="NextJS + React + Vercel + Ory" />
+        <title>Create account</title>
       </Head>
       <Card title="Create account">
         <Flow onSubmit={handleSubmit} flow={flow} />

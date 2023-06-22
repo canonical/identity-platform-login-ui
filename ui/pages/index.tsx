@@ -3,8 +3,9 @@ import { AxiosError } from "axios";
 import { useRouter } from "next/router";
 import type { NextPage } from "next";
 import { useEffect, useState } from "react";
-import { kratos } from "../components/kratos";
+import { kratos } from "../api/kratos";
 import React from "react";
+import Head from "next/head";
 
 const Home: NextPage = () => {
   const [session, setSession] = useState<string>(
@@ -40,19 +41,24 @@ const Home: NextPage = () => {
   }, [router]);
 
   return (
-    <div className="p-code-snippet">
-      <Row>
-        <CodeSnippet
-          blocks={[
-            {
-              title: "Session Information",
-              wrapLines: true,
-              code: session,
-            },
-          ]}
-        />
-      </Row>
-    </div>
+    <>
+      <Head>
+        <title>Session Information</title>
+      </Head>
+      <div className="p-code-snippet">
+        <Row>
+          <CodeSnippet
+            blocks={[
+              {
+                title: "Session Information",
+                wrapLines: true,
+                code: session,
+              },
+            ]}
+          />
+        </Row>
+      </div>
+    </>
   );
 };
 
