@@ -1,12 +1,12 @@
-import { NodeInputProps } from "./helpers"
+import { NodeInputProps } from "./helpers";
+import React, { FC } from "react";
 
-export function NodeInputHidden({ attributes }: NodeInputProps) {
-  // Render a hidden input field
+export const NodeInputHidden: FC<NodeInputProps> = ({ attributes }) => {
   return (
     <input
       type={attributes.type}
       name={attributes.name}
-      value={attributes.value || "true"}
+      value={(attributes.value as string) || "true"}
     />
-  )
-}
+  );
+};

@@ -1,9 +1,13 @@
-import Image from "next/image"
+import Image from "next/image";
+import React, { FC } from "react";
+import { Row } from "@canonical/react-components";
 
-export default function Logo(){
-    return (
-      <div className="p-panel__logo u-align--center">
-        <Image src={ "./logo-canonical-aubergine.svg" } alt="" />
-      </div>
-    )
-}
+const Logo: FC = () => (
+  <Row>
+    <div className="p-panel__logo u-align--center">
+      <Image src={"./logo-canonical-aubergine.svg"} alt="Canonical logo" />
+    </div>
+  </Row>
+);
+
+export default Logo;

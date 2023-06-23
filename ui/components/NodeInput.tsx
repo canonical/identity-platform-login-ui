@@ -1,48 +1,58 @@
-import { UiNodeInputAttributes } from "@ory/client"
-import { NodeInputButton } from "./NodeInputButton"
-import { NodeInputCheckbox } from "./NodeInputCheckbox"
-import { NodeInputDefault } from "./NodeInputDefault"
-import { NodeInputHidden } from "./NodeInputHidden"
-import { NodeInputSubmit } from "./NodeInputSubmit"
-import { NodeInputProps } from "./helpers"
+import { NodeInputButton } from "./NodeInputButton";
+import { NodeInputCheckbox } from "./NodeInputCheckbox";
+import { NodeInputDefault } from "./NodeInputDefault";
+import { NodeInputHidden } from "./NodeInputHidden";
+import { NodeInputSubmit } from "./NodeInputSubmit";
+import { NodeInputProps } from "./helpers";
+import React, { FC } from "react";
 
-export function NodeInputOIDC(props: NodeInputProps) {
-  const { node, value = "", setValue, disabled, dispatchSubmit} = props;
-  const attributes: UiNodeInputAttributes = props.attributes;
-  const provider = attributes.value.split('_')[0];
+export const NodeInputOIDC: FC<NodeInputProps> = ({
+  attributes,
+  node,
+  value = "",
+  setValue,
+  disabled,
+  dispatchSubmit,
+}) => {
+  const provider = (attributes.value as string).split("_")[0];
   if (provider === "hydra") {
-    return <></>
+    return <></>;
   }
-  const label = provider.charAt(0).toUpperCase() + provider.slice(1);
-  node.meta.label.text = label;
-  var p = {
-    node: node, attributes: attributes, value: value, setValue: setValue, disabled: disabled, dispatchSubmit: dispatchSubmit
+  if (node.meta.label) {
+    node.meta.label.text = provider.charAt(0).toUpperCase() + provider.slice(1);
   }
-  return <NodeInputSubmit {...p} />
-}
+  const props = {
+    node: node,
+    attributes: attributes,
+    value: value as string,
+    setValue: setValue,
+    disabled: disabled,
+    dispatchSubmit: dispatchSubmit,
+  };
+  return <NodeInputSubmit {...props} />;
+};
 
-export function NodeInput(props: NodeInputProps) {
-  const { attributes } = props
+export const NodeInput: FC<NodeInputProps> = (props) => {
+  const { attributes } = props;
 
   switch (attributes.type) {
     case "hidden":
       // Render a hidden input field
-      return <NodeInputHidden {...props} />
+      return <NodeInputHidden {...props} />;
     case "checkbox":
       // Render a checkbox. We have one hidden element which is the real value (true/false), and one
       // display element which is the toggle value (true)!
-      return <NodeInputCheckbox {...props} />
+      return <NodeInputCheckbox {...props} />;
     case "button":
       // Render a button
-      return <NodeInputButton {...props} />
+      return <NodeInputButton {...props} />;
     case "submit":
-      const { node } = props
-      if (node.group === "oidc") {
-        return <NodeInputOIDC {...props} />
+      if (props.node.group === "oidc") {
+        return <NodeInputOIDC {...props} />;
       }
       // Render the submit button
-      return <NodeInputSubmit {...props} />
+      return <NodeInputSubmit {...props} />;
   }
   // Render a generic text input field.
-  return <NodeInputDefault {...props} />
-}
+  return <NodeInputDefault {...props} />;
+};

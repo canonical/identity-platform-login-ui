@@ -1,26 +1,23 @@
-import { getNodeLabel } from "@ory/integrations/ui"
+import { getNodeLabel } from "@ory/integrations/ui";
 import { Button } from "@canonical/react-components";
+import { NodeInputProps } from "./helpers";
+import React, { FC } from "react";
 
-import { NodeInputProps } from "./helpers"
-
-export function NodeInputSubmit({
+export const NodeInputSubmit: FC<NodeInputProps> = ({
   node,
   attributes,
   setValue,
   disabled,
   dispatchSubmit,
-}: NodeInputProps) {
-  return (
-    <Button
-      // name={attributes.name}
-      onClick={(e) => {
-        // On click, we set this value, and once set, dispatch the submission!
-        setValue(attributes.value).then(() => dispatchSubmit(e))
-      }}
-      disabled={attributes.disabled || disabled}
-      className="login-button"
-    >
-      {getNodeLabel(node)}
-    </Button>
-  )
-}
+}) => (
+  <Button
+    onClick={async (e) => {
+      // On click, we set this value, and once set, dispatch the submission!
+      await setValue(attributes.value as string).then(() => dispatchSubmit(e));
+    }}
+    disabled={attributes.disabled || disabled}
+    className="login-button"
+  >
+    {getNodeLabel(node)}
+  </Button>
+);
