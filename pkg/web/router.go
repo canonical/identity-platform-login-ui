@@ -8,6 +8,7 @@ import (
 	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
 	"github.com/canonical/identity_platform_login_ui/internal/logging"
 	"github.com/canonical/identity_platform_login_ui/internal/monitoring"
+	"github.com/canonical/identity_platform_login_ui/internal/tracing"
 	chi "github.com/go-chi/chi/v5"
 	middleware "github.com/go-chi/chi/v5/middleware"
 	trace "go.opentelemetry.io/otel/trace"
@@ -45,5 +46,5 @@ func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, tr
 	ui.NewAPI(distFS, logger).RegisterEndpoints(router)
 	metrics.NewAPI(logger).RegisterEndpoints(router)
 
-	return router
+	return tracing.NewMiddleware(monitor, logger).OpenTelemetry(router)
 }
