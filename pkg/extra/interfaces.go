@@ -1,14 +1,23 @@
 package extra
 
 import (
-	hydra_client "github.com/ory/hydra-client-go/v2"
-	kratos_client "github.com/ory/kratos-client-go"
+	"context"
+	"net/http"
+
+	hClient "github.com/ory/hydra-client-go/v2"
+	kClient "github.com/ory/kratos-client-go"
 )
 
 type KratosClientInterface interface {
-	FrontendApi() kratos_client.FrontendApi
+	FrontendApi() kClient.FrontendApi
 }
 
 type HydraClientInterface interface {
-	OAuth2Api() hydra_client.OAuth2Api
+	OAuth2Api() hClient.OAuth2Api
+}
+
+type ServiceInterface interface {
+	CheckSession(context.Context, []*http.Cookie) (*kClient.Session, error)
+	GetConsent(context.Context, string) (*hClient.OAuth2ConsentRequest, error)
+	AcceptConsent(context.Context, kClient.Identity, *hClient.OAuth2ConsentRequest) (*hClient.OAuth2RedirectTo, error)
 }
