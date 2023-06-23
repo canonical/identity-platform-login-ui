@@ -38,7 +38,7 @@ const Login: NextPage = () => {
     if (flowId) {
       kratos
         .getLoginFlow({ id: String(flowId) })
-        .then(void setFlow)
+        .then((res) => setFlow(res.data))
         .catch(handleFlowError(router, "login", setFlow));
       return;
     }
