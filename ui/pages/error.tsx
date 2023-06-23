@@ -1,6 +1,6 @@
 import { FlowError } from "@ory/client";
 import { Notification, Row } from "@canonical/react-components";
-import { AxiosError } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -23,7 +23,7 @@ const Error: NextPage = () => {
 
     kratos
       .getFlowError({ id: String(id) })
-      .then(void setError)
+      .then((res: AxiosResponse<FlowError>) => setError(res.data))
       .catch((err: AxiosError) => {
         switch (err.response?.status) {
           case 404:

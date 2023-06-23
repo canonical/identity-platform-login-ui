@@ -15,7 +15,7 @@ const Home: NextPage = () => {
   useEffect(() => {
     kratos
       .toSession()
-      .then(void setSession)
+      .then((res) => setSession(res.data))
       .catch((err: AxiosError) => {
         switch (err.response?.status) {
           case 403:

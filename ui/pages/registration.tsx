@@ -73,7 +73,9 @@ const Registration: NextPage = () => {
               flow: String(flow?.id),
               updateRegistrationFlowBody: values,
             })
-            .then(() => void router.push(flow?.return_to ?? "/"))
+            .then(async () => {
+              await router.push(flow?.return_to ?? "/");
+            })
             .catch(handleFlowError(router, "registration", setFlow))
             .catch((err: AxiosError<LoginFlow>) => {
               // If the previous handler did not catch the error it's most likely a form validation error
