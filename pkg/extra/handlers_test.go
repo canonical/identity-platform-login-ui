@@ -2,70 +2,167 @@ package extra
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/canonical/identity_platform_login_ui/internal/hydra"
-	"github.com/canonical/identity_platform_login_ui/internal/kratos"
-	"github.com/canonical/identity_platform_login_ui/internal/ory/mocks"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
 
-	hydra_client "github.com/ory/hydra-client-go/v2"
-	"github.com/stretchr/testify/assert"
-)
-
-const (
-	EXPECTED_NIL_ERROR_MESSAGE   = "expected error to be nil got %v"
-	HANDLE_CREATE_FLOW_URL       = "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test"
-	COOKIE_NAME                  = "ory_kratos_session"
-	COOKIE_VALUE                 = "test-token"
-	UPDATE_LOGIN_FLOW_METHOD     = "oidc"
-	UPDATE_LOGIN_FLOW_PROVIDER   = "microsoft"
-	HANDLE_UPDATE_LOGIN_FLOW_URL = "/api/kratos/self-service/login?flow=1111"
-	HANDLE_GET_LOGIN_FLOW_URL    = "/api/kratos/self-service/login/flows?id=1111"
-	HANDLE_ERROR_URL             = "/api/kratos/self-service/errors?id=1111"
-	HANDLE_CONSENT_URL           = "/api/consent?consent_challenge=test_challange"
-	HANDLE_ALIVE_URL             = "/health/alive"
+	hClient "github.com/ory/hydra-client-go/v2"
+	kClient "github.com/ory/kratos-client-go"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
+//go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_extra.go -source=./interfaces.go
 
-// --------------------------------------------
-// TESTING WITH CORRECT SERVERS
-// --------------------------------------------
-
-func TestHandleConsent(t *testing.T) {
+func TestHandleConsentSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
 
-	kratosStub := mocks.NewKratosServerStub()
-	hydraStub := mocks.NewHydraServerStub()
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	consent := hClient.NewOAuth2ConsentRequest("challenge")
+	accept := hClient.NewOAuth2RedirectTo("test")
 
-	defer kratosStub.Close()
-	defer hydraStub.Close()
-	req := httptest.NewRequest(http.MethodGet, HANDLE_CONSENT_URL, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
 	w := httptest.NewRecorder()
 
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil)
+	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
+	mockService.EXPECT().AcceptConsent(gomock.Any(), session.Identity, consent).Return(accept, nil)
+
 	mux := chi.NewMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
 	res := w.Result()
-	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("expected HTTP status code 200 got %v", res.StatusCode)
+	}
+
 	data, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+
 	if err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
-	responseRedirect := hydra_client.NewOAuth2RedirectToWithDefaults()
-	if err := json.Unmarshal(data, responseRedirect); err != nil {
+
+	redirect := hClient.NewOAuth2RedirectToWithDefaults()
+	if err := json.Unmarshal(data, redirect); err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
 
-	assert.Equalf(t, mocks.CONSENT_REDIRECT, responseRedirect.RedirectTo, "Expected %s, got %s.", mocks.CONSENT_REDIRECT, responseRedirect.RedirectTo)
+	if redirect.RedirectTo != accept.RedirectTo {
+		t.Fatalf("expected %s, got %s.", accept.RedirectTo, redirect.RedirectTo)
+	}
+}
+
+func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	consent := hClient.NewOAuth2ConsentRequest("challenge")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
+	w := httptest.NewRecorder()
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil)
+	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
+	mockService.EXPECT().AcceptConsent(gomock.Any(), session.Identity, consent).Return(nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected HTTP status code 403 got %v", res.StatusCode)
+	}
+}
+
+func TestHandleConsentFailOnGetConsent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
+	w := httptest.NewRecorder()
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil)
+	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected HTTP status code 403 got %v", res.StatusCode)
+	}
+}
+
+func TestHandleConsentFailOnCheckSession(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
+	w := httptest.NewRecorder()
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected HTTP status code 403 got %v", res.StatusCode)
+	}
 }

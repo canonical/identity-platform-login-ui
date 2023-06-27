@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/canonical/identity_platform_login_ui/internal/hydra"
-	"github.com/canonical/identity_platform_login_ui/internal/kratos"
-	"github.com/canonical/identity_platform_login_ui/internal/ory/mocks"
+	"github.com/canonical/identity-platform-login-ui/internal/hydra"
+	"github.com/canonical/identity-platform-login-ui/internal/kratos"
+	"github.com/canonical/identity-platform-login-ui/internal/ory/mocks"
 	"github.com/go-chi/chi/v5"
 	gomock "github.com/golang/mock/gomock"
 

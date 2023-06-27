@@ -12,7 +12,7 @@ import (
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
 
-	oidc "github.com/canonical/identity_platform_login_ui/pkg/oidc"
+	oidc "github.com/canonical/identity-platform-login-ui/pkg/oidc"
 )
 
 // dump these in here for now
