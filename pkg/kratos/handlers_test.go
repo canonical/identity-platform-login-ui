@@ -11,6 +11,8 @@ import (
 	"github.com/canonical/identity_platform_login_ui/internal/hydra"
 	"github.com/canonical/identity_platform_login_ui/internal/kratos"
 	"github.com/canonical/identity_platform_login_ui/internal/ory/mocks"
+	"github.com/go-chi/chi/v5"
+	gomock "github.com/golang/mock/gomock"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
 	kratos_client "github.com/ory/kratos-client-go"
@@ -31,10 +33,17 @@ const (
 	HANDLE_ALIVE_URL             = "/health/alive"
 )
 
+//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
+
 // --------------------------------------------
 // TESTING WITH CORRECT SERVERS
 // --------------------------------------------
 func TestHandleCreateFlowWithoutCookie(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+
 	kratosStub := mocks.NewKratosServerStub()
 	hydraStub := mocks.NewHydraServerStub()
 
@@ -43,8 +52,8 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	mux := http.NewServeMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL)).RegisterEndpoints(mux)
+	mux := chi.NewMux()
+	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -62,6 +71,10 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 }
 
 func TestHandleCreateFlowWithCookie(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
 	kratosStub := mocks.NewKratosServerStub()
 	hydraStub := mocks.NewHydraServerStub()
 
@@ -69,7 +82,7 @@ func TestHandleCreateFlowWithCookie(t *testing.T) {
 	defer hydraStub.Close()
 
 	//create request and response objects
-	req := httptest.NewRequest(http.MethodPut, HANDLE_CREATE_FLOW_URL, nil)
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	req.Header.Set("Content-Type", "application/json")
 	cookie := &http.Cookie{
 		Name:   COOKIE_NAME,
@@ -79,8 +92,8 @@ func TestHandleCreateFlowWithCookie(t *testing.T) {
 	req.AddCookie(cookie)
 	w := httptest.NewRecorder()
 
-	mux := http.NewServeMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL)).RegisterEndpoints(mux)
+	mux := chi.NewMux()
+	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -102,6 +115,10 @@ func TestHandleCreateFlowWithCookie(t *testing.T) {
 }
 
 func TestHandleUpdateFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
 	kratosStub := mocks.NewKratosServerStub()
 	hydraStub := mocks.NewHydraServerStub()
 
@@ -128,8 +145,8 @@ func TestHandleUpdateFlow(t *testing.T) {
 	//create response
 	w := httptest.NewRecorder()
 
-	mux := http.NewServeMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL)).RegisterEndpoints(mux)
+	mux := chi.NewMux()
+	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 	//check results
@@ -147,6 +164,10 @@ func TestHandleUpdateFlow(t *testing.T) {
 }
 
 func TestHandleGetLoginFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
 	kratosStub := mocks.NewKratosServerStub()
 	hydraStub := mocks.NewHydraServerStub()
 
@@ -154,7 +175,7 @@ func TestHandleGetLoginFlow(t *testing.T) {
 	defer hydraStub.Close()
 
 	//create request
-	req := httptest.NewRequest(http.MethodPost, HANDLE_GET_LOGIN_FLOW_URL, nil)
+	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_LOGIN_FLOW_URL, nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Session-Token", "test-x-session-token")
 	cookie := &http.Cookie{
@@ -166,8 +187,8 @@ func TestHandleGetLoginFlow(t *testing.T) {
 
 	//create response
 	w := httptest.NewRecorder()
-	mux := http.NewServeMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL)).RegisterEndpoints(mux)
+	mux := chi.NewMux()
+	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 	//check results
@@ -183,62 +204,3 @@ func TestHandleGetLoginFlow(t *testing.T) {
 	}
 	assert.Equalf(t, mocks.BROWSER_LOGIN_ID, loginFlow.Id, "Expected %s, got %s", mocks.BROWSER_LOGIN_ID, loginFlow.Id)
 }
-
-// func TestHandleKratosError(t *testing.T) {
-// 	testServers.CreateTestServers(t)
-
-// 	req := httptest.NewRequest(http.MethodGet, HANDLE_ERROR_URL, nil)
-// 	w := httptest.NewRecorder()
-// 	handleKratosError(w, req)
-// 	res := w.Result()
-// 	defer res.Body.Close()
-// 	data, err := ioutil.ReadAll(res.Body)
-// 	if err != nil {
-// 		t.Errorf("expected error to be nil got %v", err)
-// 	}
-// 	te := new(mocks.TestErrorReport)
-// 	if err := json.Unmarshal(data, te); err != nil {
-// 		t.Errorf("expected error to be nil got %v", err)
-// 	}
-// 	assert.Equalf(t, mocks.ERROR_MESSAGE, te.Error.Message, "Expected %s, got %s", mocks.ERROR_MESSAGE, te.Error.Message)
-
-// }
-
-// // --------------------------------------------
-// // TESTING WITH TIMEOUT SERVERS
-// // currently only prints out results main.go needs pr to handle timeouts
-// // --------------------------------------------
-// func TestHandleCreateFlowTimeout(t *testing.T) {
-// 	data, err := CreateGenericTest(t, testServers.CreateTimeoutServers, http.MethodPut,
-// 		HANDLE_CREATE_FLOW_URL,
-// 		nil, handleCreateFlow)
-// 	if err != nil {
-// 		t.Errorf("expected error to be nil got %v", err)
-// 	}
-// 	t.Logf("Result:\n%s\n", string(data))
-// }
-// func TestHandleUpdateFlowTimeout(t *testing.T) {
-// 	//create request
-// 	body := kratos_client.NewUpdateLoginFlowWithOidcMethod(UPDATE_LOGIN_FLOW_METHOD, UPDATE_LOGIN_FLOW_PROVIDER)
-// 	bodyJson, err := json.Marshal(*body)
-// 	if err != nil {
-// 		t.Errorf("expected error to be nil got %v", err)
-// 	}
-// 	bodyReader := bytes.NewReader(bodyJson)
-// 	data, err := CreateGenericTest(t, testServers.CreateTimeoutServers, http.MethodPost,
-// 		HANDLE_UPDATE_LOGIN_FLOW_URL,
-// 		bodyReader, handleUpdateFlow)
-// 	if err != nil {
-// 		t.Errorf("expected error to be nil got %v", err)
-// 	}
-// 	t.Logf("Result:\n%s\n", string(data))
-// }
-// func TestHandleKratosErrorTimeout(t *testing.T) {
-// 	data, err := CreateGenericTest(t, testServers.CreateTimeoutServers, http.MethodGet,
-// 		HANDLE_ERROR_URL,
-// 		nil, handleKratosError)
-// 	if err != nil {
-// 		t.Errorf("expected error to be nil got %v", err)
-// 	}
-// 	t.Logf("Result:\n%s\n", string(data))
-// }

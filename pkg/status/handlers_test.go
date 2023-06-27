@@ -8,19 +8,24 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	HANDLE_ALIVE_URL = "/health/alive"
-)
+//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 
 func TestAliveOK(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, HANDLE_ALIVE_URL, nil)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/status", nil)
 	w := httptest.NewRecorder()
 
-	mux := http.NewServeMux()
-	NewAPI().RegisterEndpoints(mux)
+	mux := chi.NewMux()
+	NewAPI(mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 	res := w.Result()

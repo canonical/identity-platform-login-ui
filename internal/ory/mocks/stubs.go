@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 const DEFAULT_SCHEMA_SERVER_URL = "test_default.json"
@@ -16,25 +18,25 @@ const DEFAULT_SCHEMA_SERVER_URL = "test_default.json"
 var schema_server_url string = DEFAULT_SCHEMA_SERVER_URL
 
 func NewKratosServerStub() *httptest.Server {
-	m := http.NewServeMux()
-	m.HandleFunc("/self-service/errors", SelfServiceErrorsHandler)
-	m.HandleFunc("/sessions/whoami", SessionWhoAmIHandler)
-	m.HandleFunc("/self-service/login/browser", SelfServiceLoginBrowserHandler)
-	m.HandleFunc("/self-service/login/flows", SelfServiceGetLoginHandler)
-	m.HandleFunc("/self-service/login", SelfServiceLoginHandler)
-	m.HandleFunc("/health/alive", GetOKStatus)
-	m.HandleFunc("/health/ready", GetOKStatus)
+	m := chi.NewMux()
+	m.Get("/self-service/errors", SelfServiceErrorsHandler)
+	m.Get("/sessions/whoami", SessionWhoAmIHandler)
+	m.Get("/self-service/login/browser", SelfServiceLoginBrowserHandler)
+	m.Get("/self-service/login/flows", SelfServiceGetLoginHandler)
+	m.Post("/self-service/login", SelfServiceLoginHandler)
+	m.Get("/health/alive", GetOKStatus)
+	m.Get("/health/ready", GetOKStatus)
 
 	return httptest.NewServer(m)
 }
 
 func NewHydraServerStub() *httptest.Server {
-	m := http.NewServeMux()
-	m.HandleFunc("/admin/oauth2/auth/requests/login/accept", Oauth2AuthRequestLoginAcceptHandler)
-	m.HandleFunc("/admin/oauth2/auth/requests/consent", Oauth2AuthRequestConsentHandler)
-	m.HandleFunc("/admin/oauth2/auth/requests/consent/accept", Oauth2AuthRequestConsentAcceptHandler)
-	m.HandleFunc("/health/alive", GetOKStatus)
-	m.HandleFunc("/health/ready", GetOKStatus)
+	m := chi.NewMux()
+	m.Put("/admin/oauth2/auth/requests/login/accept", Oauth2AuthRequestLoginAcceptHandler)
+	m.Get("/admin/oauth2/auth/requests/consent", Oauth2AuthRequestConsentHandler)
+	m.Put("/admin/oauth2/auth/requests/consent/accept", Oauth2AuthRequestConsentAcceptHandler)
+	m.Get("/health/alive", GetOKStatus)
+	m.Get("/health/ready", GetOKStatus)
 
 	return httptest.NewServer(m)
 }
@@ -101,85 +103,4 @@ func CreateTestServers(t *testing.T) {
 	hydra := createHydraMockServer()
 	t.Cleanup(kratos.Close)
 	t.Cleanup(hydra.Close)
-}
-
-func createKratosTimeoutMockServer() *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/self-service/errors", TimeoutHandler)
-	mux.HandleFunc("/sessions/whoami", TimeoutHandler)
-	mux.HandleFunc("/self-service/login/browser", TimeoutHandler)
-	mux.HandleFunc("/self-service/login", TimeoutHandler)
-	mux.HandleFunc("/health/alive", TimeoutHandler)
-	mux.HandleFunc("/health/ready", TimeoutHandler)
-
-	s := httptest.NewServer(mux)
-	os.Setenv("KRATOS_PUBLIC_URL", s.URL+"/")
-	return s
-}
-func createHydraTimeoutMockServer() *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", TimeoutHandler)
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent", TimeoutHandler)
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", TimeoutHandler)
-	mux.HandleFunc("/health/alive", TimeoutHandler)
-	mux.HandleFunc("/health/ready", TimeoutHandler)
-	s := httptest.NewServer(mux)
-	os.Setenv("HYDRA_ADMIN_URL", s.URL)
-	return s
-}
-
-func CreateTimeoutServers(t *testing.T) {
-	tkratos := createKratosTimeoutMockServer()
-	thydra := createHydraTimeoutMockServer()
-	t.Cleanup(tkratos.Close)
-	t.Cleanup(thydra.Close)
-}
-
-func createKratosErrorMockServer() *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/self-service/errors", CreateHandlerWithError("SelfServiceErrorsHandler"))
-	mux.HandleFunc("/sessions/whoami", CreateHandlerWithError("SessionWhoAmIHandler"))
-	mux.HandleFunc("/self-service/login/browser", CreateHandlerWithError("SelfServiceLoginBrowserHandler"))
-	mux.HandleFunc("/self-service/login/flows", CreateHandlerWithError("SelfServiceGetLoginHandler"))
-	mux.HandleFunc("/self-service/login", CreateHandlerWithError("SelfServiceLoginHandler"))
-	mux.HandleFunc("/health/alive", GetErrorStatus)
-	mux.HandleFunc("/health/ready", GetErrorStatus)
-
-	s := httptest.NewServer(mux)
-	os.Setenv("KRATOS_PUBLIC_URL", s.URL+"/")
-	return s
-}
-func createHydraErrorMockServer() *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/admin/oauth2/auth/requests/login/accept", CreateHandlerWithError("Oauth2AuthRequestLoginAcceptHandler"))
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent", CreateHandlerWithError("Oauth2AuthRequestConsentHandler"))
-	mux.HandleFunc("/admin/oauth2/auth/requests/consent/accept", CreateHandlerWithError("Oauth2AuthRequestConsentAcceptHandler"))
-	mux.HandleFunc("/health/alive", GetErrorStatus)
-	mux.HandleFunc("/health/ready", GetErrorStatus)
-	s := httptest.NewServer(mux)
-	os.Setenv("HYDRA_ADMIN_URL", s.URL)
-	return s
-}
-func CreateErrorServers(t *testing.T) {
-	ekratos := createKratosErrorMockServer()
-	ehydra := createHydraErrorMockServer()
-	t.Cleanup(ekratos.Close)
-	t.Cleanup(ehydra.Close)
-}
-
-func ClearEnvars(t *testing.T) {
-	if _, ok := os.LookupEnv("HYDRA_ADMIN_URL"); ok {
-		err := os.Unsetenv("HYDRA_ADMIN_URL")
-		if err != nil {
-			t.Errorf("expected error to be nil got %v", err)
-		}
-	}
-	if _, ok := os.LookupEnv("KRATOS_PUBLIC_URL"); ok {
-		err := os.Unsetenv("KRATOS_PUBLIC_URL")
-		if err != nil {
-			t.Errorf("expected error to be nil got %v", err)
-		}
-	}
-
-	return
 }

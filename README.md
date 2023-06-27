@@ -1,5 +1,12 @@
 # Identity Platform Login UI
 
+
+[![codecov](https://codecov.io/gh/canonical/identity-platform-login-ui/branch/main/graph/badge.svg?token=Aloh6MWghg)](https://codecov.io/gh/canonical/identity-platform-login-ui)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/canonical/identity-platform-login-ui/badge)](https://securityscorecards.dev/viewer/?platform=github.com&org=canonical&repo=identity-platform-login-ui)
+![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/canonical/identity-platform-login-ui)
+[![On Main Push](https://github.com/canonical/identity-platform-login-ui/actions/workflows/on_main.yaml/badge.svg?branch=main)](https://github.com/canonical/identity-platform-login-ui/actions/workflows/on_main.yaml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/canonical/identity-platform-login-ui.svg)](https://pkg.go.dev/github.com/canonical/identity-platform-login-ui)
+
 This is the UI for the Canonical Identity Platform.
 
 # Running the UI

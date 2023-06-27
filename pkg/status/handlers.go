@@ -3,6 +3,9 @@ package status
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/canonical/identity_platform_login_ui/internal/logging"
+	"github.com/go-chi/chi/v5"
 )
 
 const okValue = "ok"
@@ -12,11 +15,13 @@ type Status struct {
 	BuildInfo *BuildInfo `json:"buildInfo"`
 }
 
-type API struct{}
+type API struct {
+	logger logging.LoggerInterface
+}
 
-func (a *API) RegisterEndpoints(mux *http.ServeMux) {
-	mux.HandleFunc("/health/alive", a.handleAlive)
-	mux.HandleFunc("/health/version", a.version)
+func (a *API) RegisterEndpoints(mux *chi.Mux) {
+	mux.Get("/api/v0/status", a.handleAlive)
+	mux.Get("/api/v0/version", a.version)
 
 }
 
@@ -49,6 +54,10 @@ func (a *API) version(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func NewAPI() *API {
-	return new(API)
+func NewAPI(logger logging.LoggerInterface) *API {
+	a := new(API)
+
+	a.logger = logger
+
+	return a
 }
