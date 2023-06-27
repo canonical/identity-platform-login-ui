@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/canonical/identity_platform_login_ui/internal/logging"
-	"github.com/canonical/identity_platform_login_ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"github.com/go-chi/chi/v5"
 	"go.opentelemetry.io/otel/trace"
 )

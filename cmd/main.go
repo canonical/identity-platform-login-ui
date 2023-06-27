@@ -14,13 +14,13 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/canonical/identity_platform_login_ui/internal/config"
-	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
-	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
-	"github.com/canonical/identity_platform_login_ui/internal/logging"
-	"github.com/canonical/identity_platform_login_ui/internal/monitoring/prometheus"
-	"github.com/canonical/identity_platform_login_ui/internal/tracing"
-	"github.com/canonical/identity_platform_login_ui/pkg/web"
+	"github.com/canonical/identity-platform-login-ui/internal/config"
+	ih "github.com/canonical/identity-platform-login-ui/internal/hydra"
+	ik "github.com/canonical/identity-platform-login-ui/internal/kratos"
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
+	"github.com/canonical/identity-platform-login-ui/pkg/web"
 )
 
 //go:embed ui/dist

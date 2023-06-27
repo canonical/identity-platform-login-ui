@@ -1,4 +1,4 @@
-module github.com/canonical/identity_platform_login_ui
+module github.com/canonical/identity-platform-login-ui
 
 go 1.19
 

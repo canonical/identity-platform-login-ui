@@ -1,7 +1,7 @@
 package tracing
 
 import (
-	"github.com/canonical/identity_platform_login_ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
 )
 
 type Config struct {

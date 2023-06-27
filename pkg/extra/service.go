@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/canonical/identity_platform_login_ui/internal/logging"
-	misc "github.com/canonical/identity_platform_login_ui/internal/misc/http"
-	"github.com/canonical/identity_platform_login_ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	misc "github.com/canonical/identity-platform-login-ui/internal/misc/http"
+	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"go.opentelemetry.io/otel/trace"
 
 	hClient "github.com/ory/hydra-client-go/v2"

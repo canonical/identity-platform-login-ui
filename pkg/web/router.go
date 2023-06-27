@@ -4,20 +4,20 @@ import (
 	"io/fs"
 	"net/http"
 
-	ih "github.com/canonical/identity_platform_login_ui/internal/hydra"
-	ik "github.com/canonical/identity_platform_login_ui/internal/kratos"
-	"github.com/canonical/identity_platform_login_ui/internal/logging"
-	"github.com/canonical/identity_platform_login_ui/internal/monitoring"
-	"github.com/canonical/identity_platform_login_ui/internal/tracing"
+	ih "github.com/canonical/identity-platform-login-ui/internal/hydra"
+	ik "github.com/canonical/identity-platform-login-ui/internal/kratos"
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	chi "github.com/go-chi/chi/v5"
 	middleware "github.com/go-chi/chi/v5/middleware"
 	trace "go.opentelemetry.io/otel/trace"
 
-	"github.com/canonical/identity_platform_login_ui/pkg/extra"
-	"github.com/canonical/identity_platform_login_ui/pkg/kratos"
-	"github.com/canonical/identity_platform_login_ui/pkg/metrics"
-	"github.com/canonical/identity_platform_login_ui/pkg/status"
-	"github.com/canonical/identity_platform_login_ui/pkg/ui"
+	"github.com/canonical/identity-platform-login-ui/pkg/extra"
+	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
+	"github.com/canonical/identity-platform-login-ui/pkg/metrics"
+	"github.com/canonical/identity-platform-login-ui/pkg/status"
+	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
 func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {

@@ -3,7 +3,7 @@ package metrics
 import (
 	"net/http"
 
-	"github.com/canonical/identity_platform_login_ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

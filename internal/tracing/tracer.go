@@ -4,7 +4,7 @@ import (
 	"context"
 	"runtime/debug"
 
-	"github.com/canonical/identity_platform_login_ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/jaeger"
