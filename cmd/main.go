@@ -41,7 +41,7 @@ func main() {
 	logger := logging.NewLogger(specs.LogLevel, specs.LogFile)
 
 	monitor := prometheus.NewMonitor("identity-login-ui", logger)
-	tracer := tracing.NewTracer(tracing.NewConfig(specs.JaegerEndpoint, logger))
+	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.JaegerEndpoint, logger))
 
 	distFS, err := fs.Sub(jsFS, "ui/dist")
 
