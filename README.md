@@ -10,24 +10,48 @@
 This is the UI for the Canonical Identity Platform.
 
 # Running the UI
-## Binary
+
+
+## Build the binary
+
 To create a binary with the UI you need to run:
 ```console
-cd ./ui
-npm ci
-npm run build
-cd ..
-go build
+make npm-build build
+```
+Please don't run them in parallel, `build` requires the target `cmd/ui/dist` which, unless the `js` code has been build indipendently, requires `npm-build`
+If tou wanna skip the `npm-build` make sure the `js` artifcats are is the `ui/dist` folder (check the `Makefile` for more advanced informations)
+
+
+This will:
+* build the `js` code 
+* produce a binary called `app` which you can run with:
+
+```console
+PORT=1234 ./cmd/app
 ```
 
-This will produce a binary called `identity_platform_login_ui` which you can run with:
-```console
-PORT=1234 ./identity_platform_login_ui &
-```
 (replace 1234 with an available port of your choice)
+
+
+## Environment variables
+
+Code dealing with the environment variables resides in [here](internal/config/specs.go) where each attribute has an annotation which is the lowercase of the environment variable name.
+
+At the moment the application is sourcing the following from the environment:
+
+* JAEGER_ENDPOINT - needed if we want to use the otel jeager exporter for traces
+* TRACING_ENABLED - switch for tracing, defaults to enabled (`true`)
+* LOG_LEVEL - log level, defaults to `error`
+* LOG_FILE - log file which the log rotator will write into, *make sure application user has permissions to write*,  defaults to `log.txt`
+* PORT - http server port, defaults to `8080`
+* KRATOS_PUBLIC_URL - address of kratos apis
+* HYDRA_ADMIN_URL - address of hydra admin apis
+
+
 
 ## Container
 To build the UI oci image, you will need [rockcraft](https://canonical-rockcraft.readthedocs-hosted.com).
+
 To install rockcraft run:
 ```console
 sudo snap install rockcraft --channel=latest/edge --classic
