@@ -7,13 +7,16 @@ import (
 type Config struct {
 	JaegerEndpoint string
 	Logger         logging.LoggerInterface
+
+	Enabled bool
 }
 
-func NewConfig(endpoint string, logger logging.LoggerInterface) *Config {
+func NewConfig(enabled bool, endpoint string, logger logging.LoggerInterface) *Config {
 	c := new(Config)
 
 	c.JaegerEndpoint = endpoint
 	c.Logger = logger
+	c.Enabled = enabled
 
 	return c
 }
