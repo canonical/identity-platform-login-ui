@@ -82,6 +82,13 @@ func NewTracer(cfg *Config) *Tracer {
 
 	t.logger = cfg.Logger
 
+	// if tracing disabled skip the config
+	if !cfg.Enabled {
+		t.tracer = trace.NewNoopTracerProvider().Tracer("github.com/canonical/identity-platform-login-ui")
+
+		return t
+	}
+
 	var err error
 	var exporter sdktrace.SpanExporter
 
