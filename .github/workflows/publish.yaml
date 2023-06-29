@@ -2,10 +2,21 @@ name: Publish
 
 on:
   workflow_call:
+    inputs:
+      rock:
+        type: string
+        required: true
+        description: "rock path to download"
+    outputs:
+      image:
+        description: "container image"
+        value: ${{ jobs.publish.outputs.image }}
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.set.outputs.image }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -13,12 +24,26 @@ jobs:
     - name: Download Artifact
       uses: actions/download-artifact@v3
       with:
-        name: identity-platform-login-ui-rock
+        name: ${{ inputs.rock }}
 
     - name: Install Skopeo
       run: sudo snap install --devmode --channel edge skopeo
 
-    - name: Upload ROCK to ghcr.io
+    - name: Upload ROCK to ghcr.io with latest
+      id: latest
+      if: github.ref_type == 'branch'
       run: |
-        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./identity-platform-login-ui*.rock) docker://ghcr.io/canonical/identity-platform-login-ui:latest --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
- 
+        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:"${{ github.sha }}" --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" 
+        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:latest --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
+        echo "image=ghcr.io/canonical/identity-platform-login-ui:${{ github.sha }}" >> "$GITHUB_ENV"
+    - name: Upload ROCK to ghcr.io with stable
+      id: stable
+      if: github.ref_type == 'tag'
+      run: |
+        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:"${{ github.ref }}" --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" 
+        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:stable --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
+        echo "image=ghcr.io/canonical/identity-platform-login-ui:${{ github.ref }}" >> "$GITHUB_ENV"
+    - name: Set output of image
+      id: set
+      run: echo "image=$image" >> "$GITHUB_OUTPUT"
+        
