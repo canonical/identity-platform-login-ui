@@ -15,6 +15,8 @@ jobs:
         with:
           release-type: simple
           package-name: ""
+          default-branch: main
+          pull-request-title-pattern: "ci: release ${version}"
         id: release
       - uses: actions/checkout@v3
       - name: Workaround for https://github.com/googleapis/release-please/issues/922
