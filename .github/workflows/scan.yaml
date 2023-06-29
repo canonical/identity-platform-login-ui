@@ -1,4 +1,4 @@
-name: Scan
+run-name: Scanning container ${{ inputs.image }} to ghcr.io/canonical/identity-platform-login-ui
 
 on:
   workflow_call:

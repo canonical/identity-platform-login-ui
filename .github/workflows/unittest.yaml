@@ -1,4 +1,4 @@
-name: Go Unit Tests
+run-name: Unit test steps for ${{ github.sha }} on ${{ github.ref_name }}
 
 on:
   workflow_call:
