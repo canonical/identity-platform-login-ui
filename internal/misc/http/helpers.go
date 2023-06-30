@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -21,41 +22,41 @@ func GetBaseURL(r *http.Request) string {
 	if url := os.Getenv("BASE_URL"); url != "" {
 		return url
 	}
-	return fmt.Sprintf("%s://%s/%s", r.URL.Scheme, r.Host, r.URL.Path)
+	return fmt.Sprintf("%s://%s/", r.URL.Scheme, r.Host)
 }
 
-func WriteResponse(w http.ResponseWriter, r *http.Response) {
-	for k, vs := range r.Header {
+func UnmarshalByteJson(data io.Reader, v any) error {
+	json_data, err := ioutil.ReadAll(data)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(json_data, v)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func WriteHeaders(w http.ResponseWriter, headers http.Header) {
+	for k, vs := range headers {
 		for _, v := range vs {
 			w.Header().Set(k, v)
 		}
 	}
-	// We need to set the headers before setting the status code, otherwise
-	// the response writer freaks out
-	w.WriteHeader(r.StatusCode)
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Fatalf("ERROR: %s", err)
-	}
-	fmt.Fprint(w, string(body))
 }
 
 func CookiesToString(cookies []*http.Cookie) string {
-	var ret []string
-	ret = make([]string, len(cookies))
+	var ret = make([]string, len(cookies))
 	for i, c := range cookies {
 		ret[i] = fmt.Sprintf("%s=%s", c.Name, c.Value)
 	}
 	return strings.Join(ret, "; ")
 }
 
-func ParseBody(r *http.Request, body interface{}) *interface{} {
-	decoder := json.NewDecoder(r.Body)
+func ParseBody(b io.ReadCloser, body interface{}) error {
+	decoder := json.NewDecoder(b)
 	err := decoder.Decode(body)
-	if err != nil {
-		log.Println(err)
-	}
-	return &body
+	return err
 }
 
 func GetUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentRequest) map[string]interface{} {

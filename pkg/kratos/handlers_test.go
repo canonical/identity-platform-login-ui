@@ -1,59 +1,57 @@
 package kratos
 
 import (
-	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
-	"github.com/canonical/identity-platform-login-ui/internal/hydra"
-	"github.com/canonical/identity-platform-login-ui/internal/kratos"
-	"github.com/canonical/identity-platform-login-ui/internal/ory/mocks"
 	"github.com/go-chi/chi/v5"
 	gomock "github.com/golang/mock/gomock"
 
-	hydra_client "github.com/ory/hydra-client-go/v2"
-	kratos_client "github.com/ory/kratos-client-go"
-	"github.com/stretchr/testify/assert"
+	hClient "github.com/ory/hydra-client-go/v2"
+	kClient "github.com/ory/kratos-client-go"
 )
 
 const (
-	EXPECTED_NIL_ERROR_MESSAGE   = "expected error to be nil got %v"
-	HANDLE_CREATE_FLOW_URL       = "/api/kratos/self-service/login/browser?aal=aal1&login_challenge=&refresh=false&return_to=http://test.test"
-	COOKIE_NAME                  = "ory_kratos_session"
-	COOKIE_VALUE                 = "test-token"
-	UPDATE_LOGIN_FLOW_METHOD     = "oidc"
-	UPDATE_LOGIN_FLOW_PROVIDER   = "microsoft"
-	HANDLE_UPDATE_LOGIN_FLOW_URL = "/api/kratos/self-service/login?flow=1111"
-	HANDLE_GET_LOGIN_FLOW_URL    = "/api/kratos/self-service/login/flows?id=1111"
-	HANDLE_ERROR_URL             = "/api/kratos/self-service/errors?id=1111"
-	HANDLE_CONSENT_URL           = "/api/consent?consent_challenge=test_challange"
-	HANDLE_ALIVE_URL             = "/health/alive"
+	BASE_URL                     = "https://example.com"
+	HANDLE_CREATE_FLOW_URL       = BASE_URL + "/api/kratos/self-service/login/browser"
+	HANDLE_UPDATE_LOGIN_FLOW_URL = BASE_URL + "/api/kratos/self-service/login"
+	HANDLE_GET_LOGIN_FLOW_URL    = BASE_URL + "/api/kratos/self-service/login/flows"
+	HANDLE_ERROR_URL             = BASE_URL + "/api/kratos/self-service/errors"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
+//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_kratos.go -source=./interfaces.go
 
-// --------------------------------------------
-// TESTING WITH CORRECT SERVERS
-// --------------------------------------------
-func TestHandleCreateFlowWithoutCookie(t *testing.T) {
+func TestHandleCreateFlowWithoutSession(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
 
-	kratosStub := mocks.NewKratosServerStub()
-	hydraStub := mocks.NewHydraServerStub()
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = "test"
 
-	defer kratosStub.Close()
-	defer hydraStub.Close()
+	loginChallenge := "login_challenge_2341235123231"
+	returnTo, _ := url.JoinPath(BASE_URL, "login")
+	returnTo = returnTo + "?loginChallenge=" + loginChallenge
+
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
-	req.Header.Set("Content-Type", "application/json")
+	values := req.URL.Query()
+	values.Add("loginChallenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Header, nil)
+
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -63,104 +61,123 @@ func TestHandleCreateFlowWithoutCookie(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	loginFlow := kratos_client.NewLoginFlowWithDefaults()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("expected HTTP status code 200 got %v", res.StatusCode)
+	}
+	loginFlow := kClient.NewLoginFlowWithDefaults()
 	if err := json.Unmarshal(data, loginFlow); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	assert.Equalf(t, mocks.BROWSER_LOGIN_ID, loginFlow.Id, "Expected %s, got %s", mocks.BROWSER_LOGIN_ID, loginFlow.Id)
+
+	if loginFlow.Id != flow.Id {
+		t.Fatalf("Invalid flow id, expected: %s, got: %s", flow.Id, loginFlow.Id)
+	}
 }
 
-func TestHandleCreateFlowWithCookie(t *testing.T) {
+func TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
-	kratosStub := mocks.NewKratosServerStub()
-	hydraStub := mocks.NewHydraServerStub()
+	mockService := NewMockServiceInterface(ctrl)
 
-	defer kratosStub.Close()
-	defer hydraStub.Close()
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = "test"
 
-	//create request and response objects
+	loginChallenge := "login_challenge_2341235123231"
+	returnTo, _ := url.JoinPath(BASE_URL, "login")
+	returnTo = returnTo + "?loginChallenge=" + loginChallenge
+
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
-	req.Header.Set("Content-Type", "application/json")
-	cookie := &http.Cookie{
-		Name:   COOKIE_NAME,
-		Value:  COOKIE_VALUE,
-		MaxAge: 300,
-	}
-	req.AddCookie(cookie)
-	w := httptest.NewRecorder()
+	values := req.URL.Query()
+	values.Add("loginChallenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
 
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+
+	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
 	res := w.Result()
 	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		t.Errorf("expected error to be nil got %v", err)
-	}
-	if res.StatusCode != 200 {
-		t.Errorf("expected StatusCode to be 200 got %v", res.StatusCode)
-	}
-	requestLoginResponse := hydra_client.NewOAuth2RedirectToWithDefaults()
-	if err := json.Unmarshal(data, requestLoginResponse); err != nil {
-		t.Errorf("expected error to be nil got %v", err)
-	}
 
-	assert.Equalf(t, mocks.AUTHORIZATION_REDIRECT, requestLoginResponse.RedirectTo, "Expected %s, got %s", mocks.AUTHORIZATION_REDIRECT, requestLoginResponse.RedirectTo)
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("expected HTTP status code 500 got %v", res.StatusCode)
+	}
 }
 
-func TestHandleUpdateFlow(t *testing.T) {
+func TestHandleCreateFlowWithSession(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
-	kratosStub := mocks.NewKratosServerStub()
-	hydraStub := mocks.NewHydraServerStub()
+	mockService := NewMockServiceInterface(ctrl)
 
-	defer kratosStub.Close()
-	defer hydraStub.Close()
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	redirect := "https://some/path/to/somewhere"
+	redirectTo := hClient.NewOAuth2RedirectTo(redirect)
 
-	//create request
-	body := kratos_client.NewUpdateLoginFlowWithOidcMethod(UPDATE_LOGIN_FLOW_METHOD, UPDATE_LOGIN_FLOW_PROVIDER)
-	bodyJson, err := json.Marshal(*body)
-	if err != nil {
-		t.Errorf("expected error to be nil got %v", err)
-	}
-	bodyReader := bytes.NewReader(bodyJson)
-	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_LOGIN_FLOW_URL, bodyReader)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Session-Token", "test-x-session-token")
-	cookie := &http.Cookie{
-		Name:   COOKIE_NAME,
-		Value:  COOKIE_VALUE,
-		MaxAge: 300,
-	}
-	req.AddCookie(cookie)
+	loginChallenge := "login_challenge_2341235123231"
 
-	//create response
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("loginChallenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), "test", loginChallenge).Return(redirectTo, req.Header, nil)
+
 	w := httptest.NewRecorder()
-
 	mux := chi.NewMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
-	//check results
+
 	res := w.Result()
-	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		t.Errorf("expected error to be nil got %v", err)
+
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatal("Expected HTTP status code 303, got: ", res.Status)
 	}
-	loginUpdateResponse := kratos_client.NewSuccessfulNativeLoginWithDefaults()
-	if err := json.Unmarshal(data, loginUpdateResponse); err != nil {
-		t.Errorf("expected error to be nil got %v", err)
+	if res.Header["Location"][0] != redirect {
+		t.Fatalf("Expected redirect to %s, got: %s", redirect, res.Header["Location"][0])
 	}
-	assert.Equalf(t, mocks.SESSION_ID, loginUpdateResponse.Session.Id, "Expected %s, got %s", mocks.SESSION_ID, loginUpdateResponse.Session.Id)
+}
+func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+
+	loginChallenge := "login_challenge_2341235123231"
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("loginChallenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), "test", loginChallenge).Return(nil, nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
 }
 
 func TestHandleGetLoginFlow(t *testing.T) {
@@ -168,39 +185,190 @@ func TestHandleGetLoginFlow(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
-	kratosStub := mocks.NewKratosServerStub()
-	hydraStub := mocks.NewHydraServerStub()
+	mockService := NewMockServiceInterface(ctrl)
 
-	defer kratosStub.Close()
-	defer hydraStub.Close()
+	id := "test"
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.SetId(id)
 
-	//create request
 	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_LOGIN_FLOW_URL, nil)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Session-Token", "test-x-session-token")
-	cookie := &http.Cookie{
-		Name:   COOKIE_NAME,
-		Value:  COOKIE_VALUE,
-		MaxAge: 300,
-	}
-	req.AddCookie(cookie)
+	values := req.URL.Query()
+	values.Add("id", id)
+	req.URL.RawQuery = values.Encode()
 
-	//create response
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Header, nil)
+
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(kratos.NewClient(kratosStub.URL), hydra.NewClient(hydraStub.URL), mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
-	//check results
+
 	res := w.Result()
-	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		t.Errorf("expected error to be nil got %v", err)
+		t.Fatalf("Expected error to be nil got %v", err)
 	}
-	loginFlow := kratos_client.NewLoginFlowWithDefaults()
-	if err := json.Unmarshal(data, loginFlow); err != nil {
-		t.Errorf("expected error to be nil got %v", err)
+	flowResponse := kClient.NewLoginFlowWithDefaults()
+	if err := json.Unmarshal(data, flowResponse); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
 	}
-	assert.Equalf(t, mocks.BROWSER_LOGIN_ID, loginFlow.Id, "Expected %s, got %s", mocks.BROWSER_LOGIN_ID, loginFlow.Id)
+	if flowResponse.Id != flow.Id {
+		t.Fatalf("Expected id to be: %s, got: %s", flow.Id, flowResponse.Id)
+	}
+}
+
+func TestHandleGetLoginFlowFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	id := "test"
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.SetId(id)
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("id", id)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleUpdateFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	flowId := "test"
+	redirectTo := "https://some/path/to/somewhere"
+	flow := new(ErrorBrowserLocationChangeRequired)
+	flow.RedirectBrowserTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowBody)
+	flowBody.UpdateLoginFlowWithOidcMethod = kClient.NewUpdateLoginFlowWithOidcMethod("oidc", "oidc")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil)
+	mockService.EXPECT().UpdateOIDCLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(flow, req.Header, nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatal("Expected HTTP status code 422, got: ", res.Status)
+	}
+
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	flowResponse := kClient.NewLoginFlowWithDefaults()
+	if err := json.Unmarshal(data, flowResponse); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+}
+
+func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	flowId := "test"
+	redirectTo := "https://some/path/to/somewhere"
+	flow := new(ErrorBrowserLocationChangeRequired)
+	flow.RedirectBrowserTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowBody)
+	flowBody.UpdateLoginFlowWithOidcMethod = kClient.NewUpdateLoginFlowWithOidcMethod("oidc", "oidc")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	flowId := "test"
+	redirectTo := "https://some/path/to/somewhere"
+	flow := new(ErrorBrowserLocationChangeRequired)
+	flow.RedirectBrowserTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowBody)
+	flowBody.UpdateLoginFlowWithOidcMethod = kClient.NewUpdateLoginFlowWithOidcMethod("oidc", "oidc")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil)
+	mockService.EXPECT().UpdateOIDCLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
 }
