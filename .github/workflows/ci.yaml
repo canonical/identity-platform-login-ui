@@ -1,0 +1,31 @@
+run-name: CI for ${{ github.sha }} on ${{ github.ref_name }}
+
+on:
+  push:
+    branches:
+    - "main"
+    - "release-**"
+    tags:
+    - "v**"
+  pull_request:
+    branches:
+    - "*"
+
+jobs:
+  unit-test:
+    uses: ./.github/workflows/unittest.yaml
+  build:
+    needs: unit-test
+    uses: ./.github/workflows/build.yaml
+  publish:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    uses: ./.github/workflows/publish.yaml
+    with:
+      rock: ${{ needs.build.outputs.rock }} 
+  scan:
+    if: github.ref == 'refs/heads/main'
+    needs: publish
+    uses: ./.github/workflows/scan.yaml
+    with:
+      image: ${{ needs.publish.outputs.image }} 

@@ -1,27 +1,38 @@
-name: Build
+run-name: Build steps for ${{ github.sha }} on ${{ github.ref_name }}
+
 
 on:
   workflow_call:
+    outputs:
+      rock:
+        description: "rock image"
+        value: ${{ jobs.build.outputs.rock }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      rock: ${{ steps.set.outputs.rock }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
     - uses: canonical/craft-actions/rockcraft-pack@main
       id: rockcraft
+    - name: Set rock output
+      id: set
+      run: echo "rock=${{ steps.rockcraft.outputs.rock }}" >> "$GITHUB_OUTPUT"
+    
     - uses: actions/upload-artifact@v3
       with:
-        name: identity-platform-login-ui-rock
         path: ${{ steps.rockcraft.outputs.rock }}
+        name: ${{ steps.rockcraft.outputs.rock }}
 
     - name: Install Syft
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
     - name: Create SBOM
-      run: syft $(realpath ./identity-platform-login-ui_*.rock) -o spdx-json=identity_platform_login_ui.sbom.json
+      run: syft $(realpath ${{ steps.rockcraft.outputs.rock }}) -o spdx-json=identity_platform_login_ui.sbom.json
 
     - name: Upload SBOM
       uses: actions/upload-artifact@v3
