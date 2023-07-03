@@ -1,3 +1,4 @@
+name: ci
 run-name: CI for ${{ github.sha }} on ${{ github.ref_name }}
 
 on:
@@ -15,11 +16,10 @@ jobs:
   unit-test:
     uses: ./.github/workflows/unittest.yaml
   build:
-    needs: unit-test
     uses: ./.github/workflows/build.yaml
   publish:
     if: github.ref == 'refs/heads/main'
-    needs: build
+    needs: [build, unit-test]
     uses: ./.github/workflows/publish.yaml
     with:
       rock: ${{ needs.build.outputs.rock }} 
