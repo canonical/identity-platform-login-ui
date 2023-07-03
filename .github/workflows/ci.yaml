@@ -2,15 +2,18 @@ name: ci
 run-name: CI for ${{ github.sha }} on ${{ github.ref_name }}
 
 on:
-  push:
-    branches:
-    - "main"
-    - "release-**"
-    tags:
-    - "v**"
-  pull_request:
-    branches:
-    - "*"
+   create:
+     tags:
+     - "v**"
+   push:
+     branches:
+     - "main"
+     - "release-**"
+     tags:
+     - "v**"
+   pull_request:
+     branches:
+     - "*"
 
 jobs:
   unit-test:
