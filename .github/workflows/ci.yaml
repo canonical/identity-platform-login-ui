@@ -1,3 +1,4 @@
+name: ci
 run-name: CI for ${{ github.sha }} on ${{ github.ref_name }}
 
 on:
