@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.4.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.4.1...v0.4.2) (2023-07-03)
+## [0.5.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.4.1...v0.5.0) (2023-07-03)
 
 
 ### Bug Fixes
