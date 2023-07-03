@@ -3,18 +3,19 @@ package kratos
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/go-chi/chi/v5"
-
-	misc "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 )
 
 type API struct {
 	service ServiceInterface
+	baseURL string
 
 	logger logging.LoggerInterface
 }
@@ -42,11 +43,18 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to accept login request", http.StatusInternalServerError)
 			return
 		}
-		misc.WriteHeaders(w, headers)
+		writeHeaders(w, headers)
+		resp, err := redirectTo.MarshalJSON()
+		if err != nil {
+			a.logger.Errorf("Error when marshalling Json: %v\n", err)
+			http.Error(w, "Failed to marshall json", http.StatusInternalServerError)
+			return
+		}
 		// The frontend will call this endpoint with an XHR request, so the status code is
 		// not that important (the redirect happens based on the response body). But we still send
 		// a redirect code response to be consistent with the hydra response.
 		http.Redirect(w, r, redirectTo.RedirectTo, http.StatusSeeOther)
+		w.Write(resp)
 		return
 	}
 
@@ -55,11 +63,12 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		refresh = false
 	}
 
-	returnTo, err := url.JoinPath(misc.GetBaseURL(r), "/login")
+	returnTo, err := url.JoinPath(a.baseURL, "/login")
 	if err != nil {
 		a.logger.Fatal("Failed to construct returnTo URL: ", err)
 	}
 	returnTo = returnTo + "?login_challenge=" + q.Get("login_challenge")
+
 	// We redirect the user back to this endpoint with the login_challenge, after they log in, to bypass
 	// Kratos bug where the user is not redirected to hydra the first time they log in.
 	// Relevant issue https://github.com/ory/kratos/issues/3052
@@ -76,7 +85,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to marshall json", http.StatusInternalServerError)
 		return
 	}
-	misc.WriteHeaders(w, headers)
+	writeHeaders(w, headers)
 	w.WriteHeader(200)
 	w.Write(resp)
 }
@@ -98,7 +107,7 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
 		return
 	}
-	misc.WriteHeaders(w, headers)
+	writeHeaders(w, headers)
 	w.WriteHeader(200)
 	w.Write(resp)
 }
@@ -127,7 +136,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
 		return
 	}
-	misc.WriteHeaders(w, headers)
+	writeHeaders(w, headers)
 	w.WriteHeader(422)
 	w.Write(resp)
 }
@@ -150,17 +159,38 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse flow error", http.StatusInternalServerError)
 		return
 	}
-	misc.WriteHeaders(w, headers)
+	writeHeaders(w, headers)
 	w.WriteHeader(200)
 	w.Write(resp)
 }
 
-func NewAPI(service ServiceInterface, logger logging.LoggerInterface) *API {
+func NewAPI(service ServiceInterface, baseURL string, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.service = service
+	a.baseURL = baseURL
 
 	a.logger = logger
 
 	return a
+}
+
+func writeHeaders(w http.ResponseWriter, headers http.Header) {
+	excludedHeaders := []string{"Content-Length", "Date"}
+	for k, vs := range headers {
+		for _, v := range vs {
+			w.Header().Set(k, v)
+		}
+	}
+	for _, h := range excludedHeaders {
+		w.Header().Del(h)
+	}
+}
+
+func cookiesToString(cookies []*http.Cookie) string {
+	var ret = make([]string, len(cookies))
+	for i, c := range cookies {
+		ret[i] = fmt.Sprintf("%s=%s", c.Name, c.Value)
+	}
+	return strings.Join(ret, "; ")
 }

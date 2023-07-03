@@ -52,7 +52,7 @@ func main() {
 	kClient := ik.NewClient(specs.KratosPublicURL)
 	hClient := ih.NewClient(specs.HydraAdminURL)
 
-	router := web.NewRouter(kClient, hClient, distFS, tracer, monitor, logger)
+	router := web.NewRouter(kClient, hClient, distFS, specs.BaseURL, tracer, monitor, logger)
 
 	logger.Infof("Starting server on port %v", specs.Port)
 

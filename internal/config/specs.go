@@ -8,7 +8,8 @@ type EnvSpec struct {
 	LogLevel string `envconfig:"log_level" default:"error"`
 	LogFile  string `envconfig:"log_file" default:"log.txt"`
 
-	Port int `envconfig:"port" default:"8080"`
+	Port    int    `envconfig:"port" default:"8080"`
+	BaseURL string `envconfig:"base_url" default:""`
 
 	KratosPublicURL string `envconfig:"kratos_public_url"`
 	HydraAdminURL   string `envconfig:"hydra_admin_url"`

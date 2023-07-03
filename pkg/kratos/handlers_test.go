@@ -39,11 +39,11 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 
 	loginChallenge := "login_challenge_2341235123231"
 	returnTo, _ := url.JoinPath(BASE_URL, "login")
-	returnTo = returnTo + "?loginChallenge=" + loginChallenge
+	returnTo = returnTo + "?login_challenge=" + loginChallenge
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	values := req.URL.Query()
-	values.Add("loginChallenge", loginChallenge)
+	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
@@ -51,7 +51,7 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -87,11 +87,11 @@ func TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow(t *testing.T
 
 	loginChallenge := "login_challenge_2341235123231"
 	returnTo, _ := url.JoinPath(BASE_URL, "login")
-	returnTo = returnTo + "?loginChallenge=" + loginChallenge
+	returnTo = returnTo + "?login_challenge=" + loginChallenge
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	values := req.URL.Query()
-	values.Add("loginChallenge", loginChallenge)
+	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
@@ -99,7 +99,7 @@ func TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow(t *testing.T
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -126,7 +126,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	values := req.URL.Query()
-	values.Add("loginChallenge", loginChallenge)
+	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
@@ -134,7 +134,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -160,7 +160,7 @@ func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	values := req.URL.Query()
-	values.Add("loginChallenge", loginChallenge)
+	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
@@ -169,7 +169,7 @@ func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -200,7 +200,7 @@ func TestHandleGetLoginFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -244,7 +244,7 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -280,7 +280,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -325,7 +325,7 @@ func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -362,7 +362,7 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 

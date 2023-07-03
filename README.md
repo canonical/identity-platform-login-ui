@@ -23,7 +23,7 @@ If tou wanna skip the `npm-build` make sure the `js` artifcats are is the `ui/di
 
 
 This will:
-* build the `js` code 
+* build the `js` code
 * produce a binary called `app` which you can run with:
 
 ```console
@@ -44,9 +44,9 @@ At the moment the application is sourcing the following from the environment:
 * LOG_LEVEL - log level, defaults to `error`
 * LOG_FILE - log file which the log rotator will write into, *make sure application user has permissions to write*,  defaults to `log.txt`
 * PORT - http server port, defaults to `8080`
+* BASE_URL - the base url that the application will be running on
 * KRATOS_PUBLIC_URL - address of kratos apis
 * HYDRA_ADMIN_URL - address of hydra admin apis
-
 
 
 ## Container

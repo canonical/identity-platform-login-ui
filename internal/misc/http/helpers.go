@@ -1,13 +1,9 @@
 package http
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
@@ -18,45 +14,12 @@ import (
 
 // dump these in here for now
 
-func GetBaseURL(r *http.Request) string {
-	if url := os.Getenv("BASE_URL"); url != "" {
-		return url
-	}
-	return fmt.Sprintf("%s://%s/", r.URL.Scheme, r.Host)
-}
-
-func UnmarshalByteJson(data io.Reader, v any) error {
-	json_data, err := ioutil.ReadAll(data)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(json_data, v)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func WriteHeaders(w http.ResponseWriter, headers http.Header) {
-	for k, vs := range headers {
-		for _, v := range vs {
-			w.Header().Set(k, v)
-		}
-	}
-}
-
 func CookiesToString(cookies []*http.Cookie) string {
 	var ret = make([]string, len(cookies))
 	for i, c := range cookies {
 		ret[i] = fmt.Sprintf("%s=%s", c.Name, c.Value)
 	}
 	return strings.Join(ret, "; ")
-}
-
-func ParseBody(b io.ReadCloser, body interface{}) error {
-	decoder := json.NewDecoder(b)
-	err := decoder.Decode(body)
-	return err
 }
 
 func GetUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentRequest) map[string]interface{} {

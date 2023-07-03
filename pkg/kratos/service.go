@@ -2,10 +2,11 @@ package kratos
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
-	misc "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
@@ -36,7 +37,7 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 
 	session, resp, err := s.kratos.FrontendApi().
 		ToSession(ctx).
-		Cookie(misc.CookiesToString(cookies)).
+		Cookie(cookiesToString(cookies)).
 		Execute()
 
 	if err != nil {
@@ -80,7 +81,7 @@ func (s *Service) CreateBrowserLoginFlow(
 		ReturnTo(returnTo).
 		LoginChallenge(loginChallenge).
 		Refresh(refresh).
-		Cookie(misc.CookiesToString(cookies)).
+		Cookie(cookiesToString(cookies)).
 		Execute()
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -97,7 +98,7 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 	flow, resp, err := s.kratos.FrontendApi().
 		GetLoginFlow(ctx).
 		Id(id).
-		Cookie(misc.CookiesToString(cookies)).
+		Cookie(cookiesToString(cookies)).
 		Execute()
 	if err != nil && resp.StatusCode != 422 {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -117,7 +118,7 @@ func (s *Service) UpdateOIDCLoginFlow(
 		UpdateLoginFlow(ctx).
 		Flow(flow).
 		UpdateLoginFlowBody(body).
-		Cookie(misc.CookiesToString(cookies)).
+		Cookie(cookiesToString(cookies)).
 		Execute()
 	if err != nil && resp.StatusCode != 422 {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -125,7 +126,7 @@ func (s *Service) UpdateOIDCLoginFlow(
 	}
 
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
-	err = misc.UnmarshalByteJson(resp.Body, redirectResp)
+	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
 		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
@@ -148,7 +149,7 @@ func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowErr
 
 func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
 	body := new(kClient.UpdateLoginFlowWithOidcMethod)
-	err := misc.ParseBody(r.Body, &body)
+	err := parseBody(r.Body, &body)
 	if err != nil {
 		return nil, err
 	}
@@ -169,4 +170,22 @@ func NewService(kratos KratosClientInterface, hydra HydraClientInterface, tracer
 	s.logger = logger
 
 	return s
+}
+
+func parseBody(b io.ReadCloser, body interface{}) error {
+	decoder := json.NewDecoder(b)
+	err := decoder.Decode(body)
+	return err
+}
+
+func unmarshalByteJson(data io.Reader, v any) error {
+	json_data, err := io.ReadAll(data)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(json_data, v)
+	if err != nil {
+		return err
+	}
+	return nil
 }
