@@ -28,6 +28,7 @@ func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, tr
 		middlewares,
 		middleware.RequestID,
 		monitoring.NewMiddleware(monitor, logger).ResponseTime(),
+		middlewareCORS([]string{"*"}),
 	)
 
 	// TODO @shipperizer add a proper configuration to enable http logger middleware as it's expensive
