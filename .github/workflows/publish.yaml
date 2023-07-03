@@ -41,9 +41,9 @@ jobs:
       id: stable
       if: github.ref_type == 'tag'
       run: |
-        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:"${{ github.ref }}" --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" 
+        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:"${{ github.ref_name }}" --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" 
         sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:stable --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
-        echo "image=ghcr.io/canonical/identity-platform-login-ui:${{ github.ref }}" >> "$GITHUB_ENV"
+        echo "image=ghcr.io/canonical/identity-platform-login-ui:${{ github.ref_name }}" >> "$GITHUB_ENV"
     - name: Set output of image
       id: set
       run: echo "image=$image" >> "$GITHUB_OUTPUT"
