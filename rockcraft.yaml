@@ -34,3 +34,5 @@ parts:
       install -D -m755 cmd/app ${CRAFT_PART_INSTALL}/opt/identity-platform-login-ui/bin/app
     organize:
       opt/identity-platform-login-ui/bin/app: usr/bin/identity-platform-login-ui
+    stage-packages:
+      - base-files_var
