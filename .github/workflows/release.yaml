@@ -6,6 +6,7 @@ on:
     branches:
     - main
     - "release-**" 
+    - release/changelog
 
 
 jobs:
@@ -16,7 +17,8 @@ jobs:
         with:
           release-type: simple
           package-name: ""
-          default-branch: main
+          # default-branch: main
+          default-branch: release/changelog # WIP to be removed
           pull-request-title-pattern: "ci: release ${version}"
           token: ${{ secrets.PAT_TOKEN }}
         id: release
