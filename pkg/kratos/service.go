@@ -31,7 +31,7 @@ type ErrorBrowserLocationChangeRequired struct {
 	RedirectBrowserTo *string `json:"redirect_browser_to,omitempty"`
 }
 
-func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, http.Header, error) {
+func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
 	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
 	defer span.End()
 
@@ -46,10 +46,10 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 
 		return nil, nil, err
 	}
-	return session, resp.Header, nil
+	return session, resp.Cookies(), nil
 }
 
-func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc string) (*hClient.OAuth2RedirectTo, http.Header, error) {
+func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error) {
 	_, span := s.tracer.Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest")
 	defer span.End()
 
@@ -66,12 +66,12 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc 
 		return nil, nil, err
 	}
 
-	return redirectTo, resp.Header, nil
+	return redirectTo, resp.Cookies(), nil
 }
 
 func (s *Service) CreateBrowserLoginFlow(
 	ctx context.Context, aal, returnTo, loginChallenge string, refresh bool, cookies []*http.Cookie,
-) (*kClient.LoginFlow, http.Header, error) {
+) (*kClient.LoginFlow, []*http.Cookie, error) {
 	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow")
 	defer span.End()
 
@@ -88,10 +88,10 @@ func (s *Service) CreateBrowserLoginFlow(
 		return nil, nil, err
 	}
 
-	return flow, resp.Header, nil
+	return flow, resp.Cookies(), nil
 }
 
-func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, http.Header, error) {
+func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
 	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetLoginFlow")
 	defer span.End()
 
@@ -105,12 +105,12 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 		return nil, nil, err
 	}
 
-	return flow, resp.Header, nil
+	return flow, resp.Cookies(), nil
 }
 
 func (s *Service) UpdateOIDCLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
-) (*ErrorBrowserLocationChangeRequired, http.Header, error) {
+) (*ErrorBrowserLocationChangeRequired, []*http.Cookie, error) {
 	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateLoginFlow")
 	defer span.End()
 
@@ -131,10 +131,10 @@ func (s *Service) UpdateOIDCLoginFlow(
 		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
 	}
-	return redirectResp, resp.Header, nil
+	return redirectResp, resp.Cookies(), nil
 }
 
-func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowError, http.Header, error) {
+func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowError, []*http.Cookie, error) {
 	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetFlowError")
 	defer span.End()
 
@@ -144,7 +144,7 @@ func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowErr
 		return nil, nil, err
 	}
 
-	return flowError, resp.Header, nil
+	return flowError, resp.Cookies(), nil
 }
 
 func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
