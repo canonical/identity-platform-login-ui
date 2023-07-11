@@ -37,13 +37,13 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// to avoid this bug.
 	session, _, _ := a.service.CheckSession(context.Background(), r.Cookies())
 	if session != nil {
-		redirectTo, headers, err := a.service.AcceptLoginRequest(context.Background(), session.Identity.Id, q.Get("login_challenge"))
+		redirectTo, cookies, err := a.service.AcceptLoginRequest(context.Background(), session.Identity.Id, q.Get("login_challenge"))
 		if err != nil {
 			a.logger.Errorf("Error when accepting login request: %v\n", err)
 			http.Error(w, "Failed to accept login request", http.StatusInternalServerError)
 			return
 		}
-		writeHeaders(w, headers)
+		setCookies(w, cookies)
 		resp, err := redirectTo.MarshalJSON()
 		if err != nil {
 			a.logger.Errorf("Error when marshalling Json: %v\n", err)
@@ -72,7 +72,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// We redirect the user back to this endpoint with the login_challenge, after they log in, to bypass
 	// Kratos bug where the user is not redirected to hydra the first time they log in.
 	// Relevant issue https://github.com/ory/kratos/issues/3052
-	flow, headers, err := a.service.CreateBrowserLoginFlow(context.Background(), q.Get("aal"), returnTo, q.Get("login_challenge"), refresh, r.Cookies())
+	flow, cookies, err := a.service.CreateBrowserLoginFlow(context.Background(), q.Get("aal"), returnTo, q.Get("login_challenge"), refresh, r.Cookies())
 	if err != nil {
 		// TODO: Add more context
 		http.Error(w, "Failed to create login flow", http.StatusInternalServerError)
@@ -85,7 +85,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to marshall json", http.StatusInternalServerError)
 		return
 	}
-	writeHeaders(w, headers)
+	setCookies(w, cookies)
 	w.WriteHeader(200)
 	w.Write(resp)
 }
@@ -94,7 +94,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	flow, headers, err := a.service.GetLoginFlow(context.Background(), q.Get("id"), r.Cookies())
+	flow, cookies, err := a.service.GetLoginFlow(context.Background(), q.Get("id"), r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
@@ -107,7 +107,7 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
 		return
 	}
-	writeHeaders(w, headers)
+	setCookies(w, cookies)
 	w.WriteHeader(200)
 	w.Write(resp)
 }
@@ -123,7 +123,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, headers, err := a.service.UpdateOIDCLoginFlow(context.Background(), q.Get("flow"), *body, r.Cookies())
+	flow, cookies, err := a.service.UpdateOIDCLoginFlow(context.Background(), q.Get("flow"), *body, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, "Failed to update login flow", http.StatusInternalServerError)
@@ -136,7 +136,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
 		return
 	}
-	writeHeaders(w, headers)
+	setCookies(w, cookies)
 	w.WriteHeader(422)
 	w.Write(resp)
 }
@@ -146,7 +146,7 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	id := q.Get("id")
 
-	flowError, headers, err := a.service.GetFlowError(context.Background(), id)
+	flowError, cookies, err := a.service.GetFlowError(context.Background(), id)
 	if err != nil {
 		a.logger.Errorf("Error when getting flow error: %v\n", err)
 		http.Error(w, "Failed to get flow error", http.StatusInternalServerError)
@@ -159,7 +159,7 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse flow error", http.StatusInternalServerError)
 		return
 	}
-	writeHeaders(w, headers)
+	setCookies(w, cookies)
 	w.WriteHeader(200)
 	w.Write(resp)
 }
@@ -175,15 +175,9 @@ func NewAPI(service ServiceInterface, baseURL string, logger logging.LoggerInter
 	return a
 }
 
-func writeHeaders(w http.ResponseWriter, headers http.Header) {
-	excludedHeaders := []string{"Content-Length", "Date"}
-	for k, vs := range headers {
-		for _, v := range vs {
-			w.Header().Set(k, v)
-		}
-	}
-	for _, h := range excludedHeaders {
-		w.Header().Del(h)
+func setCookies(w http.ResponseWriter, cookies []*http.Cookie) {
+	for _, c := range cookies {
+		http.SetCookie(w, c)
 	}
 }
 

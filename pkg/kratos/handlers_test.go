@@ -47,7 +47,7 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
-	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Header, nil)
+	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -130,7 +130,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
-	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), "test", loginChallenge).Return(redirectTo, req.Header, nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), "test", loginChallenge).Return(redirectTo, req.Cookies(), nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -204,7 +204,7 @@ func TestHandleGetLoginFlow(t *testing.T) {
 	values.Add("id", id)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().GetLoginFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Header, nil)
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Cookies(), nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -284,7 +284,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil)
-	mockService.EXPECT().UpdateOIDCLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(flow, req.Header, nil)
+	mockService.EXPECT().UpdateOIDCLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(flow, req.Cookies(), nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()

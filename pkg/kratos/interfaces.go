@@ -18,11 +18,11 @@ type HydraClientInterface interface {
 }
 
 type ServiceInterface interface {
-	CheckSession(context.Context, []*http.Cookie) (*kClient.Session, http.Header, error)
-	AcceptLoginRequest(context.Context, string, string) (*hClient.OAuth2RedirectTo, http.Header, error)
-	CreateBrowserLoginFlow(context.Context, string, string, string, bool, []*http.Cookie) (*kClient.LoginFlow, http.Header, error)
-	GetLoginFlow(context.Context, string, []*http.Cookie) (*kClient.LoginFlow, http.Header, error)
-	UpdateOIDCLoginFlow(context.Context, string, kClient.UpdateLoginFlowBody, []*http.Cookie) (*ErrorBrowserLocationChangeRequired, http.Header, error)
-	GetFlowError(context.Context, string) (*kClient.FlowError, http.Header, error)
+	CheckSession(context.Context, []*http.Cookie) (*kClient.Session, []*http.Cookie, error)
+	AcceptLoginRequest(context.Context, string, string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error)
+	CreateBrowserLoginFlow(context.Context, string, string, string, bool, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
+	GetLoginFlow(context.Context, string, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
+	UpdateOIDCLoginFlow(context.Context, string, kClient.UpdateLoginFlowBody, []*http.Cookie) (*ErrorBrowserLocationChangeRequired, []*http.Cookie, error)
+	GetFlowError(context.Context, string) (*kClient.FlowError, []*http.Cookie, error)
 	ParseLoginFlowMethodBody(*http.Request) (*kratos_client.UpdateLoginFlowBody, error)
 }

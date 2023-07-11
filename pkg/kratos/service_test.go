@@ -62,13 +62,13 @@ func TestCheckSessionSuccess(t *testing.T) {
 		},
 	)
 
-	s, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).CheckSession(ctx, cookies)
+	s, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).CheckSession(ctx, cookies)
 
 	if s != session {
 		t.Fatalf("expected session to be %v not  %v", session, s)
 	}
-	if !reflect.DeepEqual(h, resp.Header) {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
@@ -108,13 +108,13 @@ func TestCheckSessionFails(t *testing.T) {
 		},
 	)
 
-	s, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).CheckSession(ctx, cookies)
+	s, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).CheckSession(ctx, cookies)
 
 	if s != nil {
 		t.Fatalf("expected session to be nil not  %v", s)
 	}
-	if h != nil {
-		t.Fatalf("expected session to be nil not  %v", h)
+	if c != nil {
+		t.Fatalf("expected cookies to be nil not  %v", c)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")
@@ -157,13 +157,13 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 		},
 	)
 
-	rt, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
+	rt, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
 
 	if rt != redirectTo {
 		t.Fatalf("expected redirect to be %v not  %v", redirectTo, rt)
 	}
-	if !reflect.DeepEqual(h, resp.Header) {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
@@ -194,13 +194,13 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 
-	rt, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
+	rt, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
 
 	if rt != nil {
 		t.Fatalf("expected redirect to be %v not  %v", nil, rt)
 	}
-	if h != nil {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if c != nil {
+		t.Fatalf("expected cookies to be %v not  %v", nil, c)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")
@@ -259,13 +259,13 @@ func TestCreateBrowserLoginFlowSuccess(t *testing.T) {
 		},
 	)
 
-	f, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, returnTo, loginChallenge, refresh, cookies)
+	f, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, returnTo, loginChallenge, refresh, cookies)
 
 	if f != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, f)
 	}
-	if !reflect.DeepEqual(h, resp.Header) {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
@@ -304,13 +304,13 @@ func TestCreateBrowserLoginFlowFail(t *testing.T) {
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, returnTo, loginChallenge, refresh, cookies)
+	f, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, returnTo, loginChallenge, refresh, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
 	}
-	if h != nil {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if c != nil {
+		t.Fatalf("expected cookies to be %v not  %v", nil, c)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")
@@ -357,13 +357,13 @@ func TestGetLoginFlowSuccess(t *testing.T) {
 		},
 	)
 
-	s, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).GetLoginFlow(ctx, id, cookies)
+	s, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).GetLoginFlow(ctx, id, cookies)
 
 	if s != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, s)
 	}
-	if !reflect.DeepEqual(h, resp.Header) {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
@@ -399,13 +399,13 @@ func TestGetLoginFlowFail(t *testing.T) {
 	mockKratosFrontendApi.EXPECT().GetLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).GetLoginFlow(ctx, id, cookies)
+	f, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).GetLoginFlow(ctx, id, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
 	}
-	if h != nil {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if c != nil {
+		t.Fatalf("expected header to be %v not  %v", nil, c)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")
@@ -461,13 +461,13 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 		},
 	)
 
-	f, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).UpdateOIDCLoginFlow(ctx, flowId, *body, cookies)
+	f, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).UpdateOIDCLoginFlow(ctx, flowId, *body, cookies)
 
 	if !reflect.DeepEqual(*f, flow) {
 		t.Fatalf("expected flow to be %+v not %+v", flow, *f)
 	}
-	if !reflect.DeepEqual(h, resp.Header) {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
@@ -510,13 +510,13 @@ func TestUpdateLoginFlowFail(t *testing.T) {
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).UpdateOIDCLoginFlow(ctx, flowId, *body, cookies)
+	f, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).UpdateOIDCLoginFlow(ctx, flowId, *body, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not %+v", nil, f)
 	}
-	if h != nil {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if c != nil {
+		t.Fatalf("expected header to be %v not  %v", nil, c)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")
@@ -557,13 +557,13 @@ func TestGetFlowErrorSuccess(t *testing.T) {
 		},
 	)
 
-	f, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).GetFlowError(ctx, id)
+	f, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).GetFlowError(ctx, id)
 
 	if !reflect.DeepEqual(f, flow) {
 		t.Fatalf("expected flow to be %+v not %+v", flow, f)
 	}
-	if !reflect.DeepEqual(h, resp.Header) {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
@@ -596,13 +596,13 @@ func TestGetFlowErrorFail(t *testing.T) {
 	mockKratosFrontendApi.EXPECT().GetFlowError(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetFlowErrorExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, h, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).GetFlowError(ctx, id)
+	f, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).GetFlowError(ctx, id)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not %+v", nil, f)
 	}
-	if h != nil {
-		t.Fatalf("expected header to be %v not  %v", nil, h)
+	if c != nil {
+		t.Fatalf("expected header to be %v not  %v", nil, c)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")
