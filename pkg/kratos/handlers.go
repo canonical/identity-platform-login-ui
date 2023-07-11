@@ -53,7 +53,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		// The frontend will call this endpoint with an XHR request, so the status code is
 		// not that important (the redirect happens based on the response body). But we still send
 		// a redirect code response to be consistent with the hydra response.
-		http.Redirect(w, r, redirectTo.RedirectTo, http.StatusSeeOther)
+		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
 		return
 	}
