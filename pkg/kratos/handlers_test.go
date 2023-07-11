@@ -140,10 +140,18 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 
 	res := w.Result()
 
-	if res.StatusCode != http.StatusSeeOther {
-		t.Fatal("Expected HTTP status code 303, got: ", res.Status)
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
 	}
-	if res.Header["Location"][0] != redirect {
+	redirectResp := hClient.NewOAuth2RedirectToWithDefaults()
+	if err := json.Unmarshal(data, redirectResp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+	if redirectResp.RedirectTo != redirect {
 		t.Fatalf("Expected redirect to %s, got: %s", redirect, res.Header["Location"][0])
 	}
 }
