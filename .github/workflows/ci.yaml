@@ -2,31 +2,31 @@ name: ci
 run-name: CI for ${{ github.sha }} on ${{ github.ref_name }}
 
 on:
-   workflow_dispatch:
-   push:
-     branches:
-     - "main"
-     - "release-**"
-     tags:
-     - "v**"
-   pull_request:
-     branches:
-     - "*"
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+      - "release-**"
+    tags:
+      - "v**"
+  pull_request:
+    branches:
+      - "*"
 
 jobs:
   unit-test:
     uses: ./.github/workflows/unittest.yaml
   build:
     uses: ./.github/workflows/build.yaml
-  publish: 
+  publish:
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
-    needs: [build, unit-test]
+    needs: [ build, unit-test ]
     uses: ./.github/workflows/publish.yaml
     with:
-      rock: ${{ needs.build.outputs.rock }} 
+      rock: ${{ needs.build.outputs.rock }}
   scan:
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: publish
     uses: ./.github/workflows/scan.yaml
     with:
-      image: ${{ needs.publish.outputs.image }} 
+      image: ${{ needs.publish.outputs.image }}

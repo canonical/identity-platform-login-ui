@@ -1,3 +1,4 @@
+name: unit test
 run-name: Unit test steps for ${{ github.sha }} on ${{ github.ref_name }}
 
 on:
@@ -14,16 +15,17 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-      
+
       - name: Build js UI
         run: make npm-build
-      
+
       - name: Build Go code
         run: make test
 
       - uses: codecov/codecov-action@v3
         with:
-          files: ./coverage.out        
+          files: ./coverage.out
+
       - name: Upload Go test results
         uses: actions/upload-artifact@v3
         with:

@@ -1,5 +1,5 @@
-name: container publish
-run-name: Publish container from ${{ inputs.rock }} to ghcr.io/canonical/identity-platform-login-ui
+name: image publish
+run-name: Publish ROCK image from ${{ inputs.rock }} to ghcr.io/canonical/identity-platform-login-ui
 
 on:
   workflow_call:
@@ -19,32 +19,47 @@ jobs:
     outputs:
       image: ${{ steps.set.outputs.image }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Download Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: ${{ inputs.rock }}
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.rock }}
 
-    - name: Install Skopeo
-      run: sudo snap install --devmode --channel edge skopeo
+      - name: Install Skopeo
+        run: sudo snap install --devmode --channel edge skopeo
 
-    - name: Upload ROCK to ghcr.io with latest
-      id: latest
-      if: github.ref_type == 'branch'
-      run: |
-        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:"${{ github.sha }}" --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" 
-        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:latest --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
-        echo "image=ghcr.io/canonical/identity-platform-login-ui:${{ github.sha }}" >> "$GITHUB_ENV"
-    - name: Upload ROCK to ghcr.io with stable
-      id: stable
-      if: github.ref_type == 'tag'
-      run: |
-        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:"${{ github.ref_name }}" --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" 
-        sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker://ghcr.io/canonical/identity-platform-login-ui:stable --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
-        echo "image=ghcr.io/canonical/identity-platform-login-ui:${{ github.ref_name }}" >> "$GITHUB_ENV"
-    - name: Set output of image
-      id: set
-      run: echo "image=$image" >> "$GITHUB_OUTPUT"
-        
+      - name: Upload ROCK to ghcr.io in latest channel
+        id: latest
+        if: ${{ github.ref_type }} == "branch"
+        run: |
+          versions=(latest "${{ github.sha }}")
+
+          for version in "${versions[@]}"; do
+            sudo skopeo --insecure-copy \
+              --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+              oci-archive:$(realpath ./"${{ inputs.rock }}") \
+              docker://ghcr.io/canonical/identity-platform-login-ui:"${version}"
+          done
+
+          echo "image=ghcr.io/canonical/identity-platform-login-ui:${{ github.sha }}" >> "$GITHUB_ENV"
+
+      - name: Upload ROCK to ghcr.io in stable channel
+        id: stable
+        if: ${{ github.ref_type }} == "tag"
+        run: |
+          versions=(stable "${{ github.ref_name }}")
+
+          for version in "${versions[@]}"; do
+            sudo skopeo --insecure-copy \
+              --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+              oci-archive:$(realpath ./"${{ inputs.rock }}") \
+              docker://ghcr.io/canonical/identity-platform-login-ui:"${version}"
+          done
+
+          echo "image=ghcr.io/canonical/identity-platform-login-ui:${{ github.ref_name }}" >> "$GITHUB_ENV"
+
+      - name: Set output of image
+        id: set
+        run: echo "image=$image" >> "$GITHUB_OUTPUT"
