@@ -40,8 +40,10 @@ func main() {
 
 	logger := logging.NewLogger(specs.LogLevel, specs.LogFile)
 
+	logger.Debugf("env vars: %v", specs)
+
 	monitor := prometheus.NewMonitor("identity-login-ui", logger)
-	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.JaegerEndpoint, logger))
+	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.OtelGRPCEndpoint, specs.OtelHTTPEndpoint, logger))
 
 	distFS, err := fs.Sub(jsFS, "ui/dist")
 
