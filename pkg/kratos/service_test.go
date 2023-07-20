@@ -48,7 +48,7 @@ func TestCheckSessionSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().ToSession(ctx).Times(1).Return(sessionRequest)
 	mockKratosFrontendApi.EXPECT().ToSessionExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -94,7 +94,7 @@ func TestCheckSessionFails(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().ToSession(ctx).Times(1).Return(sessionRequest)
 	mockKratosFrontendApi.EXPECT().ToSessionExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -142,7 +142,7 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 
 	resp := new(http.Response)
 
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -189,7 +189,7 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
@@ -234,7 +234,7 @@ func TestCreateBrowserLoginFlowSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -299,7 +299,7 @@ func TestCreateBrowserLoginFlowFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -341,7 +341,7 @@ func TestGetLoginFlowSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetLoginFlow").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -394,7 +394,7 @@ func TestGetLoginFlowFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetLoginFlow").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -442,7 +442,7 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateLoginFlow").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -505,7 +505,7 @@ func TestUpdateLoginFlowFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateLoginFlow").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -544,7 +544,7 @@ func TestGetFlowErrorSuccess(t *testing.T) {
 		Header: http.Header{"K": []string{"V"}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetFlowError").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetFlowError").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetFlowError(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetFlowErrorExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -591,7 +591,7 @@ func TestGetFlowErrorFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetFlowError").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetFlowError").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetFlowError(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetFlowErrorExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))

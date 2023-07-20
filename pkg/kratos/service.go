@@ -32,7 +32,7 @@ type ErrorBrowserLocationChangeRequired struct {
 }
 
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
-	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
+	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
 	defer span.End()
 
 	session, resp, err := s.kratos.FrontendApi().
@@ -50,7 +50,7 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 }
 
 func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error) {
-	_, span := s.tracer.Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest")
+	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest")
 	defer span.End()
 
 	accept := hClient.NewAcceptOAuth2LoginRequest(identityID)
@@ -72,7 +72,7 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc 
 func (s *Service) CreateBrowserLoginFlow(
 	ctx context.Context, aal, returnTo, loginChallenge string, refresh bool, cookies []*http.Cookie,
 ) (*kClient.LoginFlow, []*http.Cookie, error) {
-	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
@@ -92,7 +92,7 @@ func (s *Service) CreateBrowserLoginFlow(
 }
 
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
-	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetLoginFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetLoginFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
@@ -111,7 +111,7 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 func (s *Service) UpdateOIDCLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
 ) (*ErrorBrowserLocationChangeRequired, []*http.Cookie, error) {
-	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateLoginFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateLoginFlow")
 	defer span.End()
 
 	_, resp, err := s.kratos.FrontendApi().
@@ -135,7 +135,7 @@ func (s *Service) UpdateOIDCLoginFlow(
 }
 
 func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowError, []*http.Cookie, error) {
-	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetFlowError")
+	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetFlowError")
 	defer span.End()
 
 	flowError, resp, err := s.kratos.FrontendApi().GetFlowError(context.Background()).Id(id).Execute()
