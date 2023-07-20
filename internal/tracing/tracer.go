@@ -7,7 +7,9 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -92,11 +94,20 @@ func NewTracer(cfg *Config) *Tracer {
 	var err error
 	var exporter sdktrace.SpanExporter
 
-	// create jaeger exporter
-	if cfg.JaegerEndpoint != "" {
-		exporter, err = jaeger.New(
-			jaeger.WithCollectorEndpoint(
-				jaeger.WithEndpoint(cfg.JaegerEndpoint),
+	if cfg.OtelGRPCEndpoint != "" {
+		exporter, err = otlptrace.New(
+			context.TODO(),
+			otlptracegrpc.NewClient(
+				otlptracegrpc.WithEndpoint(cfg.OtelGRPCEndpoint),
+				otlptracegrpc.WithInsecure(),
+			),
+		)
+	} else if cfg.OtelHTTPEndpoint != "" {
+		exporter, err = otlptrace.New(
+			context.TODO(),
+			otlptracehttp.NewClient(
+				otlptracehttp.WithEndpoint(cfg.OtelHTTPEndpoint),
+				otlptracehttp.WithInsecure(),
 			),
 		)
 	} else {
