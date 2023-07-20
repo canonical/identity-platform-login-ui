@@ -37,7 +37,7 @@ jobs:
           versions=(latest "${{ github.sha }}")
 
           for version in "${versions[@]}"; do
-            sudo skopeo --insecure-copy \
+            sudo skopeo --insecure-policy copy \
               --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
               oci-archive:$(realpath ./"${{ inputs.rock }}") \
               docker://ghcr.io/canonical/identity-platform-login-ui:"${version}"
@@ -52,7 +52,7 @@ jobs:
           versions=(stable "${{ github.ref_name }}")
 
           for version in "${versions[@]}"; do
-            sudo skopeo --insecure-copy \
+            sudo skopeo --insecure-policy copy \
               --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
               oci-archive:$(realpath ./"${{ inputs.rock }}") \
               docker://ghcr.io/canonical/identity-platform-login-ui:"${version}"
