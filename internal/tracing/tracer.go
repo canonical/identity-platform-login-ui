@@ -5,6 +5,7 @@ import (
 	"runtime/debug"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -34,7 +35,7 @@ func (t *Tracer) init(service string, e sdktrace.SpanExporter) {
 	)
 
 	otel.SetTracerProvider(traceProvider)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}, jaeger.Jaeger{}))
 
 	t.tracer = otel.Tracer(service)
 }
