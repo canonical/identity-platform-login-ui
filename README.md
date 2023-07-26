@@ -39,7 +39,8 @@ Code dealing with the environment variables resides in [here](internal/config/sp
 
 At the moment the application is sourcing the following from the environment:
 
-* JAEGER_ENDPOINT - needed if we want to use the otel jeager exporter for traces
+* OTEL_GRPC_ENDPOINT - needed if we want to use the otel grpc exporter for traces
+* OTEL_HTTP_ENDPOINT - needed if we want to use the otel http exporter for traces (if grpc is specified this gets unused)
 * TRACING_ENABLED - switch for tracing, defaults to enabled (`true`)
 * LOG_LEVEL - log level, defaults to `error`
 * LOG_FILE - log file which the log rotator will write into, *make sure application user has permissions to write*,  defaults to `log.txt`

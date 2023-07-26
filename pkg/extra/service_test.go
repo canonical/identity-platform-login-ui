@@ -40,7 +40,7 @@ func TestCheckSessionSuccess(t *testing.T) {
 		ApiService: mockKratosFrontendApi,
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().ToSession(ctx).Times(1).Return(sessionRequest)
 	mockKratosFrontendApi.EXPECT().ToSessionExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -84,7 +84,7 @@ func TestCheckSessionFails(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().ToSession(ctx).Times(1).Return(sessionRequest)
 	mockKratosFrontendApi.EXPECT().ToSessionExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -126,7 +126,7 @@ func TestGetConsentSuccess(t *testing.T) {
 		ApiService: mockHydraOAuth2Api,
 	}
 	consent := hClient.NewOAuth2ConsentRequest(challengeString)
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.GetOAuth2ConsentRequest").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.GetOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOAuth2Api)
 	mockHydraOAuth2Api.EXPECT().GetOAuth2ConsentRequest(ctx).Times(1).Return(consentRequest)
 	mockHydraOAuth2Api.EXPECT().GetOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -167,7 +167,7 @@ func TestGetConsentFails(t *testing.T) {
 		ApiService: mockHydraOAuth2Api,
 	}
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.GetOAuth2ConsentRequest").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.GetOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOAuth2Api)
 	mockHydraOAuth2Api.EXPECT().GetOAuth2ConsentRequest(ctx).Times(1).Return(consentRequest)
 	mockHydraOAuth2Api.EXPECT().GetOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -211,7 +211,7 @@ func TestAcceptConsentSuccess(t *testing.T) {
 	consent := hClient.NewOAuth2ConsentRequest("test.challenge")
 	identity := kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 	accept := hClient.NewOAuth2RedirectTo(redirect)
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOAuth2Api)
 	mockHydraOAuth2Api.EXPECT().AcceptOAuth2ConsentRequest(ctx).Times(1).Return(acceptRequest)
 	mockHydraOAuth2Api.EXPECT().AcceptOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -265,7 +265,7 @@ func TestAcceptConsentFails(t *testing.T) {
 	identity := kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest").Times(1).Return(nil, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOAuth2Api)
 	mockHydraOAuth2Api.EXPECT().AcceptOAuth2ConsentRequest(ctx).Times(1).Return(acceptRequest)
 	mockHydraOAuth2Api.EXPECT().AcceptOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(

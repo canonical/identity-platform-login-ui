@@ -23,7 +23,7 @@ type Service struct {
 }
 
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, error) {
-	_, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
+	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
 	defer span.End()
 
 	session, r, err := s.kratos.FrontendApi().ToSession(
@@ -42,7 +42,7 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 }
 
 func (s *Service) GetConsent(ctx context.Context, challenge string) (*hClient.OAuth2ConsentRequest, error) {
-	_, span := s.tracer.Start(ctx, "hydra.OAuth2Api.GetOAuth2ConsentRequest")
+	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2Api.GetOAuth2ConsentRequest")
 	defer span.End()
 
 	consent, res, err := s.hydra.OAuth2Api().GetOAuth2ConsentRequest(
@@ -68,7 +68,7 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 	r.SetGrantAccessTokenAudience(consent.RequestedAccessTokenAudience)
 	r.SetSession(*session)
 
-	_, span := s.tracer.Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest")
+	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest")
 	defer span.End()
 
 	accept, res, err := s.hydra.OAuth2Api().AcceptOAuth2ConsentRequest(

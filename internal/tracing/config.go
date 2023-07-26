@@ -5,16 +5,18 @@ import (
 )
 
 type Config struct {
-	JaegerEndpoint string
-	Logger         logging.LoggerInterface
+	OtelHTTPEndpoint string
+	OtelGRPCEndpoint string
+	Logger           logging.LoggerInterface
 
 	Enabled bool
 }
 
-func NewConfig(enabled bool, endpoint string, logger logging.LoggerInterface) *Config {
+func NewConfig(enabled bool, otelGRPCEndpoint, otelHTTPEndpoint string, logger logging.LoggerInterface) *Config {
 	c := new(Config)
 
-	c.JaegerEndpoint = endpoint
+	c.OtelGRPCEndpoint = otelGRPCEndpoint
+	c.OtelHTTPEndpoint = otelHTTPEndpoint
 	c.Logger = logger
 	c.Enabled = enabled
 
