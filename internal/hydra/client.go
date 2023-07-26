@@ -2,6 +2,7 @@ package hydra
 
 import (
 	client "github.com/ory/hydra-client-go/v2"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type Client struct {
@@ -23,6 +24,8 @@ func NewClient(url string) *Client {
 			URL: url,
 		},
 	}
+
+	configuration.HTTPClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 
 	c.c = client.NewAPIClient(configuration)
 
