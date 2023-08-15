@@ -1,9 +1,11 @@
 package status
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
@@ -80,23 +82,28 @@ func (a *API) deepCheck(w http.ResponseWriter, r *http.Request) {
 	kratosOK := false
 	hydraOK := false
 
-	go func() {
-		res, err := a.service.CheckKratosReady(r.Context())
+	ctx, cancel := context.WithTimeout(
+		r.Context(),
+		time.Duration(5*time.Second))
+	defer cancel()
+
+	go func(ctx context.Context) {
+		res, err := a.service.CheckKratosReady(ctx)
 		if err != nil {
 			a.logger.Errorf("error when checking kratos status: %s", err)
 		}
 		kratosOK = res
 		wg.Done()
-	}()
+	}(ctx)
 
-	go func() {
-		res, err := a.service.CheckHydraReady(r.Context())
+	go func(ctx context.Context) {
+		res, err := a.service.CheckHydraReady(ctx)
 		if err != nil {
 			a.logger.Errorf("error when checking hydra status: %s", err)
 		}
 		hydraOK = res
 		wg.Done()
-	}()
+	}(ctx)
 
 	wg.Wait()
 
