@@ -50,7 +50,12 @@ func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, ba
 		extra.NewService(kratosClient, hydraClient, tracer, monitor, logger),
 		logger,
 	).RegisterEndpoints(router)
-	status.NewAPI(tracer, monitor, logger).RegisterEndpoints(router)
+	status.NewAPI(
+		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataApi(), tracer, monitor, logger),
+		tracer,
+		monitor,
+		logger,
+	).RegisterEndpoints(router)
 	ui.NewAPI(distFS, logger).RegisterEndpoints(router)
 	metrics.NewAPI(logger).RegisterEndpoints(router)
 
