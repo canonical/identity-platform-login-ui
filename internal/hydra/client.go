@@ -15,6 +15,10 @@ func (c *Client) OAuth2Api() client.OAuth2Api {
 	return c.c.OAuth2Api
 }
 
+func (c *Client) MetadataApi() client.MetadataApi {
+	return c.c.MetadataApi
+}
+
 func NewClient(url string) *Client {
 	c := new(Client)
 
