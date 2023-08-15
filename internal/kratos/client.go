@@ -15,6 +15,10 @@ func (c *Client) FrontendApi() client.FrontendApi {
 	return c.c.FrontendApi
 }
 
+func (c *Client) MetadataApi() client.MetadataApi {
+	return c.c.MetadataApi
+}
+
 func NewClient(url string) *Client {
 	c := new(Client)
 
