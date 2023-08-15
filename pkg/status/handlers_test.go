@@ -11,13 +11,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracer.go 	go.opentelemetry.io/otel/trace Tracer
+//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracing.go go.opentelemetry.io/otel/trace Tracer
+//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_status.go -source=./interfaces.go
 
 func TestAliveOK(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -26,6 +26,7 @@ func TestAliveOK(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockMonitor := NewMockMonitorInterface(ctrl)
 	mockTracer := NewMockTracer(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v0/status", nil)
 	w := httptest.NewRecorder()
@@ -33,7 +34,7 @@ func TestAliveOK(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).Times(1).Return(context.TODO(), trace.SpanFromContext(req.Context()))
 
 	mux := chi.NewMux()
-	NewAPI(mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 	res := w.Result()
@@ -46,5 +47,82 @@ func TestAliveOK(t *testing.T) {
 	if err := json.Unmarshal(data, receivedStatus); err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
-	assert.Equalf(t, "ok", receivedStatus.Status, "Expected %s, got %s", "ok", receivedStatus.Status)
+	if receivedStatus.Status != "ok" {
+		t.Fatalf("expected status to be %s not  %s", "ok", receivedStatus.Status)
+	}
+}
+
+func TestDeepCheckSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockMonitor := NewMockMonitorInterface(ctrl)
+	mockTracer := NewMockTracer(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/deepcheck", nil)
+	w := httptest.NewRecorder()
+
+	mockService.EXPECT().CheckKratosReady(gomock.Any()).Times(1).Return(true, nil)
+	mockService.EXPECT().CheckHydraReady(gomock.Any()).Times(1).Return(true, nil)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("expected error to be nil got %v", err)
+	}
+	receivedStatus := new(DeepCheckStatus)
+	if err := json.Unmarshal(data, receivedStatus); err != nil {
+		t.Fatalf("expected error to be nil got %v", err)
+	}
+	if receivedStatus.KratosStatus != "ok" {
+		t.Fatalf("expected KratosStatus to be %s not  %s", "ok", receivedStatus.KratosStatus)
+	}
+	if receivedStatus.HydraStatus != "ok" {
+		t.Fatalf("expected HydraStatus to be %s not  %s", "ok", receivedStatus.HydraStatus)
+	}
+}
+
+func TestDeepCheckFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockMonitor := NewMockMonitorInterface(ctrl)
+	mockTracer := NewMockTracer(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/deepcheck", nil)
+	w := httptest.NewRecorder()
+
+	mockService.EXPECT().CheckKratosReady(gomock.Any()).Times(1).Return(false, nil)
+	mockService.EXPECT().CheckHydraReady(gomock.Any()).Times(1).Return(false, nil)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("expected error to be nil got %v", err)
+	}
+	receivedStatus := new(DeepCheckStatus)
+	if err := json.Unmarshal(data, receivedStatus); err != nil {
+		t.Fatalf("expected error to be nil got %v", err)
+	}
+
+	if receivedStatus.KratosStatus != "unavailable" {
+		t.Fatalf("expected KratosStatus to be %s not  %s", "unavailable", receivedStatus.KratosStatus)
+	}
+	if receivedStatus.HydraStatus != "unavailable" {
+		t.Fatalf("expected HydraStatus to be %s not  %s", "unavailable", receivedStatus.HydraStatus)
+	}
 }
