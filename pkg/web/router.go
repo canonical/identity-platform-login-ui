@@ -20,7 +20,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
-func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, baseURL string, tracer trace.Tracer, monitor monitoring.MonitorInterface, dependencyMonitor monitoring.DependencyMonitorInterface, logger logging.LoggerInterface) http.Handler {
+func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, baseURL string, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {
 	router := chi.NewMux()
 
 	middlewares := make(chi.Middlewares, 0)
@@ -54,7 +54,6 @@ func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, ba
 		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataApi(), tracer, monitor, logger),
 		tracer,
 		monitor,
-		dependencyMonitor,
 		logger,
 	).RegisterEndpoints(router)
 	ui.NewAPI(distFS, logger).RegisterEndpoints(router)

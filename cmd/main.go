@@ -43,7 +43,6 @@ func main() {
 	logger.Debugf("env vars: %v", specs)
 
 	monitor := prometheus.NewMonitor("identity-login-ui", logger)
-	dependencyMonitor := prometheus.NewDependencyMonitor("identity-login-ui", logger)
 	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.OtelGRPCEndpoint, specs.OtelHTTPEndpoint, logger))
 
 	distFS, err := fs.Sub(jsFS, "ui/dist")
@@ -55,7 +54,7 @@ func main() {
 	kClient := ik.NewClient(specs.KratosPublicURL)
 	hClient := ih.NewClient(specs.HydraAdminURL)
 
-	router := web.NewRouter(kClient, hClient, distFS, specs.BaseURL, tracer, monitor, dependencyMonitor, logger)
+	router := web.NewRouter(kClient, hClient, distFS, specs.BaseURL, tracer, monitor, logger)
 
 	logger.Infof("Starting server on port %v", specs.Port)
 
