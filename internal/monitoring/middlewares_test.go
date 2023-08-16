@@ -34,12 +34,15 @@ func TestMiddlewareResponseTime(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	tags := map[string]string{
+		"route":  "GET/api/test",
+		"status": "200",
+	}
+
 	mockMonitor := NewMockMonitorInterface(ctrl)
-	mockMetric := NewMockMetricInterface(ctrl)
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockMonitor.EXPECT().GetService().Times(1)
-	mockMonitor.EXPECT().GetResponseTimeMetric(gomock.Any()).Times(1).Return(mockMetric, nil)
-	mockMetric.EXPECT().Observe(gomock.Any()).Times(1)
+	mockMonitor.EXPECT().SetResponseTimeMetric(tags, gomock.Any()).Times(1).Return(nil)
 
 	assert := assert.New(t)
 
