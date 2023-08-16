@@ -2,7 +2,7 @@ package status
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -18,155 +18,163 @@ import (
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_status.go -source=./interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracing.go go.opentelemetry.io/otel/trace Tracer
-//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_kratos.go github.com/ory/kratos-client-go MetadataApi
+//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_kratos.go -mock_names MetadataApi=MockKratosMetadataApi github.com/ory/kratos-client-go MetadataApi
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_hydra.go -mock_names MetadataApi=MockHydraMetadataApi "github.com/ory/hydra-client-go/v2" MetadataApi
 
-func TestCheckKratosReadySuccess(t *testing.T) {
+func TestKratosReadySuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockTracer := NewMockTracer(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockKratosMetadataApi := NewMockMetadataApi(ctrl)
-	mockHydraMetadataApi := NewMockHydraMetadataApi(ctrl)
+	mockKratos := NewMockKratosMetadataApi(ctrl)
+	mockHydra := NewMockHydraMetadataApi(ctrl)
 
 	ctx := context.Background()
 
-	isReadyReturn := kClient.MetadataApiIsReadyRequest{
-		ApiService: mockKratosMetadataApi,
+	kratosIsReadyReturn := kClient.MetadataApiIsReadyRequest{
+		ApiService: mockKratos,
 	}
 
-	mockTracer.EXPECT().Start(ctx, "status.Service.CheckKratosReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(1.0))
-	mockKratosMetadataApi.EXPECT().IsReady(ctx).Times(1).Return(isReadyReturn)
-
-	mockKratosMetadataApi.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
+	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(1.0)).Times(1)
+	mockTracer.EXPECT().Start(gomock.Any(), "status.Service.kratosReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).AnyTimes().Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().IsReady(gomock.Any()).Times(1).Return(kratosIsReadyReturn)
+	mockKratos.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
 		func(r kClient.MetadataApiIsReadyRequest) (*kClient.IsAlive200Response, *http.Response, error) {
 			isAlive := kClient.NewIsAlive200ResponseWithDefaults()
 			httpResp := new(http.Response)
-			httpResp.StatusCode = 200
+			httpResp.StatusCode = http.StatusOK
 			return isAlive, httpResp, nil
 		},
 	)
 
-	r, _ := NewService(mockKratosMetadataApi, mockHydraMetadataApi, mockTracer, mockMonitor, mockLogger).CheckKratosReady(ctx)
+	status, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).kratosReady(ctx)
 
-	if !r {
-		t.Fatalf("expected response to be %v not  %v", true, false)
+	if !status {
+		t.Fatalf("expected status to be %v not  %v", true, status)
+	}
+
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
 	}
 }
 
-func TestCheckHydraReadySuccess(t *testing.T) {
+func TestHydraReadySuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockTracer := NewMockTracer(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockKratosMetadataApi := NewMockMetadataApi(ctrl)
-	mockHydraMetadataApi := NewMockHydraMetadataApi(ctrl)
+	mockKratos := NewMockKratosMetadataApi(ctrl)
+	mockHydra := NewMockHydraMetadataApi(ctrl)
 
 	ctx := context.Background()
 
-	isReadyReturn := hClient.MetadataApiIsReadyRequest{
-		ApiService: mockHydraMetadataApi,
+	hydraIsReadyReturn := hClient.MetadataApiIsReadyRequest{
+		ApiService: mockHydra,
 	}
 
-	mockTracer.EXPECT().Start(ctx, "status.Service.CheckHydraReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(1.0))
-	mockHydraMetadataApi.EXPECT().IsReady(gomock.Any()).Times(1).Return(isReadyReturn)
-
-	mockHydraMetadataApi.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
+	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(1.0)).Times(1)
+	mockTracer.EXPECT().Start(gomock.Any(), "status.Service.hydraReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).AnyTimes().Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().IsReady(gomock.Any()).Times(1).Return(hydraIsReadyReturn)
+	mockHydra.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
 		func(r hClient.MetadataApiIsReadyRequest) (*hClient.IsReady200Response, *http.Response, error) {
 			isReady := hClient.NewIsReady200ResponseWithDefaults()
 			httpResp := new(http.Response)
-			httpResp.StatusCode = 200
+			httpResp.StatusCode = http.StatusOK
 			return isReady, httpResp, nil
 		},
 	)
 
-	r, _ := NewService(mockKratosMetadataApi, mockHydraMetadataApi, mockTracer, mockMonitor, mockLogger).CheckHydraReady(ctx)
+	status, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).hydraReady(ctx)
 
-	if !r {
-		t.Fatalf("expected response to be %v not  %v", true, false)
+	if !status {
+		t.Fatalf("expected status to be %v not  %v", true, status)
+	}
+
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
 	}
 }
 
-func TestCheckKratosReadyFailure(t *testing.T) {
+func TestKratosReadyFailure(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockTracer := NewMockTracer(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockKratosMetadataApi := NewMockMetadataApi(ctrl)
-	mockHydraMetadataApi := NewMockHydraMetadataApi(ctrl)
+	mockKratos := NewMockKratosMetadataApi(ctrl)
+	mockHydra := NewMockHydraMetadataApi(ctrl)
 
 	ctx := context.Background()
 
-	isReadyReturn := kClient.MetadataApiIsReadyRequest{
-		ApiService: mockKratosMetadataApi,
+	kratosIsReadyReturn := kClient.MetadataApiIsReadyRequest{
+		ApiService: mockKratos,
 	}
 
-	mockTracer.EXPECT().Start(ctx, "status.Service.CheckKratosReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(0.0))
-	mockKratosMetadataApi.EXPECT().IsReady(ctx).Times(1).Return(isReadyReturn)
-
-	mockKratosMetadataApi.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
+	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(0.0)).Times(1)
+	mockTracer.EXPECT().Start(gomock.Any(), "status.Service.kratosReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).AnyTimes().Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().IsReady(gomock.Any()).Times(1).Return(kratosIsReadyReturn)
+	mockKratos.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
 		func(r kClient.MetadataApiIsReadyRequest) (*kClient.IsAlive200Response, *http.Response, error) {
 			httpResp := new(http.Response)
-			httpResp.StatusCode = 500
-			return nil, httpResp, errors.New("Test Error")
+			httpResp.StatusCode = http.StatusInternalServerError
+			return nil, httpResp, fmt.Errorf("error")
 		},
 	)
 
-	r, err := NewService(mockKratosMetadataApi, mockHydraMetadataApi, mockTracer, mockMonitor, mockLogger).CheckKratosReady(ctx)
+	status, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).kratosReady(ctx)
 
-	if r {
-		t.Fatalf("expected response to be %v not  %v", false, true)
+	if status {
+		t.Fatalf("expected status to be %v not  %v", false, status)
 	}
 
 	if err == nil {
-		t.Fatal("expected error to not be nil")
+		t.Fatalf("expected error not to be nil")
 	}
 }
 
-func TestCheckHydraReadyFailure(t *testing.T) {
+func TestHydraReadyFailure(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockTracer := NewMockTracer(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockKratosMetadataApi := NewMockMetadataApi(ctrl)
-	mockHydraMetadataApi := NewMockHydraMetadataApi(ctrl)
+	mockKratos := NewMockKratosMetadataApi(ctrl)
+	mockHydra := NewMockHydraMetadataApi(ctrl)
 
 	ctx := context.Background()
 
-	isReadyReturn := hClient.MetadataApiIsReadyRequest{
-		ApiService: mockHydraMetadataApi,
+	hydraIsReadyReturn := hClient.MetadataApiIsReadyRequest{
+		ApiService: mockHydra,
 	}
 
-	mockTracer.EXPECT().Start(ctx, "status.Service.CheckHydraReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(0.0))
-	mockHydraMetadataApi.EXPECT().IsReady(gomock.Any()).Times(1).Return(isReadyReturn)
-
-	mockHydraMetadataApi.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
+	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(0.0)).Times(1)
+	mockTracer.EXPECT().Start(gomock.Any(), "status.Service.hydraReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).AnyTimes().Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().IsReady(gomock.Any()).Times(1).Return(hydraIsReadyReturn)
+	mockHydra.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
 		func(r hClient.MetadataApiIsReadyRequest) (*hClient.IsReady200Response, *http.Response, error) {
 			httpResp := new(http.Response)
-			httpResp.StatusCode = 500
-			return nil, httpResp, errors.New("Test Error")
+			httpResp.StatusCode = http.StatusInternalServerError
+			return nil, httpResp, fmt.Errorf("error")
 		},
 	)
 
-	r, err := NewService(mockKratosMetadataApi, mockHydraMetadataApi, mockTracer, mockMonitor, mockLogger).CheckHydraReady(ctx)
+	status, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).hydraReady(ctx)
 
-	if r {
-		t.Fatalf("expected response to be %v not  %v", false, true)
+	if status {
+		t.Fatalf("expected status to be %v not  %v", false, status)
 	}
 
 	if err == nil {
-		t.Fatal("expected error to not be nil")
+		t.Fatalf("expected error not to be nil")
 	}
 }

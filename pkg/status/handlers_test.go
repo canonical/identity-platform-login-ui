@@ -52,20 +52,21 @@ func TestAliveOK(t *testing.T) {
 	}
 }
 
-func TestDeepCheckSuccess(t *testing.T) {
+func TestHealthSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockMonitor := NewMockMonitorInterface(ctrl)
+
 	mockTracer := NewMockTracer(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v0/deepcheck", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/health", nil)
 	w := httptest.NewRecorder()
 
-	mockService.EXPECT().CheckKratosReady(gomock.Any()).Times(1).Return(true, nil)
-	mockService.EXPECT().CheckHydraReady(gomock.Any()).Times(1).Return(true, nil)
+	mockService.EXPECT().KratosStatus(gomock.Any()).Times(1).Return(true)
+	mockService.EXPECT().HydraStatus(gomock.Any()).Times(1).Return(true)
 
 	mux := chi.NewMux()
 	NewAPI(mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
@@ -77,19 +78,19 @@ func TestDeepCheckSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
-	receivedStatus := new(DeepCheckStatus)
+	receivedStatus := new(Health)
 	if err := json.Unmarshal(data, receivedStatus); err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
-	if !receivedStatus.KratosStatus {
-		t.Fatalf("expected KratosStatus to be %v not %v", true, receivedStatus.KratosStatus)
+	if !receivedStatus.Kratos {
+		t.Fatalf("expected Kratos to be true not  %v", receivedStatus.Kratos)
 	}
-	if !receivedStatus.HydraStatus {
-		t.Fatalf("expected HydraStatus to be %v not %v", true, receivedStatus.HydraStatus)
+	if !receivedStatus.Hydra {
+		t.Fatalf("expected Hydra to be true not  %v", receivedStatus.Hydra)
 	}
 }
 
-func TestDeepCheckFailure(t *testing.T) {
+func TestHealthFailure(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -98,13 +99,11 @@ func TestDeepCheckFailure(t *testing.T) {
 	mockTracer := NewMockTracer(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v0/deepcheck", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/health", nil)
 	w := httptest.NewRecorder()
 
-	mockService.EXPECT().CheckKratosReady(gomock.Any()).Times(1).Return(false, nil)
-	mockService.EXPECT().CheckHydraReady(gomock.Any()).Times(1).Return(false, nil)
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
-
+	mockService.EXPECT().KratosStatus(gomock.Any()).Times(1).Return(false)
+	mockService.EXPECT().HydraStatus(gomock.Any()).Times(1).Return(false)
 	mux := chi.NewMux()
 	NewAPI(mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
 
@@ -115,15 +114,14 @@ func TestDeepCheckFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
-	receivedStatus := new(DeepCheckStatus)
+	receivedStatus := new(Health)
 	if err := json.Unmarshal(data, receivedStatus); err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
-
-	if receivedStatus.KratosStatus {
-		t.Fatalf("expected KratosStatus to be %v not %v", false, receivedStatus.KratosStatus)
+	if receivedStatus.Kratos {
+		t.Fatalf("expected Kratos to be false not  %v", receivedStatus.Kratos)
 	}
-	if receivedStatus.HydraStatus {
-		t.Fatalf("expected HydraStatus to be %v not %v", false, receivedStatus.HydraStatus)
+	if receivedStatus.Hydra {
+		t.Fatalf("expected Hydra to be false not  %v", receivedStatus.Hydra)
 	}
 }
