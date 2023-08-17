@@ -6,7 +6,6 @@ import (
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
-	kratos_client "github.com/ory/kratos-client-go"
 )
 
 type KratosClientInterface interface {
@@ -24,5 +23,5 @@ type ServiceInterface interface {
 	GetLoginFlow(context.Context, string, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
 	UpdateOIDCLoginFlow(context.Context, string, kClient.UpdateLoginFlowBody, []*http.Cookie) (*ErrorBrowserLocationChangeRequired, []*http.Cookie, error)
 	GetFlowError(context.Context, string) (*kClient.FlowError, []*http.Cookie, error)
-	ParseLoginFlowMethodBody(*http.Request) (*kratos_client.UpdateLoginFlowBody, error)
+	ParseLoginFlowMethodBody(*http.Request) (*kClient.UpdateLoginFlowBody, error)
 }
