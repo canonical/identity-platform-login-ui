@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.8.1...v0.8.2) (2023-08-17)
+
+
+### Bug Fixes
+
+* use the same import and drop an alias ([5af7944](https://github.com/canonical/identity-platform-login-ui/commit/5af79443803655e50e6bb392d2c8cceaf5688110))
+
 ## [0.8.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.8.0...v0.8.1) (2023-08-15)
 
 
