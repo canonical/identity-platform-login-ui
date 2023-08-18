@@ -39,6 +39,7 @@ func TestMiddlewareResponseTime(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockMonitor.EXPECT().GetService().Times(1)
 	mockMonitor.EXPECT().GetResponseTimeMetric(gomock.Any()).Times(1).Return(mockMetric, nil)
+	mockMonitor.EXPECT().VerifyEndpoint(gomock.Any()).Times(1).Return(true)
 	mockMetric.EXPECT().Observe(gomock.Any()).Times(1)
 
 	assert := assert.New(t)

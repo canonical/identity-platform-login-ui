@@ -3,8 +3,8 @@ package metrics
 import (
 	"net/http"
 
+	"github.com/canonical/identity-platform-login-ui/internal/http_meta"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
-	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -12,7 +12,7 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
-func (a *API) RegisterEndpoints(mux *chi.Mux) {
+func (a *API) RegisterEndpoints(mux http_meta.RestInterface) {
 	mux.Get("/api/v0/metrics", a.prometheusHTTP)
 }
 

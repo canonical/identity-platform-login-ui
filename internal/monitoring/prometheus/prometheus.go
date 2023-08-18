@@ -14,6 +14,8 @@ type Monitor struct {
 	responseTime *prometheus.HistogramVec
 
 	logger logging.LoggerInterface
+
+	validEndpoints map[string]struct{}
 }
 
 func (m *Monitor) GetService() string {
@@ -60,6 +62,18 @@ func (m *Monitor) registerHistograms() {
 	}
 }
 
+func (m *Monitor) RegisterEndpoints(endpoints ...string) {
+	for _, e := range endpoints {
+		m.validEndpoints[e] = struct{}{}
+	}
+}
+
+func (m *Monitor) VerifyEndpoint(endpoint string) bool {
+	_, ok := m.validEndpoints[endpoint]
+
+	return ok
+}
+
 func NewMonitor(service string, logger logging.LoggerInterface) *Monitor {
 	m := new(Monitor)
 
@@ -67,6 +81,8 @@ func NewMonitor(service string, logger logging.LoggerInterface) *Monitor {
 	m.logger = logger
 
 	m.registerHistograms()
+
+	m.validEndpoints = make(map[string]struct{})
 
 	return m
 }

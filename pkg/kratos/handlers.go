@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/canonical/identity-platform-login-ui/internal/http_meta"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
-	"github.com/go-chi/chi/v5"
 )
 
 type API struct {
@@ -20,7 +20,7 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
-func (a *API) RegisterEndpoints(mux *chi.Mux) {
+func (a *API) RegisterEndpoints(mux http_meta.RestInterface) {
 	mux.Post("/api/kratos/self-service/login", a.handleUpdateFlow)
 	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
 	mux.Get("/api/kratos/self-service/login/flows", a.handleGetLoginFlow)

@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net/http"
 
+	"github.com/canonical/identity-platform-login-ui/internal/http_meta"
 	ih "github.com/canonical/identity-platform-login-ui/internal/hydra"
 	ik "github.com/canonical/identity-platform-login-ui/internal/kratos"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
@@ -41,23 +42,25 @@ func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, ba
 
 	router.Use(middlewares...)
 
+	routerWithMonitoring := http_meta.NewRegisterMux(router, monitor)
+
 	kratos.NewAPI(
 		kratos.NewService(kratosClient, hydraClient, tracer, monitor, logger),
 		baseURL,
 		logger,
-	).RegisterEndpoints(router)
+	).RegisterEndpoints(routerWithMonitoring)
 	extra.NewAPI(
 		extra.NewService(kratosClient, hydraClient, tracer, monitor, logger),
 		logger,
-	).RegisterEndpoints(router)
+	).RegisterEndpoints(routerWithMonitoring)
 	status.NewAPI(
 		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataApi(), tracer, monitor, logger),
 		tracer,
 		monitor,
 		logger,
-	).RegisterEndpoints(router)
-	ui.NewAPI(distFS, logger).RegisterEndpoints(router)
-	metrics.NewAPI(logger).RegisterEndpoints(router)
+	).RegisterEndpoints(routerWithMonitoring)
+	ui.NewAPI(distFS, monitor, logger).RegisterEndpoints(routerWithMonitoring)
+	metrics.NewAPI(logger).RegisterEndpoints(routerWithMonitoring)
 
-	return tracing.NewMiddleware(monitor, logger).OpenTelemetry(router)
+	return tracing.NewMiddleware(monitor, logger).OpenTelemetry(routerWithMonitoring.GetMux())
 }

@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/canonical/identity-platform-login-ui/internal/http_meta"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
-	"github.com/go-chi/chi/v5"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -34,7 +34,7 @@ type API struct {
 	logger  logging.LoggerInterface
 }
 
-func (a *API) RegisterEndpoints(mux *chi.Mux) {
+func (a *API) RegisterEndpoints(mux http_meta.RestInterface) {
 	mux.Get("/api/v0/status", a.alive)
 	mux.Get("/api/v0/version", a.version)
 	mux.Get("/api/v0/deepcheck", a.deepCheck)

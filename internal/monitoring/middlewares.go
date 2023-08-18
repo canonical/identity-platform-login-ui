@@ -3,7 +3,9 @@ package monitoring
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
@@ -14,6 +16,8 @@ const (
 	// IDPathRegex regexp used to swap the {id*} parameters in the path with simply id
 	// supports alphabetic characters and underscores, no dashes
 	IDPathRegex string = "{[a-zA-Z_]*}"
+	HTML        string = ".html"
+	UNKNOWN     string = "unknown"
 )
 
 // Middleware is the monitoring middleware object implementing Prometheus monitoring
@@ -35,7 +39,7 @@ func (mdw *Middleware) ResponseTime() func(http.Handler) http.Handler {
 				next.ServeHTTP(ww, r)
 
 				tags := map[string]string{
-					"route":  fmt.Sprintf("%s%s", r.Method, mdw.regex.ReplaceAll([]byte(r.URL.Path), []byte("id"))),
+					"route":  mdw.newRouteLabel(r.Method, r.URL.Path),
 					"status": fmt.Sprint(ww.Status()),
 				}
 
@@ -64,4 +68,23 @@ func NewMiddleware(monitor MonitorInterface, logger logging.LoggerInterface) *Mi
 	mdw.regex = regexp.MustCompile(IDPathRegex)
 
 	return mdw
+}
+
+func (mdw *Middleware) newRouteLabel(method, path string) string {
+	newPath := stripHTMLExt(mdw.idPathExtractor(path))
+	if ok := mdw.monitor.VerifyEndpoint(newPath); !ok {
+		newPath = UNKNOWN
+	}
+	return fmt.Sprintf("%s%s", method, newPath)
+}
+
+func (mdw *Middleware) idPathExtractor(path string) string {
+	return string(mdw.regex.ReplaceAll([]byte(path), []byte("id")))
+}
+
+func stripHTMLExt(urlPath string) string {
+	if ext := path.Ext(urlPath); ext == HTML {
+		return strings.TrimSuffix(urlPath, HTML)
+	}
+	return urlPath
 }
