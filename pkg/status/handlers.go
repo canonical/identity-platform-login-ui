@@ -34,43 +34,38 @@ type API struct {
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Get("/api/v0/status", a.alive)
 	mux.Get("/api/v0/version", a.version)
-	mux.Get("/api/v0/health", a.health)
+	mux.Get("/api/v0/ready", a.ready)
 }
 
 func (a *API) alive(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	rr := Status{
 		Status: okValue,
 	}
 
-	_, span := a.tracer.Start(r.Context(), "status.API.alive")
-
-	if buildInfo := buildInfo(); buildInfo != nil {
+	if buildInfo := a.service.BuildInfo(r.Context()); buildInfo != nil {
 		rr.BuildInfo = buildInfo
 	}
 
-	span.End()
-
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(rr)
-
 }
 
 func (a *API) version(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	info := new(BuildInfo)
-	if buildInfo := buildInfo(); buildInfo != nil {
+	if buildInfo := a.service.BuildInfo(r.Context()); buildInfo != nil {
 		info = buildInfo
 	}
 
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(info)
 
 }
 
-func (a *API) health(w http.ResponseWriter, r *http.Request) {
+func (a *API) ready(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	health := new(Health)

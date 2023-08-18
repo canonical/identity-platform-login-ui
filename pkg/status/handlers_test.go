@@ -1,9 +1,7 @@
 package status
 
 import (
-	"context"
 	"encoding/json"
-
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,7 +9,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
-	"go.opentelemetry.io/otel/trace"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
@@ -31,7 +28,7 @@ func TestAliveOK(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v0/status", nil)
 	w := httptest.NewRecorder()
 
-	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).Times(1).Return(context.TODO(), trace.SpanFromContext(req.Context()))
+	mockService.EXPECT().BuildInfo(gomock.Any()).Times(1).Return(&BuildInfo{Version: "xyz", Name: "application"})
 
 	mux := chi.NewMux()
 	NewAPI(mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
@@ -62,7 +59,7 @@ func TestHealthSuccess(t *testing.T) {
 	mockTracer := NewMockTracer(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v0/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/ready", nil)
 	w := httptest.NewRecorder()
 
 	mockService.EXPECT().KratosStatus(gomock.Any()).Times(1).Return(true)
@@ -83,10 +80,10 @@ func TestHealthSuccess(t *testing.T) {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
 	if !receivedStatus.Kratos {
-		t.Fatalf("expected Kratos to be true not  %v", receivedStatus.Kratos)
+		t.Fatalf("expected KratosStatus to be true not  %v", receivedStatus.Kratos)
 	}
 	if !receivedStatus.Hydra {
-		t.Fatalf("expected Hydra to be true not  %v", receivedStatus.Hydra)
+		t.Fatalf("expected HydraStatus to be true not  %v", receivedStatus.Hydra)
 	}
 }
 
@@ -99,7 +96,7 @@ func TestHealthFailure(t *testing.T) {
 	mockTracer := NewMockTracer(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v0/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/ready", nil)
 	w := httptest.NewRecorder()
 
 	mockService.EXPECT().KratosStatus(gomock.Any()).Times(1).Return(false)
