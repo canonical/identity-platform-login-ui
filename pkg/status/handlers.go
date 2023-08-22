@@ -21,8 +21,8 @@ type Status struct {
 }
 
 type DeepCheckStatus struct {
-	KratosStatus string `json:"kratos_status"`
-	HydraStatus  string `json:"hydra_status"`
+	KratosStatus bool `json:"kratos_status"`
+	HydraStatus  bool `json:"hydra_status"`
 }
 
 type API struct {
@@ -107,16 +107,9 @@ func (a *API) deepCheck(w http.ResponseWriter, r *http.Request) {
 
 	wg.Wait()
 
-	msgMap := func(ok bool) string {
-		if ok {
-			return okValue
-		}
-		return "unavailable"
-	}
-
 	ds := DeepCheckStatus{
-		KratosStatus: msgMap(kratosOK),
-		HydraStatus:  msgMap(hydraOK),
+		KratosStatus: kratosOK,
+		HydraStatus:  hydraOK,
 	}
 
 	w.WriteHeader(http.StatusOK)

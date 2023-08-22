@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -39,7 +39,7 @@ func TestAliveOK(t *testing.T) {
 	mux.ServeHTTP(w, req)
 	res := w.Result()
 	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
@@ -73,7 +73,7 @@ func TestDeepCheckSuccess(t *testing.T) {
 	mux.ServeHTTP(w, req)
 	res := w.Result()
 	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
@@ -81,11 +81,11 @@ func TestDeepCheckSuccess(t *testing.T) {
 	if err := json.Unmarshal(data, receivedStatus); err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
-	if receivedStatus.KratosStatus != "ok" {
-		t.Fatalf("expected KratosStatus to be %s not  %s", "ok", receivedStatus.KratosStatus)
+	if !receivedStatus.KratosStatus {
+		t.Fatalf("expected KratosStatus to be %v not %v", true, receivedStatus.KratosStatus)
 	}
-	if receivedStatus.HydraStatus != "ok" {
-		t.Fatalf("expected HydraStatus to be %s not  %s", "ok", receivedStatus.HydraStatus)
+	if !receivedStatus.HydraStatus {
+		t.Fatalf("expected HydraStatus to be %v not %v", true, receivedStatus.HydraStatus)
 	}
 }
 
@@ -103,6 +103,7 @@ func TestDeepCheckFailure(t *testing.T) {
 
 	mockService.EXPECT().CheckKratosReady(gomock.Any()).Times(1).Return(false, nil)
 	mockService.EXPECT().CheckHydraReady(gomock.Any()).Times(1).Return(false, nil)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	mux := chi.NewMux()
 	NewAPI(mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
@@ -110,7 +111,7 @@ func TestDeepCheckFailure(t *testing.T) {
 	mux.ServeHTTP(w, req)
 	res := w.Result()
 	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
@@ -119,10 +120,10 @@ func TestDeepCheckFailure(t *testing.T) {
 		t.Fatalf("expected error to be nil got %v", err)
 	}
 
-	if receivedStatus.KratosStatus != "unavailable" {
-		t.Fatalf("expected KratosStatus to be %s not  %s", "unavailable", receivedStatus.KratosStatus)
+	if receivedStatus.KratosStatus {
+		t.Fatalf("expected KratosStatus to be %v not %v", false, receivedStatus.KratosStatus)
 	}
-	if receivedStatus.HydraStatus != "unavailable" {
-		t.Fatalf("expected HydraStatus to be %s not  %s", "unavailable", receivedStatus.HydraStatus)
+	if receivedStatus.HydraStatus {
+		t.Fatalf("expected HydraStatus to be %v not %v", false, receivedStatus.HydraStatus)
 	}
 }

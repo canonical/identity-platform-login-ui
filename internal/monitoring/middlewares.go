@@ -39,15 +39,7 @@ func (mdw *Middleware) ResponseTime() func(http.Handler) http.Handler {
 					"status": fmt.Sprint(ww.Status()),
 				}
 
-				m, err := mdw.monitor.GetResponseTimeMetric(tags)
-
-				if err != nil {
-					mdw.logger.Debugf("error fetching metric: %s; keep going....", err)
-
-					return
-				}
-
-				m.Observe(time.Since(startTime).Seconds())
+				mdw.monitor.SetResponseTimeMetric(tags, time.Since(startTime).Seconds())
 			},
 		)
 	}

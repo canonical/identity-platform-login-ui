@@ -38,7 +38,7 @@ func TestCheckKratosReadySuccess(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "status.Service.CheckKratosReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-
+	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(1.0))
 	mockKratosMetadataApi.EXPECT().IsReady(ctx).Times(1).Return(isReadyReturn)
 
 	mockKratosMetadataApi.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -74,7 +74,7 @@ func TestCheckHydraReadySuccess(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "status.Service.CheckHydraReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-
+	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(1.0))
 	mockHydraMetadataApi.EXPECT().IsReady(gomock.Any()).Times(1).Return(isReadyReturn)
 
 	mockHydraMetadataApi.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -110,7 +110,7 @@ func TestCheckKratosReadyFailure(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "status.Service.CheckKratosReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-
+	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(0.0))
 	mockKratosMetadataApi.EXPECT().IsReady(ctx).Times(1).Return(isReadyReturn)
 
 	mockKratosMetadataApi.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -120,9 +120,6 @@ func TestCheckKratosReadyFailure(t *testing.T) {
 			return nil, httpResp, errors.New("Test Error")
 		},
 	)
-
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any())
-	mockLogger.EXPECT().Error(gomock.Any())
 
 	r, err := NewService(mockKratosMetadataApi, mockHydraMetadataApi, mockTracer, mockMonitor, mockLogger).CheckKratosReady(ctx)
 
@@ -152,7 +149,7 @@ func TestCheckHydraReadyFailure(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "status.Service.CheckHydraReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-
+	mockMonitor.EXPECT().SetDependencyAvailability(gomock.Any(), float64(0.0))
 	mockHydraMetadataApi.EXPECT().IsReady(gomock.Any()).Times(1).Return(isReadyReturn)
 
 	mockHydraMetadataApi.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -162,9 +159,6 @@ func TestCheckHydraReadyFailure(t *testing.T) {
 			return nil, httpResp, errors.New("Test Error")
 		},
 	)
-
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any())
-	mockLogger.EXPECT().Error(gomock.Any())
 
 	r, err := NewService(mockKratosMetadataApi, mockHydraMetadataApi, mockTracer, mockMonitor, mockLogger).CheckHydraReady(ctx)
 
