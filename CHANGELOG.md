@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.8.2...v0.9.0) (2023-08-22)
+
+
+### Features
+
+* add instrumentation to deep health check ([f565c50](https://github.com/canonical/identity-platform-login-ui/commit/f565c50f20e15e580475cce5116a0cddff6f7199))
+
+
+### Bug Fixes
+
+* add set methods for each metric ([df62e32](https://github.com/canonical/identity-platform-login-ui/commit/df62e3272964cdc952d43b1c5fc02f978eaeb02c))
+* adjust wiring of status pkg ([1d69a58](https://github.com/canonical/identity-platform-login-ui/commit/1d69a58f35e2173a35623d34abeb210322624d1c))
+* drop MetricInterface and adjust interface methods ([50542f6](https://github.com/canonical/identity-platform-login-ui/commit/50542f6098eb52eb7c6811251523ac7f89ac07b6))
+* fixed handlers for kratos api proxying ([2ac0764](https://github.com/canonical/identity-platform-login-ui/commit/2ac0764bcccdc68acb55dd5d88187bec71473a16))
+
 ## [0.8.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.8.1...v0.8.2) (2023-08-17)
 
 
