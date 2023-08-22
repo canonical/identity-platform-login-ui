@@ -63,7 +63,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		refresh = false
 	}
 
-	returnTo, err := url.JoinPath(a.baseURL, "/login")
+	returnTo, err := url.JoinPath(a.baseURL, "/ui/login")
 	if err != nil {
 		a.logger.Fatal("Failed to construct returnTo URL: ", err)
 	}
