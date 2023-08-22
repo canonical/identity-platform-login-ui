@@ -24,43 +24,39 @@ func (s *Service) CheckKratosReady(ctx context.Context) (bool, error) {
 	ctx, span := s.tracer.Start(ctx, "status.Service.CheckKratosReady")
 	defer span.End()
 
-	available := float64(1.0)
+	ok, _, err := s.kratos.IsReady(ctx).Execute()
 
-	_, r, err := s.kratos.IsReady(ctx).Execute()
+	var available float64
 
-	if err != nil {
-		s.logger.Error(err)
-		s.logger.Debugf("full HTTP response: %v", r)
-		available = 0.0
+	if ok != nil && err == nil {
+		available = 1.0
 	}
 
 	tags := map[string]string{"component": "kratos"}
 
 	s.monitor.SetDependencyAvailability(tags, available)
 
-	return err == nil, err
-
+	return ok != nil, err
 }
 
 func (s *Service) CheckHydraReady(ctx context.Context) (bool, error) {
 	ctx, span := s.tracer.Start(ctx, "status.Service.CheckHydraReady")
 	defer span.End()
 
-	available := float64(1.0)
+	// IsReady only checks the status of specific instance called, not the cluster status
+	ok, _, err := s.hydra.IsReady(ctx).Execute()
 
-	_, r, err := s.hydra.IsReady(ctx).Execute()
+	var available float64
 
-	if err != nil {
-		s.logger.Error(err)
-		s.logger.Debugf("full HTTP response: %v", r)
+	if ok != nil && err == nil {
+		available = 1.0
 	}
 
 	tags := map[string]string{"component": "hydra"}
 
 	s.monitor.SetDependencyAvailability(tags, available)
 
-	return err == nil, err
-
+	return ok != nil, err
 }
 
 func NewService(kmeta kClient.MetadataApi, hmeta hClient.MetadataApi, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
