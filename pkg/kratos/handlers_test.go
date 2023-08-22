@@ -38,7 +38,7 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 	flow.Id = "test"
 
 	loginChallenge := "login_challenge_2341235123231"
-	returnTo, _ := url.JoinPath(BASE_URL, "login")
+	returnTo, _ := url.JoinPath(BASE_URL, "ui/login")
 	returnTo = returnTo + "?login_challenge=" + loginChallenge
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
@@ -86,7 +86,7 @@ func TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow(t *testing.T
 	flow.Id = "test"
 
 	loginChallenge := "login_challenge_2341235123231"
-	returnTo, _ := url.JoinPath(BASE_URL, "login")
+	returnTo, _ := url.JoinPath(BASE_URL, "ui/login")
 	returnTo = returnTo + "?login_challenge=" + loginChallenge
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
