@@ -21,7 +21,7 @@ const Consent: NextPage = () => {
       return;
     }
 
-    get(`./api/consent?consent_challenge=${consent_challenge as string}`)
+    get(`../api/consent?consent_challenge=${consent_challenge as string}`)
       .then(({ data }: FlowResponse) => {
         if (data.redirect_to) {
           window.location.href = data.redirect_to;
@@ -32,12 +32,12 @@ const Consent: NextPage = () => {
           case 403:
             // This is a legacy error code thrown. See code 422 for
             // more details.
-            return router.push("/login?aal=aal2");
+            return router.push("./login?aal=aal2");
           case 422:
             // This status code is returned when we are trying to
             // validate a session which has not yet completed
             // its second factor
-            return router.push("/login?aal=aal2");
+            return router.push("./login?aal=aal2");
           case 401:
             // do nothing, the user is not logged in
             return;
