@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.9.0...v0.10.0) (2023-08-23)
+
+
+### Features
+
+* add healthcheck package for background tasks ([4b3fe14](https://github.com/canonical/identity-platform-login-ui/commit/4b3fe148f36cc78e07aebdb8eea3f92e64956c5f))
+
+
+### Bug Fixes
+
+* fixed bug in consent page ([d1a8e7a](https://github.com/canonical/identity-platform-login-ui/commit/d1a8e7acf407ae806cb0f16eefde6566524447a2))
+* move buildInfo into service ([a8a0115](https://github.com/canonical/identity-platform-login-ui/commit/a8a01150ed04908a7aedea2aa7589b27905d4252))
+* use check statuses in the service layer ([1d89f0f](https://github.com/canonical/identity-platform-login-ui/commit/1d89f0f134e4cb5e16570f198558bf9b2861e4ca))
+
 ## [0.9.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.8.2...v0.9.0) (2023-08-22)
 
 
