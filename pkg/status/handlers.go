@@ -1,11 +1,8 @@
 package status
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
-	"sync"
-	"time"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
@@ -20,9 +17,9 @@ type Status struct {
 	BuildInfo *BuildInfo `json:"buildInfo"`
 }
 
-type DeepCheckStatus struct {
-	KratosStatus bool `json:"kratos_status"`
-	HydraStatus  bool `json:"hydra_status"`
+type Health struct {
+	Kratos bool `json:"kratos"`
+	Hydra  bool `json:"hydra"`
 }
 
 type API struct {
@@ -37,83 +34,46 @@ type API struct {
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Get("/api/v0/status", a.alive)
 	mux.Get("/api/v0/version", a.version)
-	mux.Get("/api/v0/deepcheck", a.deepCheck)
+	mux.Get("/api/v0/ready", a.ready)
 }
 
 func (a *API) alive(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	rr := Status{
 		Status: okValue,
 	}
 
-	_, span := a.tracer.Start(r.Context(), "status.API.alive")
-
-	if buildInfo := buildInfo(); buildInfo != nil {
+	if buildInfo := a.service.BuildInfo(r.Context()); buildInfo != nil {
 		rr.BuildInfo = buildInfo
 	}
 
-	span.End()
-
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(rr)
-
 }
 
 func (a *API) version(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	info := new(BuildInfo)
-	if buildInfo := buildInfo(); buildInfo != nil {
+	if buildInfo := a.service.BuildInfo(r.Context()); buildInfo != nil {
 		info = buildInfo
 	}
 
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(info)
 
 }
 
-func (a *API) deepCheck(w http.ResponseWriter, r *http.Request) {
+func (a *API) ready(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-
-	kratosOK := false
-	hydraOK := false
-
-	ctx, cancel := context.WithTimeout(
-		r.Context(),
-		time.Duration(5*time.Second))
-	defer cancel()
-
-	go func(ctx context.Context) {
-		res, err := a.service.CheckKratosReady(ctx)
-		if err != nil {
-			a.logger.Errorf("error when checking kratos status: %s", err)
-		}
-		kratosOK = res
-		wg.Done()
-	}(ctx)
-
-	go func(ctx context.Context) {
-		res, err := a.service.CheckHydraReady(ctx)
-		if err != nil {
-			a.logger.Errorf("error when checking hydra status: %s", err)
-		}
-		hydraOK = res
-		wg.Done()
-	}(ctx)
-
-	wg.Wait()
-
-	ds := DeepCheckStatus{
-		KratosStatus: kratosOK,
-		HydraStatus:  hydraOK,
-	}
+	health := new(Health)
+	health.Hydra = a.service.HydraStatus(r.Context())
+	health.Kratos = a.service.KratosStatus(r.Context())
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(ds)
+	json.NewEncoder(w).Encode(health)
 }
 
 func NewAPI(service ServiceInterface, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {

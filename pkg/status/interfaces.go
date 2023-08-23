@@ -5,6 +5,7 @@ import (
 )
 
 type ServiceInterface interface {
-	CheckKratosReady(context.Context) (bool, error)
-	CheckHydraReady(context.Context) (bool, error)
+	KratosStatus(context.Context) bool
+	HydraStatus(context.Context) bool
+	BuildInfo(context.Context) *BuildInfo
 }
