@@ -19,6 +19,11 @@ services:
     startup: enabled
 
 parts:
+  certificates:
+    plugin: nil
+    stage-packages:
+      - ca-certificates
+
   go-build:
     plugin: go
     source: .
