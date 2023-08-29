@@ -42,7 +42,7 @@ const Home: NextPage = () => {
       <Head>
         <title>Session Information</title>
       </Head>
-      <Row className="p-strip">
+      <Row className="p-strip is-shallow">
         <CodeSnippet
           blocks={[
             {

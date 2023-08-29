@@ -96,7 +96,7 @@ const Registration: NextPage = () => {
       <Head>
         <title>Create account</title>
       </Head>
-      <Row className="p-strip">
+      <Row className="p-strip is-shallow">
         <Card title="Create account">
           <Flow onSubmit={handleSubmit} flow={flow} />
         </Card>

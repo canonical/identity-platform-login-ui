@@ -102,7 +102,7 @@ const Login: NextPage = () => {
       <Head>
         <title>Sign in</title>
       </Head>
-      <Row className="p-strip">
+      <Row className="p-strip is-shallow">
         <div className="login-card">
           <div>
             {flow ? (
