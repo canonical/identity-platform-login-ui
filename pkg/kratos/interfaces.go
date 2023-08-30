@@ -21,7 +21,7 @@ type ServiceInterface interface {
 	AcceptLoginRequest(context.Context, string, string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error)
 	CreateBrowserLoginFlow(context.Context, string, string, string, bool, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
 	GetLoginFlow(context.Context, string, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
-	UpdateOIDCLoginFlow(context.Context, string, kClient.UpdateLoginFlowBody, []*http.Cookie) (*ErrorBrowserLocationChangeRequired, []*http.Cookie, error)
+	UpdateOIDCLoginFlow(context.Context, string, kClient.UpdateLoginFlowBody, []*http.Cookie) (*BrowserLocationChangeRequired, []*http.Cookie, error)
 	GetFlowError(context.Context, string) (*kClient.FlowError, []*http.Cookie, error)
 	ParseLoginFlowMethodBody(*http.Request) (*kClient.UpdateLoginFlowBody, error)
 }

@@ -137,7 +137,9 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setCookies(w, cookies)
-	w.WriteHeader(422)
+	// Kratos returns us a '422' response but we tranform it to a '200',
+	// because this is the expected behavior for us.
+	w.WriteHeader(200)
 	w.Write(resp)
 }
 

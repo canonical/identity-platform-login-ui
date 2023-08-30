@@ -77,7 +77,11 @@ const Login: NextPage = () => {
           updateLoginFlowBody: values,
         })
         // We logged in successfully! Let's bring the user home.
-        .then(async () => {
+        .then(async ({ data }) => {
+          if ("redirect_to" in data) {
+            window.location.href = data.redirect_to as string;
+            return;
+          }
           if (flow?.return_to) {
             window.location.href = flow.return_to;
             return;
