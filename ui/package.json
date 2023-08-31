@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@canonical/react-components": "0.42.0",
-    "@ory/client": "1.1.39",
+    "@ory/client": "1.1.51",
     "@ory/integrations": "1.1.1",
     "next": "13.4.7",
     "react": "18.2.0",
