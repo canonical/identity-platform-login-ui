@@ -5,7 +5,7 @@
   "dependencies": {
     "@canonical/react-components": "0.42.0",
     "@ory/client": "1.1.39",
-    "@ory/integrations": "1.1.1",
+    "@ory/integrations": "1.1.4",
     "next": "13.4.7",
     "react": "18.2.0",
     "react-toastify": "9.1.3",
