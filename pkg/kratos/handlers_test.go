@@ -272,8 +272,8 @@ func TestHandleUpdateFlow(t *testing.T) {
 
 	flowId := "test"
 	redirectTo := "https://some/path/to/somewhere"
-	flow := new(ErrorBrowserLocationChangeRequired)
-	flow.RedirectBrowserTo = &redirectTo
+	flow := new(BrowserLocationChangeRequired)
+	flow.RedirectTo = &redirectTo
 
 	flowBody := new(kClient.UpdateLoginFlowBody)
 	flowBody.UpdateLoginFlowWithOidcMethod = kClient.NewUpdateLoginFlowWithOidcMethod("oidc", "oidc")
@@ -294,8 +294,8 @@ func TestHandleUpdateFlow(t *testing.T) {
 
 	res := w.Result()
 
-	if res.StatusCode != http.StatusUnprocessableEntity {
-		t.Fatal("Expected HTTP status code 422, got: ", res.Status)
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
 	}
 
 	data, err := ioutil.ReadAll(res.Body)

@@ -463,8 +463,8 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 
 	f, c, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).UpdateOIDCLoginFlow(ctx, flowId, *body, cookies)
 
-	if !reflect.DeepEqual(*f, flow) {
-		t.Fatalf("expected flow to be %+v not %+v", flow, *f)
+	if *f.RedirectTo != *flow.RedirectBrowserTo {
+		t.Fatalf("expected redirectTo to be %s not %s", *flow.RedirectBrowserTo, *f.RedirectTo)
 	}
 	if !reflect.DeepEqual(c, resp.Cookies()) {
 		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)

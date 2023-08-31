@@ -86,7 +86,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setCookies(w, cookies)
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
 
@@ -108,7 +108,7 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setCookies(w, cookies)
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
 
@@ -137,7 +137,9 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setCookies(w, cookies)
-	w.WriteHeader(422)
+	// Kratos returns us a '422' response but we tranform it to a '200',
+	// because this is the expected behavior for us.
+	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
 
@@ -160,7 +162,7 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setCookies(w, cookies)
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
 

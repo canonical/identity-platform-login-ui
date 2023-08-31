@@ -31,6 +31,11 @@ type ErrorBrowserLocationChangeRequired struct {
 	RedirectBrowserTo *string `json:"redirect_browser_to,omitempty"`
 }
 
+type BrowserLocationChangeRequired struct {
+	// Points to where to redirect the user to next.
+	RedirectTo *string `json:"redirect_to,omitempty"`
+}
+
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
 	defer span.End()
@@ -100,7 +105,7 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 		Id(id).
 		Cookie(cookiesToString(cookies)).
 		Execute()
-	if err != nil && resp.StatusCode != 422 {
+	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
@@ -110,7 +115,7 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 
 func (s *Service) UpdateOIDCLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
-) (*ErrorBrowserLocationChangeRequired, []*http.Cookie, error) {
+) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateLoginFlow")
 	defer span.End()
 
@@ -120,6 +125,11 @@ func (s *Service) UpdateOIDCLoginFlow(
 		UpdateLoginFlowBody(body).
 		Cookie(cookiesToString(cookies)).
 		Execute()
+	// We expect to get a 422 response from Kratos. The sdk forces us to
+	// make the request with an 'application/json' content-type, whereas Kratos
+	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
+	// This is not a real error, as we still get the URL to which the user needs to be
+	// redirected to.
 	if err != nil && resp.StatusCode != 422 {
 		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
@@ -131,7 +141,13 @@ func (s *Service) UpdateOIDCLoginFlow(
 		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
 	}
-	return redirectResp, resp.Cookies(), nil
+
+	// We trasform the kratos response to our own custom response here.
+	// The original kratos response contains an 'Error' field, which we remove
+	// because this is not a real error.
+	returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
+
+	return &returnToResp, resp.Cookies(), nil
 }
 
 func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowError, []*http.Cookie, error) {
