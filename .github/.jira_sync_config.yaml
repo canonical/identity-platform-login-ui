@@ -1,0 +1,18 @@
+# From https://github.com/canonical/gh-jira-sync-bot#client-side-configuration
+settings:
+  jira_project_key: "IAM"
+  status_mapping:
+    opened: Untriaged
+    closed: done
+  components:
+    - Login UI
+  labels:
+    - bug
+    - enhancement
+  add_gh_comment: true
+  sync_description: true
+  sync_comments: true
+  epic_key: "IAM-471"
+  label_mapping:
+    enhancement: Story
+    bug: Bug
