@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.11.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.10.0...v0.11.0) (2023-09-12)
+
+
+### Features
+
+* added ca-certificates package to stage-packages ([e09f07c](https://github.com/canonical/identity-platform-login-ui/commit/e09f07c1d1d932d345cc6fba330b664d57d696f1))
+* removed index.tsx and registration.tsx from ui/pages ([0e15096](https://github.com/canonical/identity-platform-login-ui/commit/0e15096c8f942b18223da1cb178d7484de69d344))
+
+
+### Bug Fixes
+
+* **deps:** update dependency vanilla-framework to v4 ([27079f6](https://github.com/canonical/identity-platform-login-ui/commit/27079f606565911b94df0af6b69fc55bf1c86ad0))
+* **deps:** update go deps ([6658d1a](https://github.com/canonical/identity-platform-login-ui/commit/6658d1a03809876becbe16aa37b30c6423d43616))
+* **deps:** update internal ui dependencies ([72f9278](https://github.com/canonical/identity-platform-login-ui/commit/72f9278974523beac9e92310bf1ea747df881e2d))
+* **deps:** update module github.com/go-chi/chi/v5 to v5.0.10 ([e5042c9](https://github.com/canonical/identity-platform-login-ui/commit/e5042c9cef0e1d56694a2605e5374ed804c5993b))
+* remove renovate workflow ([991215f](https://github.com/canonical/identity-platform-login-ui/commit/991215f7c19534a2b20882d47572059acff51e72))
+* tranform Kratos 422 HTTP resp to 200 ([3deebc4](https://github.com/canonical/identity-platform-login-ui/commit/3deebc469366bdddf05f58295fddfa39e9ce30fc))
+* Use variables instead of ints for HTTP statuses ([9332221](https://github.com/canonical/identity-platform-login-ui/commit/93322212e82caaff61c6239d7ce188d249affa57))
+
 ## [0.10.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.9.0...v0.10.0) (2023-08-23)
 
 
