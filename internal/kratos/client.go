@@ -19,11 +19,11 @@ func (c *Client) MetadataApi() client.MetadataApi {
 	return c.c.MetadataApi
 }
 
-func NewClient(url string) *Client {
+func NewClient(url string, debug bool) *Client {
 	c := new(Client)
 
 	configuration := client.NewConfiguration()
-	configuration.Debug = true
+	configuration.Debug = debug
 	configuration.Servers = []client.ServerConfiguration{
 		{
 			URL: url,
