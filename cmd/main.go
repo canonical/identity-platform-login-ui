@@ -51,8 +51,8 @@ func main() {
 		logger.Fatalf("issue with js distribution files %s", err)
 	}
 
-	kClient := ik.NewClient(specs.KratosPublicURL)
-	hClient := ih.NewClient(specs.HydraAdminURL)
+	kClient := ik.NewClient(specs.KratosPublicURL, specs.Debug)
+	hClient := ih.NewClient(specs.HydraAdminURL, specs.Debug)
 
 	router := web.NewRouter(kClient, hClient, distFS, specs.BaseURL, tracer, monitor, logger)
 
