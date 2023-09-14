@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.11.0...v0.11.1) (2023-09-14)
+
+
+### Bug Fixes
+
+* add debug flag ([e32b5c0](https://github.com/canonical/identity-platform-login-ui/commit/e32b5c059acd5d73a12786ce7f22555b3e940863)), closes [#155](https://github.com/canonical/identity-platform-login-ui/issues/155)
+* **deps:** update dependency vanilla-framework to v4.3.0 ([e19304c](https://github.com/canonical/identity-platform-login-ui/commit/e19304c6ff15d4746659a1cc08fb0c34f29e75a6))
+* **deps:** update go deps ([20cc702](https://github.com/canonical/identity-platform-login-ui/commit/20cc70269222d39e444465e451e0bbc64729dd17))
+* **deps:** update go deps to v1.18.0 ([6bda56c](https://github.com/canonical/identity-platform-login-ui/commit/6bda56c2e7f27f94687fe9efd9d1204028b5ff68))
+
 ## [0.11.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.10.0...v0.11.0) (2023-09-12)
 
 
