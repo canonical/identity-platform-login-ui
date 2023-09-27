@@ -625,8 +625,11 @@ func TestParseLoginFlowMethodBody(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
 	b, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
-	if !reflect.DeepEqual(*b, body) {
-		t.Fatalf("expected flow to be %+v not %+v", body, *b)
+
+	actual, _ := b.MarshalJSON()
+	expected, _ := body.MarshalJSON()
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("expected flow to be %v not %v", expected, actual)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
