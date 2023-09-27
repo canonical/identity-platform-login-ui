@@ -165,7 +165,9 @@ func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowErr
 
 func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
 	body := new(kClient.UpdateLoginFlowWithOidcMethod)
+
 	err := parseBody(r.Body, &body)
+
 	if err != nil {
 		return nil, err
 	}
