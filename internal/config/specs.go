@@ -1,5 +1,7 @@
 package config
 
+import "flag"
+
 // EnvSpec is the basic environment configuration setup needed for the app to start
 type EnvSpec struct {
 	OtelGRPCEndpoint string `envconfig:"otel_grpc_endpoint"`
@@ -15,4 +17,17 @@ type EnvSpec struct {
 
 	KratosPublicURL string `envconfig:"kratos_public_url"`
 	HydraAdminURL   string `envconfig:"hydra_admin_url"`
+}
+
+type Flags struct {
+	ShowVersion bool
+}
+
+func NewFlags() *Flags {
+	f := new(Flags)
+
+	flag.BoolVar(&f.ShowVersion, "version", false, "Show the app version")
+	flag.Parse()
+
+	return f
 }

@@ -38,6 +38,8 @@ func main() {
 		panic(fmt.Errorf("issues with environment sourcing: %s", err))
 	}
 
+	flags := config.NewFlags()
+
 	logger := logging.NewLogger(specs.LogLevel, specs.LogFile)
 
 	logger.Debugf("env vars: %v", specs)
