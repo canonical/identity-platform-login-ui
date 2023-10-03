@@ -4,10 +4,10 @@ import (
 	"context"
 	"runtime/debug"
 
-	"github.com/canonical/identity-platform-login-ui/internal/config"
 	"github.com/canonical/identity-platform-login-ui/internal/healthcheck"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/version"
 	"go.opentelemetry.io/otel/trace"
 
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -44,7 +44,7 @@ func (s *Service) BuildInfo(ctx context.Context) *BuildInfo {
 
 	buildInfo := new(BuildInfo)
 	buildInfo.Name = info.Main.Path
-	buildInfo.Version = config.Version
+	buildInfo.Version = version.Version
 	buildInfo.CommitHash = s.gitRevision(ctx, info.Settings)
 
 	return buildInfo
