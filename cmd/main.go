@@ -40,9 +40,12 @@ func main() {
 
 	flags := config.NewFlags()
 
-	if flags.ShowVersion {
+	switch {
+	case flags.ShowVersion:
 		fmt.Printf("App Version: %s\n", config.Version)
 		os.Exit(0)
+	default:
+		break
 	}
 
 	logger := logging.NewLogger(specs.LogLevel, specs.LogFile)
