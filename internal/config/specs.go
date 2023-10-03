@@ -26,7 +26,7 @@ type Flags struct {
 func NewFlags() *Flags {
 	f := new(Flags)
 
-	flag.BoolVar(&f.ShowVersion, "version", false, "Show the app version")
+	flag.BoolVar(&f.ShowVersion, "version", false, "Show the app version and exit")
 	flag.Parse()
 
 	return f

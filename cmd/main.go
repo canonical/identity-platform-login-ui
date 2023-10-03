@@ -40,6 +40,11 @@ func main() {
 
 	flags := config.NewFlags()
 
+	if flags.ShowVersion {
+		fmt.Printf("App Version: %s\n", config.Version)
+		os.Exit(0)
+	}
+
 	logger := logging.NewLogger(specs.LogLevel, specs.LogFile)
 
 	logger.Debugf("env vars: %v", specs)
