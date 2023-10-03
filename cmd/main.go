@@ -20,6 +20,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
+	"github.com/canonical/identity-platform-login-ui/internal/version"
 	"github.com/canonical/identity-platform-login-ui/pkg/web"
 )
 
@@ -42,7 +43,7 @@ func main() {
 
 	switch {
 	case flags.ShowVersion:
-		fmt.Printf("App Version: %s\n", config.Version)
+		fmt.Printf("App Version: %s\n", version.Version)
 		os.Exit(0)
 	default:
 		break
