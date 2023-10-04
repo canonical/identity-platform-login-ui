@@ -7,6 +7,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/healthcheck"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/version"
 	"go.opentelemetry.io/otel/trace"
 
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -14,8 +15,9 @@ import (
 )
 
 type BuildInfo struct {
-	Version string `json:"version"`
-	Name    string `json:"name"`
+	Version    string `json:"version"`
+	CommitHash string `json:"commit_hash"`
+	Name       string `json:"name"`
 }
 
 type Service struct {
@@ -42,7 +44,8 @@ func (s *Service) BuildInfo(ctx context.Context) *BuildInfo {
 
 	buildInfo := new(BuildInfo)
 	buildInfo.Name = info.Main.Path
-	buildInfo.Version = s.gitRevision(ctx, info.Settings)
+	buildInfo.Version = version.Version
+	buildInfo.CommitHash = s.gitRevision(ctx, info.Settings)
 
 	return buildInfo
 }
