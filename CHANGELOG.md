@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.11.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.11.1...v0.11.2) (2023-10-04)
+
+
+### Bug Fixes
+
+* add app version config ([78e93b5](https://github.com/canonical/identity-platform-login-ui/commit/78e93b5fd572c9a988bb1ed0f56989e51dd38045))
+* add flag parsing logic ([39123a1](https://github.com/canonical/identity-platform-login-ui/commit/39123a13be19dfef2ddf6c88dc78d625ed925ec0))
+* **deps:** update go deps ([71edbe7](https://github.com/canonical/identity-platform-login-ui/commit/71edbe7273671004547899189e6be097853c3939))
+* **deps:** update go deps to v1.19.0 ([1a880ce](https://github.com/canonical/identity-platform-login-ui/commit/1a880cefbf2bf8dfe76f8e706281677425e4b097))
+* **deps:** update module github.com/ory/kratos-client-go to v1 ([8a4894a](https://github.com/canonical/identity-platform-login-ui/commit/8a4894a5fd8d5838eb4121575e37015077554fba))
+* **deps:** update module github.com/prometheus/client_golang to v1.17.0 ([1066d13](https://github.com/canonical/identity-platform-login-ui/commit/1066d13023735222f2e5505c36d4c2869c04dadf))
+* **deps:** update module go.uber.org/zap to v1.26.0 ([9041a1a](https://github.com/canonical/identity-platform-login-ui/commit/9041a1aae951dc4c7c35a0fe6b382bab3fbf7c93))
+* IAM-514 compare json payloads to verify object is the same ([fde33fa](https://github.com/canonical/identity-platform-login-ui/commit/fde33fa1557d325d9e725123652d5df74ca9f936))
+* move version in a separate package ([6f3c03b](https://github.com/canonical/identity-platform-login-ui/commit/6f3c03b7d0e971324db040820b74d234f766122f))
+
 ## [0.11.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.11.0...v0.11.1) (2023-09-14)
 
 
