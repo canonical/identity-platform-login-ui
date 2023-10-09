@@ -1,5 +1,5 @@
 name: image publish
-run-name: Publish ROCK image from ${{ inputs.rock }} to ghcr.io/canonical/identity-platform-login-ui
+run-name: "Publish ROCK image from ${{ inputs.rock }} to ghcr.io/canonical/identity-platform-login-ui"
 
 on:
   workflow_call:
