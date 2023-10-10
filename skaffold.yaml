@@ -1,0 +1,8 @@
+apiVersion: skaffold/v4beta6
+kind: Config
+
+test:
+  - image: "ghcr.io/canonical/identity-platform-login-ui"
+    structureTests:
+      - './structure-tests.yaml'
+

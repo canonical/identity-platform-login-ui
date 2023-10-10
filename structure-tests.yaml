@@ -1,0 +1,22 @@
+schemaVersion: 2.0.0
+
+
+globalEnvVars:
+  - key: "KRATOS_PUBLIC_URL"
+    value: "https://kratos.iam.public"
+  - key: "HYDRA_ADMIN_URL"
+    value: "https://hydra.iam.admin"
+  - key: "LOG_LEVEL"
+    value: "DEBUG"
+
+fileExistenceTests:
+- name: "no go binary"
+  path: "/usr/bin/go"
+  shouldExist: false
+- name: "application go binary"
+  path: "/usr/bin/identity-platform-login-ui"
+  shouldExist: true
+commandTests:
+  - name: "application version"
+    command: "/usr/bin/identity-platform-login-ui"
+    args: ["-version"]

@@ -30,6 +30,21 @@ jobs:
       - name: Install Skopeo
         run: sudo snap install --devmode --channel edge skopeo
 
+      - name: Install Skaffold and Container Structure Tests tools
+        run: |
+          curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64
+          sudo install skaffold /usr/local/bin/
+          rm skaffold
+          mkdir -p bin/
+          curl -Lo bin/container-structure-test https://storage.googleapis.com/container-structure-test/latest/container-structure-test-linux-amd64 
+          chmod +x bin/container-structure-test
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+      - name: Run container structural tests
+        run: |
+          # docker-daemon avoids the push to the remote registry
+          sudo skopeo --insecure-policy copy oci-archive:$(realpath ./"${{ inputs.rock }}") docker-daemon:ghcr.io/canonical/identity-platform-login-ui:${{ github.sha }} --dest-creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}
+          skaffold test -i ghcr.io/canonical/identity-platform-login-ui:${{ github.sha }}
+
       - name: Upload ROCK to ghcr.io in latest channel
         id: latest
         if: ${{ github.ref_type }} == "branch"
