@@ -8,7 +8,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/ory/hydra-client-go/v2 v2.1.1
-	github.com/ory/kratos-client-go v1.0.0
+	github.com/ory/kratos-client-go v0.13.1
 	github.com/prometheus/client_golang v1.17.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.45.0
