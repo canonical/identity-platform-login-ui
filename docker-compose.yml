@@ -1,0 +1,23 @@
+version: '3.7'
+include:
+  - docker-compose.dev.yml
+services:
+  identity-platform-login-ui:
+    image: identity-platform-login-ui:local
+    # TODO (nsklikas): We need to pass these env vars to pebble
+    environment:
+      - KRATOS_PUBLIC_URL=http://kratos:4433
+      - HYDRA_ADMIN_URL=http://hydra:4445
+      - BASE_URL=http://localhost:4455
+      - PORT=4455
+      - LOG_LEVEL=DEBUG
+      - LOG_FILE=/var/log/aba.log
+      - TRACING_ENABLED=FALSE
+      - OPENFGA_API_SCHEME=http
+      - OPENFGA_API_HOST=openfga:8080
+      - OPENFGA_STORE_ID=01GP1254CHWJC1MNGVB0WDG1T0
+    ports:
+      - "4455:4455"
+    networks:
+      - intranet
+    restart: on-failure

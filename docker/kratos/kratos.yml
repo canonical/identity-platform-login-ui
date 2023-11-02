@@ -1,0 +1,51 @@
+version: v1.0.0
+
+oauth2_provider:
+    url: "http://hydra:4445"
+log:
+    level: debug
+    format: text
+    leak_sensitive_values: true
+dsn: memory
+serve:
+  public:
+    base_url: http://localhost:4433/
+    cors:
+      enabled: true
+  admin:
+    base_url: http://kratos:4434/
+
+identity:
+    default_schema_id: default
+    schemas:
+        - id: default
+          url: file:///etc/config/kratos/identity.schema.json
+selfservice:
+    allowed_return_urls:
+      - http://localhost:4455/ui/login
+    default_browser_return_url:
+        http://localhost:4455/ui/
+    flows:
+        error:
+            ui_url: http://localhost:4455/ui/error
+        login:
+            ui_url: http://localhost:4455/ui/login
+        registration:
+            after:
+                oidc:
+                    hooks:
+                    - hook: session
+    methods:
+        password:
+            enabled: False
+        oidc:
+            enabled: True
+            config:
+                providers:
+                - id: "microsoft"
+                  provider: "microsoft"
+                  mapper_url: "file:///etc/config/kratos/microsoft_schema.jsonnet"
+                  scope: ["profile", "email", "address", "phone"]
+courier:
+    smtp:
+        connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true

@@ -1,0 +1,84 @@
+{
+  "$id": "https://schemas.canonical.com/presets/kratos/user_v0.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Person",
+  "type": "object",
+  "properties": {
+    "traits": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Name"
+        },
+        "given_name": {
+          "type": "string",
+          "title": "Given Name"
+        },
+        "family_name": {
+          "type": "string",
+          "title": "Family Name"
+        },
+        "last_name": {
+          "type": "string",
+          "title": "Last Name"
+        },
+        "middle_name": {
+          "type": "string",
+          "title": "Middle Name"
+        },
+        "nickname": {
+          "type": "string",
+          "title": "Nickname"
+        },
+        "preferred_username": {
+          "type": "string",
+          "title": "Preferred Username"
+        },
+        "profile": {
+          "type": "string",
+          "title": "Profile"
+        },
+        "picture": {
+          "type": "string",
+          "title": "Picture"
+        },
+        "website": {
+          "type": "string",
+          "title": "Website"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "E-Mail"
+        },
+        "gender": {
+          "type": "string",
+          "title": "Gender"
+        },
+        "birthdate": {
+          "type": "string",
+          "title": "Birthdate"
+        },
+        "zoneinfo": {
+          "type": "string",
+          "title": "Zoneinfo"
+        },
+        "locale": {
+          "type": "string",
+          "title": "Locale"
+        },
+        "phone_number": {
+          "type": "string",
+          "title": "Phone Number"
+        },
+        "address": {
+          "type": "string",
+          "title": "Address"
+        }
+      },
+      "required": ["email"]
+    },
+    "additionalProperties": true
+  }
+}
