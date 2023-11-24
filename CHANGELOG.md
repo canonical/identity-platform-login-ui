@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.11.2...v0.11.3) (2023-11-01)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @canonical/react-components to v0.47.1 ([529c5d6](https://github.com/canonical/identity-platform-login-ui/commit/529c5d676039cb47b2e6f45404c59800e8326196))
+* **deps:** update dependency vanilla-framework to v4.4.0 ([b9e3b03](https://github.com/canonical/identity-platform-login-ui/commit/b9e3b0395cbec8fde99705bdb4562979c1eff0a1))
+* **deps:** update dependency vanilla-framework to v4.5.0 ([bd40882](https://github.com/canonical/identity-platform-login-ui/commit/bd40882423ec6fed74ddd9aa77d6aa236a7315d3))
+* downgrade Kratos sdk ([b36de36](https://github.com/canonical/identity-platform-login-ui/commit/b36de3666f7732f26df52f07dafa9bda8090287f))
+
 ## [0.11.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.11.1...v0.11.2) (2023-10-04)
 
 
