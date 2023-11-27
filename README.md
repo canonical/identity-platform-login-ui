@@ -48,6 +48,10 @@ At the moment the application is sourcing the following from the environment:
 * BASE_URL - the base url that the application will be running on
 * KRATOS_PUBLIC_URL - address of kratos apis
 * HYDRA_ADMIN_URL - address of hydra admin apis
+* OPENFGA_API_SCHEME - the openfga API scheme
+* OPENFGA_API_HOST - the openfga API host name
+* OPENFGA_STORE_ID - the openfga store ID to use
+* OPENFGA_MODEL_ID - the openfga model ID to use, if not specified a new model will be created
 
 
 ## Container

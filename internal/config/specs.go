@@ -17,6 +17,13 @@ type EnvSpec struct {
 
 	KratosPublicURL string `envconfig:"kratos_public_url"`
 	HydraAdminURL   string `envconfig:"hydra_admin_url"`
+
+	ApiScheme            string `envconfig:"openfga_api_scheme" default:""`
+	ApiHost              string `envconfig:"openfga_api_host"`
+	ApiToken             string `envconfig:"openfga_api_token"`
+	StoreId              string `envconfig:"openfga_store_id"`
+	AuthorizationModelId string `envconfig:"openfga_authorization_model_id" default:""`
+	AuthorizationEnabled bool   `envconfig:"authorization_enabled" default:"false"`
 }
 
 type Flags struct {
