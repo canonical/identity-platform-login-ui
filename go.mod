@@ -7,6 +7,7 @@ require (
 	github.com/go-chi/cors v1.2.1
 	github.com/golang/mock v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/openfga/go-sdk v0.2.3
 	github.com/ory/hydra-client-go/v2 v2.1.1
 	github.com/ory/kratos-client-go v0.13.1
 	github.com/prometheus/client_golang v1.17.0
@@ -49,6 +50,7 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/oauth2 v0.11.0 // indirect
+	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

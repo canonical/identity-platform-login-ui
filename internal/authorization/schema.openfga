@@ -1,0 +1,14 @@
+model
+  schema 1.1
+type user
+type app
+type group
+  relations
+    define member: [user, group#member]
+type app_group
+  relations
+    define member: [app, app_group#member]
+type provider
+  relations
+    define member: [user]
+    define allowed_access: [app, app_group#member]

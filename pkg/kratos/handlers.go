@@ -30,6 +30,7 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	loginChallenge := q.Get("login_challenge")
 
 	// We try to see if the user is logged in, because if they are the CreateBrowserLoginFlow
 	// call will return an empty response
@@ -37,7 +38,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// to avoid this bug.
 	session, _, _ := a.service.CheckSession(context.Background(), r.Cookies())
 	if session != nil {
-		redirectTo, cookies, err := a.service.AcceptLoginRequest(context.Background(), session.Identity.Id, q.Get("login_challenge"))
+		redirectTo, cookies, err := a.service.AcceptLoginRequest(context.Background(), session.Identity.Id, loginChallenge)
 		if err != nil {
 			a.logger.Errorf("Error when accepting login request: %v\n", err)
 			http.Error(w, "Failed to accept login request", http.StatusInternalServerError)
@@ -67,15 +68,22 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		a.logger.Fatal("Failed to construct returnTo URL: ", err)
 	}
-	returnTo = returnTo + "?login_challenge=" + q.Get("login_challenge")
+	returnTo = returnTo + "?login_challenge=" + loginChallenge
 
 	// We redirect the user back to this endpoint with the login_challenge, after they log in, to bypass
 	// Kratos bug where the user is not redirected to hydra the first time they log in.
 	// Relevant issue https://github.com/ory/kratos/issues/3052
-	flow, cookies, err := a.service.CreateBrowserLoginFlow(context.Background(), q.Get("aal"), returnTo, q.Get("login_challenge"), refresh, r.Cookies())
+	flow, cookies, err := a.service.CreateBrowserLoginFlow(context.Background(), q.Get("aal"), returnTo, loginChallenge, refresh, r.Cookies())
 	if err != nil {
 		// TODO: Add more context
 		http.Error(w, "Failed to create login flow", http.StatusInternalServerError)
+		return
+	}
+
+	flow, err = a.service.FilterFlowProviderList(context.Background(), flow)
+	if err != nil {
+		a.logger.Errorf("Error when filtering providers: %v\n", err)
+		http.Error(w, "Unexpected error", http.StatusInternalServerError)
 		return
 	}
 
@@ -115,6 +123,7 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	flowId := q.Get("flow")
 
 	body, err := a.service.ParseLoginFlowMethodBody(r)
 	if err != nil {
@@ -123,7 +132,25 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateOIDCLoginFlow(context.Background(), q.Get("flow"), *body, r.Cookies())
+	loginFlow, _, err := a.service.GetLoginFlow(context.Background(), flowId, r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Error when getting login flow: %v\n", err)
+		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
+		return
+	}
+
+	allowed, err := a.service.CheckAllowedProvider(context.Background(), loginFlow, body)
+	if err != nil {
+		a.logger.Errorf("Error when authorizing provider: %v\n", err)
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+	if !allowed {
+		http.Error(w, "Provider not allowed", http.StatusForbidden)
+		return
+	}
+
+	flow, cookies, err := a.service.UpdateOIDCLoginFlow(context.Background(), flowId, *body, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, "Failed to update login flow", http.StatusInternalServerError)

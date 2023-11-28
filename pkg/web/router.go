@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net/http"
 
+	authz "github.com/canonical/identity-platform-login-ui/internal/authorization"
 	ih "github.com/canonical/identity-platform-login-ui/internal/hydra"
 	ik "github.com/canonical/identity-platform-login-ui/internal/kratos"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
@@ -20,7 +21,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
-func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, baseURL string, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {
+func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, authzClient authz.AuthorizerInterface, distFS fs.FS, baseURL string, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {
 	router := chi.NewMux()
 
 	middlewares := make(chi.Middlewares, 0)
@@ -42,7 +43,7 @@ func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, distFS fs.FS, ba
 	router.Use(middlewares...)
 
 	kratos.NewAPI(
-		kratos.NewService(kratosClient, hydraClient, tracer, monitor, logger),
+		kratos.NewService(kratosClient, hydraClient, authzClient, tracer, monitor, logger),
 		baseURL,
 		logger,
 	).RegisterEndpoints(router)

@@ -1,0 +1,140 @@
+version: '3.7'
+services:
+  kratos-migrate:
+    image: oryd/kratos:v1.0.0
+    environment:
+      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true&mode=rwc
+    volumes:
+      - type: volume
+        source: kratos-sqlite
+        target: /var/lib/sqlite
+        read_only: false
+      - type: bind
+        source: ./docker/kratos
+        target: /etc/config/kratos
+    command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
+    restart: on-failure
+    networks:
+      - intranet
+  kratos:
+    depends_on:
+      - kratos-migrate
+    image: oryd/kratos:v1.0.0
+    ports:
+      - '4433:4433' # public
+      - '4434:4434' # admin
+    restart: unless-stopped
+    environment:
+      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
+      - LOG_LEVEL=trace
+      - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_ID=${CLIENT_ID}
+      - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_SECRET=${CLIENT_SECRET}
+      - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_MICROSOFT_TENANT=${MICROSOFT_TENANT}
+    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    volumes:
+      - type: volume
+        source: kratos-sqlite
+        target: /var/lib/sqlite
+        read_only: false
+      - type: bind
+        source: ./docker/kratos
+        target: /etc/config/kratos
+    networks:
+      - intranet
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  hydra:
+    image: oryd/hydra:v2.1.1
+    ports:
+      - "4444:4444" # Public port
+      - "4445:4445" # Admin port
+    command: serve -c /etc/config/hydra/hydra.yml all --dev
+    volumes:
+      - type: volume
+        source: hydra-sqlite
+        target: /var/lib/sqlite
+        read_only: false
+      - type: bind
+        source: ./docker/hydra
+        target: /etc/config/hydra
+    environment:
+      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
+      - CORS_DEBUG=1
+    restart: unless-stopped
+    depends_on:
+      - hydra-migrate
+    networks:
+      - intranet
+  hydra-migrate:
+    image: oryd/hydra:v2.1.1
+    environment:
+      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
+    command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
+    volumes:
+      - type: volume
+        source: hydra-sqlite
+        target: /var/lib/sqlite
+        read_only: false
+      - type: bind
+        source: ./docker/hydra
+        target: /etc/config/hydra
+    restart: on-failure
+    networks:
+      - intranet
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    ports:
+      - '4436:4436'
+      - '4437:4437'
+    networks:
+      - intranet
+  postgres:
+    image: postgres
+    container_name: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: openfga
+      POSTGRES_USER: openfga
+      POSTGRES_PASSWORD: openfga
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U openfga" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  migrateopenfga:
+    image: openfga/openfga:latest
+    container_name: migrateopenfga
+    command: migrate --datastore-engine postgres --datastore-uri 'postgresql://openfga:openfga@postgres/openfga?sslmode=disable'
+    depends_on:
+      postgres:
+        condition: service_healthy
+  insert-hardcoded-store:
+    image: governmentpaas/psql
+    container_name: insert-hardcoded-store
+    command: psql -Atx postgresql://openfga:openfga@postgres/openfga?sslmode=disable -c "INSERT INTO store (id,name,created_at,updated_at) VALUES ('01GP1254CHWJC1MNGVB0WDG1T0','login-ui',NOW(),NOW());"
+    depends_on:
+      migrateopenfga:
+        condition: service_completed_successfully
+  openfga:
+    image: openfga/openfga:latest
+    environment:
+      OPENFGA_DATASTORE_ENGINE: "postgres"
+      OPENFGA_DATASTORE_URI: "postgresql://openfga:openfga@postgres/openfga?sslmode=disable"
+      OPENFGA_AUTHN_PRESHARED_KEYS: "42"
+    command: run
+    ports:
+      - 8080:8080
+      - 8081:8081
+      - 3000:3000
+    depends_on:
+      migrateopenfga:
+        condition: service_completed_successfully
+      insert-hardcoded-store:
+        condition: service_completed_successfully
+networks:
+  intranet:
+volumes:
+  kratos-sqlite:
+  hydra-sqlite:

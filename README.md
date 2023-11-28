@@ -48,6 +48,10 @@ At the moment the application is sourcing the following from the environment:
 * BASE_URL - the base url that the application will be running on
 * KRATOS_PUBLIC_URL - address of kratos apis
 * HYDRA_ADMIN_URL - address of hydra admin apis
+* OPENFGA_API_SCHEME - the openfga API scheme
+* OPENFGA_API_HOST - the openfga API host name
+* OPENFGA_STORE_ID - the openfga store ID to use
+* OPENFGA_MODEL_ID - the openfga model ID to use, if not specified a new model will be created
 
 
 ## Container
@@ -69,4 +73,36 @@ In order to run the produced image with docker run:
 sudo /snap/rockcraft/current/bin/skopeo --insecure-policy copy oci-archive:./identity-platform-login-ui_0.1_amd64.rock docker-daemon:localhost:32000/identity-platform-login-ui:registry
 # Run the image
 docker run -p 8080:8080 -it --name login-ui --rm localhost:32000/identity-platform-login-ui:registry start login-ui &
+```
+
+## Development setup
+
+As a requirement, please make sure to have `docker` and `docker-compose` installed as well as a set of client credentials for AzureAD.
+
+Create a file called `.env` on the root of the repository and paste your client credentials:
+
+```
+CLIENT_ID=<client_id>
+CLIENT_SECRET=<client_secret>
+MICROSOFT_TENANT=<tenant_id>
+```
+
+We are going to use docker-compose to run Kratos, Hydra and OpenFGA:
+
+```console
+docker-compose -f docker-compose.dev.yml up --  build --force-recreate
+```
+
+Now we can run the UI:
+```console
+export KRATOS_PUBLIC_URL=http://localhost:4433
+export HYDRA_ADMIN_URL=http://localhost:4445
+export BASE_URL=http://localhost:4455
+export PORT=4455
+export TRACING_ENABLED=false
+export LOG_LEVEL=debug
+export OPENFGA_API_SCHEME=http
+export OPENFGA_API_HOST=localhost:8080
+export OPENFGA_STORE_ID=01GP1254CHWJC1MNGVB0WDG1T0
+go run cmd/main.go
 ```

@@ -3,6 +3,7 @@ package kratos
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -16,6 +17,7 @@ import (
 type Service struct {
 	kratos KratosClientInterface
 	hydra  HydraClientInterface
+	authz  AuthorizerInterface
 
 	tracer  trace.Tracer
 	monitor monitoring.MonitorInterface
@@ -163,6 +165,56 @@ func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowErr
 	return flowError, resp.Cookies(), nil
 }
 
+func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.LoginFlow, updateFlowBody *kClient.UpdateLoginFlowBody) (bool, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CheckAllowedProvider")
+	defer span.End()
+
+	provider := updateFlowBody.UpdateLoginFlowWithOidcMethod.Provider
+	clientName := loginFlow.Oauth2LoginRequest.Client.GetClientName()
+
+	allowedProviders, err := s.authz.ListObjects(ctx, fmt.Sprintf("app:%s", clientName), "allowed_access", "provider")
+	if err != nil {
+		return false, err
+	}
+	// If the user has not configured providers for this app, we allow all providers
+	if len(allowedProviders) == 0 {
+		return true, nil
+	}
+	return s.contains(allowedProviders, fmt.Sprintf("%v", provider)), nil
+}
+
+func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.LoginFlow) (*kClient.LoginFlow, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.FilterFlowProviderList")
+	defer span.End()
+
+	loginRequest := flow.Oauth2LoginRequest
+	clientName := loginRequest.Client.GetClientName()
+
+	allowedProviders, err := s.authz.ListObjects(ctx, fmt.Sprintf("app:%s", clientName), "allowed_access", "provider")
+	if err != nil {
+		return nil, err
+	}
+
+	// If the user has not configured providers for this app, we allow all providers
+	if len(allowedProviders) == 0 {
+		return flow, nil
+	}
+
+	// Filter UI nodes
+	var nodes []kClient.UiNode
+	for _, node := range flow.Ui.Nodes {
+		switch node.Group {
+		case "oidc":
+			if s.contains(allowedProviders, fmt.Sprintf("%v", node.Attributes.UiNodeInputAttributes.GetValue())) {
+				nodes = append(nodes, node)
+			}
+		}
+	}
+
+	flow.Ui.Nodes = nodes
+	return flow, nil
+}
+
 func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
 	body := new(kClient.UpdateLoginFlowWithOidcMethod)
 
@@ -177,11 +229,21 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 	return &ret, nil
 }
 
-func NewService(kratos KratosClientInterface, hydra HydraClientInterface, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func (s *Service) contains(str []string, e string) bool {
+	for _, a := range str {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func NewService(kratos KratosClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos
 	s.hydra = hydra
+	s.authz = authzClient
 
 	s.monitor = monitor
 	s.tracer = tracer

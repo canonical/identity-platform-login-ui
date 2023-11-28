@@ -85,7 +85,7 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
 
   filterNodes = (): UiNode[] => {
     const { flow, only } = this.props;
-    if (!flow) {
+    if (!flow || !flow.ui.nodes) {
       return [];
     }
     return flow.ui.nodes.filter(({ group }) => {

@@ -14,11 +14,13 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
+	authz "github.com/canonical/identity-platform-login-ui/internal/authorization"
 	"github.com/canonical/identity-platform-login-ui/internal/config"
 	ih "github.com/canonical/identity-platform-login-ui/internal/hydra"
 	ik "github.com/canonical/identity-platform-login-ui/internal/kratos"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus"
+	fga "github.com/canonical/identity-platform-login-ui/internal/openfga"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/canonical/identity-platform-login-ui/internal/version"
 	"github.com/canonical/identity-platform-login-ui/pkg/web"
@@ -65,7 +67,21 @@ func main() {
 	kClient := ik.NewClient(specs.KratosPublicURL, specs.Debug)
 	hClient := ih.NewClient(specs.HydraAdminURL, specs.Debug)
 
-	router := web.NewRouter(kClient, hClient, distFS, specs.BaseURL, tracer, monitor, logger)
+	var authzClient authz.AuthzClientInterface
+	if specs.AuthorizationEnabled {
+		logger.Info("Authorization is enabled")
+		cfg := fga.NewConfig(specs.ApiScheme, specs.ApiHost, specs.StoreId, specs.ApiToken, specs.AuthorizationModelId, specs.Debug, tracer, monitor, logger)
+		authzClient = fga.NewClient(cfg)
+	} else {
+		logger.Info("Authorization is disabled, using noop authorizer")
+		authzClient = fga.NewNoopClient(tracer, monitor, logger)
+	}
+	authorizer := authz.NewAuthorizer(authzClient, tracer, monitor, logger)
+	if authorizer.ValidateModel(context.Background()) != nil {
+		panic("Invalid authorization model provided")
+	}
+
+	router := web.NewRouter(kClient, hClient, authorizer, distFS, specs.BaseURL, tracer, monitor, logger)
 
 	logger.Infof("Starting server on port %v", specs.Port)
 
