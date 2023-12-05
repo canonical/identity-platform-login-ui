@@ -13,6 +13,7 @@ import (
 	chi "github.com/go-chi/chi/v5"
 	middleware "github.com/go-chi/chi/v5/middleware"
 
+	"github.com/canonical/identity-platform-login-ui/pkg/device"
 	"github.com/canonical/identity-platform-login-ui/pkg/extra"
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
 	"github.com/canonical/identity-platform-login-ui/pkg/metrics"
@@ -20,7 +21,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
-func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, authzClient authz.AuthorizerInterface, distFS fs.FS, baseURL string, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {
+func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, authzClient authz.AuthorizerInterface, hydraAdminUrl string, distFS fs.FS, baseURL string, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {
 	router := chi.NewMux()
 
 	middlewares := make(chi.Middlewares, 0)
@@ -41,6 +42,10 @@ func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, authzClient auth
 
 	router.Use(middlewares...)
 
+	device.NewAPI(
+		device.NewService(hydraAdminUrl, tracer, monitor, logger),
+		logger,
+	).RegisterEndpoints(router)
 	kratos.NewAPI(
 		kratos.NewService(kratosClient, hydraClient, authzClient, tracer, monitor, logger),
 		baseURL,

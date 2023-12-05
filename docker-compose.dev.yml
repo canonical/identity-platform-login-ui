@@ -43,11 +43,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
   hydra:
-    image: oryd/hydra:v2.1.1
+    image: hydra:latest
     ports:
       - "4444:4444" # Public port
       - "4445:4445" # Admin port
-    command: serve -c /etc/config/hydra/hydra.yml all --dev
     volumes:
       - type: volume
         source: hydra-sqlite
@@ -57,18 +56,19 @@ services:
         source: ./docker/hydra
         target: /etc/config/hydra
     environment:
-      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
+      - DSN=postgresql://hydra:hydra@postgres/hydra?sslmode=disable
       - CORS_DEBUG=1
+    entrypoint: hydra serve -c /etc/config/hydra/hydra.yml --dev all
     restart: unless-stopped
     depends_on:
       - hydra-migrate
     networks:
       - intranet
   hydra-migrate:
-    image: oryd/hydra:v2.1.1
+    image: hydra:latest
     environment:
-      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
-    command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
+      - DSN=postgresql://hydra:hydra@postgres/hydra?sslmode=disable
+    command: exec hydra migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
       - type: volume
         source: hydra-sqlite
@@ -80,6 +80,9 @@ services:
     restart: on-failure
     networks:
       - intranet
+    depends_on:
+      postgres:
+        condition: service_healthy
   mailslurper:
     image: oryd/mailslurper:latest-smtps
     ports:
@@ -94,44 +97,16 @@ services:
     ports:
       - 5432:5432
     environment:
-      POSTGRES_DB: openfga
-      POSTGRES_USER: openfga
-      POSTGRES_PASSWORD: openfga
+      POSTGRES_DB: hydra
+      POSTGRES_USER: hydra
+      POSTGRES_PASSWORD: hydra
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U openfga" ]
+      test: [ "CMD-SHELL", "pg_isready -U hydra" ]
       interval: 5s
       timeout: 5s
       retries: 5
-  migrateopenfga:
-    image: openfga/openfga:latest
-    container_name: migrateopenfga
-    command: migrate --datastore-engine postgres --datastore-uri 'postgresql://openfga:openfga@postgres/openfga?sslmode=disable'
-    depends_on:
-      postgres:
-        condition: service_healthy
-  insert-hardcoded-store:
-    image: governmentpaas/psql
-    container_name: insert-hardcoded-store
-    command: psql -Atx postgresql://openfga:openfga@postgres/openfga?sslmode=disable -c "INSERT INTO store (id,name,created_at,updated_at) VALUES ('01GP1254CHWJC1MNGVB0WDG1T0','login-ui',NOW(),NOW());"
-    depends_on:
-      migrateopenfga:
-        condition: service_completed_successfully
-  openfga:
-    image: openfga/openfga:latest
-    environment:
-      OPENFGA_DATASTORE_ENGINE: "postgres"
-      OPENFGA_DATASTORE_URI: "postgresql://openfga:openfga@postgres/openfga?sslmode=disable"
-      OPENFGA_AUTHN_PRESHARED_KEYS: "42"
-    command: run
-    ports:
-      - 8080:8080
-      - 8081:8081
-      - 3000:3000
-    depends_on:
-      migrateopenfga:
-        condition: service_completed_successfully
-      insert-hardcoded-store:
-        condition: service_completed_successfully
+    networks:
+      - intranet
 networks:
   intranet:
 volumes:
