@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"

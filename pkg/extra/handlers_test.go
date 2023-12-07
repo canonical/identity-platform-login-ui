@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"

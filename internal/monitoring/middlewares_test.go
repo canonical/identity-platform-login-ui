@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package monitoring -destination ./mock_monitor.go -source=./interfaces.go

@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
-	"github.com/golang/mock/gomock"
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/mock/gomock"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
