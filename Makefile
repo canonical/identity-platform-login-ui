@@ -9,7 +9,7 @@ UI_FOLDER?=
 .EXPORT_ALL_VARIABLES:
 
 mocks: vendor
-	$(GO) install github.com/golang/mock/mockgen@v1.6.0
+	$(GO) install go.uber.org/mock/mockgen@v0.3.0
 	# generate gomocks
 	$(GO) generate ./...
 .PHONY: mocks
