@@ -1,0 +1,27 @@
+name: renovate-ci
+run-name: CI for ${{ github.sha }} on ${{ github.ref_name }}
+
+on:
+  push:
+  branches:
+      - "renovate/**"
+  pull_request:
+    branches:
+      - "renovate/**"
+
+jobs:
+  autoapprove:
+    - uses: actions/checkout@v3
+    - name: Workaround for https://github.com/googleapis/release-please/issues/922
+      if: ${{ github.event.name == 'push' }}
+      run: |
+        echo "Closing and reopening PR to trigger checks"
+        gh pr close ${{ fromJSON(steps.release.outputs.pr).number }} || true
+        gh pr reopen ${{ fromJSON(steps.release.outputs.pr).number }} || true
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}    
+    - name: Enable automerge
+      if: ${{ github.event.name == 'pull_request' }}
+      run: gh pr merge --auto --merge ${{ github.event.pull_request.number }} || true
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}

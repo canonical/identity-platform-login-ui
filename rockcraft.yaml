@@ -29,7 +29,7 @@ parts:
     source: .
     source-type: local
     build-snaps:
-      - go/1.19/stable
+      - go/1.21/stable
       - node/18/stable
     build-packages:
       - make
