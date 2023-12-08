@@ -46,6 +46,7 @@ selfservice:
                   provider: "microsoft"
                   mapper_url: "file:///etc/config/kratos/microsoft_schema.jsonnet"
                   scope: ["profile", "email", "address", "phone"]
+                  label: EntraID
 courier:
     smtp:
         connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true

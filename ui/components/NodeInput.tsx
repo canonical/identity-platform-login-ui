@@ -14,12 +14,12 @@ export const NodeInputOIDC: FC<NodeInputProps> = ({
   disabled,
   dispatchSubmit,
 }) => {
-  const provider = (attributes.value as string).split("_")[0];
-  if (provider === "hydra") {
-    return <></>;
-  }
-  if (node.meta.label) {
-    node.meta.label.text = provider.charAt(0).toUpperCase() + provider.slice(1);
+  if (node.meta.label?.context) {
+    if ("provider" in node.meta.label.context) {
+      const provider = String(node.meta.label.context.provider);
+      node.meta.label.text =
+        provider.charAt(0).toUpperCase() + provider.slice(1);
+    }
   }
   const props = {
     node: node,
