@@ -42,11 +42,11 @@ selfservice:
             enabled: True
             config:
                 providers:
-                - id: "microsoft"
-                  provider: "microsoft"
+                - id: "github"
+                  provider: "github"
                   mapper_url: "file:///etc/config/kratos/microsoft_schema.jsonnet"
-                  scope: ["profile", "email", "address", "phone"]
-                  label: EntraID
+                  scope: ["user:email"]
+                  label: Github
 courier:
     smtp:
         connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
