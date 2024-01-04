@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+
+	"github.com/spf13/cobra"
 
 	"syscall"
 	"time"
@@ -22,7 +24,6 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus"
 	fga "github.com/canonical/identity-platform-login-ui/internal/openfga"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
-	"github.com/canonical/identity-platform-login-ui/internal/version"
 	"github.com/canonical/identity-platform-login-ui/pkg/web"
 )
 
@@ -33,22 +34,25 @@ import (
 //go:embed ui/dist/_next/static/*/*.css
 var jsFS embed.FS
 
-func main() {
+var serveCmd = &cobra.Command{
+	Use:   "serve",
+	Short: "serve starts the web server",
+	Long:  `Launch the web application, list of environment variables is available in the readme`,
+	Run: func(cmd *cobra.Command, args []string) {
+		serve()
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(serveCmd)
+}
+
+func serve() {
 
 	specs := new(config.EnvSpec)
 
 	if err := envconfig.Process("", specs); err != nil {
 		panic(fmt.Errorf("issues with environment sourcing: %s", err))
-	}
-
-	flags := config.NewFlags()
-
-	switch {
-	case flags.ShowVersion:
-		fmt.Printf("App Version: %s\n", version.Version)
-		os.Exit(0)
-	default:
-		break
 	}
 
 	logger := logging.NewLogger(specs.LogLevel, specs.LogFile)

@@ -31,7 +31,7 @@ vendor:
 .PHONY: vendor
 
 build: cmd/ui/dist
-	$(MAKE) -C cmd build
+	$(GO) build -o $(GO_BIN) ./
 .PHONY: build
 
 # plan is to use this as a probe, if folder is there target wont run and npm-build will skip
