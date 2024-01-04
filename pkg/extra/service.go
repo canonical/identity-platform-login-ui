@@ -7,7 +7,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	misc "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
-	"go.opentelemetry.io/otel/trace"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
@@ -17,7 +17,7 @@ type Service struct {
 	kratos KratosClientInterface
 	hydra  HydraClientInterface
 
-	tracer  trace.Tracer
+	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
 }
@@ -89,7 +89,7 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 	return accept, nil
 }
 
-func NewService(kratos KratosClientInterface, hydra HydraClientInterface, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(kratos KratosClientInterface, hydra HydraClientInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos

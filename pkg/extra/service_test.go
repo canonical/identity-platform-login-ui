@@ -17,7 +17,7 @@ import (
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_extra.go -source=./interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_tracing.go go.opentelemetry.io/otel/trace Tracer
+//go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_kratos.go github.com/ory/kratos-client-go FrontendApi
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_hydra.go github.com/ory/hydra-client-go/v2 OAuth2Api
 
@@ -28,7 +28,7 @@ func TestCheckSessionSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -72,7 +72,7 @@ func TestCheckSessionFails(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -116,7 +116,7 @@ func TestGetConsentSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockHydraOAuth2Api := NewMockOAuth2Api(ctrl)
 
@@ -157,7 +157,7 @@ func TestGetConsentFails(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockHydraOAuth2Api := NewMockOAuth2Api(ctrl)
 
@@ -199,7 +199,7 @@ func TestAcceptConsentSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockHydraOAuth2Api := NewMockOAuth2Api(ctrl)
 
@@ -253,7 +253,7 @@ func TestAcceptConsentFails(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockHydraOAuth2Api := NewMockOAuth2Api(ctrl)
 

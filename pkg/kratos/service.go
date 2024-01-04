@@ -9,9 +9,9 @@ import (
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type Service struct {
@@ -19,7 +19,7 @@ type Service struct {
 	hydra  HydraClientInterface
 	authz  AuthorizerInterface
 
-	tracer  trace.Tracer
+	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
 }
@@ -238,7 +238,7 @@ func (s *Service) contains(str []string, e string) bool {
 	return false
 }
 
-func NewService(kratos KratosClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(kratos KratosClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos

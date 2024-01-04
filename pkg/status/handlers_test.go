@@ -13,7 +13,7 @@ import (
 
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracing.go go.opentelemetry.io/otel/trace Tracer
+//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_status.go -source=./interfaces.go
 
 func TestAliveOK(t *testing.T) {
@@ -22,7 +22,7 @@ func TestAliveOK(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockMonitor := NewMockMonitorInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v0/status", nil)
@@ -56,7 +56,7 @@ func TestHealthSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockMonitor := NewMockMonitorInterface(ctrl)
 
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v0/ready", nil)
@@ -93,7 +93,7 @@ func TestHealthFailure(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockMonitor := NewMockMonitorInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v0/ready", nil)

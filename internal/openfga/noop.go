@@ -5,17 +5,17 @@ import (
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	openfga "github.com/openfga/go-sdk"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type NoopClient struct {
-	tracer  trace.Tracer
+	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
 }
 
-func NewNoopClient(tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *NoopClient {
+func NewNoopClient(tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *NoopClient {
 	c := new(NoopClient)
 	c.tracer = tracer
 	c.monitor = monitor
@@ -33,6 +33,10 @@ func (c *NoopClient) Check(ctx context.Context, user string, relation string, ob
 
 func (c *NoopClient) ReadModel(ctx context.Context) (*openfga.AuthorizationModel, error) {
 	return nil, nil
+}
+
+func (c *NoopClient) WriteModel(ctx context.Context, model []byte) (string, error) {
+	return "", nil
 }
 
 func (c *NoopClient) CompareModel(ctx context.Context, model openfga.AuthorizationModel) (bool, error) {

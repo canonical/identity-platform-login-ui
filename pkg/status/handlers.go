@@ -6,8 +6,8 @@ import (
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/go-chi/chi/v5"
-	"go.opentelemetry.io/otel/trace"
 )
 
 const okValue = "ok"
@@ -25,7 +25,7 @@ type Health struct {
 type API struct {
 	service ServiceInterface
 
-	tracer trace.Tracer
+	tracer tracing.TracingInterface
 
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
@@ -76,7 +76,7 @@ func (a *API) ready(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(health)
 }
 
-func NewAPI(service ServiceInterface, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
+func NewAPI(service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.service = service

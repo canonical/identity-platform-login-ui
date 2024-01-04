@@ -7,8 +7,8 @@ import (
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	fga "github.com/openfga/go-sdk"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var ErrInvalidAuthModel = fmt.Errorf("Invalid authorization model schema")
@@ -16,7 +16,7 @@ var ErrInvalidAuthModel = fmt.Errorf("Invalid authorization model schema")
 type Authorizer struct {
 	Client AuthzClientInterface
 
-	tracer  trace.Tracer
+	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
 }
@@ -53,6 +53,14 @@ func (a *Authorizer) FilterObjects(ctx context.Context, user string, relation st
 	return ret, nil
 }
 
+func (a *Authorizer) CreateModel(ctx context.Context) (string, error) {
+	ctx, span := a.tracer.Start(ctx, "authorization.Authorizer.CreateModel")
+	defer span.End()
+
+	modelId, err := a.Client.WriteModel(ctx, []byte(authModel))
+	return modelId, err
+}
+
 func (a *Authorizer) ValidateModel(ctx context.Context) error {
 	ctx, span := a.tracer.Start(ctx, "authorization.Authorizer.ValidateModel")
 	defer span.End()
@@ -73,7 +81,7 @@ func (a *Authorizer) ValidateModel(ctx context.Context) error {
 	return nil
 }
 
-func NewAuthorizer(client AuthzClientInterface, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Authorizer {
+func NewAuthorizer(client AuthzClientInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Authorizer {
 	authorizer := new(Authorizer)
 	authorizer.Client = client
 	authorizer.tracer = tracer
