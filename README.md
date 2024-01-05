@@ -93,7 +93,7 @@ CLIENT_SECRET=<client_secret>
 Run the login UI's dependencies:
 
 ```console
-docker-compose -f docker-compose.dev.yml up --  build --force-recreate
+docker-compose -f docker-compose.dev.yml --build --force-recreate up
 ```
 
 Build and run the Login UI:
