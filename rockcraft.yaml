@@ -15,7 +15,7 @@ platforms:
 services:
   login-ui:
     override: replace
-    command: /usr/bin/identity-platform-login-ui
+    command: /usr/bin/identity-platform-login-ui serve
     startup: enabled
 
 parts:
@@ -36,7 +36,7 @@ parts:
       - git
     override-build: |
       make npm-build build
-      install -D -m755 cmd/app ${CRAFT_PART_INSTALL}/opt/identity-platform-login-ui/bin/app
+      install -D -m755 app ${CRAFT_PART_INSTALL}/opt/identity-platform-login-ui/bin/app
     organize:
       opt/identity-platform-login-ui/bin/app: usr/bin/identity-platform-login-ui
     stage-packages:
