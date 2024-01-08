@@ -49,9 +49,8 @@ func createModel(apiUrl, apiToken, storeId string) {
 		panic(err)
 	}
 	cfg := fga.NewConfig(scheme, host, storeId, apiToken, "", false, tracer, monitor, logger)
-	authzClient := fga.NewClient(cfg)
-	authorizer := authz.NewAuthorizer(authzClient, tracer, monitor, logger)
-	modelId, err := authorizer.CreateModel(context.Background())
+	fgaClient := fga.NewClient(cfg)
+	modelId, err := fgaClient.WriteModel(context.Background(), []byte(authz.AuthModel))
 	if err != nil {
 		panic(err)
 	}

@@ -53,20 +53,12 @@ func (a *Authorizer) FilterObjects(ctx context.Context, user string, relation st
 	return ret, nil
 }
 
-func (a *Authorizer) CreateModel(ctx context.Context) (string, error) {
-	ctx, span := a.tracer.Start(ctx, "authorization.Authorizer.CreateModel")
-	defer span.End()
-
-	modelId, err := a.Client.WriteModel(ctx, []byte(authModel))
-	return modelId, err
-}
-
 func (a *Authorizer) ValidateModel(ctx context.Context) error {
 	ctx, span := a.tracer.Start(ctx, "authorization.Authorizer.ValidateModel")
 	defer span.End()
 
 	var builtinAuthorizationModel fga.AuthorizationModel
-	err := json.Unmarshal([]byte(authModel), &builtinAuthorizationModel)
+	err := json.Unmarshal([]byte(AuthModel), &builtinAuthorizationModel)
 	if err != nil {
 		return err
 	}

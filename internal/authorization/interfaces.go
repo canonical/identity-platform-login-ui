@@ -11,7 +11,6 @@ type AuthorizerInterface interface {
 	Check(context.Context, string, string, string) (bool, error)
 	FilterObjects(context.Context, string, string, string, []string) ([]string, error)
 	ValidateModel(context.Context) error
-	CreateModel(context.Context) (string, error)
 }
 
 type AuthzClientInterface interface {
@@ -19,5 +18,4 @@ type AuthzClientInterface interface {
 	Check(context.Context, string, string, string) (bool, error)
 	ReadModel(context.Context) (*fga.AuthorizationModel, error)
 	CompareModel(context.Context, fga.AuthorizationModel) (bool, error)
-	WriteModel(context.Context, []byte) (string, error)
 }
