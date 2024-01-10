@@ -12,7 +12,6 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	chi "github.com/go-chi/chi/v5"
 	middleware "github.com/go-chi/chi/v5/middleware"
-	trace "go.opentelemetry.io/otel/trace"
 
 	"github.com/canonical/identity-platform-login-ui/pkg/extra"
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
@@ -21,7 +20,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
-func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, authzClient authz.AuthorizerInterface, distFS fs.FS, baseURL string, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {
+func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, authzClient authz.AuthorizerInterface, distFS fs.FS, baseURL string, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {
 	router := chi.NewMux()
 
 	middlewares := make(chi.Middlewares, 0)

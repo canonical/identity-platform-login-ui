@@ -17,6 +17,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 type Tracer struct {
@@ -87,7 +88,7 @@ func NewTracer(cfg *Config) *Tracer {
 
 	// if tracing disabled skip the config
 	if !cfg.Enabled {
-		t.tracer = trace.NewNoopTracerProvider().Tracer("github.com/canonical/identity-platform-login-ui")
+		t.tracer = noop.NewTracerProvider().Tracer("github.com/canonical/identity-platform-login-ui")
 
 		return t
 	}
@@ -127,4 +128,8 @@ func NewTracer(cfg *Config) *Tracer {
 	t.init("github.com/canonical/identity-platform-login-ui", exporter)
 
 	return t
+}
+
+func NewNoopTracer() *Tracer {
+	return NewTracer(NewNoopConfig())
 }

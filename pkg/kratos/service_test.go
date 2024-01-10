@@ -21,7 +21,7 @@ import (
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_interfaces.go -source=./interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_tracing.go go.opentelemetry.io/otel/trace Tracer
+//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_kratos.go github.com/ory/kratos-client-go FrontendApi
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_hydra.go github.com/ory/hydra-client-go/v2 OAuth2Api
 
@@ -33,7 +33,7 @@ func TestCheckSessionSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -84,7 +84,7 @@ func TestCheckSessionFails(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -131,7 +131,7 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
 
@@ -181,7 +181,7 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
 
@@ -219,7 +219,7 @@ func TestCreateBrowserLoginFlowSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -285,7 +285,7 @@ func TestCreateBrowserLoginFlowFail(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -331,7 +331,7 @@ func TestGetLoginFlowSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -385,7 +385,7 @@ func TestGetLoginFlowFail(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -428,7 +428,7 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -491,7 +491,7 @@ func TestUpdateLoginFlowFail(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -541,7 +541,7 @@ func TestGetFlowErrorSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -589,7 +589,7 @@ func TestGetFlowErrorFail(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
@@ -629,7 +629,7 @@ func TestCheckAllowedProviderAllowedSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
 	ctx := context.Background()
@@ -667,7 +667,7 @@ func TestCheckAllowedProviderNotAllowedSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
 	ctx := context.Background()
@@ -705,7 +705,7 @@ func TestCheckAllowedProviderFail(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
 	ctx := context.Background()
@@ -739,7 +739,7 @@ func TestFilterFlowProviderListAllowAll(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
 	ctx := context.Background()
@@ -785,7 +785,7 @@ func TestFilterFlowProviderListAllowSome(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
 	ctx := context.Background()
@@ -834,7 +834,7 @@ func TestFilterFlowProviderListAllowNone(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
 	ctx := context.Background()
@@ -881,7 +881,7 @@ func TestFilterFlowProviderListFail(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
 	ctx := context.Background()
@@ -924,7 +924,7 @@ func TestParseLoginFlowMethodBody(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
 	body := kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(kClient.NewUpdateLoginFlowWithOidcMethodWithDefaults())

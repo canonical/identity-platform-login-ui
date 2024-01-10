@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
-	"go.opentelemetry.io/otel/trace"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 )
 
 type CheckFunction func(context.Context) (bool, error)
@@ -28,7 +28,7 @@ type Checker struct {
 
 	shutdownCh chan bool
 
-	tracer trace.Tracer
+	tracer tracing.TracingInterface
 	logger logging.LoggerInterface
 }
 
@@ -77,7 +77,7 @@ func (c *Checker) loop() {
 	}
 }
 
-func NewChecker(f CheckFunction, tracer trace.Tracer, logger logging.LoggerInterface) *Checker {
+func NewChecker(f CheckFunction, tracer tracing.TracingInterface, logger logging.LoggerInterface) *Checker {
 	c := new(Checker)
 	c.f = f
 	c.shutdownCh = make(chan bool)

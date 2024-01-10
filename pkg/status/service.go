@@ -7,8 +7,8 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/healthcheck"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/canonical/identity-platform-login-ui/internal/version"
-	"go.opentelemetry.io/otel/trace"
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
@@ -27,7 +27,7 @@ type Service struct {
 	hydraStatus  healthcheck.CheckerInterface
 	kratosStatus healthcheck.CheckerInterface
 
-	tracer  trace.Tracer
+	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
 }
@@ -117,7 +117,7 @@ func (s *Service) gitRevision(ctx context.Context, settings []debug.BuildSetting
 	return "n/a"
 }
 
-func NewService(kratos kClient.MetadataApi, hydra hClient.MetadataApi, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(kratos kClient.MetadataApi, hydra hClient.MetadataApi, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos

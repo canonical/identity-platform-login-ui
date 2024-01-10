@@ -17,7 +17,7 @@ import (
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_status.go -source=./interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracing.go go.opentelemetry.io/otel/trace Tracer
+//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_kratos.go -mock_names MetadataApi=MockKratosMetadataApi github.com/ory/kratos-client-go MetadataApi
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_hydra.go -mock_names MetadataApi=MockHydraMetadataApi "github.com/ory/hydra-client-go/v2" MetadataApi
 
@@ -26,7 +26,7 @@ func TestKratosReadySuccess(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratos := NewMockKratosMetadataApi(ctrl)
 	mockHydra := NewMockHydraMetadataApi(ctrl)
@@ -66,7 +66,7 @@ func TestHydraReadySuccess(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratos := NewMockKratosMetadataApi(ctrl)
 	mockHydra := NewMockHydraMetadataApi(ctrl)
@@ -106,7 +106,7 @@ func TestKratosReadyFailure(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratos := NewMockKratosMetadataApi(ctrl)
 	mockHydra := NewMockHydraMetadataApi(ctrl)
@@ -145,7 +145,7 @@ func TestHydraReadyFailure(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
-	mockTracer := NewMockTracer(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 	mockKratos := NewMockKratosMetadataApi(ctrl)
 	mockHydra := NewMockHydraMetadataApi(ctrl)

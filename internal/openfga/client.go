@@ -10,11 +10,11 @@ import (
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	openfga "github.com/openfga/go-sdk"
 	"github.com/openfga/go-sdk/client"
 	"github.com/openfga/go-sdk/credentials"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type Config struct {
@@ -25,12 +25,12 @@ type Config struct {
 	AuthModelID string
 	Debug       bool
 
-	Tracer  trace.Tracer
+	Tracer  tracing.TracingInterface
 	Monitor monitoring.MonitorInterface
 	Logger  logging.LoggerInterface
 }
 
-func NewConfig(apiScheme, apiHost, storeID, apiToken, authModelID string, debug bool, tracer trace.Tracer, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Config {
+func NewConfig(apiScheme, apiHost, storeID, apiToken, authModelID string, debug bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Config {
 	c := new(Config)
 
 	c.ApiScheme = apiScheme
@@ -50,7 +50,7 @@ func NewConfig(apiScheme, apiHost, storeID, apiToken, authModelID string, debug 
 type Client struct {
 	c *client.OpenFgaClient
 
-	tracer  trace.Tracer
+	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
 }

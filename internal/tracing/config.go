@@ -22,3 +22,9 @@ func NewConfig(enabled bool, otelGRPCEndpoint, otelHTTPEndpoint string, logger l
 
 	return c
 }
+
+func NewNoopConfig() *Config {
+	c := new(Config)
+	c.Enabled = false
+	return c
+}
