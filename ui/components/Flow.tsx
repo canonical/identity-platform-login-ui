@@ -1,17 +1,15 @@
 import {
   LoginFlow,
+  UiNode,
   UpdateLoginFlowBody,
   UpdateRecoveryFlowBody,
   UpdateRegistrationFlowBody,
   UpdateSettingsFlowBody,
   UpdateVerificationFlowBody,
-  UiNode,
 } from "@ory/client";
-import { getNodeId } from "@ory/integrations/ui";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import { Component, FormEvent } from "react";
+import { getNodeId, isUiNodeInputAttributes } from "@ory/integrations/ui";
+import React, { Component, FormEvent } from "react";
 import { Node } from "./Node";
-import React from "react";
 
 export type Values = Partial<
   | UpdateLoginFlowBody
@@ -74,8 +72,8 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
           // if the user clicks it.
           return;
         }
-        values[node.attributes.name as keyof Values] = node.attributes
-          .value as string;
+        const key = node.attributes.name as keyof Values;
+        values[key] = node.attributes.value as Values[keyof Values];
       }
     });
 
