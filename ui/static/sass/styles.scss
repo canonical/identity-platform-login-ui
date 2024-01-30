@@ -8,36 +8,28 @@ $breakpoint-navigation-threshold: 820px;
 @import 'vanilla-framework/scss/build';
 @include vf-p-icon-warning-grey;
 
-.login-card {
-  width: 100%;
-  max-width: 439px;
-  margin-left: auto;
-  margin-right: auto;
-  align-items: center;
-  text-align: center;
+@media screen and (max-width: $breakpoint-small) {
+  .page-row {
+    padding: 0;
+  }
+
+  .page-card {
+    border: 0;
+  }
+
+  body.is-paper {
+    background-color: #fff;
+  }
+}
+
+.page-inner {
+  padding: 1rem 2rem 2rem;
 }
 
 .login-button {
-  width: 95%;
-  margin-left: auto;
-  margin-right: auto;
-  align-items: center;
-}
-
-.canonical-logo {
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 20rem;
-}
-
-.error-icon {
-  height: 5rem;
-  margin: 1.5rem auto 1rem;
-  opacity: 0.9;
-  width: 5rem;
-}
-
-.error-heading {
-  margin-left: auto;
-  margin-right: auto;
+  display: flex;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 0.5rem;
+  width: 100%;
 }

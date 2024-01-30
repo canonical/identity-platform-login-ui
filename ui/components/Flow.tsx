@@ -162,7 +162,7 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
                         [getNodeId(node)]: value,
                       },
                     }),
-                    resolve
+                    resolve,
                   );
                 })
               }

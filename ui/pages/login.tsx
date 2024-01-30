@@ -1,8 +1,7 @@
 import { LoginFlow, UpdateLoginFlowBody } from "@ory/client";
-import { Card, Row, Spinner } from "@canonical/react-components";
+import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback } from "react";
 import React from "react";
@@ -10,6 +9,7 @@ import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import { FlowResponse } from "./consent";
+import PageLayout from "../components/PageLayout";
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
@@ -96,27 +96,29 @@ const Login: NextPage = () => {
 
           return Promise.reject(err);
         }),
-    [flow, router]
+    [flow, router],
   );
+  const reqName = flow?.oauth2_login_request?.client?.client_name;
+  const reqDomain = flow?.oauth2_login_request?.client?.client_uri
+    ? new URL(flow.oauth2_login_request.client.client_uri).hostname
+    : "";
+  const getTitleSuffix = () => {
+    if (reqName && reqDomain) {
+      return ` to ${reqName} on ${reqDomain}`;
+    }
+    if (reqName) {
+      return ` to ${reqName}`;
+    }
+    if (reqDomain) {
+      return ` to ${reqDomain}`;
+    }
+    return "";
+  };
+  const title = `Sign in${getTitleSuffix()}`;
   return (
-    <>
-      <Head>
-        <title>Sign in</title>
-      </Head>
-      <Row className="p-strip is-shallow">
-        <div className="login-card">
-          <div>
-            {flow ? (
-              <Card title="Choose Provider">
-                <Flow onSubmit={handleSubmit} flow={flow} />
-              </Card>
-            ) : (
-              <Spinner />
-            )}
-          </div>
-        </div>
-      </Row>
-    </>
+    <PageLayout title={title}>
+      {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
+    </PageLayout>
   );
 };
 
