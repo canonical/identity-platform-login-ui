@@ -27,7 +27,7 @@ const Content: FC<Props> = ({ attributes }) => {
             {/* Used lookup_secret has ID 1050014 */}
             <code>{text.id === 1050014 ? "Used" : text.text}</code>
           </div>
-        )
+        ),
       );
       return (
         <div

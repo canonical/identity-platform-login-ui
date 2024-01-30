@@ -1,13 +1,13 @@
 import { FlowError } from "@ory/client";
-import { Icon, Row } from "@canonical/react-components";
+import { CodeSnippet } from "@canonical/react-components";
 import { AxiosError, AxiosResponse } from "axios";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import React from "react";
 import { kratos } from "../api/kratos";
-import Head from "next/head";
 import { GenericError } from "@ory/client/api";
+import PageLayout from "../components/PageLayout";
 
 const Error: NextPage = () => {
   const [error, setError] = useState<FlowError>();
@@ -43,26 +43,25 @@ const Error: NextPage = () => {
   }, [id, router, router.isReady, error]);
 
   return (
-    <>
-      <Head>
-        <title>Login failed</title>
-      </Head>
-      <Row className="p-strip is-shallow u-align--center">
-        <Icon name="warning-grey" className="error-icon" />
-        <h1 className="p-heading--4 error-heading">Login failed</h1>
-        <div>
-          {router.isReady && error?.error ? (
-            (error.error as GenericError).reason ? (
-              (error.error as GenericError).reason
-            ) : (
-              JSON.stringify(error.error, null, 2)
-            )
-          ) : (
-            <>An error occurred please try again later.</>
-          )}
-        </div>
-      </Row>
-    </>
+    <PageLayout title="Sign in failed">
+      <CodeSnippet
+        blocks={[
+          {
+            wrapLines: true,
+            code:
+              router.isReady && error?.error ? (
+                (error.error as GenericError).reason ? (
+                  (error.error as GenericError).reason
+                ) : (
+                  JSON.stringify(error.error, null, 2)
+                )
+              ) : (
+                <>An error occurred. Try signing in again.</>
+              ),
+          },
+        ]}
+      />
+    </PageLayout>
   );
 };
 
