@@ -23,9 +23,6 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     if (value.toLowerCase().startsWith("microsoft")) {
       return "logos/Microsoft.svg";
     }
-    if (value.toLowerCase().startsWith("okta")) {
-      return "logos/Okta.svg";
-    }
     if (value.toLowerCase().startsWith("ping")) {
       return "logos/Ping.svg";
     }
