@@ -26,7 +26,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     if (value.toLowerCase().startsWith("ping")) {
       return "logos/Ping.svg";
     }
-    return "";
+    return "logos/Fallback.svg";
   };
 
   const label = getNodeLabel(node);
@@ -47,13 +47,11 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     >
       {isProvider ? (
         <>
-          {image && (
-            <img
-              src={image}
-              alt={`${provider} logo`}
-              style={{ marginRight: "0.5rem" }}
-            />
-          )}
+          <img
+            src={image}
+            alt={`${provider} logo`}
+            style={{ marginRight: "0.5rem" }}
+          />
           <span>Sign in with {label}</span>
         </>
       ) : (
