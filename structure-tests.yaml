@@ -19,4 +19,4 @@ fileExistenceTests:
 commandTests:
   - name: "application version"
     command: "/usr/bin/identity-platform-login-ui"
-    args: ["-version"]
+    args: ["version"]
