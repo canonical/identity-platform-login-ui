@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.12.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.11.3...v0.12.0) (2024-01-31)
+
+
+### Features
+
+* Add authorization logic for allowed providers ([5da85b7](https://github.com/canonical/identity-platform-login-ui/commit/5da85b785a49e11600ce8f342c80ecd20bbd38bf))
+* Add authorizer struct ([c6170a2](https://github.com/canonical/identity-platform-login-ui/commit/c6170a209c49003dbf19ff277a0d2b3e1b268a53))
+* add create-fga-model CLI command ([42f47df](https://github.com/canonical/identity-platform-login-ui/commit/42f47df508312f4a28a3a0d4a71859d40c053ed4))
+* add fallback logo for identity providers ([ca957ee](https://github.com/canonical/identity-platform-login-ui/commit/ca957ee6db4f20f7b0c89fe172b2b2f9d446cdb8))
+* Add openfga client ([8628fa6](https://github.com/canonical/identity-platform-login-ui/commit/8628fa6a41805519cc99b4aaea94d3f857d7079e))
+* remove okta logo from login providers list ([88bb621](https://github.com/canonical/identity-platform-login-ui/commit/88bb621c8cd82334d91219c8f5c8d983fe81fc26))
+* use cobra for CLI ([50963a3](https://github.com/canonical/identity-platform-login-ui/commit/50963a396ad4c64023c4e5d28b53b4a456f71eb4))
+* use new design and add user flows as dummy pages WD-8469 ([2ac0e1a](https://github.com/canonical/identity-platform-login-ui/commit/2ac0e1addcad6ef899fcdb5d10aee653da7cb019))
+
+
+### Bug Fixes
+
+* add noop clients ([5b6f62a](https://github.com/canonical/identity-platform-login-ui/commit/5b6f62a9ce35cdd5c79463c34fe780a64aa3fbe1))
+* bump otel/trace version ([d2f65fc](https://github.com/canonical/identity-platform-login-ui/commit/d2f65fc35bb53b938beeca70132851e3674ec217))
+* readme typo ([80de6dd](https://github.com/canonical/identity-platform-login-ui/commit/80de6dd598c6a5b778ea43123bf9bc32b185aec1))
+* switch to zap nop logger ([57b37f8](https://github.com/canonical/identity-platform-login-ui/commit/57b37f8b7102b4b62057f27c9648e6546e9a0e67))
+* update rockcraft.yaml ([c595939](https://github.com/canonical/identity-platform-login-ui/commit/c595939e6ebffa562fa9597edfc9d677dda9280c))
+* update ui ([e862475](https://github.com/canonical/identity-platform-login-ui/commit/e8624753928602ff5664d8bdc601705c2a2cdb76))
+* Use github as test provider ([71eb388](https://github.com/canonical/identity-platform-login-ui/commit/71eb388594889c4707a1703fece37c41ea564b09))
+* Use label to generate button text ([0494160](https://github.com/canonical/identity-platform-login-ui/commit/0494160446f5320989224e8b40b6aaa749eed7a1))
+
 ## [0.11.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.11.2...v0.11.3) (2023-11-01)
 
 
