@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -729,6 +730,24 @@ func TestCheckAllowedProviderFail(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error not nil")
 	}
+}
+
+func TestGetClientNameOAuthKeeper(t *testing.T) {
+	loginFlow := &kClient.LoginFlow{}
+
+	actualClientName := getClientName(loginFlow)
+
+	const expectedClientName = ""
+	assert.Equal(t, expectedClientName, actualClientName)
+}
+
+func TestGetClientNameOAuth2Request(t *testing.T) {
+	expectedClientName := "mockClientName"
+	loginFlow := &kClient.LoginFlow{Oauth2LoginRequest: &kClient.OAuth2LoginRequest{Client: &kClient.OAuth2Client{ClientName: &expectedClientName}}}
+
+	actualClientName := getClientName(loginFlow)
+
+	assert.Equal(t, expectedClientName, actualClientName)
 }
 
 func TestFilterFlowProviderListAllowAll(t *testing.T) {
