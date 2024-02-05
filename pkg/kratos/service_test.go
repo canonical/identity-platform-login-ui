@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -734,20 +733,26 @@ func TestCheckAllowedProviderFail(t *testing.T) {
 
 func TestGetClientNameOAuthKeeper(t *testing.T) {
 	loginFlow := &kClient.LoginFlow{}
+	service := NewService(nil, nil, nil, nil, nil, nil)
 
-	actualClientName := getClientName(loginFlow)
+	actualClientName := service.getClientName(loginFlow)
 
 	const expectedClientName = ""
-	assert.Equal(t, expectedClientName, actualClientName)
+	if expectedClientName != actualClientName {
+		t.Fatalf("Expected client name doesn't match")
+	}
 }
 
 func TestGetClientNameOAuth2Request(t *testing.T) {
 	expectedClientName := "mockClientName"
 	loginFlow := &kClient.LoginFlow{Oauth2LoginRequest: &kClient.OAuth2LoginRequest{Client: &kClient.OAuth2Client{ClientName: &expectedClientName}}}
+	service := NewService(nil, nil, nil, nil, nil, nil)
 
-	actualClientName := getClientName(loginFlow)
+	actualClientName := service.getClientName(loginFlow)
 
-	assert.Equal(t, expectedClientName, actualClientName)
+	if expectedClientName != actualClientName {
+		t.Fatalf("Expected client name doesn't match")
+	}
 }
 
 func TestFilterFlowProviderListAllowAll(t *testing.T) {

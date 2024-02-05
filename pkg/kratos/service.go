@@ -170,7 +170,7 @@ func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.L
 	defer span.End()
 
 	provider := updateFlowBody.UpdateLoginFlowWithOidcMethod.Provider
-	clientName := getClientName(loginFlow)
+	clientName := s.getClientName(loginFlow)
 
 	allowedProviders, err := s.authz.ListObjects(ctx, fmt.Sprintf("app:%s", clientName), "allowed_access", "provider")
 	if err != nil {
@@ -183,7 +183,7 @@ func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.L
 	return s.contains(allowedProviders, fmt.Sprintf("%v", provider)), nil
 }
 
-func getClientName(loginFlow *kClient.LoginFlow) string {
+func (s *Service) getClientName(loginFlow *kClient.LoginFlow) string {
 	oauth2LoginRequest := loginFlow.Oauth2LoginRequest
 	if oauth2LoginRequest != nil {
 		return oauth2LoginRequest.Client.GetClientName()
@@ -196,8 +196,7 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.FilterFlowProviderList")
 	defer span.End()
 
-	loginRequest := flow.Oauth2LoginRequest
-	clientName := loginRequest.Client.GetClientName()
+	clientName := s.getClientName(flow)
 
 	allowedProviders, err := s.authz.ListObjects(ctx, fmt.Sprintf("app:%s", clientName), "allowed_access", "provider")
 	if err != nil {
