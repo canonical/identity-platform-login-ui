@@ -170,7 +170,7 @@ func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.L
 	defer span.End()
 
 	provider := updateFlowBody.UpdateLoginFlowWithOidcMethod.Provider
-	clientName := loginFlow.Oauth2LoginRequest.Client.GetClientName()
+	clientName := getClientName(loginFlow)
 
 	allowedProviders, err := s.authz.ListObjects(ctx, fmt.Sprintf("app:%s", clientName), "allowed_access", "provider")
 	if err != nil {
@@ -181,6 +181,15 @@ func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.L
 		return true, nil
 	}
 	return s.contains(allowedProviders, fmt.Sprintf("%v", provider)), nil
+}
+
+func getClientName(loginFlow *kClient.LoginFlow) string {
+	oauth2LoginRequest := loginFlow.Oauth2LoginRequest
+	if oauth2LoginRequest != nil {
+		return oauth2LoginRequest.Client.GetClientName()
+	}
+	// Handle OAuthkeeper case
+	return ""
 }
 
 func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.LoginFlow) (*kClient.LoginFlow, error) {
