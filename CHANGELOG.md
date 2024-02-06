@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.12.0...v0.12.1) (2024-02-06)
+
+
+### Bug Fixes
+
+* **CheckAllowedProviders:** fix OAuthKeeper case ([24212f4](https://github.com/canonical/identity-platform-login-ui/commit/24212f4decc0c5e76e74a21ffc21eab8eae08feb))
+* typo in Oathkeeper name ([5f7634d](https://github.com/canonical/identity-platform-login-ui/commit/5f7634dca31afb854be4ff0254659c5c51859d2d))
+
 ## [0.12.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.11.3...v0.12.0) (2024-01-31)
 
 
