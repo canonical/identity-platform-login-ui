@@ -731,7 +731,7 @@ func TestCheckAllowedProviderFail(t *testing.T) {
 	}
 }
 
-func TestGetClientNameOAuthKeeper(t *testing.T) {
+func TestGetClientNameOathkeeper(t *testing.T) {
 	loginFlow := &kClient.LoginFlow{}
 	service := NewService(nil, nil, nil, nil, nil, nil)
 

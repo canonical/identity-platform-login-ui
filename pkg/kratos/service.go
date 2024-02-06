@@ -188,7 +188,7 @@ func (s *Service) getClientName(loginFlow *kClient.LoginFlow) string {
 	if oauth2LoginRequest != nil {
 		return oauth2LoginRequest.Client.GetClientName()
 	}
-	// Handle OAuthkeeper case
+	// Handle Oathkeeper case
 	return ""
 }
 
