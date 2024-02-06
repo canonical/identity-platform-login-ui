@@ -731,6 +731,30 @@ func TestCheckAllowedProviderFail(t *testing.T) {
 	}
 }
 
+func TestGetClientNameOathkeeper(t *testing.T) {
+	loginFlow := &kClient.LoginFlow{}
+	service := NewService(nil, nil, nil, nil, nil, nil)
+
+	actualClientName := service.getClientName(loginFlow)
+
+	const expectedClientName = ""
+	if expectedClientName != actualClientName {
+		t.Fatalf("Expected client name doesn't match")
+	}
+}
+
+func TestGetClientNameOAuth2Request(t *testing.T) {
+	expectedClientName := "mockClientName"
+	loginFlow := &kClient.LoginFlow{Oauth2LoginRequest: &kClient.OAuth2LoginRequest{Client: &kClient.OAuth2Client{ClientName: &expectedClientName}}}
+	service := NewService(nil, nil, nil, nil, nil, nil)
+
+	actualClientName := service.getClientName(loginFlow)
+
+	if expectedClientName != actualClientName {
+		t.Fatalf("Expected client name doesn't match")
+	}
+}
+
 func TestFilterFlowProviderListAllowAll(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
