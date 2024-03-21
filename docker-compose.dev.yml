@@ -14,15 +14,14 @@ services:
         target: /etc/config/kratos
     command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
     restart: on-failure
-    networks:
-      - intranet
+    network_mode: "host"
   kratos:
     depends_on:
       - kratos-migrate
     image: oryd/kratos:v1.0.0
-    ports:
-      - '4433:4433' # public
-      - '4434:4434' # admin
+    # ports:
+    #   - '4433:4433' # public
+    #   - '4434:4434' # admin
     restart: unless-stopped
     environment:
       - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
@@ -38,37 +37,38 @@ services:
       - type: bind
         source: ./docker/kratos
         target: /etc/config/kratos
-    networks:
-      - intranet
+    network_mode: "host"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-  hydra:
-    image: hydra:latest
-    ports:
-      - "4444:4444" # Public port
-      - "4445:4445" # Admin port
-    volumes:
-      - type: volume
-        source: hydra-sqlite
-        target: /var/lib/sqlite
-        read_only: false
-      - type: bind
-        source: ./docker/hydra
-        target: /etc/config/hydra
-    environment:
-      - DSN=postgresql://hydra:hydra@postgres/hydra?sslmode=disable
-      - CORS_DEBUG=1
-    entrypoint: hydra serve -c /etc/config/hydra/hydra.yml --dev all
-    restart: unless-stopped
-    depends_on:
-      - hydra-migrate
-    networks:
-      - intranet
+  # hydra:
+  #   image: docker.io/oryd/hydra:latest-sqlite
+  #   ports:
+  #     - "4444:4444" # Public port
+  #     - "4445:4445" # Admin port
+  #   volumes:
+  #     - type: volume
+  #       source: hydra-sqlite
+  #       target: /var/lib/sqlite
+  #       read_only: false
+  #     - type: bind
+  #       source: ./docker/hydra
+  #       target: /etc/config/hydra
+  #   environment:
+  #     - DSN=postgresql://hydra:hydra@postgres/hydra?sslmode=disable
+  #     - CORS_DEBUG=1
+  #   command: serve -c /etc/config/hydra/hydra.yml all --dev
+  #   # entrypoint: hydra serve -c /etc/config/hydra/hydra.yml --dev all
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - hydra-migrate
+  #   network_mode: "host"
   hydra-migrate:
-    image: hydra:latest
+    image: docker.io/oryd/hydra:latest-sqlite
+  #   image: hydra:latest
     environment:
-      - DSN=postgresql://hydra:hydra@postgres/hydra?sslmode=disable
-    command: exec hydra migrate -c /etc/config/hydra/hydra.yml sql -e --yes
+      - DSN=postgresql://hydra:hydra@localhost:5432/hydra?sslmode=disable
+    command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
+    # command: exec hydra migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
       - type: volume
         source: hydra-sqlite
@@ -78,24 +78,23 @@ services:
         source: ./docker/hydra
         target: /etc/config/hydra
     restart: on-failure
-    networks:
-      - intranet
+    network_mode: "host"
     depends_on:
       postgres:
         condition: service_healthy
   mailslurper:
     image: oryd/mailslurper:latest-smtps
-    ports:
-      - '4436:4436'
-      - '4437:4437'
+    # ports:
+    #   - '4436:4436'
+    #   - '4437:4437'
     networks:
       - intranet
   postgres:
     image: postgres
     container_name: postgres
     restart: always
-    ports:
-      - 5432:5432
+    # ports:
+    #   - 5432:5432
     environment:
       POSTGRES_DB: hydra
       POSTGRES_USER: hydra
@@ -105,8 +104,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - intranet
+    network_mode: "host"
 networks:
   intranet:
 volumes:
