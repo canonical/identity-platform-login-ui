@@ -6,6 +6,8 @@ import (
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
+
+	"github.com/canonical/identity-platform-login-ui/internal/hydra"
 )
 
 type KratosClientInterface interface {
@@ -13,7 +15,7 @@ type KratosClientInterface interface {
 }
 
 type HydraClientInterface interface {
-	OAuth2Api() hClient.OAuth2Api
+	OAuth2Api() hydra.OAuth2Api
 }
 
 type ServiceInterface interface {
