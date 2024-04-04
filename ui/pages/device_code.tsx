@@ -1,7 +1,7 @@
 import type { NextPage } from "next";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import React, { FormEvent, useCallback, useEffect } from "react";
+import React, { FormEvent, useCallback, useState } from "react";
 import PageLayout from "../components/PageLayout";
 import { Button, Form, Input } from "@canonical/react-components";
 
@@ -11,32 +11,22 @@ export interface Response {
   };
 }
 
-function acceptUserCode(userCode: string, challenge: string) {
-  axios
-    .put("/api/device?device_challenge=" + String(challenge), {
+async function acceptUserCode(userCode: string, challenge: string) {
+  return axios
+    .put(`/api/device?device_challenge=${challenge}`, {
       user_code: userCode,
     })
     .then(({ data }: Response) => {
       if (data.redirect_to) {
         window.location.href = data.redirect_to;
       }
-    })
-    .catch(() => {
-      return Promise.reject();
     });
-  return;
 }
 
 const DeviceCode: NextPage = () => {
   const router = useRouter();
   const { device_challenge: challenge, user_code: code } = router.query;
-
-  useEffect(() => {
-    // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady) {
-      return;
-    }
-  }, [code]);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -44,7 +34,19 @@ const DeviceCode: NextPage = () => {
 
       const formData = new FormData(event.currentTarget);
       const userCode = formData.get("code");
-      acceptUserCode(String(userCode), String(challenge));
+      acceptUserCode(String(userCode), String(challenge)).catch(
+        (error: AxiosError) => {
+          // TODO(nsklikas): Refactor when proper error handling is
+          // implemented in the backend
+          if (error.response?.status == 400) {
+            setErrorMessage(
+              "The code is either invalid, expired or already used",
+            );
+          } else {
+            setErrorMessage("Something went wrong, please try again");
+          }
+        },
+      );
     },
     [challenge],
   );
@@ -59,6 +61,7 @@ const DeviceCode: NextPage = () => {
           placeholder="XXXXXXXX"
           autoFocus={true}
           defaultValue={code}
+          error={errorMessage}
         />
         <Button
           type="submit"
