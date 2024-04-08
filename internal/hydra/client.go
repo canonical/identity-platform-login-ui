@@ -3,28 +3,29 @@ package hydra
 import (
 	"net/http"
 
-	client "github.com/ory/hydra-client-go/v2"
+	hClient "github.com/ory/hydra-client-go/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type Client struct {
-	c *client.APIClient
+	c         *hClient.APIClient
+	deviceApi *DeviceApiService
 }
 
-func (c *Client) OAuth2Api() client.OAuth2Api {
-	return c.c.OAuth2Api
+func (c *Client) OAuth2Api() OAuth2Api {
+	return c.deviceApi
 }
 
-func (c *Client) MetadataApi() client.MetadataApi {
+func (c *Client) MetadataApi() hClient.MetadataApi {
 	return c.c.MetadataApi
 }
 
 func NewClient(url string, debug bool) *Client {
 	c := new(Client)
 
-	configuration := client.NewConfiguration()
+	configuration := hClient.NewConfiguration()
 	configuration.Debug = debug
-	configuration.Servers = []client.ServerConfiguration{
+	configuration.Servers = []hClient.ServerConfiguration{
 		{
 			URL: url,
 		},
@@ -32,7 +33,8 @@ func NewClient(url string, debug bool) *Client {
 
 	configuration.HTTPClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 
-	c.c = client.NewAPIClient(configuration)
+	c.c = hClient.NewAPIClient(configuration)
+	c.deviceApi = newDeviceApiService(c.c)
 
 	return c
 }

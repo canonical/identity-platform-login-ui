@@ -1,4 +1,4 @@
-package extra
+package device
 
 import (
 	"context"
@@ -19,7 +19,6 @@ type HydraClientInterface interface {
 }
 
 type ServiceInterface interface {
-	CheckSession(context.Context, []*http.Cookie) (*kClient.Session, error)
-	GetConsent(context.Context, string) (*hClient.OAuth2ConsentRequest, error)
-	AcceptConsent(context.Context, kClient.Identity, *hClient.OAuth2ConsentRequest) (*hClient.OAuth2RedirectTo, error)
+	AcceptUserCode(context.Context, string, *hydra.AcceptDeviceUserCodeRequest) (*hClient.OAuth2RedirectTo, error)
+	ParseUserCodeBody(*http.Request) (*hydra.AcceptDeviceUserCodeRequest, error)
 }
