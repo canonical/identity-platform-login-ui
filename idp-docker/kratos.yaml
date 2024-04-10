@@ -1,0 +1,93 @@
+version: v1.1.0
+
+log:
+   level: debug
+   format: text
+   leak_sensitive_values: true
+dsn: memory
+serve:
+ public:
+   base_url: http://localhost:4433/
+   cors:
+     enabled: true
+ admin:
+   base_url: http://kratos:4434/
+
+identity:
+   default_schema_id: default
+   schemas:
+       - id: default
+         url: file:///etc/config/kratos/identity.schema.json
+selfservice:
+   default_browser_return_url:
+       http://localhost:4455/
+   allowed_return_urls:
+     - http://localhost:4455
+     - http://localhost:8080
+   flows:
+       error:
+           ui_url: http://localhost:4455/ui/error
+       login:
+           ui_url: http://localhost:4455/ui/login
+#           after:
+#               password:
+#                 hooks:
+#                 - hook: require_verified_address
+      #  registration:
+      #      enabled: True
+      #      ui_url: http://localhost:4455/registration
+      #      after:
+      #         oidc:
+      #             hooks:
+      #             - hook: session
+      #          password:
+      #              hooks:
+      #                - hook: session
+      #  settings:
+      #      ui_url: http://localhost:4455/settings
+      #      # Sessions older than 10m requires the user to sign in again before the password is changed
+      #      privileged_session_max_age: 10m
+      #  recovery:
+      #    enabled: true
+      #    ui_url: http://localhost:4455/recovery
+      #  verification:
+      #    enabled: true
+      #    ui_url: http://localhost:4455/verification
+      #    use: link
+   methods:
+      #  lookup_secret:
+      #    enabled: true
+      #  totp:
+      #    enabled: true
+      #    config:
+      #      issuer: GoogleAuthenticator
+      password:
+          enabled: true
+      #  profile:
+      #      enabled: true
+      oidc:
+          config:
+              providers:
+              - id: "microsoft_cccca7a7a3666c2bc336a09713596333b5d02fbc"
+                client_id: "bf7ca934-18d9-4726-b0b0-a0d0ac7105f9"
+                provider: "microsoft"
+                client_secret: "CHANGE-ME"
+                microsoft_tenant: "8de88d99-6d0f-44d7-a8a5-925b012e5940"
+                mapper_url: "file:///etc/config/kratos/microsoft_schema.jsonnet"
+                scope: ["profile", "email", "address", "phone"]
+          enabled: True
+oauth2_provider:
+  url: "http://hydra:4445"
+session:
+  whoami:
+    required_aal: highest_available
+courier:
+   smtp:
+       connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+#   templates:
+#       recovery:
+#         valid:
+#           email:
+#             subject: file://path/to/subject.gotmpl
+#             template:
+#               html: file://path/to/body.html.gotmpl

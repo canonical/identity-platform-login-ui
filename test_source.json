@@ -1,0 +1,303 @@
+{"Time":"2024-03-28T14:17:12.316761133+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui"}
+{"Time":"2024-03-28T14:17:12.316812026+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui","Output":"?   \tgithub.com/canonical/identity-platform-login-ui\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.316821417+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.316837677+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/cmd"}
+{"Time":"2024-03-28T14:17:12.316845507+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/cmd","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/cmd\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.316851552+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/cmd","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.316855005+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/authorization"}
+{"Time":"2024-03-28T14:17:12.316884988+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/authorization","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/authorization\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.316892183+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/authorization","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.316942549+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/config"}
+{"Time":"2024-03-28T14:17:12.316950885+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/config","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/config\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.316958097+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/config","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.316965338+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/healthcheck"}
+{"Time":"2024-03-28T14:17:12.316971708+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/healthcheck","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/healthcheck\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.316977457+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/healthcheck","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.317016005+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/http_meta"}
+{"Time":"2024-03-28T14:17:12.317045196+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/http_meta","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/http_meta\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.317054165+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/http_meta","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.317062274+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/hydra"}
+{"Time":"2024-03-28T14:17:12.317069175+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/hydra","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/hydra\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.317075672+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/hydra","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.317081587+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/kratos"}
+{"Time":"2024-03-28T14:17:12.317104382+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/kratos","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/kratos\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.317112174+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/kratos","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.79053071+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/logging"}
+{"Time":"2024-03-28T14:17:12.790627914+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/misc/http"}
+{"Time":"2024-03-28T14:17:12.790657936+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/misc/http","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/misc/http\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.790668062+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/misc/http","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.791899293+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Test":"TestDebugLogger"}
+{"Time":"2024-03-28T14:17:12.791921094+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Test":"TestDebugLogger","Output":"=== RUN   TestDebugLogger\n"}
+{"Time":"2024-03-28T14:17:12.792006888+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Test":"TestDebugLogger","Output":"--- PASS: TestDebugLogger (0.00s)\n"}
+{"Time":"2024-03-28T14:17:12.79201556+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Test":"TestDebugLogger","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.79202411+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Test":"TestInvalidLevel"}
+{"Time":"2024-03-28T14:17:12.792030439+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Test":"TestInvalidLevel","Output":"=== RUN   TestInvalidLevel\n"}
+{"Time":"2024-03-28T14:17:12.792038626+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Test":"TestInvalidLevel","Output":"--- PASS: TestInvalidLevel (0.00s)\n"}
+{"Time":"2024-03-28T14:17:12.792045391+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Test":"TestInvalidLevel","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.792053798+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Output":"PASS\n"}
+{"Time":"2024-03-28T14:17:12.792294327+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Output":"coverage: 41.0% of statements\n"}
+{"Time":"2024-03-28T14:17:12.792625329+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Output":"ok  \tgithub.com/canonical/identity-platform-login-ui/internal/logging\t0.002s\tcoverage: 41.0% of statements\n"}
+{"Time":"2024-03-28T14:17:12.792641276+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/internal/logging","Elapsed":0.002}
+{"Time":"2024-03-28T14:17:12.958797236+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring"}
+{"Time":"2024-03-28T14:17:12.958905025+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus"}
+{"Time":"2024-03-28T14:17:12.958992152+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.959003657+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.959013661+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/openfga"}
+{"Time":"2024-03-28T14:17:12.959052591+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/openfga","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/openfga\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.959076526+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/openfga","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.959089125+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/ory/mocks"}
+{"Time":"2024-03-28T14:17:12.959096459+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/ory/mocks","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/ory/mocks\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.959102547+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/ory/mocks","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.959175126+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/tracing"}
+{"Time":"2024-03-28T14:17:12.959229505+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/tracing","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/tracing\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.959239413+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/tracing","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.959252052+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/internal/version"}
+{"Time":"2024-03-28T14:17:12.959260853+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/version","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/internal/version\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:12.959268561+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/internal/version","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.960900752+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring","Test":"TestMiddlewareResponseTime"}
+{"Time":"2024-03-28T14:17:12.960954834+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring","Test":"TestMiddlewareResponseTime","Output":"=== RUN   TestMiddlewareResponseTime\n"}
+{"Time":"2024-03-28T14:17:12.961015685+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring","Test":"TestMiddlewareResponseTime","Output":"--- PASS: TestMiddlewareResponseTime (0.00s)\n"}
+{"Time":"2024-03-28T14:17:12.961027032+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring","Test":"TestMiddlewareResponseTime","Elapsed":0}
+{"Time":"2024-03-28T14:17:12.961039+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring","Output":"PASS\n"}
+{"Time":"2024-03-28T14:17:12.961414692+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring","Output":"coverage: 26.4% of statements\n"}
+{"Time":"2024-03-28T14:17:12.96207231+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring","Output":"ok  \tgithub.com/canonical/identity-platform-login-ui/internal/monitoring\t0.003s\tcoverage: 26.4% of statements\n"}
+{"Time":"2024-03-28T14:17:12.962085016+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/internal/monitoring","Elapsed":0.003}
+{"Time":"2024-03-28T14:17:13.537260026+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra"}
+{"Time":"2024-03-28T14:17:13.539844627+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentSuccess"}
+{"Time":"2024-03-28T14:17:13.539876091+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentSuccess","Output":"=== RUN   TestHandleConsentSuccess\n"}
+{"Time":"2024-03-28T14:17:13.540021003+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentSuccess","Output":"--- PASS: TestHandleConsentSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.540041529+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540048909+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnAcceptConsent"}
+{"Time":"2024-03-28T14:17:13.540054238+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnAcceptConsent","Output":"=== RUN   TestHandleConsentFailOnAcceptConsent\n"}
+{"Time":"2024-03-28T14:17:13.540119932+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnAcceptConsent","Output":"--- PASS: TestHandleConsentFailOnAcceptConsent (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.540126985+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnAcceptConsent","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540133086+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnGetConsent"}
+{"Time":"2024-03-28T14:17:13.540138232+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnGetConsent","Output":"=== RUN   TestHandleConsentFailOnGetConsent\n"}
+{"Time":"2024-03-28T14:17:13.540171837+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnGetConsent","Output":"--- PASS: TestHandleConsentFailOnGetConsent (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.54018001+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnGetConsent","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540187796+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnCheckSession"}
+{"Time":"2024-03-28T14:17:13.54019527+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnCheckSession","Output":"=== RUN   TestHandleConsentFailOnCheckSession\n"}
+{"Time":"2024-03-28T14:17:13.540245458+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnCheckSession","Output":"--- PASS: TestHandleConsentFailOnCheckSession (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.54025349+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestHandleConsentFailOnCheckSession","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540261874+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestCheckSessionSuccess"}
+{"Time":"2024-03-28T14:17:13.540276009+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestCheckSessionSuccess","Output":"=== RUN   TestCheckSessionSuccess\n"}
+{"Time":"2024-03-28T14:17:13.540359478+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestCheckSessionSuccess","Output":"--- PASS: TestCheckSessionSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.540366771+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestCheckSessionSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540374911+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestCheckSessionFails"}
+{"Time":"2024-03-28T14:17:13.540381461+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestCheckSessionFails","Output":"=== RUN   TestCheckSessionFails\n"}
+{"Time":"2024-03-28T14:17:13.540420769+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestCheckSessionFails","Output":"--- PASS: TestCheckSessionFails (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.540436932+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestCheckSessionFails","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540444826+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestGetConsentSuccess"}
+{"Time":"2024-03-28T14:17:13.54045151+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestGetConsentSuccess","Output":"=== RUN   TestGetConsentSuccess\n"}
+{"Time":"2024-03-28T14:17:13.540487802+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestGetConsentSuccess","Output":"--- PASS: TestGetConsentSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.540495206+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestGetConsentSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540502796+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestGetConsentFails"}
+{"Time":"2024-03-28T14:17:13.540509688+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestGetConsentFails","Output":"=== RUN   TestGetConsentFails\n"}
+{"Time":"2024-03-28T14:17:13.540546747+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestGetConsentFails","Output":"--- PASS: TestGetConsentFails (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.540553993+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestGetConsentFails","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540561537+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentSuccess"}
+{"Time":"2024-03-28T14:17:13.540568099+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentSuccess","Output":"=== RUN   TestAcceptConsentSuccess\n"}
+{"Time":"2024-03-28T14:17:13.54062708+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentSuccess","Output":"2024/03/28 14:17:13 Unexpected traits format: false\n"}
+{"Time":"2024-03-28T14:17:13.540634227+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentSuccess","Output":"2024/03/28 14:17:13 map[]\n"}
+{"Time":"2024-03-28T14:17:13.540651353+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentSuccess","Output":"--- PASS: TestAcceptConsentSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.540658622+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540666163+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentFails"}
+{"Time":"2024-03-28T14:17:13.540672849+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentFails","Output":"=== RUN   TestAcceptConsentFails\n"}
+{"Time":"2024-03-28T14:17:13.540710803+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentFails","Output":"2024/03/28 14:17:13 Unexpected traits format: false\n"}
+{"Time":"2024-03-28T14:17:13.540718003+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentFails","Output":"2024/03/28 14:17:13 map[]\n"}
+{"Time":"2024-03-28T14:17:13.540734269+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentFails","Output":"--- PASS: TestAcceptConsentFails (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.540749874+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Test":"TestAcceptConsentFails","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.540756837+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Output":"PASS\n"}
+{"Time":"2024-03-28T14:17:13.541276323+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Output":"coverage: 18.4% of statements\n"}
+{"Time":"2024-03-28T14:17:13.542414454+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Output":"ok  \tgithub.com/canonical/identity-platform-login-ui/pkg/extra\t0.005s\tcoverage: 18.4% of statements\n"}
+{"Time":"2024-03-28T14:17:13.542433704+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/extra","Elapsed":0.005}
+{"Time":"2024-03-28T14:17:13.758139798+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos"}
+{"Time":"2024-03-28T14:17:13.758234355+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/pkg/metrics"}
+{"Time":"2024-03-28T14:17:13.758299251+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/metrics","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/pkg/metrics\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:13.758307879+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/pkg/metrics","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.758320882+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/pkg/oidc"}
+{"Time":"2024-03-28T14:17:13.758327012+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/oidc","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/pkg/oidc\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:13.758332447+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/pkg/oidc","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.758339722+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/pkg/status"}
+{"Time":"2024-03-28T14:17:13.758362572+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/pkg/ui"}
+{"Time":"2024-03-28T14:17:13.758396009+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/ui","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/pkg/ui\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:13.758406331+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/pkg/ui","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.758414767+01:00","Action":"start","Package":"github.com/canonical/identity-platform-login-ui/pkg/web"}
+{"Time":"2024-03-28T14:17:13.758440492+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/web","Output":"?   \tgithub.com/canonical/identity-platform-login-ui/pkg/web\t[no test files]\n"}
+{"Time":"2024-03-28T14:17:13.758446792+01:00","Action":"skip","Package":"github.com/canonical/identity-platform-login-ui/pkg/web","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760303172+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestAliveOK"}
+{"Time":"2024-03-28T14:17:13.760348937+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestAliveOK","Output":"=== RUN   TestAliveOK\n"}
+{"Time":"2024-03-28T14:17:13.760363223+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSession"}
+{"Time":"2024-03-28T14:17:13.760369404+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSession","Output":"=== RUN   TestHandleCreateFlowWithoutSession\n"}
+{"Time":"2024-03-28T14:17:13.760414043+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestAliveOK","Output":"--- PASS: TestAliveOK (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.7604337+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestAliveOK","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760439689+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHealthSuccess"}
+{"Time":"2024-03-28T14:17:13.760444705+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHealthSuccess","Output":"=== RUN   TestHealthSuccess\n"}
+{"Time":"2024-03-28T14:17:13.760463251+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHealthSuccess","Output":"--- PASS: TestHealthSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760469361+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHealthSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760475331+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHealthFailure"}
+{"Time":"2024-03-28T14:17:13.760480339+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHealthFailure","Output":"=== RUN   TestHealthFailure\n"}
+{"Time":"2024-03-28T14:17:13.760501193+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHealthFailure","Output":"--- PASS: TestHealthFailure (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760506732+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHealthFailure","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.76051232+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestKratosReadySuccess"}
+{"Time":"2024-03-28T14:17:13.760517227+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestKratosReadySuccess","Output":"=== RUN   TestKratosReadySuccess\n"}
+{"Time":"2024-03-28T14:17:13.760529938+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSession","Output":"--- PASS: TestHandleCreateFlowWithoutSession (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760536056+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSession","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760541334+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow"}
+{"Time":"2024-03-28T14:17:13.760546242+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow","Output":"=== RUN   TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow\n"}
+{"Time":"2024-03-28T14:17:13.760592715+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow","Output":"--- PASS: TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760599232+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.76060447+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionFailOnFilterProviders"}
+{"Time":"2024-03-28T14:17:13.76060944+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionFailOnFilterProviders","Output":"=== RUN   TestHandleCreateFlowWithoutSessionFailOnFilterProviders\n"}
+{"Time":"2024-03-28T14:17:13.760624283+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestKratosReadySuccess","Output":"--- PASS: TestKratosReadySuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760638872+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestKratosReadySuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.7606445+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHydraReadySuccess"}
+{"Time":"2024-03-28T14:17:13.760649481+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHydraReadySuccess","Output":"=== RUN   TestHydraReadySuccess\n"}
+{"Time":"2024-03-28T14:17:13.760665419+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionFailOnFilterProviders","Output":"--- PASS: TestHandleCreateFlowWithoutSessionFailOnFilterProviders (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760671496+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionFailOnFilterProviders","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760676652+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed"}
+{"Time":"2024-03-28T14:17:13.760681626+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed","Output":"=== RUN   TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed\n"}
+{"Time":"2024-03-28T14:17:13.760725394+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHydraReadySuccess","Output":"--- PASS: TestHydraReadySuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760730869+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHydraReadySuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760736553+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestKratosReadyFailure"}
+{"Time":"2024-03-28T14:17:13.760741427+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestKratosReadyFailure","Output":"=== RUN   TestKratosReadyFailure\n"}
+{"Time":"2024-03-28T14:17:13.760749055+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed","Output":"--- PASS: TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760754292+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760759458+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithSession"}
+{"Time":"2024-03-28T14:17:13.7607643+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithSession","Output":"=== RUN   TestHandleCreateFlowWithSession\n"}
+{"Time":"2024-03-28T14:17:13.760797951+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithSession","Output":"--- PASS: TestHandleCreateFlowWithSession (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760803956+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithSession","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760809163+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest"}
+{"Time":"2024-03-28T14:17:13.760814154+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest","Output":"=== RUN   TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest\n"}
+{"Time":"2024-03-28T14:17:13.76082671+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestKratosReadyFailure","Output":"--- PASS: TestKratosReadyFailure (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760831987+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestKratosReadyFailure","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760837028+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHydraReadyFailure"}
+{"Time":"2024-03-28T14:17:13.760841905+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHydraReadyFailure","Output":"=== RUN   TestHydraReadyFailure\n"}
+{"Time":"2024-03-28T14:17:13.760848567+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest","Output":"--- PASS: TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760856018+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760861732+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleGetLoginFlow"}
+{"Time":"2024-03-28T14:17:13.760866663+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleGetLoginFlow","Output":"=== RUN   TestHandleGetLoginFlow\n"}
+{"Time":"2024-03-28T14:17:13.760881671+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHydraReadyFailure","Output":"--- PASS: TestHydraReadyFailure (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760887026+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Test":"TestHydraReadyFailure","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760892607+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Output":"PASS\n"}
+{"Time":"2024-03-28T14:17:13.760899156+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleGetLoginFlow","Output":"--- PASS: TestHandleGetLoginFlow (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.760904373+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleGetLoginFlow","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760910069+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleGetLoginFlowFail"}
+{"Time":"2024-03-28T14:17:13.760914946+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleGetLoginFlowFail","Output":"=== RUN   TestHandleGetLoginFlowFail\n"}
+{"Time":"2024-03-28T14:17:13.760942244+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleGetLoginFlowFail","Output":"--- PASS: TestHandleGetLoginFlowFail (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.76094824+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleGetLoginFlowFail","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.760953449+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlow"}
+{"Time":"2024-03-28T14:17:13.760958299+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlow","Output":"=== RUN   TestHandleUpdateFlow\n"}
+{"Time":"2024-03-28T14:17:13.761018267+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlow","Output":"--- PASS: TestHandleUpdateFlow (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761030553+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlow","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761035929+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowWhenProviderNotAllowed"}
+{"Time":"2024-03-28T14:17:13.76104088+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowWhenProviderNotAllowed","Output":"=== RUN   TestHandleUpdateFlowWhenProviderNotAllowed\n"}
+{"Time":"2024-03-28T14:17:13.761076378+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowWhenProviderNotAllowed","Output":"--- PASS: TestHandleUpdateFlowWhenProviderNotAllowed (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.76108229+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowWhenProviderNotAllowed","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761087446+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnParseLoginFlowMethodBody"}
+{"Time":"2024-03-28T14:17:13.761092521+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnParseLoginFlowMethodBody","Output":"=== RUN   TestHandleUpdateFlowFailOnParseLoginFlowMethodBody\n"}
+{"Time":"2024-03-28T14:17:13.761121296+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnParseLoginFlowMethodBody","Output":"--- PASS: TestHandleUpdateFlowFailOnParseLoginFlowMethodBody (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761127206+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnParseLoginFlowMethodBody","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761132337+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow"}
+{"Time":"2024-03-28T14:17:13.761137201+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow","Output":"=== RUN   TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow\n"}
+{"Time":"2024-03-28T14:17:13.761188351+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow","Output":"--- PASS: TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761194234+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.76119935+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnCheckAllowedProvider"}
+{"Time":"2024-03-28T14:17:13.761204233+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnCheckAllowedProvider","Output":"=== RUN   TestHandleUpdateFlowFailOnCheckAllowedProvider\n"}
+{"Time":"2024-03-28T14:17:13.76124837+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnCheckAllowedProvider","Output":"--- PASS: TestHandleUpdateFlowFailOnCheckAllowedProvider (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761257393+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestHandleUpdateFlowFailOnCheckAllowedProvider","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761263434+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckSessionSuccess"}
+{"Time":"2024-03-28T14:17:13.761274149+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckSessionSuccess","Output":"=== RUN   TestCheckSessionSuccess\n"}
+{"Time":"2024-03-28T14:17:13.761280704+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Output":"coverage: 41.6% of statements\n"}
+{"Time":"2024-03-28T14:17:13.761318895+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckSessionSuccess","Output":"--- PASS: TestCheckSessionSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761324819+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckSessionSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761330301+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckSessionFails"}
+{"Time":"2024-03-28T14:17:13.761335178+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckSessionFails","Output":"=== RUN   TestCheckSessionFails\n"}
+{"Time":"2024-03-28T14:17:13.761386628+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckSessionFails","Output":"--- PASS: TestCheckSessionFails (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761392467+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckSessionFails","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761397756+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestAcceptLoginRequestSuccess"}
+{"Time":"2024-03-28T14:17:13.761402629+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestAcceptLoginRequestSuccess","Output":"=== RUN   TestAcceptLoginRequestSuccess\n"}
+{"Time":"2024-03-28T14:17:13.761509754+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestAcceptLoginRequestSuccess","Output":"--- PASS: TestAcceptLoginRequestSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761517794+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestAcceptLoginRequestSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761525024+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestAcceptLoginRequestFails"}
+{"Time":"2024-03-28T14:17:13.761531867+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestAcceptLoginRequestFails","Output":"=== RUN   TestAcceptLoginRequestFails\n"}
+{"Time":"2024-03-28T14:17:13.761540231+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestAcceptLoginRequestFails","Output":"--- PASS: TestAcceptLoginRequestFails (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761547231+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestAcceptLoginRequestFails","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761554579+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCreateBrowserLoginFlowSuccess"}
+{"Time":"2024-03-28T14:17:13.761561408+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCreateBrowserLoginFlowSuccess","Output":"=== RUN   TestCreateBrowserLoginFlowSuccess\n"}
+{"Time":"2024-03-28T14:17:13.761571323+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCreateBrowserLoginFlowSuccess","Output":"--- PASS: TestCreateBrowserLoginFlowSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761578496+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCreateBrowserLoginFlowSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761586317+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCreateBrowserLoginFlowFail"}
+{"Time":"2024-03-28T14:17:13.761602405+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCreateBrowserLoginFlowFail","Output":"=== RUN   TestCreateBrowserLoginFlowFail\n"}
+{"Time":"2024-03-28T14:17:13.761626501+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCreateBrowserLoginFlowFail","Output":"--- PASS: TestCreateBrowserLoginFlowFail (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761633921+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCreateBrowserLoginFlowFail","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761641725+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetLoginFlowSuccess"}
+{"Time":"2024-03-28T14:17:13.761648294+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetLoginFlowSuccess","Output":"=== RUN   TestGetLoginFlowSuccess\n"}
+{"Time":"2024-03-28T14:17:13.761679961+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetLoginFlowSuccess","Output":"--- PASS: TestGetLoginFlowSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761686919+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetLoginFlowSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761694048+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetLoginFlowFail"}
+{"Time":"2024-03-28T14:17:13.76170055+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetLoginFlowFail","Output":"=== RUN   TestGetLoginFlowFail\n"}
+{"Time":"2024-03-28T14:17:13.761733967+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetLoginFlowFail","Output":"--- PASS: TestGetLoginFlowFail (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761742034+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetLoginFlowFail","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761749378+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestUpdateLoginFlowSuccess"}
+{"Time":"2024-03-28T14:17:13.761755806+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestUpdateLoginFlowSuccess","Output":"=== RUN   TestUpdateLoginFlowSuccess\n"}
+{"Time":"2024-03-28T14:17:13.761809034+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestUpdateLoginFlowSuccess","Output":"--- PASS: TestUpdateLoginFlowSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761817804+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestUpdateLoginFlowSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761825774+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestUpdateLoginFlowFail"}
+{"Time":"2024-03-28T14:17:13.761832716+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestUpdateLoginFlowFail","Output":"=== RUN   TestUpdateLoginFlowFail\n"}
+{"Time":"2024-03-28T14:17:13.761873835+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestUpdateLoginFlowFail","Output":"--- PASS: TestUpdateLoginFlowFail (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761881025+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestUpdateLoginFlowFail","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761886438+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetFlowErrorSuccess"}
+{"Time":"2024-03-28T14:17:13.7618985+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetFlowErrorSuccess","Output":"=== RUN   TestGetFlowErrorSuccess\n"}
+{"Time":"2024-03-28T14:17:13.761920688+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetFlowErrorSuccess","Output":"--- PASS: TestGetFlowErrorSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761926477+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetFlowErrorSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761932157+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetFlowErrorFail"}
+{"Time":"2024-03-28T14:17:13.761937129+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetFlowErrorFail","Output":"=== RUN   TestGetFlowErrorFail\n"}
+{"Time":"2024-03-28T14:17:13.761957731+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Output":"ok  \tgithub.com/canonical/identity-platform-login-ui/pkg/status\t0.003s\tcoverage: 41.6% of statements\n"}
+{"Time":"2024-03-28T14:17:13.761970611+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/status","Elapsed":0.004}
+{"Time":"2024-03-28T14:17:13.76197926+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetFlowErrorFail","Output":"--- PASS: TestGetFlowErrorFail (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.761988019+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetFlowErrorFail","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.761994767+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderAllowedSuccess"}
+{"Time":"2024-03-28T14:17:13.762000109+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderAllowedSuccess","Output":"=== RUN   TestCheckAllowedProviderAllowedSuccess\n"}
+{"Time":"2024-03-28T14:17:13.762024489+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderAllowedSuccess","Output":"--- PASS: TestCheckAllowedProviderAllowedSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762048251+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderAllowedSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762060733+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderNotAllowedSuccess"}
+{"Time":"2024-03-28T14:17:13.762068529+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderNotAllowedSuccess","Output":"=== RUN   TestCheckAllowedProviderNotAllowedSuccess\n"}
+{"Time":"2024-03-28T14:17:13.762079063+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderNotAllowedSuccess","Output":"--- PASS: TestCheckAllowedProviderNotAllowedSuccess (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762087702+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderNotAllowedSuccess","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762095599+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderFail"}
+{"Time":"2024-03-28T14:17:13.762102893+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderFail","Output":"=== RUN   TestCheckAllowedProviderFail\n"}
+{"Time":"2024-03-28T14:17:13.762124024+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderFail","Output":"--- PASS: TestCheckAllowedProviderFail (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762146752+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestCheckAllowedProviderFail","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762156067+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetClientNameOathkeeper"}
+{"Time":"2024-03-28T14:17:13.762163404+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetClientNameOathkeeper","Output":"=== RUN   TestGetClientNameOathkeeper\n"}
+{"Time":"2024-03-28T14:17:13.762171964+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetClientNameOathkeeper","Output":"--- PASS: TestGetClientNameOathkeeper (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762179531+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetClientNameOathkeeper","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762187066+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetClientNameOAuth2Request"}
+{"Time":"2024-03-28T14:17:13.762194254+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetClientNameOAuth2Request","Output":"=== RUN   TestGetClientNameOAuth2Request\n"}
+{"Time":"2024-03-28T14:17:13.762202335+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetClientNameOAuth2Request","Output":"--- PASS: TestGetClientNameOAuth2Request (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762209377+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestGetClientNameOAuth2Request","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762217786+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowAll"}
+{"Time":"2024-03-28T14:17:13.762225955+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowAll","Output":"=== RUN   TestFilterFlowProviderListAllowAll\n"}
+{"Time":"2024-03-28T14:17:13.762234097+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowAll","Output":"--- PASS: TestFilterFlowProviderListAllowAll (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762241545+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowAll","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762249861+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowSome"}
+{"Time":"2024-03-28T14:17:13.762256995+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowSome","Output":"=== RUN   TestFilterFlowProviderListAllowSome\n"}
+{"Time":"2024-03-28T14:17:13.762279389+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowSome","Output":"--- PASS: TestFilterFlowProviderListAllowSome (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762288243+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowSome","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762296823+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowNone"}
+{"Time":"2024-03-28T14:17:13.762304082+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowNone","Output":"=== RUN   TestFilterFlowProviderListAllowNone\n"}
+{"Time":"2024-03-28T14:17:13.762327232+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowNone","Output":"--- PASS: TestFilterFlowProviderListAllowNone (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762347451+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListAllowNone","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762356447+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListFail"}
+{"Time":"2024-03-28T14:17:13.762363704+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListFail","Output":"=== RUN   TestFilterFlowProviderListFail\n"}
+{"Time":"2024-03-28T14:17:13.762379766+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListFail","Output":"--- PASS: TestFilterFlowProviderListFail (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762388171+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestFilterFlowProviderListFail","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762396569+01:00","Action":"run","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestParseLoginFlowMethodBody"}
+{"Time":"2024-03-28T14:17:13.762403548+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestParseLoginFlowMethodBody","Output":"=== RUN   TestParseLoginFlowMethodBody\n"}
+{"Time":"2024-03-28T14:17:13.762445944+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestParseLoginFlowMethodBody","Output":"--- PASS: TestParseLoginFlowMethodBody (0.00s)\n"}
+{"Time":"2024-03-28T14:17:13.762455091+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Test":"TestParseLoginFlowMethodBody","Elapsed":0}
+{"Time":"2024-03-28T14:17:13.762462911+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Output":"PASS\n"}
+{"Time":"2024-03-28T14:17:13.763124311+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Output":"coverage: 32.9% of statements\n"}
+{"Time":"2024-03-28T14:17:13.764205839+01:00","Action":"output","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Output":"ok  \tgithub.com/canonical/identity-platform-login-ui/pkg/kratos\t0.006s\tcoverage: 32.9% of statements\n"}
+{"Time":"2024-03-28T14:17:13.764215449+01:00","Action":"pass","Package":"github.com/canonical/identity-platform-login-ui/pkg/kratos","Elapsed":0.006}

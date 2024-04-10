@@ -36,6 +36,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// call will return an empty response
 	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order
 	// to avoid this bug.
+	a.logger.Debugf("Created flow: %v", loginChallenge)
 	session, _, _ := a.service.CheckSession(context.Background(), r.Cookies())
 	if session != nil {
 		redirectTo, cookies, err := a.service.AcceptLoginRequest(context.Background(), session.Identity.Id, loginChallenge)
@@ -125,7 +126,9 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
 
-	body, err := a.service.ParseLoginFlowMethodBody(r)
+	// TODO: Identify oidc/password flow
+	// body, err := a.service.ParseLoginFlowMethodBody(r)
+	body, err := a.service.ParsePasswordLoginFlowMethodBody(r)
 	if err != nil {
 		a.logger.Errorf("Error when parsing request body: %v\n", err)
 		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
@@ -155,6 +158,9 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, "Failed to update login flow", http.StatusInternalServerError)
 		return
+	}
+	if err == nil {
+		a.logger.Debugf("Login flow updated: %v", flowId)
 	}
 
 	resp, err := json.Marshal(flow)

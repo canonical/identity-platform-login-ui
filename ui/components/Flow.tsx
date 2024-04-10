@@ -19,7 +19,7 @@ export type Values = Partial<
   | UpdateVerificationFlowBody
 >;
 
-export type Methods = "oidc";
+export type Methods = "oidc" | "password";
 
 export interface Props<T> {
   // The flow
@@ -27,7 +27,7 @@ export interface Props<T> {
   // Only show certain nodes. We will always render the default nodes for CSRF tokens.
   only?: Methods;
   // Is triggered on submission
-  onSubmit: (values: T) => Promise<void>;
+  onSubmit: (e: unknown, values: T) => Promise<void>;
   // Do not show the global messages. Useful when rendering them elsewhere.
   hideGlobalMessages?: boolean;
 }
@@ -104,13 +104,17 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
     if (this.state.isLoading) {
       return Promise.resolve();
     }
+    // console.log("State", this.state);
 
-    this.setState((state) => ({
-      ...state,
-      isLoading: true,
-    }));
+    this.setState((state) => {
+      // console.log("Set state", state);
+      return {
+        ...state,
+        isLoading: true,
+      };
+    });
 
-    return this.props.onSubmit(this.state.values).finally(() => {
+    return this.props.onSubmit(e, this.state.values).finally(() => {
       // We wait for reconciliation and update the state after 50ms
       // Done submitting - update loading status
       this.setState((state) => ({
@@ -143,6 +147,7 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
       >
         {nodes.map((node, k) => {
           const id = getNodeId(node) as keyof Values;
+          // const id = getNodeId(node) as string;
           return (
             <Node
               key={`${id}-${k}`}
@@ -150,8 +155,10 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
               node={node}
               value={values[id]}
               dispatchSubmit={this.handleSubmit}
-              setValue={(value) =>
-                new Promise((resolve) => {
+              setValue={(value) => {
+                console.log("Value", value);
+                return new Promise((resolve) => {
+                  console.log("NODE ID", getNodeId(node));
                   this.setState(
                     (state) => ({
                       ...state,
@@ -162,8 +169,8 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
                     }),
                     resolve,
                   );
-                })
-              }
+                });
+              }}
             />
           );
         })}

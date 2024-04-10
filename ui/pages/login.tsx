@@ -70,8 +70,9 @@ const Login: NextPage = () => {
     login_challenge,
   ]);
   const handleSubmit = useCallback(
-    (values: UpdateLoginFlowBody) =>
-      kratos
+    (values: UpdateLoginFlowBody) => {
+      console.log("Values", values);
+      return kratos
         .updateLoginFlow({
           flow: String(flow?.id),
           updateLoginFlowBody: values,
@@ -95,7 +96,8 @@ const Login: NextPage = () => {
           }
 
           return Promise.reject(err);
-        }),
+        });
+    },
     [flow, router],
   );
   const reqName = flow?.oauth2_login_request?.client?.client_name;

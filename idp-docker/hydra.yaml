@@ -1,0 +1,32 @@
+serve:
+  cookies:
+    same_site_mode: Lax
+  admin:
+    cors:
+      enabled: true
+      allowed_origins:
+        - "*"
+  public:
+    cors:
+      enabled: true
+      allowed_origins:
+        - "*"
+
+log:
+  leak_sensitive_values: true
+  level: info
+
+oauth2:
+  expose_internal_errors: true
+
+urls:
+  self:
+    issuer: http://hydra:4444
+    public: http://localhost:4444
+  consent: http://localhost:4455/ui/consent
+  login: http://localhost:4455/ui/login
+  error: http://localhost:4455/ui/oidc_error
+
+secrets:
+  system:
+    - my-secret-system

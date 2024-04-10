@@ -169,7 +169,8 @@ func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.L
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CheckAllowedProvider")
 	defer span.End()
 
-	provider := updateFlowBody.UpdateLoginFlowWithOidcMethod.Provider
+	// provider := updateFlowBody.UpdateLoginFlowWithOidcMethod.Provider
+	provider := s.getProviderName(updateFlowBody)
 	clientName := s.getClientName(loginFlow)
 
 	allowedProviders, err := s.authz.ListObjects(ctx, fmt.Sprintf("app:%s", clientName), "allowed_access", "provider")
@@ -181,6 +182,15 @@ func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.L
 		return true, nil
 	}
 	return s.contains(allowedProviders, fmt.Sprintf("%v", provider)), nil
+}
+
+func (s *Service) getProviderName(updateFlowBody *kClient.UpdateLoginFlowBody) string {
+	oidcLoginFlowBody := updateFlowBody.UpdateLoginFlowWithOidcMethod
+	if oidcLoginFlowBody != nil {
+		return oidcLoginFlowBody.Provider
+	}
+	// Handle case for methods other than oidc
+	return ""
 }
 
 func (s *Service) getClientName(loginFlow *kClient.LoginFlow) string {
@@ -234,6 +244,22 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 	ret := kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(
 		body,
 	)
+	return &ret, nil
+}
+
+func (s *Service) ParsePasswordLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
+	body := new(kClient.UpdateLoginFlowWithPasswordMethod)
+
+	err := parseBody(r.Body, &body)
+
+	if err != nil {
+		return nil, err
+	}
+	ret := kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(
+		body,
+	)
+	ret.UpdateLoginFlowWithPasswordMethod.Identifier = "test@example.com"
+	ret.UpdateLoginFlowWithPasswordMethod.Password = "mQ#v9fwHc0@8"
 	return &ret, nil
 }
 
