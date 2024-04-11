@@ -95,7 +95,7 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
   };
 
   // Handles form submission
-  handleSubmit = (e: MouseEvent | FormEvent) => {
+  handleSubmit = (e: MouseEvent | FormEvent, method?: string) => {
     // Prevent all native handlers
     e.stopPropagation();
     e.preventDefault();
@@ -114,7 +114,11 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
       };
     });
 
-    return this.props.onSubmit(this.state.values).finally(() => {
+    const values = method
+      ? { ...this.state.values, method }
+      : this.state.values;
+
+    return this.props.onSubmit(values).finally(() => {
       // We wait for reconciliation and update the state after 50ms
       // Done submitting - update loading status
       this.setState((state) => ({

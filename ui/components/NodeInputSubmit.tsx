@@ -36,6 +36,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
 
   return (
     <Button
+      appearance={node.group === "password" ? "positive" : ""}
       onClick={async (e) => {
         // On click, we set this value, and once set, dispatch the submission!
         await setValue(attributes.value as string).then(() =>
@@ -43,7 +44,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
         );
       }}
       disabled={attributes.disabled || disabled}
-      className="login-button"
+      className={node.group === "oidc" ? "oidc-login-button" : ""}
     >
       {isProvider ? (
         <>

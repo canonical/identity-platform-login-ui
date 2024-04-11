@@ -258,8 +258,8 @@ func (s *Service) ParsePasswordLoginFlowMethodBody(r *http.Request) (*kClient.Up
 	ret := kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(
 		body,
 	)
-	ret.UpdateLoginFlowWithPasswordMethod.Identifier = "test@example.com"
-	ret.UpdateLoginFlowWithPasswordMethod.Password = "mQ#v9fwHc0@8"
+	//ret.UpdateLoginFlowWithPasswordMethod.Identifier = "test@example.com"
+	//ret.UpdateLoginFlowWithPasswordMethod.Password = "mQ#v9fwHc0@8"
 	return &ret, nil
 }
 

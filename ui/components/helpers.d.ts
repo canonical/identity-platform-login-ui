@@ -5,7 +5,10 @@ export type ValueSetter = (
   value: string | number | boolean | undefined,
 ) => Promise<void>;
 
-export type FormDispatcher = (e: MouseEvent | FormEvent) => Promise<void>;
+export type FormDispatcher = (
+  e: MouseEvent | FormEvent,
+  method?: string,
+) => Promise<void>;
 
 export interface NodeInputProps {
   node: UiNode;
