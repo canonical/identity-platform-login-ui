@@ -71,7 +71,6 @@ const Login: NextPage = () => {
   ]);
   const handleSubmit = useCallback(
     (values: UpdateLoginFlowBody) => {
-      console.log("Values", values);
       return kratos
         .updateLoginFlow({
           flow: String(flow?.id),

@@ -17,4 +17,5 @@ export interface NodeInputProps {
   disabled: boolean;
   dispatchSubmit: FormDispatcher;
   setValue: ValueSetter;
+  error?: string;
 }

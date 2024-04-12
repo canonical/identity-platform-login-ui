@@ -8,6 +8,7 @@ export const NodeInputPassword: FC<NodeInputProps> = ({
   setValue,
   disabled,
   dispatchSubmit,
+  error,
 }) => {
   return (
     <Input
@@ -15,6 +16,7 @@ export const NodeInputPassword: FC<NodeInputProps> = ({
       label={getNodeLabel(node)}
       disabled={disabled}
       defaultValue={node.messages.map(({ text }) => text).join(" ")}
+      error={error}
       onChange={(e) => void setValue(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
