@@ -1,8 +1,10 @@
 package kratos
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -185,11 +187,10 @@ func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.L
 }
 
 func (s *Service) getProviderName(updateFlowBody *kClient.UpdateLoginFlowBody) string {
-	oidcLoginFlowBody := updateFlowBody.UpdateLoginFlowWithOidcMethod
-	if oidcLoginFlowBody != nil {
-		return oidcLoginFlowBody.Provider
+	flowInstance := updateFlowBody.GetActualInstance()
+	if flowInstance == updateFlowBody.UpdateLoginFlowWithOidcMethod {
+		return updateFlowBody.UpdateLoginFlowWithOidcMethod.Provider
 	}
-	// Handle case for methods other than oidc
 	return ""
 }
 
@@ -234,32 +235,56 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 }
 
 func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
-	body := new(kClient.UpdateLoginFlowWithOidcMethod)
 
-	err := parseBody(r.Body, &body)
+	type MethodOnly struct {
+		Method string `json:"method"`
+	}
+
+	methodOnly := new(MethodOnly)
+
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
 
 	if err != nil {
+		return nil, errors.New("unable to read body")
+	}
+
+	// replace the body that was consumed
+	r.Body = io.NopCloser(bytes.NewReader(b))
+
+	if err := json.Unmarshal(b, methodOnly); err != nil {
 		return nil, err
 	}
-	ret := kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(
-		body,
-	)
-	return &ret, nil
-}
 
-func (s *Service) ParsePasswordLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
-	body := new(kClient.UpdateLoginFlowWithPasswordMethod)
+	var ret kClient.UpdateLoginFlowBody
 
-	err := parseBody(r.Body, &body)
+	switch methodOnly.Method {
+	case "password":
+		body := new(kClient.UpdateLoginFlowWithPasswordMethod)
 
-	if err != nil {
-		return nil, err
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(
+			body,
+		)
+	// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
+	default:
+		body := new(kClient.UpdateLoginFlowWithOidcMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ret = kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(
+			body,
+		)
 	}
-	ret := kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(
-		body,
-	)
-	//ret.UpdateLoginFlowWithPasswordMethod.Identifier = "test@example.com"
-	//ret.UpdateLoginFlowWithPasswordMethod.Password = "mQ#v9fwHc0@8"
+
 	return &ret, nil
 }
 

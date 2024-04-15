@@ -32,5 +32,4 @@ type ServiceInterface interface {
 	CheckAllowedProvider(context.Context, *kClient.LoginFlow, *kClient.UpdateLoginFlowBody) (bool, error)
 	FilterFlowProviderList(context.Context, *kClient.LoginFlow) (*kClient.LoginFlow, error)
 	ParseLoginFlowMethodBody(*http.Request) (*kClient.UpdateLoginFlowBody, error)
-	ParsePasswordLoginFlowMethodBody(*http.Request) (*kClient.UpdateLoginFlowBody, error)
 }
