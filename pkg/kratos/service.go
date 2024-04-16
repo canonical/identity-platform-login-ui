@@ -40,6 +40,25 @@ type BrowserLocationChangeRequired struct {
 	RedirectTo *string `json:"redirect_to,omitempty"`
 }
 
+type Context struct {
+	Property string `json:"property,omitempty"`
+	Pattern  string `json:"pattern,omitempty"`
+	Reason   string `json:"reason,omitempty"`
+}
+
+type Messages []struct {
+	Id      int    `json:"id,omitempty"`
+	Text    string `json:"text,omitempty"`
+	Type    string `json:"type,omitempty"`
+	Context Context
+}
+
+type UiErrorMessages struct {
+	UI struct {
+		Messages Messages
+	} `json:"ui"`
+}
+
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
 	defer span.End()
@@ -119,7 +138,7 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 
 func (s *Service) UpdateOIDCLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
-) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+) (*BrowserLocationChangeRequired, []*http.Cookie, string, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateLoginFlow")
 	defer span.End()
 
@@ -136,14 +155,32 @@ func (s *Service) UpdateOIDCLoginFlow(
 	// redirected to.
 	if err != nil && resp.StatusCode != 422 {
 		s.logger.Debugf("full HTTP response: %v", resp)
-		return nil, nil, err
+
+		var message string
+
+		errorMessages := new(UiErrorMessages)
+		body, _ := io.ReadAll(resp.Body)
+		json.Unmarshal([]byte(body), &errorMessages)
+
+		errorCode := errorMessages.UI.Messages[0].Id
+		switch errorCode {
+		case 4000006:
+			message = "Incorrect username or password"
+		case 4000010:
+			message = "Inactive account"
+		default:
+			message = "Unknown error"
+			s.logger.Debugf("Kratos error code: %v", errorCode)
+		}
+
+		return nil, nil, message, err
 	}
 
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
 		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 
 	// We trasform the kratos response to our own custom response here.
@@ -151,7 +188,7 @@ func (s *Service) UpdateOIDCLoginFlow(
 	// because this is not a real error.
 	returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
 
-	return &returnToResp, resp.Cookies(), nil
+	return &returnToResp, resp.Cookies(), "", nil
 }
 
 func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowError, []*http.Cookie, error) {
@@ -171,7 +208,6 @@ func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.L
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CheckAllowedProvider")
 	defer span.End()
 
-	// provider := updateFlowBody.UpdateLoginFlowWithOidcMethod.Provider
 	provider := s.getProviderName(updateFlowBody)
 	clientName := s.getClientName(loginFlow)
 
