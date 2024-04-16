@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.13.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.12.0...v0.13.0) (2024-04-16)
+
+
+### Features
+
+* add success screen for device flow WD-10251 ([e9b77db](https://github.com/canonical/identity-platform-login-ui/commit/e9b77dba63dfdb622460bf1c6a6add1aff923aab))
+
+
+### Bug Fixes
+
+* add device flow logic to hydra client ([ca4a1f9](https://github.com/canonical/identity-platform-login-ui/commit/ca4a1f99c999ef57a42bb4b5c3c95ff11a891487))
+* add error handling to the device_code page ([666f95b](https://github.com/canonical/identity-platform-login-ui/commit/666f95b6ad4e38bfc0c07879f0ccc626c6edcbf7))
+* **CheckAllowedProviders:** fix OAuthKeeper case ([24212f4](https://github.com/canonical/identity-platform-login-ui/commit/24212f4decc0c5e76e74a21ffc21eab8eae08feb))
+* implement device_code backend logic ([06bb0b2](https://github.com/canonical/identity-platform-login-ui/commit/06bb0b29105aab10e87ada456d932899f7c8ef3e))
+* pass error response from hydra to UI ([b165f43](https://github.com/canonical/identity-platform-login-ui/commit/b165f43d8e3e83d6bfcf595088c94497203b3bd4))
+* typo in Oathkeeper name ([5f7634d](https://github.com/canonical/identity-platform-login-ui/commit/5f7634dca31afb854be4ff0254659c5c51859d2d))
+* update device_code page ([4ca0d13](https://github.com/canonical/identity-platform-login-ui/commit/4ca0d138e4eb850a5e10cf5ae1ea384035b105c8))
+* update hydra config ([cb1e049](https://github.com/canonical/identity-platform-login-ui/commit/cb1e0493d7c95c0b1b980c5a18bc3bdcede96110))
+
 ## [0.12.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.11.3...v0.12.0) (2024-01-31)
 
 
