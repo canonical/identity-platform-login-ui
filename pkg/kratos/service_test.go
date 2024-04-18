@@ -483,55 +483,56 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 	}
 }
 
-// func TestUpdateLoginFlowFail(t *testing.T) {
-// 	ctrl := gomock.NewController(t)
-// 	defer ctrl.Finish()
+func TestUpdateLoginFlowFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-// 	mockLogger := NewMockLoggerInterface(ctrl)
-// 	mockHydra := NewMockHydraClientInterface(ctrl)
-// 	mockKratos := NewMockKratosClientInterface(ctrl)
-// 	mockAuthz := NewMockAuthorizerInterface(ctrl)
-// 	mockTracer := NewMockTracingInterface(ctrl)
-// 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-// 	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
 
-// 	ctx := context.Background()
-// 	cookies := make([]*http.Cookie, 0)
-// 	cookie := &http.Cookie{Name: "test", Value: "test"}
-// 	cookies = append(cookies, cookie)
-// 	flowId := "flow"
-// 	_redirectTo := "https://redirect/to/path"
-// 	flow := ErrorBrowserLocationChangeRequired{
-// 		RedirectBrowserTo: &_redirectTo,
-// 	}
-// 	flowJson, _ := json.Marshal(flow)
-// 	body := new(kClient.UpdateLoginFlowBody)
-// 	request := kClient.FrontendApiUpdateLoginFlowRequest{
-// 		ApiService: mockKratosFrontendApi,
-// 	}
-// 	resp := http.Response{
-// 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
-// 		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
-// 	}
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	_redirectTo := "https://redirect/to/path"
+	flow := ErrorBrowserLocationChangeRequired{
+		RedirectBrowserTo: &_redirectTo,
+	}
+	flowJson, _ := json.Marshal(flow)
+	body := new(kClient.UpdateLoginFlowBody)
 
-// 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-// 	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-// 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
-// 	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
-// 	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
+	request := kClient.FrontendApiUpdateLoginFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
+	}
 
-// 	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateOIDCLoginFlow(ctx, flowId, *body, cookies)
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-// 	if f != nil {
-// 		t.Fatalf("expected flow to be %v not %+v", nil, f)
-// 	}
-// 	if c != nil {
-// 		t.Fatalf("expected header to be %v not  %v", nil, c)
-// 	}
-// 	if err == nil {
-// 		t.Fatalf("expected error not nil")
-// 	}
-// }
+	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateOIDCLoginFlow(ctx, flowId, *body, cookies)
+
+	if f != nil {
+		t.Fatalf("expected flow to be %v not %+v", nil, f)
+	}
+	if c != nil {
+		t.Fatalf("expected header to be %v not  %v", nil, c)
+	}
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+}
 
 func TestGetFlowErrorSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -979,8 +980,11 @@ func TestParseLoginFlowPasswordMethodBody(t *testing.T) {
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
-	body := kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(kClient.NewUpdateLoginFlowWithPasswordMethodWithDefaults())
-	body.SetMethod("password")
+	flow := kClient.NewUpdateLoginFlowWithPasswordMethodWithDefaults()
+	flow.SetMethod("password")
+
+	body := kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(flow)
+
 	jsonBody, _ := body.MarshalJSON()
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
@@ -989,6 +993,7 @@ func TestParseLoginFlowPasswordMethodBody(t *testing.T) {
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
+
 	if !reflect.DeepEqual(string(actual), string(expected)) {
 		t.Fatalf("expected flow to be %s not %s", string(expected), string(actual))
 	}
