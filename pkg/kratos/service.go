@@ -176,15 +176,23 @@ func (s *Service) UpdateOIDCLoginFlow(
 }
 
 func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
+	const IncorrectCredentials = 4000006
+	const InactiveAccount = 4000010
+
 	errorMessages := new(UiErrorMessages)
 	body, _ := io.ReadAll(responseBody)
 	json.Unmarshal([]byte(body), &errorMessages)
 
-	errorCode := errorMessages.UI.Messages[0].Id
-	switch errorCode {
-	case 4000006:
+	errorCodes := errorMessages.UI.Messages
+	if len(errorCodes) == 0 {
+		err = fmt.Errorf("error code not found")
+		return err
+	}
+
+	switch errorCode := errorCodes[0].Id; errorCode {
+	case IncorrectCredentials:
 		err = fmt.Errorf("incorrect username or password")
-	case 4000010:
+	case InactiveAccount:
 		err = fmt.Errorf("inactive account")
 	default:
 		err = fmt.Errorf("unknown error")
