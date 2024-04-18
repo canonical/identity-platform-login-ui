@@ -150,7 +150,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateOIDCLoginFlow(context.Background(), flowId, *body, r.Cookies())
+	flow, cookies, err := a.service.UpdateLoginFlow(context.Background(), flowId, *body, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

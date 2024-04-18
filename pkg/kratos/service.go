@@ -136,7 +136,7 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 	return flow, resp.Cookies(), nil
 }
 
-func (s *Service) UpdateOIDCLoginFlow(
+func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
 ) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateLoginFlow")
