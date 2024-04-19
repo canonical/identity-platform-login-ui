@@ -1001,3 +1001,42 @@ func TestParseLoginFlowPasswordMethodBody(t *testing.T) {
 		t.Fatalf("expected error to be nil not  %v", err)
 	}
 }
+
+func TestGetProviderNameWhenNotOidcMethod(t *testing.T) {
+	loginFlow := &kClient.UpdateLoginFlowBody{}
+	service := NewService(nil, nil, nil, nil, nil, nil)
+
+	actualProviderName := service.getProviderName(loginFlow)
+
+	expectedProviderName := ""
+	if expectedProviderName != actualProviderName {
+		t.Fatalf("Expected the provider to be %v, not %v", expectedProviderName, actualProviderName)
+	}
+}
+
+func TestGetProviderNameOidc(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	expectedProviderName := "someProvider"
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateLoginFlowWithOidcMethod("", expectedProviderName)
+
+	body := kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(flow)
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	b, _ := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+
+	actualProviderName := b.UpdateLoginFlowWithOidcMethod.Provider
+	if expectedProviderName != actualProviderName {
+		t.Fatalf("Expected the provider to be %v, not %v", expectedProviderName, actualProviderName)
+	}
+}
