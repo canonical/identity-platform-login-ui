@@ -50,7 +50,24 @@
         "email": {
           "type": "string",
           "format": "email",
-          "title": "E-Mail"
+          "title": "E-Mail",
+          "minLength": 3,
+            "ory.sh/kratos": {
+              "credentials": {
+                "password": {
+                  "identifier": true
+                },
+                "totp": {
+                   "account_name": true
+                 }
+              },
+              "verification": {
+                "via": "email"
+              },
+              "recovery": {
+                "via": "email"
+              }
+            }
         },
         "gender": {
           "type": "string",

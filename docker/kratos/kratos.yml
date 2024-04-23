@@ -37,7 +37,7 @@ selfservice:
                     - hook: session
     methods:
         password:
-            enabled: False
+            enabled: True
         oidc:
             enabled: True
             config:
