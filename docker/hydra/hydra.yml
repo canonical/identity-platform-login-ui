@@ -30,7 +30,7 @@ urls:
   login: http://localhost:4455/ui/login
   error: http://localhost:4455/ui/oidc_error
   device_verification: http://localhost:4455/ui/device_code
-  post_device_done: http://localhost:4455/post_device
+  post_device_done: http://localhost:4455/ui/device_complete
 
 secrets:
   system:

@@ -40,24 +40,18 @@ services:
         target: /etc/config/kratos
     networks:
       - intranet
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
   hydra:
-    image: oryd/hydra:v2.1.1
+    image: ghcr.io/canonical/hydra:2.2.0-canonical
     ports:
       - "4444:4444" # Public port
       - "4445:4445" # Admin port
-    command: serve -c /etc/config/hydra/hydra.yml all --dev
+    command: exec hydra serve -c /etc/config/hydra/hydra.yml all --dev
     volumes:
-      - type: volume
-        source: hydra-sqlite
-        target: /var/lib/sqlite
-        read_only: false
       - type: bind
         source: ./docker/hydra
         target: /etc/config/hydra
     environment:
-      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
+      - DSN=postgres://hydra:hydra@postgres/hydra?sslmode=disable
       - CORS_DEBUG=1
     restart: unless-stopped
     depends_on:
@@ -65,15 +59,11 @@ services:
     networks:
       - intranet
   hydra-migrate:
-    image: oryd/hydra:v2.1.1
+    image: ghcr.io/canonical/hydra:2.2.0-canonical
     environment:
-      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
-    command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
+      - DSN=postgres://hydra:hydra@postgres/hydra?sslmode=disable
+    command: exec hydra migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
-      - type: volume
-        source: hydra-sqlite
-        target: /var/lib/sqlite
-        read_only: false
       - type: bind
         source: ./docker/hydra
         target: /etc/config/hydra
@@ -93,8 +83,9 @@ services:
     restart: always
     ports:
       - 5432:5432
+    volumes:
+      - ./docker/postgres/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
     environment:
-      POSTGRES_DB: openfga
       POSTGRES_USER: openfga
       POSTGRES_PASSWORD: openfga
     healthcheck:
@@ -102,6 +93,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - intranet
   migrateopenfga:
     image: openfga/openfga:latest
     container_name: migrateopenfga
@@ -109,6 +102,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - intranet
   insert-hardcoded-store:
     image: governmentpaas/psql
     container_name: insert-hardcoded-store
@@ -116,6 +111,8 @@ services:
     depends_on:
       migrateopenfga:
         condition: service_completed_successfully
+    networks:
+      - intranet
   openfga:
     image: openfga/openfga:latest
     environment:
@@ -132,8 +129,9 @@ services:
         condition: service_completed_successfully
       insert-hardcoded-store:
         condition: service_completed_successfully
+    networks:
+      - intranet
 networks:
   intranet:
 volumes:
   kratos-sqlite:
-  hydra-sqlite:
