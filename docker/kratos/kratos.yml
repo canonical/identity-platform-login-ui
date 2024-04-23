@@ -44,7 +44,7 @@ selfservice:
                 providers:
                 - id: "github"
                   provider: "github"
-                  mapper_url: "file:///etc/config/kratos/microsoft_schema.jsonnet"
+                  mapper_url: "file:///etc/config/kratos/schema.jsonnet"
                   scope: ["user:email"]
                   label: Github
 courier:
