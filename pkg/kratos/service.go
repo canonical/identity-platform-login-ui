@@ -40,25 +40,6 @@ type BrowserLocationChangeRequired struct {
 	RedirectTo *string `json:"redirect_to,omitempty"`
 }
 
-type Context struct {
-	Property string `json:"property,omitempty"`
-	Pattern  string `json:"pattern,omitempty"`
-	Reason   string `json:"reason,omitempty"`
-}
-
-type Messages []struct {
-	Id      int    `json:"id,omitempty"`
-	Text    string `json:"text,omitempty"`
-	Type    string `json:"type,omitempty"`
-	Context Context
-}
-
-type UiErrorMessages struct {
-	UI struct {
-		Messages Messages
-	} `json:"ui"`
-}
-
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
 	defer span.End()
@@ -179,13 +160,14 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 	const IncorrectCredentials = 4000006
 	const InactiveAccount = 4000010
 
-	errorMessages := new(UiErrorMessages)
+	errorMessages := new(kClient.LoginFlow)
 	body, _ := io.ReadAll(responseBody)
 	json.Unmarshal([]byte(body), &errorMessages)
 
-	errorCodes := errorMessages.UI.Messages
+	errorCodes := errorMessages.Ui.Messages
 	if len(errorCodes) == 0 {
 		err = fmt.Errorf("error code not found")
+		s.logger.Errorf(err.Error())
 		return err
 	}
 
@@ -285,6 +267,7 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		Method string `json:"method"`
 	}
 
+	// TODO: try to refactor when we bump kratos sdk to 1.x.x
 	methodOnly := new(MethodOnly)
 
 	defer r.Body.Close()
