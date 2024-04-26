@@ -20,6 +20,7 @@ services:
     depends_on:
       - kratos-migrate
     image: oryd/kratos:v1.1.0
+    container_name: kratos
     ports:
       - '4433:4433' # public
       - '4434:4434' # admin
@@ -38,6 +39,22 @@ services:
       - type: bind
         source: ./docker/kratos
         target: /etc/config/kratos
+    networks:
+      - intranet
+  kratos-setup:
+    image: oryd/kratos:v1.1.0
+    depends_on:
+      - kratos
+    restart: "no"
+    volumes:
+      - type: volume
+        source: kratos-sqlite
+        target: /var/lib/sqlite
+        read_only: false
+      - type: bind
+        source: ./docker/kratos
+        target: /etc/config/kratos
+    command: import identities /etc/config/kratos/identity.json --endpoint http://kratos:4434
     networks:
       - intranet
   hydra:
