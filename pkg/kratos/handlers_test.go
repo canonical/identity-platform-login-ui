@@ -374,7 +374,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil)
-	mockService.EXPECT().UpdateOIDCLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
@@ -495,7 +495,7 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil)
-	mockService.EXPECT().UpdateOIDCLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)

@@ -20,6 +20,7 @@ export const Node: FC<Omit<NodeInputProps, "attributes">> = ({
   setValue,
   disabled,
   dispatchSubmit,
+  error,
 }) => {
   if (isUiNodeImageAttributes(node.attributes)) {
     return <NodeImage node={node} attributes={node.attributes} />;
@@ -46,6 +47,7 @@ export const Node: FC<Omit<NodeInputProps, "attributes">> = ({
         node={node}
         disabled={disabled}
         attributes={node.attributes}
+        error={error}
       />
     );
   }

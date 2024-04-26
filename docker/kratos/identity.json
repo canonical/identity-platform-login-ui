@@ -1,0 +1,15 @@
+{
+    "traits": {
+      "email": "test@example.com",
+      "name": "Test",
+      "surname": "Example"
+    },
+    "schema_id": "default",
+    "credentials": {
+      "password": {
+        "config": {
+          "password": "test"
+        }
+      }
+    }
+  }

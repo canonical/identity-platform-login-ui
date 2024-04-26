@@ -19,7 +19,7 @@ export type Values = Partial<
   | UpdateVerificationFlowBody
 >;
 
-export type Methods = "oidc";
+export type Methods = "oidc" | "password";
 
 export interface Props<T> {
   // The flow
@@ -35,6 +35,7 @@ export interface Props<T> {
 interface State<T> {
   values: T;
   isLoading: boolean;
+  error?: string;
 }
 
 export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
@@ -95,7 +96,7 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
   };
 
   // Handles form submission
-  handleSubmit = (e: MouseEvent | FormEvent) => {
+  handleSubmit = (e: MouseEvent | FormEvent, method?: string) => {
     // Prevent all native handlers
     e.stopPropagation();
     e.preventDefault();
@@ -105,24 +106,39 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
       return Promise.resolve();
     }
 
-    this.setState((state) => ({
-      ...state,
-      isLoading: true,
-    }));
-
-    return this.props.onSubmit(this.state.values).finally(() => {
-      // We wait for reconciliation and update the state after 50ms
-      // Done submitting - update loading status
-      this.setState((state) => ({
+    this.setState((state) => {
+      return {
         ...state,
-        isLoading: false,
-      }));
+        isLoading: true,
+      };
     });
+
+    const values = method
+      ? { ...this.state.values, method }
+      : this.state.values;
+
+    return this.props
+      .onSubmit(values)
+      .catch((e) => {
+        const backendError = e as { response?: { data?: string } };
+        this.setState((state) => ({
+          ...state,
+          error: backendError?.response?.data?.toString(),
+        }));
+      })
+      .finally(() => {
+        // We wait for reconciliation and update the state after 50ms
+        // Done submitting - update loading status
+        this.setState((state) => ({
+          ...state,
+          isLoading: false,
+        }));
+      });
   };
 
   render() {
     const { flow } = this.props;
-    const { values, isLoading } = this.state;
+    const { values, isLoading, error } = this.state;
 
     // Filter the nodes - only show the ones we want
     const nodes = this.filterNodes();
@@ -140,6 +156,7 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
         action={flow.ui.action}
         method={flow.ui.method}
         onSubmit={void this.handleSubmit}
+        className={error && "is-error"}
       >
         {nodes.map((node, k) => {
           const id = getNodeId(node) as keyof Values;
@@ -147,11 +164,12 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
             <Node
               key={`${id}-${k}`}
               disabled={isLoading}
+              error={error}
               node={node}
               value={values[id]}
               dispatchSubmit={this.handleSubmit}
-              setValue={(value) =>
-                new Promise((resolve) => {
+              setValue={(value) => {
+                return new Promise((resolve) => {
                   this.setState(
                     (state) => ({
                       ...state,
@@ -162,8 +180,8 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
                     }),
                     resolve,
                   );
-                })
-              }
+                });
+              }}
             />
           );
         })}

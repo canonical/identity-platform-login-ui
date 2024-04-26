@@ -8,6 +8,8 @@
 
 # testing
 /coverage
+test.json
+test_source.json
 
 # production
 /build
