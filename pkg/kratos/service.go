@@ -16,6 +16,9 @@ import (
 	kClient "github.com/ory/kratos-client-go"
 )
 
+const IncorrectCredentials = 4000006
+const InactiveAccount = 4000010
+
 type Service struct {
 	kratos KratosClientInterface
 	hydra  HydraClientInterface
@@ -157,9 +160,6 @@ func (s *Service) UpdateLoginFlow(
 }
 
 func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
-	const IncorrectCredentials = 4000006
-	const InactiveAccount = 4000010
-
 	errorMessages := new(kClient.LoginFlow)
 	body, _ := io.ReadAll(responseBody)
 	json.Unmarshal([]byte(body), &errorMessages)
