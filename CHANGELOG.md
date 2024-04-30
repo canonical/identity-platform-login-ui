@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.14.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.13.0...v0.14.0) (2024-04-30)
+
+
+### Features
+
+* add error handling for login flow WD-10252 ([f96567e](https://github.com/canonical/identity-platform-login-ui/commit/f96567e7901b8b41c9b5cabff09bf49139a8ddc8))
+* return common errors to ui ([5828a6a](https://github.com/canonical/identity-platform-login-ui/commit/5828a6a28e6b36dd45ae53a5bdee7ec8d895848f))
+* support password method ([f8842f0](https://github.com/canonical/identity-platform-login-ui/commit/f8842f0d7edc386c8ac7a29064c48487facb65e9))
+
+
+### Bug Fixes
+
+* fix path ([e7ffc03](https://github.com/canonical/identity-platform-login-ui/commit/e7ffc03d718fb7507de3c162009b54ea2ed8b595))
+* password login method WD-10252 ([1e98e09](https://github.com/canonical/identity-platform-login-ui/commit/1e98e094dd37e1e2865848ed3794e09f227db3ce))
+* use relative path for callback ([4aa6c83](https://github.com/canonical/identity-platform-login-ui/commit/4aa6c83ea98ce0905f23e60626258dafade874cc))
+
 ## [0.13.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.12.0...v0.13.0) (2024-04-16)
 
 
