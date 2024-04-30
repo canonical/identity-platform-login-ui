@@ -13,7 +13,7 @@ export interface Response {
 
 async function acceptUserCode(userCode: string, challenge: string) {
   return axios
-    .put(`/api/device?device_challenge=${challenge}`, {
+    .put(`./api/device?device_challenge=${challenge}`, {
       user_code: userCode,
     })
     .then(({ data }: Response) => {
