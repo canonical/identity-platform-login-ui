@@ -1,13 +1,18 @@
 model
   schema 1.1
+
 type user
 type app
+
 type group
   relations
-    define member: [user, group#member]
+    define member: [user] or member from child
+    define child: [group]
+
 type app_group
   relations
     define member: [app, app_group#member]
+
 type provider
   relations
     define member: [user]
