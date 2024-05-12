@@ -1,105 +1,128 @@
 # Identity Platform Login UI
 
-
+[![CI](https://github.com/canonical/identity-platform-login-ui/actions/workflows/ci.yaml/badge.svg)](https://github.com/canonical/identity-platform-login-ui/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/canonical/identity-platform-login-ui/branch/main/graph/badge.svg?token=Aloh6MWghg)](https://codecov.io/gh/canonical/identity-platform-login-ui)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/canonical/identity-platform-login-ui/badge)](https://securityscorecards.dev/viewer/?platform=github.com&org=canonical&repo=identity-platform-login-ui)
-![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/canonical/identity-platform-login-ui)
-[![CI](https://github.com/canonical/identity-platform-login-ui/actions/workflows/ci.yaml/badge.svg)](https://github.com/canonical/identity-platform-login-ui/actions/workflows/ci.yaml)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196.svg)](https://conventionalcommits.org)
+
+![GitHub Release](https://img.shields.io/github/v/release/canonical/identity-platform-login-ui)
 [![Go Reference](https://pkg.go.dev/badge/github.com/canonical/identity-platform-login-ui.svg)](https://pkg.go.dev/github.com/canonical/identity-platform-login-ui)
 
 This is the UI for the Canonical Identity Platform.
 
-# Running the UI
+## Running the UI
 
-
-## Build the binary
+### Build
 
 To create a binary with the UI you need to run:
-```console
+
+```shell
 make npm-build build
 ```
-Please don't run them in parallel, `build` requires the target `cmd/ui/dist` which, unless the `js` code has been build indipendently, requires `npm-build`
-If tou wanna skip the `npm-build` make sure the `js` artifcats are is the `ui/dist` folder (check the `Makefile` for more advanced informations)
 
+Please don't run them in parallel, `build` requires the target `cmd/ui/dist`
+which, unless the `js` code has been build independently, requires `npm-build`
+If you want to skip the `npm-build` make sure the `js` artifacts are in
+the `ui/dist` folder (check the `Makefile` for more advanced information).
 
 This will:
-* build the `js` code
-* produce a binary called `app` which you can run with:
 
-```console
-PORT=1234 ./cmd/app
+- build the `js` code
+- produce a binary called `app` which you can run with:
+
+```shell
+PORT=<port number> ./cmd/app
 ```
 
-(replace 1234 with an available port of your choice)
+### Environment variables
 
-
-## Environment variables
-
-Code dealing with the environment variables resides in [here](internal/config/specs.go) where each attribute has an annotation which is the lowercase of the environment variable name.
+Code dealing with the environment variables resides
+in [here](internal/config/specs.go) where each attribute has an annotation which
+is the lowercase of the environment variable name.
 
 At the moment the application is sourcing the following from the environment:
 
-* OTEL_GRPC_ENDPOINT - needed if we want to use the otel grpc exporter for traces
-* OTEL_HTTP_ENDPOINT - needed if we want to use the otel http exporter for traces (if grpc is specified this gets unused)
-* TRACING_ENABLED - switch for tracing, defaults to enabled (`true`)
-* LOG_LEVEL - log level, defaults to `error`
-* LOG_FILE - log file which the log rotator will write into, *make sure application user has permissions to write*,  defaults to `log.txt`
-* PORT - http server port, defaults to `8080`
-* BASE_URL - the base url that the application will be running on
-* KRATOS_PUBLIC_URL - address of kratos apis
-* HYDRA_ADMIN_URL - address of hydra admin apis
-* OPENFGA_API_SCHEME - the openfga API scheme
-* OPENFGA_API_HOST - the openfga API host name
-* OPENFGA_STORE_ID - the openfga store ID to use
-* OPENFGA_MODEL_ID - the openfga model ID to use, if not specified a new model will be created
+- `OTEL_GRPC_ENDPOINT` - needed if we want to use the OTel gRPC exporter for
+  traces
+- `OTEL_HTTP_ENDPOINT` - needed if we want to use the OTel HTTP exporter for
+  traces (if gRPC is specified this gets unused)
+- `TRACING_ENABLED` - switch for tracing, defaults to enabled (`true`)
+- `LOG_LEVEL` - log level, defaults to `error`
+- `LOG_FILE` - log file which the log rotator will write into. default to
+  `log.txt`. **Make sure application user has permissions to write**.
+- `PORT` - HTTP server port, defaults to `8080`
+- `BASE_URL` - the base url that the application will be running on
+- `KRATOS_PUBLIC_URL` - address of Kratos APIs
+- `HYDRA_ADMIN_URL` - address of Hydra admin APIs
+- `OPENFGA_API_SCHEME` - the OpenFGA API scheme
+- `OPENFGA_API_HOST` - the OpenFGA API host name
+- `OPENFGA_STORE_ID` - the OpenFGA store ID to use
+- `OPENFGA_MODEL_ID` - the OpenFGA model ID to use. If not specified, a new
+  model will be created
 
+### Container
 
-## Container
+To build the UI OCI image, you
+need [rockcraft](https://canonical-rockcraft.readthedocs-hosted.com). To install
+rockcraft run:
 
-To build the UI oci image, you will need [rockcraft](https://canonical-rockcraft.readthedocs-hosted.com).
-
-To install rockcraft run:
-```console
+```shell
 sudo snap install rockcraft --channel=latest/edge --classic
 ```
 
-To build the image run:
-```
+To build the image:
+
+```shell
 rockcraft pack
 ```
 
-In order to run the produced image with docker run:
-```console
+In order to run the produced image with docker:
+
+```shell
 # Import the image to Docker
-sudo /snap/rockcraft/current/bin/skopeo --insecure-policy copy oci-archive:./identity-platform-login-ui_0.1_amd64.rock docker-daemon:localhost:32000/identity-platform-login-ui:registry
+sudo /snap/rockcraft/current/bin/skopeo --insecure-policy \
+    copy oci-archive:./identity-platform-login-ui_0.1_amd64.rock \
+    docker-daemon:localhost:32000/identity-platform-login-ui:registry
 # Run the image
-docker run -p 8080:8080 -it --name login-ui --rm localhost:32000/identity-platform-login-ui:registry start login-ui &
+docker run -d \
+  -it \
+  --rm \
+  -p 8080:8080 \
+  --name login-ui \
+  localhost:32000/identity-platform-login-ui:registry start login-ui
 ```
 
-## Development setup
+### Development setup
 
-As a requirement, please make sure to have `docker` and `docker-compose` installed.
+Please install `docker` and `docker-compose`.
 
-You need to have a registered Github OAuth application to use for logging in.
-To register a Github OAuth application:
-1) Go to https://github.com/settings/applications/new. The application name and homepage URL do not matter, but the Authorization callback URL must be `http://localhost:4433/self-service/methods/oidc/callback/github`.
+You need to have a registered GitHub OAuth application to use for logging in.
+To register a GitHub OAuth application:
+
+1) Go to <https://github.com/settings/applications/new>. The application
+   name and homepage URL do not matter, but the Authorization callback URL must
+   be `http://localhost:4433/self-service/methods/oidc/callback/github`.
 2) Generate a client secret
-3) Create a file called `.env` on the root of the repository and paste your client credentials:
+3) Create a file called `.env` on the root of the repository and paste your
+   client credentials:
 
-```
+```shell
 CLIENT_ID=<client_id>
 CLIENT_SECRET=<client_secret>
 ```
 
-Run the login UI's dependencies:
+Run the login UI dependencies:
 
-```console
+```shell
 docker-compose -f docker-compose.dev.yml --build --force-recreate up
 ```
 
 Build and run the Login UI:
-```console
+
+```shell
 make build
+
 export KRATOS_PUBLIC_URL=http://localhost:4433
 export HYDRA_ADMIN_URL=http://localhost:4445
 export BASE_URL=http://localhost:4455
@@ -110,11 +133,12 @@ export AUTHORIZATION_ENABLED=false
 ./app serve
 ```
 
-To test the authorizatoin code flow you can use the Ory Hydra CLI:
+To test the authorization code flow you can use the Ory Hydra CLI:
 
-> To install the Ory Hydra CLI follow the instructions: https://www.ory.sh/docs/hydra/self-hosted/install
+> To install the Ory Hydra CLI follow
+> the [instructions](https://www.ory.sh/docs/hydra/self-hosted/install).
 
-```console
+```shell
 code_client=$(hydra create client \
   --endpoint http://localhost:4445 \
   --name grafana \
@@ -132,23 +156,28 @@ hydra perform authorization-code \
   --scope openid,profile,email,offline_access
 ```
 
-## OpenFGA Model Creation
+### OpenFGA Model Creation
 
-The login UI relies to [OpenFGA](https://github.com/openfga/openfga/) for authorization decisions.
-After you deploy the OpenFGA server, you need to create the OpenFGA store and model:
+The login UI relies on [OpenFGA](https://github.com/openfga/openfga/) for
+authorization decisions.
+After you deploy the OpenFGA server, you need to create the OpenFGA store and
+model:
 
-```console
+```shell
 ./login-ui-binary create-fga-model --fga-api-token $OPENFGA_API_TOKEN --fga-api-url $OPENFGA_API_URL --store-id $STORE_ID
 ```
 
 To try it locally you can deploy OpenFGA using docker-compose:
-```console
+
+```shell
 docker-compose -f docker-compose.dev.yml --build --force-recreate up
 ```
 
 And run with the store:
-```console
+
+```shell
 make build
+
 ./app create-fga-model --fga-api-token 42 --fga-api-url http://localhost:8080 --store-id 01GP1254CHWJC1MNGVB0WDG1T0
 
 export KRATOS_PUBLIC_URL=http://localhost:4433
