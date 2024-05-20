@@ -10,6 +10,7 @@
     ":semanticCommits",
     ":semanticCommitScope(deps)",
     "helpers:pinGitHubActionDigests",
+    ":enablePreCommit"
   ],
   "automergeType": "pr",
   "rebaseWhen": "behind-base-branch",
@@ -72,6 +73,14 @@
     {
       "groupName": "renovate packages",
       "matchSourceUrlPrefixes": ["https://github.com/renovatebot/"],
+      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "schedule": ["at any time"],
+      "additionalBranchPrefix": "auto-"
+    },
+    {
+      "groupName": "pre-commit hooks",
+      "matchManagers": ["pre-commit"],
       "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
       "automerge": true,
       "schedule": ["at any time"],
