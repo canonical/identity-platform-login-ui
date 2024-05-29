@@ -32,6 +32,18 @@ urls:
   device_verification: http://localhost:4455/ui/device_code
   post_device_done: http://localhost:4455/ui/device_complete
 
+strategies:
+  access_token: jwt
+  jwt:
+    scope_claim: list
+  scope: exact
+
+webfinger:
+  jwks:
+    broadcast_keys:
+      - hydra.openid.id-token
+      - hydra.jwt.access-token
+
 secrets:
   system:
     - youReallyNeedToChangeThis
