@@ -1,5 +1,6 @@
 import {
   LoginFlow,
+  RecoveryFlow,
   UiNode,
   UpdateLoginFlowBody,
   UpdateRecoveryFlowBody,
@@ -19,11 +20,11 @@ export type Values = Partial<
   | UpdateVerificationFlowBody
 >;
 
-export type Methods = "oidc" | "password";
+export type Methods = "oidc" | "password" | "code" | "link";
 
 export interface Props<T> {
   // The flow
-  flow?: LoginFlow;
+  flow?: LoginFlow | RecoveryFlow;
   // Only show certain nodes. We will always render the default nodes for CSRF tokens.
   only?: Methods;
   // Is triggered on submission

@@ -25,6 +25,10 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
 	mux.Get("/api/kratos/self-service/login/flows", a.handleGetLoginFlow)
 	mux.Get("/api/kratos/self-service/errors", a.handleKratosError)
+	mux.Post("/api/kratos/self-service/recovery", a.handleUpdateRecoveryFlow)
+	mux.Get("/api/kratos/self-service/recovery/browser", a.handleCreateRecoveryFlow)
+	mux.Get("/api/kratos/self-service/recovery/flows", a.handleGetRecoveryFlow)
+	// mux.Post("/api/kratos/admin/recovery/code", a.handleCreateRecoveryCode)
 }
 
 // TODO: Validate response when server error handling is implemented
@@ -188,6 +192,84 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse flow error", http.StatusInternalServerError)
 		return
 	}
+	setCookies(w, cookies)
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
+func (a *API) handleGetRecoveryFlow(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	flow, cookies, err := a.service.GetRecoveryFlow(context.Background(), q.Get("id"), r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Error when getting recovery flow: %v\n", err)
+		http.Error(w, "Failed to get recovery flow", http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := flow.MarshalJSON()
+	if err != nil {
+		a.logger.Errorf("Error when marshalling json: %v\n", err)
+		http.Error(w, "Failed to parse recovery flow", http.StatusInternalServerError)
+		return
+	}
+	setCookies(w, cookies)
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
+func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	flowId := q.Get("flow")
+
+	body, err := a.service.ParseRecoveryFlowMethodBody(r)
+	if err != nil {
+		a.logger.Errorf("Error when parsing request body: %v\n", err)
+		http.Error(w, "Failed to parse recovery flow", http.StatusInternalServerError)
+		return
+	}
+
+	flow, cookies, err := a.service.UpdateRecoveryFlow(context.Background(), flowId, *body, r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Error when updating recovery flow: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := json.Marshal(flow)
+	if err != nil {
+		a.logger.Errorf("Error when marshalling Json: %v\n", err)
+		http.Error(w, "Failed to parse recovery flow", http.StatusInternalServerError)
+		return
+	}
+	setCookies(w, cookies)
+	// Kratos returns us a '422' response but we tranform it to a '200',
+	// because this is the expected behavior for us.
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
+func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
+	returnTo, err := url.JoinPath(a.baseURL, "/ui/reset_password")
+	if err != nil {
+		a.logger.Fatal("Failed to construct returnTo URL: ", err)
+	}
+
+	a.logger.Debugf("Return url: %s", returnTo)
+
+	flow, cookies, err := a.service.CreateBrowserRecoveryFlow(context.Background(), returnTo, r.Cookies())
+	if err != nil {
+		http.Error(w, "Failed to create recovery flow", http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := flow.MarshalJSON()
+	if err != nil {
+		a.logger.Errorf("Error when marshalling json: %v\n", err)
+		http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
+		return
+	}
+	a.logger.Debugf("Response: %s", resp)
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)

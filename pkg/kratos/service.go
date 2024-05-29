@@ -103,6 +103,24 @@ func (s *Service) CreateBrowserLoginFlow(
 	return flow, resp.Cookies(), nil
 }
 
+func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.CreateBrowserRecoveryFlow")
+	defer span.End()
+
+	flow, resp, err := s.kratos.FrontendApi().
+		CreateBrowserRecoveryFlow(context.Background()).
+		ReturnTo(returnTo).
+		Execute()
+	if err != nil {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		return nil, nil, err
+	}
+
+	s.logger.Debugf("Created recovery flow: %s", flow)
+
+	return flow, resp.Cookies(), nil
+}
+
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetLoginFlow")
 	defer span.End()
@@ -118,6 +136,65 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 	}
 
 	return flow, resp.Cookies(), nil
+}
+
+func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetRecoveryFlow")
+	defer span.End()
+
+	flow, resp, err := s.kratos.FrontendApi().
+		GetRecoveryFlow(ctx).
+		Id(id).
+		Cookie(cookiesToString(cookies)).
+		Execute()
+	if err != nil {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		return nil, nil, err
+	}
+
+	s.logger.Debugf("Get recovery flow: %s", flow)
+
+	return flow, resp.Cookies(), nil
+}
+
+func (s *Service) UpdateRecoveryFlow(
+	ctx context.Context, flow string, body kClient.UpdateRecoveryFlowBody, cookies []*http.Cookie,
+) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateRecoveryFlow")
+	defer span.End()
+
+	_, resp, err := s.kratos.FrontendApi().
+		UpdateRecoveryFlow(ctx).
+		Flow(flow).
+		UpdateRecoveryFlowBody(body).
+		Cookie(cookiesToString(cookies)).
+		Execute()
+
+	// We expect to get a 422 response from Kratos. The sdk forces us to
+	// make the request with an 'application/json' content-type, whereas Kratos
+	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
+	// This is not a real error, as we still get the URL to which the user needs to be
+	// redirected to.
+	if err != nil && resp.StatusCode != 422 {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		err := s.getUiError(resp.Body)
+
+		return nil, nil, err
+	}
+
+	redirectResp := new(ErrorBrowserLocationChangeRequired)
+	err = unmarshalByteJson(resp.Body, redirectResp)
+	if err != nil {
+		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+		return nil, nil, err
+	}
+
+	// We trasform the kratos response to our own custom response here.
+	// The original kratos response contains an 'Error' field, which we remove
+	// because this is not a real error.
+	returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
+
+	return &returnToResp, resp.Cookies(), nil
 }
 
 func (s *Service) UpdateLoginFlow(
@@ -315,6 +392,42 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 
 	return &ret, nil
 }
+
+func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateRecoveryFlowBody, error) {
+	body := new(kClient.UpdateRecoveryFlowWithCodeMethod)
+
+	err := parseBody(r.Body, &body)
+
+	if err != nil {
+		return nil, err
+	}
+	ret := kClient.UpdateRecoveryFlowWithCodeMethodAsUpdateRecoveryFlowBody(
+		body,
+	)
+
+	email := "test@example.com"
+	ret.UpdateRecoveryFlowWithCodeMethod.Email = &email
+	ret.UpdateRecoveryFlowWithCodeMethod.Method = "code"
+	return &ret, nil
+}
+
+// func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateRecoveryFlowBody, error) {
+// 	body := new(kClient.UpdateRecoveryFlowWithLinkMethod)
+
+// 	err := parseBody(r.Body, &body)
+
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	ret := kClient.UpdateRecoveryFlowWithLinkMethodAsUpdateRecoveryFlowBody(
+// 		body,
+// 	)
+
+// 	email := "test@example.com"
+// 	ret.UpdateRecoveryFlowWithLinkMethod.Email = email
+// 	ret.UpdateRecoveryFlowWithLinkMethod.Method = "link"
+// 	return &ret, nil
+// }
 
 func (s *Service) contains(str []string, e string) bool {
 	for _, a := range str {

@@ -11,7 +11,7 @@ serve:
   public:
     base_url: http://localhost:4433/
     cors:
-      enabled: true
+      enabled: True
   admin:
     base_url: http://kratos:4434/
 
@@ -23,6 +23,8 @@ identity:
 selfservice:
     allowed_return_urls:
       - http://localhost:4455/ui/login
+      - http://localhost:4455/ui/reset_email
+      - http://localhost:4455/ui/reset_password
     default_browser_return_url:
         http://localhost:4455/ui/
     flows:
@@ -30,6 +32,16 @@ selfservice:
             ui_url: http://localhost:4455/ui/error
         login:
             ui_url: http://localhost:4455/ui/login
+        recovery:
+            enabled: True
+            ui_url: http://localhost:4455/ui/reset_email
+            use: code
+            after:
+                default_browser_return_url: http://localhost:4455/ui
+                hooks:
+                    - hook: revoke_active_sessions
+        # settings:
+        #     ui_url: http://localhost:4455/ui/reset_password
         registration:
             after:
                 oidc:
@@ -37,6 +49,8 @@ selfservice:
                     - hook: session
     methods:
         password:
+            enabled: True
+        code:
             enabled: True
         oidc:
             enabled: True
