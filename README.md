@@ -93,7 +93,9 @@ docker run -d \
   localhost:32000/identity-platform-login-ui:registry start login-ui
 ```
 
-### Development setup
+### Try it out
+
+To try the identity-platform login UI, you can use the [docker-compose.yml](./docker-compose.yml).
 
 Please install `docker` and `docker-compose`.
 
@@ -112,25 +114,9 @@ CLIENT_ID=<client_id>
 CLIENT_SECRET=<client_secret>
 ```
 
-Run the login UI dependencies:
-
+From the root folder of the repository, run the docker-compose:
 ```shell
-docker-compose -f docker-compose.dev.yml --build --force-recreate up
-```
-
-Build and run the Login UI:
-
-```shell
-make build
-
-export KRATOS_PUBLIC_URL=http://localhost:4433
-export HYDRA_ADMIN_URL=http://localhost:4445
-export BASE_URL=http://localhost:4455
-export PORT=4455
-export TRACING_ENABLED=false
-export LOG_LEVEL=debug
-export AUTHORIZATION_ENABLED=false
-./app serve
+docker compose up
 ```
 
 To test the authorization code flow you can use the Ory Hydra CLI:
@@ -154,40 +140,4 @@ hydra perform authorization-code \
   --client-id `echo "$code_client" | yq .client_id` \
   --client-secret  `echo "$code_client" | yq .client_secret` \
   --scope openid,profile,email,offline_access
-```
-
-### OpenFGA Model Creation
-
-The login UI relies on [OpenFGA](https://github.com/openfga/openfga/) for
-authorization decisions.
-After you deploy the OpenFGA server, you need to create the OpenFGA store and
-model:
-
-```shell
-./login-ui-binary create-fga-model --fga-api-token $OPENFGA_API_TOKEN --fga-api-url $OPENFGA_API_URL --store-id $STORE_ID
-```
-
-To try it locally you can deploy OpenFGA using docker-compose:
-
-```shell
-docker-compose -f docker-compose.dev.yml --build --force-recreate up
-```
-
-And run with the store:
-
-```shell
-make build
-
-./app create-fga-model --fga-api-token 42 --fga-api-url http://localhost:8080 --store-id 01GP1254CHWJC1MNGVB0WDG1T0
-
-export KRATOS_PUBLIC_URL=http://localhost:4433
-export HYDRA_ADMIN_URL=http://localhost:4445
-export BASE_URL=http://localhost:4455
-export OPENFGA_API_SCHEME=http
-export OPENFGA_API_HOST=localhost:8080
-export OPENFGA_STORE_ID=01GP1254CHWJC1MNGVB0WDG1T0
-export OPENFGA_API_TOKEN=42
-export OPENFGA_AUTHORIZATION_MODEL_ID=01HGG9ZQ9PP3P6QHW93QBM55KM
-export AUTHORIZATION_ENABLED=true
-./app serve
 ```

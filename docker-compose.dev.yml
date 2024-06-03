@@ -124,7 +124,7 @@ services:
   insert-hardcoded-store:
     image: governmentpaas/psql
     container_name: insert-hardcoded-store
-    command: psql -Atx postgresql://openfga:openfga@postgres/openfga?sslmode=disable -c "INSERT INTO store (id,name,created_at,updated_at) VALUES ('01GP1254CHWJC1MNGVB0WDG1T0','login-ui',NOW(),NOW());"
+    command: psql -Atx postgresql://openfga:openfga@postgres/openfga?sslmode=disable -c "INSERT INTO store (id,name,created_at,updated_at) VALUES ('01GP1254CHWJC1MNGVB0WDG1T0','login-ui',NOW(),NOW()) ON CONFLICT DO NOTHING;"
     depends_on:
       migrateopenfga:
         condition: service_completed_successfully
