@@ -8,9 +8,9 @@ import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
-import { Button, Input, Spinner } from "@canonical/react-components";
+import { Spinner } from "@canonical/react-components";
 
-const ResetComplete: NextPage = () => {
+const ResetEmail: NextPage = () => {
   const [flow, setFlow] = useState<RecoveryFlow>();
 
   // Get ?flow=... from the URL
@@ -46,6 +46,7 @@ const ResetComplete: NextPage = () => {
       })
       .catch(handleFlowError(router, "recovery", setFlow));
   }, [flowId, router, router.isReady, returnTo, flow]);
+
   const handleSubmit = useCallback(
     (values: UpdateRecoveryFlowBody) => {
       return kratos
@@ -54,6 +55,12 @@ const ResetComplete: NextPage = () => {
           updateRecoveryFlowBody: values,
         })
         .then(async ({ data }) => {
+          console.log(data); // todo: remove
+          const isSuccess = Object.keys(data).length === 0; // todo: check for success in a proper way
+          if (values.email && isSuccess) {
+            setFlow(undefined); // Trigger refresh of the flow
+            return;
+          }
           if ("redirect_to" in data) {
             window.location.href = data.redirect_to as string;
             return;
@@ -77,28 +84,18 @@ const ResetComplete: NextPage = () => {
     [flow, router],
   );
 
+  const getTitle = () => {
+    if (flow?.state === "sent_email") {
+      return "Enter the code you received via email";
+    }
+    return "Enter an email to reset your password";
+  };
+
   return (
-    <PageLayout title="Enter an email to reset your password">
-      <Input
-        id="email"
-        name="email"
-        type="text"
-        label="Email"
-        placeholder="Your email"
-      />
-      <Button type="button" className="u-no-margin--bottom">
-        Back
-      </Button>
-      <Button
-        type="submit"
-        appearance="positive"
-        className="u-no-margin--bottom"
-      >
-        Reset password
-        {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
-      </Button>
+    <PageLayout title={getTitle()}>
+      {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
     </PageLayout>
   );
 };
 
-export default ResetComplete;
+export default ResetEmail;

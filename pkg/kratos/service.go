@@ -405,9 +405,6 @@ func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateR
 		body,
 	)
 
-	email := "test@example.com"
-	ret.UpdateRecoveryFlowWithCodeMethod.Email = &email
-	ret.UpdateRecoveryFlowWithCodeMethod.Method = "code"
 	return &ret, nil
 }
 

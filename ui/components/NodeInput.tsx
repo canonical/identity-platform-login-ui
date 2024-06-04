@@ -48,6 +48,8 @@ export const NodeInput: FC<NodeInputProps> = (props) => {
       return <NodeInputButton {...props} />;
     case "text":
       return <NodeInputText {...props} />;
+    case "email":
+      return <NodeInputText {...props} />;
     case "password":
       return <NodeInputPassword {...props} />;
     case "submit":
