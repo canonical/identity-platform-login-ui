@@ -37,13 +37,13 @@ const ResetComplete: NextPage = () => {
       .createBrowserRecoveryFlow({
         returnTo: returnTo ? String(returnTo) : undefined,
       })
-      // .then(({ data }: FlowResponse) => {
-      //   if (data.redirect_to !== undefined) {
-      //     window.location.href = data.redirect_to;
-      //     return;
-      //   }
-      //   setFlow(data);
-      // })
+      .then(({ data }) => {
+        if (data.request_url !== undefined) {
+          window.location.href = data.request_url;
+          return;
+        }
+        setFlow(data);
+      })
       .catch(handleFlowError(router, "recovery", setFlow));
   }, [flowId, router, router.isReady, returnTo, flow]);
   const handleSubmit = useCallback(
