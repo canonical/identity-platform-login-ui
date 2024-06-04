@@ -411,24 +411,6 @@ func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateR
 	return &ret, nil
 }
 
-// func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateRecoveryFlowBody, error) {
-// 	body := new(kClient.UpdateRecoveryFlowWithLinkMethod)
-
-// 	err := parseBody(r.Body, &body)
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	ret := kClient.UpdateRecoveryFlowWithLinkMethodAsUpdateRecoveryFlowBody(
-// 		body,
-// 	)
-
-// 	email := "test@example.com"
-// 	ret.UpdateRecoveryFlowWithLinkMethod.Email = email
-// 	ret.UpdateRecoveryFlowWithLinkMethod.Method = "link"
-// 	return &ret, nil
-// }
-
 func (s *Service) contains(str []string, e string) bool {
 	for _, a := range str {
 		if a == e {

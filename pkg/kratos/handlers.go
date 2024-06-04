@@ -238,7 +238,7 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := json.Marshal(flow)
 	if err != nil {
-		a.logger.Errorf("Error when marshalling Json: %v\n", err)
+		a.logger.Errorf("Error when marshalling json: %v\n", err)
 		http.Error(w, "Failed to parse recovery flow", http.StatusInternalServerError)
 		return
 	}
@@ -254,8 +254,6 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		a.logger.Fatal("Failed to construct returnTo URL: ", err)
 	}
-
-	a.logger.Debugf("Return url: %s", returnTo)
 
 	flow, cookies, err := a.service.CreateBrowserRecoveryFlow(context.Background(), returnTo, r.Cookies())
 	if err != nil {
