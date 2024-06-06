@@ -1,9 +1,11 @@
 package kratos
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -222,6 +224,16 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
 
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		a.logger.Errorf("Unable to read body: %s", err)
+	}
+
+	// replace the body that was consumed
+	r.Body = io.NopCloser(bytes.NewReader(b))
+
 	body, err := a.service.ParseRecoveryFlowMethodBody(r)
 	if err != nil {
 		a.logger.Errorf("Error when parsing request body: %v\n", err)
@@ -250,7 +262,7 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
-	returnTo, err := url.JoinPath(a.baseURL, "/ui/reset_password")
+	returnTo, err := url.JoinPath(a.baseURL, "/ui/reset_email")
 	if err != nil {
 		a.logger.Fatal("Failed to construct returnTo URL: ", err)
 	}

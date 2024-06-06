@@ -18,6 +18,8 @@ import (
 
 const IncorrectCredentials = 4000006
 const InactiveAccount = 4000010
+const InvalidRecoveryCode = 4060006
+const RecoveryCodeSent = 1060003
 
 type Service struct {
 	kratos KratosClientInterface
@@ -170,18 +172,28 @@ func (s *Service) UpdateRecoveryFlow(
 		Cookie(cookiesToString(cookies)).
 		Execute()
 
-	// We expect to get a 422 response from Kratos. The sdk forces us to
-	// make the request with an 'application/json' content-type, whereas Kratos
+	s.logger.Debugf("Status code: %s", resp.StatusCode)
+	s.logger.Debugf("Recovery response: %s", resp.Body)
+
+	// If the recovery code was invalid, kratos returns a 200 response
+	// with a 4060006 error in the rendered ui messages.
+	// If the recovery code was valid, we expect to get a 422 response from kratos.
+	// That is because the user needs to be redirected to self-service settings page.
+	// The sdk forces us to ake the request with an 'application/json' content-type, whereas Kratos
 	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
 	// This is not a real error, as we still get the URL to which the user needs to be
 	// redirected to.
-	if err != nil && resp.StatusCode != 422 {
+	if err != nil || resp.StatusCode != 422 {
 		s.logger.Debugf("full HTTP response: %v", resp)
-		err := s.getUiError(resp.Body)
+		err := s.getRecoveryFlowError(resp.Body)
 
-		return nil, nil, err
+		s.logger.Debugf("Recovery error: %s", err)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
+	// TODO: If status was 200 and the body response was scanned for error, it becomes empty
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
@@ -195,6 +207,30 @@ func (s *Service) UpdateRecoveryFlow(
 	returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
 
 	return &returnToResp, resp.Cookies(), nil
+}
+
+func (s *Service) getRecoveryFlowError(responseBody io.ReadCloser) (err error) {
+	errorMessages := new(kClient.RecoveryFlow)
+	body, _ := io.ReadAll(responseBody)
+	json.Unmarshal([]byte(body), &errorMessages)
+
+	errorCodes := errorMessages.Ui.Messages
+	if len(errorCodes) == 0 {
+		err = fmt.Errorf("error code not found")
+		s.logger.Errorf(err.Error())
+		return err
+	}
+
+	switch errorCode := errorCodes[0].Id; errorCode {
+	case RecoveryCodeSent:
+		return nil
+	case InvalidRecoveryCode:
+		err = fmt.Errorf("invalid recovery code")
+	default:
+		err = fmt.Errorf("unknown error")
+		s.logger.Debugf("Kratos error code: %v", errorCode)
+	}
+	return err
 }
 
 func (s *Service) UpdateLoginFlow(
