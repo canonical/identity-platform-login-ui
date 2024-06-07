@@ -1,11 +1,9 @@
 package kratos
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -30,7 +28,6 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Post("/api/kratos/self-service/recovery", a.handleUpdateRecoveryFlow)
 	mux.Get("/api/kratos/self-service/recovery/browser", a.handleCreateRecoveryFlow)
 	mux.Get("/api/kratos/self-service/recovery/flows", a.handleGetRecoveryFlow)
-	// mux.Post("/api/kratos/admin/recovery/code", a.handleCreateRecoveryCode)
 }
 
 // TODO: Validate response when server error handling is implemented
@@ -224,16 +221,6 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
 
-	defer r.Body.Close()
-	b, err := io.ReadAll(r.Body)
-
-	if err != nil {
-		a.logger.Errorf("Unable to read body: %s", err)
-	}
-
-	// replace the body that was consumed
-	r.Body = io.NopCloser(bytes.NewReader(b))
-
 	body, err := a.service.ParseRecoveryFlowMethodBody(r)
 	if err != nil {
 		a.logger.Errorf("Error when parsing request body: %v\n", err)
@@ -279,7 +266,7 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
 		return
 	}
-	a.logger.Debugf("Response: %s", resp)
+
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)

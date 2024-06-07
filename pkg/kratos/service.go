@@ -118,8 +118,6 @@ func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string
 		return nil, nil, err
 	}
 
-	s.logger.Debugf("Created recovery flow: %s", flow)
-
 	return flow, resp.Cookies(), nil
 }
 
@@ -154,8 +152,6 @@ func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*htt
 		return nil, nil, err
 	}
 
-	s.logger.Debugf("Get recovery flow: %s", flow)
-
 	return flow, resp.Cookies(), nil
 }
 
@@ -165,15 +161,12 @@ func (s *Service) UpdateRecoveryFlow(
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateRecoveryFlow")
 	defer span.End()
 
-	_, resp, err := s.kratos.FrontendApi().
+	recovery, resp, err := s.kratos.FrontendApi().
 		UpdateRecoveryFlow(ctx).
 		Flow(flow).
 		UpdateRecoveryFlowBody(body).
 		Cookie(cookiesToString(cookies)).
 		Execute()
-
-	s.logger.Debugf("Status code: %s", resp.StatusCode)
-	s.logger.Debugf("Recovery response: %s", resp.Body)
 
 	// If the recovery code was invalid, kratos returns a 200 response
 	// with a 4060006 error in the rendered ui messages.
@@ -183,17 +176,22 @@ func (s *Service) UpdateRecoveryFlow(
 	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
 	// This is not a real error, as we still get the URL to which the user needs to be
 	// redirected to.
-	if err != nil || resp.StatusCode != 422 {
-		s.logger.Debugf("full HTTP response: %v", resp)
-		err := s.getRecoveryFlowError(resp.Body)
 
-		s.logger.Debugf("Recovery error: %s", err)
-		if err != nil {
-			return nil, nil, err
+	if err != nil && resp.StatusCode != 422 {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		return nil, nil, err
+	}
+
+	if resp.StatusCode == 200 {
+		uiMsg := recovery.GetUi()
+
+		for _, message := range uiMsg.GetMessages() {
+			if message.GetId() == InvalidRecoveryCode {
+				return nil, nil, fmt.Errorf("the recovery code is invalid or has already been used")
+			}
 		}
 	}
 
-	// TODO: If status was 200 and the body response was scanned for error, it becomes empty
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
@@ -207,30 +205,6 @@ func (s *Service) UpdateRecoveryFlow(
 	returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
 
 	return &returnToResp, resp.Cookies(), nil
-}
-
-func (s *Service) getRecoveryFlowError(responseBody io.ReadCloser) (err error) {
-	errorMessages := new(kClient.RecoveryFlow)
-	body, _ := io.ReadAll(responseBody)
-	json.Unmarshal([]byte(body), &errorMessages)
-
-	errorCodes := errorMessages.Ui.Messages
-	if len(errorCodes) == 0 {
-		err = fmt.Errorf("error code not found")
-		s.logger.Errorf(err.Error())
-		return err
-	}
-
-	switch errorCode := errorCodes[0].Id; errorCode {
-	case RecoveryCodeSent:
-		return nil
-	case InvalidRecoveryCode:
-		err = fmt.Errorf("invalid recovery code")
-	default:
-		err = fmt.Errorf("unknown error")
-		s.logger.Debugf("Kratos error code: %v", errorCode)
-	}
-	return err
 }
 
 func (s *Service) UpdateLoginFlow(
@@ -440,6 +414,8 @@ func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateR
 	ret := kClient.UpdateRecoveryFlowWithCodeMethodAsUpdateRecoveryFlowBody(
 		body,
 	)
+
+	ret.UpdateRecoveryFlowWithCodeMethod.Method = "code"
 
 	return &ret, nil
 }
