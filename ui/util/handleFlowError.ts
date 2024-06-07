@@ -36,6 +36,11 @@ export const handleFlowError =
         // We need to re-authenticate to perform this action
         window.location.href = err.response.data.redirect_browser_to;
         return;
+      case "session_inactive":
+        // No session found, redirect the user to sign in
+        resetFlow(undefined);
+        await router.push("/login");
+        return;
       case "self_service_flow_return_to_forbidden":
         // The flow expired, let's request a new one.
         toast.error("The return_to address is not allowed.");

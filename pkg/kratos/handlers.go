@@ -28,6 +28,9 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Post("/api/kratos/self-service/recovery", a.handleUpdateRecoveryFlow)
 	mux.Get("/api/kratos/self-service/recovery/browser", a.handleCreateRecoveryFlow)
 	mux.Get("/api/kratos/self-service/recovery/flows", a.handleGetRecoveryFlow)
+	mux.Post("/api/kratos/self-service/settings", a.handleUpdateSettingsFlow)
+	mux.Get("/api/kratos/self-service/settings/browser", a.handleCreateSettingsFlow)
+	mux.Get("/api/kratos/self-service/settings/flows", a.handleGetSettingsFlow)
 }
 
 // TODO: Validate response when server error handling is implemented
@@ -267,6 +270,82 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	setCookies(w, cookies)
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
+func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	flow, cookies, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Error when getting settings flow: %v\n", err)
+		http.Error(w, "Failed to get settings flow", http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := flow.MarshalJSON()
+	if err != nil {
+		a.logger.Errorf("Error when marshalling json: %v\n", err)
+		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
+		return
+	}
+	setCookies(w, cookies)
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
+func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	flowId := q.Get("flow")
+
+	body, err := a.service.ParseSettingsFlowMethodBody(r)
+	if err != nil {
+		a.logger.Errorf("Error when parsing request body: %v\n", err)
+		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
+		return
+	}
+
+	flow, cookies, err := a.service.UpdateSettingsFlow(context.Background(), flowId, *body, r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Error when updating settings flow: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := json.Marshal(flow)
+	if err != nil {
+		a.logger.Errorf("Error when marshalling json: %v\n", err)
+		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
+		return
+	}
+	setCookies(w, cookies)
+	// Kratos returns us a '422' response but we tranform it to a '200',
+	// because this is the expected behavior for us.
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
+func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
+	returnTo, err := url.JoinPath(a.baseURL, "/ui/reset_complete")
+	if err != nil {
+		a.logger.Fatal("Failed to construct returnTo URL: ", err)
+	}
+
+	flow, cookies, err := a.service.CreateBrowserSettingsFlow(context.Background(), returnTo, r.Cookies())
+	if err != nil {
+		http.Error(w, "Failed to create settings flow", http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := flow.MarshalJSON()
+	if err != nil {
+		a.logger.Errorf("Error when marshalling json: %v\n", err)
+		http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
+		return
+	}
+	a.logger.Debugf("Response: %s", resp)
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)

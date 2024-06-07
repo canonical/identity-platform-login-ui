@@ -1,6 +1,7 @@
 import {
   LoginFlow,
   RecoveryFlow,
+  SettingsFlow,
   UiNode,
   UpdateLoginFlowBody,
   UpdateRecoveryFlowBody,
@@ -24,7 +25,7 @@ export type Methods = "oidc" | "password" | "code" | "link";
 
 export interface Props<T> {
   // The flow
-  flow?: LoginFlow | RecoveryFlow;
+  flow?: LoginFlow | RecoveryFlow | SettingsFlow;
   // Only show certain nodes. We will always render the default nodes for CSRF tokens.
   only?: Methods;
   // Is triggered on submission

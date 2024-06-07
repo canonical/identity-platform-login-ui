@@ -1,9 +1,9 @@
-version: v1.0.0
+version: v1.1.0
 
 oauth2_provider:
     url: "http://hydra:4445"
 log:
-    level: debug
+    level: trace
     format: text
     leak_sensitive_values: true
 dsn: memory
@@ -25,6 +25,7 @@ selfservice:
       - http://localhost:4455/ui/login
       - http://localhost:4455/ui/reset_email
       - http://localhost:4455/ui/reset_password
+      - http://localhost:4455/ui/reset_complete
     default_browser_return_url:
         http://localhost:4455/ui/
     flows:
@@ -40,8 +41,8 @@ selfservice:
                 default_browser_return_url: http://localhost:4455/ui
                 hooks:
                     - hook: revoke_active_sessions
-        # settings:
-        #     ui_url: http://localhost:4455/ui/reset_password
+        settings:
+            ui_url: http://localhost:4455/ui/reset_password
         registration:
             after:
                 oidc:
