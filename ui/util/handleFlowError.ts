@@ -20,7 +20,7 @@ export const handleFlowError =
       | "settings"
       | "recovery"
       | "verification",
-    resetFlow: Dispatch<SetStateAction<S | undefined>>
+    resetFlow: Dispatch<SetStateAction<S | undefined>>,
   ) =>
   async (err: AxiosError<KratosErrorResponse>) => {
     switch (err.response?.data.error?.id) {
@@ -50,7 +50,7 @@ export const handleFlowError =
       case "self_service_flow_expired":
         // The flow expired, let's request a new one.
         toast.error(
-          "Your interaction expired, please fill out the form again."
+          "Your interaction expired, please fill out the form again.",
         );
         resetFlow(undefined);
         await router.push("/" + flowType);
@@ -58,7 +58,7 @@ export const handleFlowError =
       case "security_csrf_violation":
         // A CSRF violation occurred. Best to just refresh the flow!
         toast.error(
-          "A security violation was detected, please fill out the form again."
+          "A security violation was detected, please fill out the form again.",
         );
         resetFlow(undefined);
         await router.push("/" + flowType);

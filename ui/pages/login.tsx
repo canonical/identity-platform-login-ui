@@ -119,6 +119,7 @@ const Login: NextPage = () => {
   return (
     <PageLayout title={title}>
       {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
+      <a href="/ui/reset_email">Reset password</a>
     </PageLayout>
   );
 };

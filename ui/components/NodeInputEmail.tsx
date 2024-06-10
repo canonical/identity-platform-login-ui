@@ -3,8 +3,7 @@ import { Input } from "@canonical/react-components";
 import React, { FC } from "react";
 import { NodeInputProps } from "./helpers";
 
-export const NodeInputText: FC<NodeInputProps> = ({
-  attributes,
+export const NodeInputEmail: FC<NodeInputProps> = ({
   node,
   setValue,
   disabled,
@@ -13,17 +12,17 @@ export const NodeInputText: FC<NodeInputProps> = ({
 }) => {
   return (
     <Input
-      type="text"
+      type="email"
       label={getNodeLabel(node)}
       disabled={disabled}
       defaultValue={node.messages.map(({ text }) => text).join(" ")}
-      error={attributes.name === "code" ? error : undefined}
+      error={error}
       onChange={(e) => void setValue(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault();
           e.stopPropagation();
-          void dispatchSubmit(e, "password");
+          void dispatchSubmit(e, "code");
         }
       }}
     />

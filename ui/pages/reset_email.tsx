@@ -1,5 +1,4 @@
 import { RecoveryFlow, UpdateRecoveryFlowBody } from "@ory/client";
-import { AxiosError } from "axios";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback } from "react";
@@ -55,9 +54,7 @@ const ResetEmail: NextPage = () => {
           updateRecoveryFlowBody: values,
         })
         .then(async ({ data }) => {
-          console.log(data); // todo: remove
-          const isSuccess = Object.keys(data).length === 0; // todo: check for success in a proper way
-          if (values.email && isSuccess) {
+          if (values.email) {
             setFlow(undefined); // Trigger refresh of the flow
             return;
           }
@@ -71,15 +68,7 @@ const ResetEmail: NextPage = () => {
           }
           await router.push("/");
         })
-        .catch(handleFlowError(router, "recovery", setFlow))
-        .catch((err: AxiosError<RecoveryFlow>) => {
-          if (err.response?.status === 400) {
-            setFlow(err.response.data);
-            return;
-          }
-
-          return Promise.reject(err);
-        });
+        .catch(handleFlowError(router, "recovery", setFlow));
     },
     [flow, router],
   );
