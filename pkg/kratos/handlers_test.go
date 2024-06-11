@@ -3,6 +3,7 @@ package kratos
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -17,11 +18,14 @@ import (
 )
 
 const (
-	BASE_URL                     = "https://example.com"
-	HANDLE_CREATE_FLOW_URL       = BASE_URL + "/api/kratos/self-service/login/browser"
-	HANDLE_UPDATE_LOGIN_FLOW_URL = BASE_URL + "/api/kratos/self-service/login"
-	HANDLE_GET_LOGIN_FLOW_URL    = BASE_URL + "/api/kratos/self-service/login/flows"
-	HANDLE_ERROR_URL             = BASE_URL + "/api/kratos/self-service/errors"
+	BASE_URL                        = "https://example.com"
+	HANDLE_CREATE_FLOW_URL          = BASE_URL + "/api/kratos/self-service/login/browser"
+	HANDLE_UPDATE_LOGIN_FLOW_URL    = BASE_URL + "/api/kratos/self-service/login"
+	HANDLE_GET_LOGIN_FLOW_URL       = BASE_URL + "/api/kratos/self-service/login/flows"
+	HANDLE_ERROR_URL                = BASE_URL + "/api/kratos/self-service/errors"
+	HANDLE_CREATE_RECOVERY_FLOW_URL = BASE_URL + "/api/kratos/self-service/recovery/browser"
+	HANDLE_UPDATE_RECOVERY_FLOW_URL = BASE_URL + "/api/kratos/self-service/recovery"
+	HANDLE_GET_RECOVERY_FLOW_URL    = BASE_URL + "/api/kratos/self-service/recovery/flows"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
@@ -535,6 +539,225 @@ func TestHandleUpdateFlowFailOnCheckAllowedProvider(t *testing.T) {
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleCreateRecoveryFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	redirect := "https://example.com/ui/reset_email"
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_RECOVERY_FLOW_URL, nil)
+	values := req.URL.Query()
+	req.URL.RawQuery = values.Encode()
+
+	flow := kClient.NewRecoveryFlowWithDefaults()
+	mockService.EXPECT().CreateBrowserRecoveryFlow(gomock.Any(), redirect, req.Cookies()).Return(flow, req.Cookies(), nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if _, err := json.Marshal(flow); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+}
+
+func TestHandleCreateRecoveryFlowFailOnCreateBrowserRecoveryFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	redirect := "https://example.com/ui/reset_email"
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_RECOVERY_FLOW_URL, nil)
+	values := req.URL.Query()
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().CreateBrowserRecoveryFlow(gomock.Any(), redirect, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleGetRecoveryFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	id := "test"
+	flow := kClient.NewRecoveryFlowWithDefaults()
+	flow.SetId(id)
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_RECOVERY_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("id", id)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().GetRecoveryFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Cookies(), nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	flowResponse := kClient.NewLoginFlowWithDefaults()
+	if err := json.Unmarshal(data, flowResponse); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if flowResponse.Id != flow.Id {
+		t.Fatalf("Expected id to be: %s, got: %s", flow.Id, flowResponse.Id)
+	}
+}
+
+func TestHandleGetRecoveryFlowFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	id := "test"
+	flow := kClient.NewRecoveryFlowWithDefaults()
+	flow.SetId(id)
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_RECOVERY_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("id", id)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().GetRecoveryFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleUpdateRecoveryFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	flowId := "test"
+	flow := kClient.NewRecoveryFlowWithDefaults()
+	flow.Id = flowId
+	redirectTo := "https://example.com/ui/reset_email"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	flowBody := new(kClient.UpdateRecoveryFlowBody)
+	flowBody.UpdateRecoveryFlowWithCodeMethod = kClient.NewUpdateRecoveryFlowWithCodeMethod("code")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_RECOVERY_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseRecoveryFlowMethodBody(gomock.Any()).Return(flowBody, nil)
+	mockService.EXPECT().UpdateRecoveryFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	flowResponse := kClient.NewRecoveryFlowWithDefaults()
+	if err := json.Unmarshal(data, flowResponse); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+}
+
+func TestHandleUpdateRecoveryFlowFailOnParseRecoveryFlowMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	flowId := "test"
+	redirectTo := "https://example.com/ui/reset_email"
+	flow := new(ErrorBrowserLocationChangeRequired)
+	flow.RedirectBrowserTo = &redirectTo
+
+	flowBody := new(kClient.UpdateRecoveryFlowBody)
+	flowBody.UpdateRecoveryFlowWithCodeMethod = kClient.NewUpdateRecoveryFlowWithCodeMethod("code")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_RECOVERY_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseRecoveryFlowMethodBody(gomock.Any()).Return(flowBody, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	w := httptest.NewRecorder()

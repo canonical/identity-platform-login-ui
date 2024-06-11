@@ -259,6 +259,7 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 
 	flow, cookies, err := a.service.CreateBrowserRecoveryFlow(context.Background(), returnTo, r.Cookies())
 	if err != nil {
+		a.logger.Errorf("Failed to create recovery flow: %v\n", err)
 		http.Error(w, "Failed to create recovery flow", http.StatusInternalServerError)
 		return
 	}

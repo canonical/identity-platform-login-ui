@@ -1041,3 +1041,401 @@ func TestGetProviderNameOidc(t *testing.T) {
 		t.Fatalf("Expected the provider to be %v, not %v", expectedProviderName, actualProviderName)
 	}
 }
+
+func TestParseRecoveryFlowCodeMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateRecoveryFlowWithCodeMethodWithDefaults()
+	flow.SetMethod("code")
+
+	body := kClient.UpdateRecoveryFlowWithCodeMethodAsUpdateRecoveryFlowBody(flow)
+
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseRecoveryFlowMethodBody(req)
+
+	actual, _ := b.MarshalJSON()
+	expected, _ := body.MarshalJSON()
+
+	if !reflect.DeepEqual(string(actual), string(expected)) {
+		t.Fatalf("expected flow to be %s not %s", string(expected), string(actual))
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestGetRecoveryFlowSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	id := "id"
+	flow := kClient.NewRecoveryFlowWithDefaults()
+	request := kClient.FrontendApiGetRecoveryFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().GetRecoveryFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().GetRecoveryFlowExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r kClient.FrontendApiGetRecoveryFlowRequest) (*kClient.RecoveryFlow, *http.Response, error) {
+			if _id := (*string)(reflect.ValueOf(r).FieldByName("id").UnsafePointer()); *_id != id {
+				t.Fatalf("expected id to be %s, got %s", id, *_id)
+			}
+			if cookie := (*string)(reflect.ValueOf(r).FieldByName("cookie").UnsafePointer()); *cookie != "test=test" {
+				t.Fatalf("expected cookie string as test=test, got %s", *cookie)
+			}
+
+			return flow, &resp, nil
+		},
+	)
+
+	s, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetRecoveryFlow(ctx, id, cookies)
+
+	if s != flow {
+		t.Fatalf("expected flow to be %v not  %v", flow, s)
+	}
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestGetRecoveryFlowFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	id := "id"
+	request := kClient.FrontendApiGetRecoveryFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+	}
+
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().GetRecoveryFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().GetRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
+
+	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetRecoveryFlow(ctx, id, cookies)
+
+	if f != nil {
+		t.Fatalf("expected flow to be %v not  %v", nil, f)
+	}
+	if c != nil {
+		t.Fatalf("expected header to be %v not  %v", nil, c)
+	}
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+}
+
+func TestCreateBrowserRecoveryFlowSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	returnTo := "https://example.com/ui/reset_email"
+	flow := kClient.NewRecoveryFlowWithDefaults()
+	request := kClient.FrontendApiCreateBrowserRecoveryFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlow(ctx).Times(1).Return(request)
+
+	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlowExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r kClient.FrontendApiCreateBrowserRecoveryFlowRequest) (*kClient.RecoveryFlow, *http.Response, error) {
+			if rt := (*string)(reflect.ValueOf(r).FieldByName("returnTo").UnsafePointer()); *rt != returnTo {
+				t.Fatalf("expected returnTo to be %s, got %s", returnTo, *rt)
+			}
+
+			return flow, &resp, nil
+		},
+	)
+
+	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo, cookies)
+
+	if f != flow {
+		t.Fatalf("expected flow to be %v not  %v", flow, f)
+	}
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestCreateBrowserRecoveryFlowFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	returnTo := "https://example.com/ui/reset_email"
+	request := kClient.FrontendApiCreateBrowserRecoveryFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf(""))
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
+
+	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo, cookies)
+
+	if f != nil {
+		t.Fatalf("expected flow to be %v not  %v", nil, f)
+	}
+	if c != nil {
+		t.Fatalf("expected cookies to be %v not  %v", nil, c)
+	}
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+}
+
+func TestUpdateRecoveryFlowSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	_redirectTo := "https://redirect/to/path"
+	flow := ErrorBrowserLocationChangeRequired{
+		RedirectBrowserTo: &_redirectTo,
+	}
+	flowJson, _ := json.Marshal(flow)
+	body := new(kClient.UpdateRecoveryFlowBody)
+	request := kClient.FrontendApiUpdateRecoveryFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlowExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r kClient.FrontendApiUpdateRecoveryFlowRequest) (*ErrorBrowserLocationChangeRequired, *http.Response, error) {
+			if _flow := (*string)(reflect.ValueOf(r).FieldByName("flow").UnsafePointer()); *_flow != flowId {
+				t.Fatalf("expected id to be %s, got %s", flowId, *_flow)
+			}
+			if _body := (*kClient.UpdateRecoveryFlowBody)(reflect.ValueOf(r).FieldByName("updateRecoveryFlowBody").UnsafePointer()); *_body != *body {
+				t.Fatalf("expected id to be %v, got %v", *body, *_body)
+			}
+			if cookie := (*string)(reflect.ValueOf(r).FieldByName("cookie").UnsafePointer()); *cookie != "test=test" {
+				t.Fatalf("expected cookie string as test=test, got %s", *cookie)
+			}
+
+			return &flow, &resp, nil
+		},
+	)
+
+	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
+
+	if *f.RedirectTo != *flow.RedirectBrowserTo {
+		t.Fatalf("expected redirectTo to be %s not %s", *flow.RedirectBrowserTo, *f.RedirectTo)
+	}
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestUpdateRecoveryFlowFailOnUpdateRecoveryFlowExecute(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	_redirectTo := "https://redirect/to/path"
+	flow := ErrorBrowserLocationChangeRequired{
+		RedirectBrowserTo: &_redirectTo,
+	}
+	flowJson, _ := json.Marshal(flow)
+	body := new(kClient.UpdateRecoveryFlowBody)
+
+	request := kClient.FrontendApiUpdateRecoveryFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
+	}
+
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
+
+	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
+
+	if f != nil {
+		t.Fatalf("expected flow to be %v not %+v", nil, f)
+	}
+	if c != nil {
+		t.Fatalf("expected header to be %v not %v", nil, c)
+	}
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+}
+
+func TestUpdateRecoveryFlowFailOnInvalidRecoveryCode(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	flow := &kClient.RecoveryFlow{
+		Ui: kClient.UiContainer{
+			Messages: []kClient.UiText{
+
+				{
+					Id: InvalidRecoveryCode,
+				},
+			},
+		},
+	}
+
+	flowJson, _ := json.Marshal(flow)
+	body := new(kClient.UpdateRecoveryFlowBody)
+
+	request := kClient.FrontendApiUpdateRecoveryFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	resp := http.Response{
+		Header:     http.Header{"Set-Cookie": []string{cookie.Raw}},
+		Body:       io.NopCloser(bytes.NewBuffer(flowJson)),
+		StatusCode: 200,
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlowExecute(gomock.Any()).Times(1).Return(flow, &resp, nil)
+
+	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
+
+	if f != nil {
+		t.Fatalf("expected flow to be %v not %+v", nil, f)
+	}
+	if c != nil {
+		t.Fatalf("expected header to be %v not  %v", nil, c)
+	}
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+	expectedError := fmt.Errorf("the recovery code is invalid or has already been used")
+	if err.Error() != expectedError.Error() {
+		t.Fatalf("expected error to be %v not %v", expectedError, err)
+	}
+}
