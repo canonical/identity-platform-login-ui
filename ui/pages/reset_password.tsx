@@ -9,6 +9,7 @@ import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import Password from "../components/Password";
 import { UiNodeInputAttributes } from "@ory/client/api";
+import { AxiosError } from "axios";
 
 const ResetPassword: NextPage = () => {
   const [password, setPassword] = React.useState("");
@@ -17,7 +18,7 @@ const ResetPassword: NextPage = () => {
 
   // Get ?flow=... from the URL
   const router = useRouter();
-  const { flow: flowId } = router.query;
+  const { return_to: returnTo, flow: flowId } = router.query;
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
@@ -34,9 +35,30 @@ const ResetPassword: NextPage = () => {
       return;
     }
 
-    // Otherwise we go back to the previous step of the reset flow
-    window.location.href = "/ui/reset_email";
-  }, [flowId, router, router.isReady, flow]);
+    // Otherwise we initialize it
+    kratos
+      .createBrowserSettingsFlow({
+        returnTo: returnTo ? String(returnTo) : undefined,
+      })
+      .then(({ data }) => {
+        if (data.request_url !== undefined) {
+          window.location.href = data.request_url;
+          return;
+        }
+        setFlow(data);
+      })
+      .catch(handleFlowError(router, "settings", setFlow))
+      .catch(async (err: AxiosError<string>) => {
+        if (err.response?.data.trim() === "Failed to create settings flow") {
+          setFlow(undefined);
+          await router.push("/login");
+          return;
+        }
+
+        return Promise.reject(err);
+      });
+  }, [flowId, router, router.isReady, returnTo, flow]);
+
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
