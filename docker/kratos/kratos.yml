@@ -3,7 +3,7 @@ version: v1.1.0
 oauth2_provider:
     url: "http://hydra:4445"
 log:
-    level: trace
+    level: debug
     format: text
     leak_sensitive_values: true
 dsn: memory
