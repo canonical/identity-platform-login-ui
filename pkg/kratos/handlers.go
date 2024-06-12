@@ -322,8 +322,6 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setCookies(w, cookies)
-	// Kratos returns us a '422' response but we tranform it to a '200',
-	// because this is the expected behavior for us.
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
