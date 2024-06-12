@@ -51,6 +51,8 @@ selfservice:
     methods:
         password:
             enabled: True
+            config:
+                haveibeenpwned_enabled: false
         code:
             enabled: True
         oidc:

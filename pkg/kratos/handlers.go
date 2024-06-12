@@ -336,6 +336,7 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 
 	flow, cookies, err := a.service.CreateBrowserSettingsFlow(context.Background(), returnTo, r.Cookies())
 	if err != nil {
+		a.logger.Errorf("Failed to create settings flow: %v", err)
 		http.Error(w, "Failed to create settings flow", http.StatusInternalServerError)
 		return
 	}
@@ -346,7 +347,6 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
 		return
 	}
-	a.logger.Debugf("Response: %s", resp)
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)

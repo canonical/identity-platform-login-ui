@@ -26,6 +26,9 @@ const (
 	HANDLE_CREATE_RECOVERY_FLOW_URL = BASE_URL + "/api/kratos/self-service/recovery/browser"
 	HANDLE_UPDATE_RECOVERY_FLOW_URL = BASE_URL + "/api/kratos/self-service/recovery"
 	HANDLE_GET_RECOVERY_FLOW_URL    = BASE_URL + "/api/kratos/self-service/recovery/flows"
+	HANDLE_CREATE_SETTINGS_FLOW_URL = BASE_URL + "/api/kratos/self-service/settings/browser"
+	HANDLE_UPDATE_SETTINGS_FLOW_URL = BASE_URL + "/api/kratos/self-service/settings"
+	HANDLE_GET_SETTINGS_FLOW_URL    = BASE_URL + "/api/kratos/self-service/settings/flows"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
@@ -625,6 +628,7 @@ func TestHandleGetRecoveryFlow(t *testing.T) {
 	id := "test"
 	flow := kClient.NewRecoveryFlowWithDefaults()
 	flow.SetId(id)
+	flow.SetState("choose_method")
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_RECOVERY_FLOW_URL, nil)
 	values := req.URL.Query()
@@ -649,7 +653,7 @@ func TestHandleGetRecoveryFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
-	flowResponse := kClient.NewLoginFlowWithDefaults()
+	flowResponse := kClient.NewRecoveryFlowWithDefaults()
 	if err := json.Unmarshal(data, flowResponse); err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
@@ -758,6 +762,220 @@ func TestHandleUpdateRecoveryFlowFailOnParseRecoveryFlowMethodBody(t *testing.T)
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseRecoveryFlowMethodBody(gomock.Any()).Return(flowBody, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleCreateSettingsFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	redirect := "https://example.com/ui/reset_complete"
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	req.URL.RawQuery = values.Encode()
+
+	flow := kClient.NewSettingsFlowWithDefaults()
+	mockService.EXPECT().CreateBrowserSettingsFlow(gomock.Any(), redirect, req.Cookies()).Return(flow, req.Cookies(), nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if _, err := json.Marshal(flow); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+}
+
+func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	redirect := "https://example.com/ui/reset_complete"
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().CreateBrowserSettingsFlow(gomock.Any(), redirect, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleGetSettingsFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	id := "test"
+	flow := kClient.NewSettingsFlowWithDefaults()
+	flow.SetId(id)
+	flow.SetState("show_form")
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("id", id)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Cookies(), nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	flowResponse := kClient.NewSettingsFlowWithDefaults()
+	if err := json.Unmarshal(data, flowResponse); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if flowResponse.Id != flow.Id {
+		t.Fatalf("Expected id to be: %s, got: %s", flow.Id, flowResponse.Id)
+	}
+}
+
+func TestHandleGetSettingsFlowFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	id := "test"
+	flow := kClient.NewSettingsFlowWithDefaults()
+	flow.SetId(id)
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("id", id)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleUpdateSettingsFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	flowId := "test"
+	flow := kClient.NewSettingsFlowWithDefaults()
+	flow.Id = flowId
+	flow.State = "show_form"
+
+	flowBody := new(kClient.UpdateSettingsFlowBody)
+	flowBody.UpdateSettingsFlowWithPasswordMethod = kClient.NewUpdateSettingsFlowWithPasswordMethod("password", "password")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseSettingsFlowMethodBody(gomock.Any()).Return(flowBody, nil)
+	mockService.EXPECT().UpdateSettingsFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(flow, req.Cookies(), nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	flowResponse := kClient.NewSettingsFlowWithDefaults()
+	if err := json.Unmarshal(data, flowResponse); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+}
+
+func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	flowId := "test"
+
+	flowBody := new(kClient.UpdateSettingsFlowBody)
+	flowBody.UpdateSettingsFlowWithPasswordMethod = kClient.NewUpdateSettingsFlowWithPasswordMethod("password", "password")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseSettingsFlowMethodBody(gomock.Any()).Return(flowBody, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	w := httptest.NewRecorder()

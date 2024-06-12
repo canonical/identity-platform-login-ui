@@ -134,8 +134,6 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 		return nil, nil, err
 	}
 
-	s.logger.Debugf("Created settings flow: %s", flow)
-
 	return flow, resp.Cookies(), nil
 }
 
@@ -186,8 +184,6 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
-
-	s.logger.Debugf("Get settings flow: %s", flow)
 
 	return flow, resp.Cookies(), nil
 }
@@ -285,42 +281,25 @@ func (s *Service) UpdateLoginFlow(
 
 func (s *Service) UpdateSettingsFlow(
 	ctx context.Context, flow string, body kClient.UpdateSettingsFlowBody, cookies []*http.Cookie,
-) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+) (*kClient.SettingsFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateSettingsFlow")
 	defer span.End()
 
-	_, resp, err := s.kratos.FrontendApi().
+	settingsFlow, resp, err := s.kratos.FrontendApi().
 		UpdateSettingsFlow(ctx).
 		Flow(flow).
 		UpdateSettingsFlowBody(body).
 		Cookie(cookiesToString(cookies)).
 		Execute()
 
-	// We expect to get a 422 response from Kratos. The sdk forces us to
-	// make the request with an 'application/json' content-type, whereas Kratos
-	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
-	// This is not a real error, as we still get the URL to which the user needs to be
-	// redirected to.
-	if err != nil && resp.StatusCode != 422 {
+	if err != nil && resp.StatusCode != 200 {
 		s.logger.Debugf("full HTTP response: %v", resp)
 		err := s.getUiError(resp.Body)
 
 		return nil, nil, err
 	}
 
-	redirectResp := new(ErrorBrowserLocationChangeRequired)
-	err = unmarshalByteJson(resp.Body, redirectResp)
-	if err != nil {
-		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
-		return nil, nil, err
-	}
-
-	// We trasform the kratos response to our own custom response here.
-	// The original kratos response contains an 'Error' field, which we remove
-	// because this is not a real error.
-	returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
-
-	return &returnToResp, resp.Cookies(), nil
+	return settingsFlow, resp.Cookies(), nil
 }
 
 func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
