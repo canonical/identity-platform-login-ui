@@ -128,6 +128,7 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 	flow, resp, err := s.kratos.FrontendApi().
 		CreateBrowserSettingsFlow(context.Background()).
 		ReturnTo(returnTo).
+		Cookie(cookiesToString(cookies)).
 		Execute()
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
