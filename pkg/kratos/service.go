@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -133,7 +134,7 @@ func (s *Service) CreateBrowserLoginFlow(
 }
 
 func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.CreateBrowserRecoveryFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserRecoveryFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
@@ -149,13 +150,13 @@ func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string
 }
 
 func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.CreateBrowserSettingsFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserSettingsFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
 		CreateBrowserSettingsFlow(context.Background()).
 		ReturnTo(returnTo).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -183,13 +184,13 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 }
 
 func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetRecoveryFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetRecoveryFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
 		GetRecoveryFlow(ctx).
 		Id(id).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -200,13 +201,13 @@ func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*htt
 }
 
 func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetSettingsFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetSettingsFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
 		GetSettingsFlow(ctx).
 		Id(id).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -219,14 +220,14 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 func (s *Service) UpdateRecoveryFlow(
 	ctx context.Context, flow string, body kClient.UpdateRecoveryFlowBody, cookies []*http.Cookie,
 ) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateRecoveryFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateRecoveryFlow")
 	defer span.End()
 
 	recovery, resp, err := s.kratos.FrontendApi().
 		UpdateRecoveryFlow(ctx).
 		Flow(flow).
 		UpdateRecoveryFlowBody(body).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 
 	// If the recovery code was invalid, kratos returns a 200 response
@@ -311,14 +312,14 @@ func (s *Service) UpdateLoginFlow(
 func (s *Service) UpdateSettingsFlow(
 	ctx context.Context, flow string, body kClient.UpdateSettingsFlowBody, cookies []*http.Cookie,
 ) (*kClient.SettingsFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateSettingsFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateSettingsFlow")
 	defer span.End()
 
 	settingsFlow, resp, err := s.kratos.FrontendApi().
 		UpdateSettingsFlow(ctx).
 		Flow(flow).
 		UpdateSettingsFlowBody(body).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 
 	if err != nil && resp.StatusCode != http.StatusOK {

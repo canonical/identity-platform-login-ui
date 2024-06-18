@@ -1100,7 +1100,7 @@ func TestGetRecoveryFlowSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetRecoveryFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -1154,7 +1154,7 @@ func TestGetRecoveryFlowFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -1197,7 +1197,7 @@ func TestCreateBrowserRecoveryFlowSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlow(ctx).Times(1).Return(request)
 
@@ -1245,7 +1245,7 @@ func TestCreateBrowserRecoveryFlowFail(t *testing.T) {
 		ApiService: mockKratosFrontendApi,
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
@@ -1295,7 +1295,7 @@ func TestUpdateRecoveryFlowSuccess(t *testing.T) {
 		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -1360,7 +1360,7 @@ func TestUpdateRecoveryFlowFailOnUpdateRecoveryFlowExecute(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -1418,7 +1418,7 @@ func TestUpdateRecoveryFlowFailOnInvalidRecoveryCode(t *testing.T) {
 		StatusCode: 200,
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlowExecute(gomock.Any()).Times(1).Return(flow, &resp, nil)
@@ -1498,7 +1498,7 @@ func TestGetSettingsFlowSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -1552,7 +1552,7 @@ func TestGetSettingsFlowFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -1595,7 +1595,7 @@ func TestCreateBrowserSettingsFlowSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlow(ctx).Times(1).Return(request)
 
@@ -1643,7 +1643,7 @@ func TestCreateBrowserSettingsFlowFail(t *testing.T) {
 		ApiService: mockKratosFrontendApi,
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf(""))
@@ -1692,7 +1692,7 @@ func TestUpdateSettingsFlowSuccess(t *testing.T) {
 		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateSettingsFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -1752,7 +1752,7 @@ func TestUpdateSettingsFlowFailOnUpdateSettingsFlowExecute(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
