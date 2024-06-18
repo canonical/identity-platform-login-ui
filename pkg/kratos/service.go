@@ -16,10 +16,13 @@ import (
 	kClient "github.com/ory/kratos-client-go"
 )
 
-const IncorrectCredentials = 4000006
-const InactiveAccount = 4000010
-const InvalidRecoveryCode = 4060006
-const RecoveryCodeSent = 1060003
+const (
+	IncorrectCredentials = 4000006
+	InactiveAccount      = 4000010
+	InvalidRecoveryCode  = 4060006
+	RecoveryCodeSent     = 1060003
+	InvalidProperty      = 4000002
+)
 
 type Service struct {
 	kratos KratosClientInterface
@@ -43,6 +46,30 @@ type ErrorBrowserLocationChangeRequired struct {
 type BrowserLocationChangeRequired struct {
 	// Points to where to redirect the user to next.
 	RedirectTo *string `json:"redirect_to,omitempty"`
+}
+
+type Context struct {
+	Property string `json:"property,omitempty"`
+	Pattern  string `json:"pattern,omitempty"`
+	Reason   string `json:"reason,omitempty"`
+}
+
+type Messages []struct {
+	Id      int    `json:"id,omitempty"`
+	Text    string `json:"text,omitempty"`
+	Type    string `json:"type,omitempty"`
+	Context Context
+}
+
+type UiNode []struct {
+	Messages Messages `json:"messages,omitempty"`
+}
+
+type UiErrorMessages struct {
+	Ui struct {
+		Messages Messages
+		Nodes    UiNode
+	} `json:"ui,omitempty"`
 }
 
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
@@ -206,17 +233,18 @@ func (s *Service) UpdateRecoveryFlow(
 	// with a 4060006 error in the rendered ui messages.
 	// If the recovery code was valid, we expect to get a 422 response from kratos.
 	// That is because the user needs to be redirected to self-service settings page.
-	// The sdk forces us to ake the request with an 'application/json' content-type, whereas Kratos
+	// The sdk forces us to make the request with an 'application/json' content-type, whereas Kratos
 	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
 	// This is not a real error, as we still get the URL to which the user needs to be
 	// redirected to.
 
-	if err != nil && resp.StatusCode != 422 {
+	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
 		s.logger.Debugf("full HTTP response: %v", resp)
+		err := s.getUiError(resp.Body)
 		return nil, nil, err
 	}
 
-	if resp.StatusCode == 200 {
+	if resp.StatusCode == http.StatusOK {
 		uiMsg := recovery.GetUi()
 
 		for _, message := range uiMsg.GetMessages() {
@@ -258,7 +286,7 @@ func (s *Service) UpdateLoginFlow(
 	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
 	// This is not a real error, as we still get the URL to which the user needs to be
 	// redirected to.
-	if err != nil && resp.StatusCode != 422 {
+	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
 		s.logger.Debugf("full HTTP response: %v", resp)
 		err := s.getUiError(resp.Body)
 
@@ -293,7 +321,7 @@ func (s *Service) UpdateSettingsFlow(
 		Cookie(cookiesToString(cookies)).
 		Execute()
 
-	if err != nil && resp.StatusCode != 200 {
+	if err != nil && resp.StatusCode != http.StatusOK {
 		s.logger.Debugf("full HTTP response: %v", resp)
 		err := s.getUiError(resp.Body)
 
@@ -304,11 +332,26 @@ func (s *Service) UpdateSettingsFlow(
 }
 
 func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
-	errorMessages := new(kClient.LoginFlow)
+	errorMessages := new(UiErrorMessages)
 	body, _ := io.ReadAll(responseBody)
 	json.Unmarshal([]byte(body), &errorMessages)
 
 	errorCodes := errorMessages.Ui.Messages
+
+	// if no message was found, search through nodes
+	if len(errorCodes) == 0 {
+		nodes := errorMessages.Ui.Nodes
+		for _, node := range nodes {
+			// look for the node where error appears
+			for _, message := range node.Messages {
+				if message.Type == "error" {
+					errorCodes = node.Messages
+					s.logger.Debugf("Messages: %s", errorCodes)
+				}
+			}
+		}
+	}
+
 	if len(errorCodes) == 0 {
 		err = fmt.Errorf("error code not found")
 		s.logger.Errorf(err.Error())
@@ -320,6 +363,8 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("incorrect username or password")
 	case InactiveAccount:
 		err = fmt.Errorf("inactive account")
+	case InvalidProperty:
+		err = fmt.Errorf("invalid %s", errorCodes[0].Context.Property)
 	default:
 		err = fmt.Errorf("unknown error")
 		s.logger.Debugf("Kratos error code: %v", errorCode)
