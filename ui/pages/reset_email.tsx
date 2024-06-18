@@ -38,7 +38,7 @@ const ResetEmail: NextPage = () => {
       })
       .then(({ data }) => {
         if (data.request_url !== undefined) {
-          window.location.href = data.request_url;
+          window.location.href = data.return_to + "?flow=" + data.id;
           return;
         }
         setFlow(data);
