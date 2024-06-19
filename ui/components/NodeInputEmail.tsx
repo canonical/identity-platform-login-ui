@@ -5,11 +5,20 @@ import { NodeInputProps } from "./helpers";
 
 export const NodeInputEmail: FC<NodeInputProps> = ({
   node,
+  value,
   setValue,
   disabled,
   dispatchSubmit,
-  error,
+  error: upstreamError,
 }) => {
+  const [hasLocalValidation, setLocalValidation] = React.useState(false);
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isInvalid = !emailRegex.test((value as string) ?? "");
+  const localError = isInvalid ? "Invalid email address" : undefined;
+
+  const error = hasLocalValidation ? localError : upstreamError;
+
   return (
     <Input
       type="email"
@@ -18,6 +27,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
       defaultValue={node.messages.map(({ text }) => text).join(" ")}
       error={error}
       onChange={(e) => void setValue(e.target.value)}
+      onBlur={() => setLocalValidation(true)}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault();
