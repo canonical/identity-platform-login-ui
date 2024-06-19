@@ -36,9 +36,16 @@ const ResetEmail: NextPage = () => {
       .createBrowserRecoveryFlow({
         returnTo: returnTo ? String(returnTo) : undefined,
       })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (data.request_url !== undefined) {
-          window.location.href = data.return_to + "?flow=" + data.id;
+          await router.push(
+            {
+              pathname: "reset_email",
+              query: { flow: data.id },
+            },
+            `${data.return_to}?flow=${data.id}`,
+            { shallow: true },
+          );
           return;
         }
         setFlow(data);
