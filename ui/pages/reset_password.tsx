@@ -51,7 +51,7 @@ const ResetPassword: NextPage = () => {
       .catch(async (err: AxiosError<string>) => {
         if (err.response?.data.trim() === "Failed to create settings flow") {
           setFlow(undefined);
-          await router.push("/login");
+          await router.push("./login");
           return;
         }
 
@@ -74,7 +74,7 @@ const ResetPassword: NextPage = () => {
           },
         })
         .then(async () => {
-          await router.push("/ui/reset_complete");
+          await router.push("./reset_complete");
         })
         .catch(handleFlowError(router, "settings", setFlow));
     },

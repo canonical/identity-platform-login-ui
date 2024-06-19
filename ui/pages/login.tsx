@@ -85,7 +85,7 @@ const Login: NextPage = () => {
             window.location.href = flow.return_to;
             return;
           }
-          await router.push("/");
+          await router.push("./");
         })
         .catch(handleFlowError(router, "login", setFlow))
         .catch((err: AxiosError<LoginFlow>) => {
@@ -119,7 +119,7 @@ const Login: NextPage = () => {
   return (
     <PageLayout title={title}>
       {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
-      <a href="/ui/reset_email">Reset password</a>
+      <a href="./reset_email">Reset password</a>
     </PageLayout>
   );
 };

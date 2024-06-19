@@ -29,13 +29,13 @@ const Error: NextPage = () => {
         switch (err.response?.status) {
           case 404:
             // The error id could not be found. Let's just redirect home!
-            return router.push("/");
+            return router.push("./");
           case 403:
             // The error id could not be fetched due to e.g. a CSRF issue. Let's just redirect home!
-            return router.push("/");
+            return router.push("./");
           case 410:
             // The error id expired. Let's just redirect home!
-            return router.push("/");
+            return router.push("./");
         }
 
         return Promise.reject(err);

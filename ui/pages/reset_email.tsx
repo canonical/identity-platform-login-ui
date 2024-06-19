@@ -66,7 +66,7 @@ const ResetEmail: NextPage = () => {
             window.location.href = flow.return_to;
             return;
           }
-          await router.push("/");
+          await router.push("./");
         })
         .catch(handleFlowError(router, "recovery", setFlow));
     },
