@@ -49,28 +49,8 @@ type BrowserLocationChangeRequired struct {
 	RedirectTo *string `json:"redirect_to,omitempty"`
 }
 
-type Context struct {
-	Property string `json:"property,omitempty"`
-	Pattern  string `json:"pattern,omitempty"`
-	Reason   string `json:"reason,omitempty"`
-}
-
-type Messages []struct {
-	Id      int    `json:"id,omitempty"`
-	Text    string `json:"text,omitempty"`
-	Type    string `json:"type,omitempty"`
-	Context Context
-}
-
-type UiNode []struct {
-	Messages Messages `json:"messages,omitempty"`
-}
-
 type UiErrorMessages struct {
-	Ui struct {
-		Messages Messages
-		Nodes    UiNode
-	} `json:"ui,omitempty"`
+	Ui kClient.UiContainer `json:"ui"`
 }
 
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
@@ -365,7 +345,7 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 	case InactiveAccount:
 		err = fmt.Errorf("inactive account")
 	case InvalidProperty:
-		err = fmt.Errorf("invalid %s", errorCodes[0].Context.Property)
+		err = fmt.Errorf("invalid %s", errorCodes[0].Context["property"])
 	default:
 		err = fmt.Errorf("unknown error")
 		s.logger.Debugf("Kratos error code: %v", errorCode)
