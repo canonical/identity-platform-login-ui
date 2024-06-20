@@ -7,6 +7,7 @@ import { NodeInputProps } from "./helpers";
 import React, { FC } from "react";
 import { NodeInputText } from "./NodeInputText";
 import { NodeInputPassword } from "./NodeInputPassword";
+import { NodeInputEmail } from "./NodeInputEmail";
 
 export const NodeInputOIDC: FC<NodeInputProps> = ({
   attributes,
@@ -48,6 +49,8 @@ export const NodeInput: FC<NodeInputProps> = (props) => {
       return <NodeInputButton {...props} />;
     case "text":
       return <NodeInputText {...props} />;
+    case "email":
+      return <NodeInputEmail {...props} />;
     case "password":
       return <NodeInputPassword {...props} />;
     case "submit":

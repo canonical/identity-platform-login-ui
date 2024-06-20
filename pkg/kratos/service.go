@@ -10,14 +10,20 @@ import (
 	"net/http"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
 )
 
-const IncorrectCredentials = 4000006
-const InactiveAccount = 4000010
+const (
+	IncorrectCredentials = 4000006
+	InactiveAccount      = 4000010
+	InvalidRecoveryCode  = 4060006
+	RecoveryCodeSent     = 1060003
+	InvalidProperty      = 4000002
+)
 
 type Service struct {
 	kratos KratosClientInterface
@@ -41,6 +47,10 @@ type ErrorBrowserLocationChangeRequired struct {
 type BrowserLocationChangeRequired struct {
 	// Points to where to redirect the user to next.
 	RedirectTo *string `json:"redirect_to,omitempty"`
+}
+
+type UiErrorMessages struct {
+	Ui kClient.UiContainer `json:"ui"`
 }
 
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
@@ -103,6 +113,39 @@ func (s *Service) CreateBrowserLoginFlow(
 	return flow, resp.Cookies(), nil
 }
 
+func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserRecoveryFlow")
+	defer span.End()
+
+	flow, resp, err := s.kratos.FrontendApi().
+		CreateBrowserRecoveryFlow(context.Background()).
+		ReturnTo(returnTo).
+		Execute()
+	if err != nil {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		return nil, nil, err
+	}
+
+	return flow, resp.Cookies(), nil
+}
+
+func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserSettingsFlow")
+	defer span.End()
+
+	flow, resp, err := s.kratos.FrontendApi().
+		CreateBrowserSettingsFlow(context.Background()).
+		ReturnTo(returnTo).
+		Cookie(httpHelpers.CookiesToString(cookies)).
+		Execute()
+	if err != nil {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		return nil, nil, err
+	}
+
+	return flow, resp.Cookies(), nil
+}
+
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetLoginFlow")
 	defer span.End()
@@ -118,6 +161,93 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 	}
 
 	return flow, resp.Cookies(), nil
+}
+
+func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetRecoveryFlow")
+	defer span.End()
+
+	flow, resp, err := s.kratos.FrontendApi().
+		GetRecoveryFlow(ctx).
+		Id(id).
+		Cookie(httpHelpers.CookiesToString(cookies)).
+		Execute()
+	if err != nil {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		return nil, nil, err
+	}
+
+	return flow, resp.Cookies(), nil
+}
+
+func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetSettingsFlow")
+	defer span.End()
+
+	flow, resp, err := s.kratos.FrontendApi().
+		GetSettingsFlow(ctx).
+		Id(id).
+		Cookie(httpHelpers.CookiesToString(cookies)).
+		Execute()
+	if err != nil {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		return nil, nil, err
+	}
+
+	return flow, resp.Cookies(), nil
+}
+
+func (s *Service) UpdateRecoveryFlow(
+	ctx context.Context, flow string, body kClient.UpdateRecoveryFlowBody, cookies []*http.Cookie,
+) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateRecoveryFlow")
+	defer span.End()
+
+	recovery, resp, err := s.kratos.FrontendApi().
+		UpdateRecoveryFlow(ctx).
+		Flow(flow).
+		UpdateRecoveryFlowBody(body).
+		Cookie(httpHelpers.CookiesToString(cookies)).
+		Execute()
+
+	// If the recovery code was invalid, kratos returns a 200 response
+	// with a 4060006 error in the rendered ui messages.
+	// If the recovery code was valid, we expect to get a 422 response from kratos.
+	// That is because the user needs to be redirected to self-service settings page.
+	// The sdk forces us to make the request with an 'application/json' content-type, whereas Kratos
+	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
+	// This is not a real error, as we still get the URL to which the user needs to be
+	// redirected to.
+
+	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		err := s.getUiError(resp.Body)
+		return nil, nil, err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		uiMsg := recovery.GetUi()
+
+		for _, message := range uiMsg.GetMessages() {
+			if message.GetId() == InvalidRecoveryCode {
+				return nil, nil, fmt.Errorf("the recovery code is invalid or has already been used")
+			}
+		}
+	}
+
+	redirectResp := new(ErrorBrowserLocationChangeRequired)
+	err = unmarshalByteJson(resp.Body, redirectResp)
+	if err != nil {
+		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+		return nil, nil, err
+	}
+
+	// We trasform the kratos response to our own custom response here.
+	// The original kratos response contains an 'Error' field, which we remove
+	// because this is not a real error.
+	returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
+
+	return &returnToResp, resp.Cookies(), nil
 }
 
 func (s *Service) UpdateLoginFlow(
@@ -137,7 +267,7 @@ func (s *Service) UpdateLoginFlow(
 	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
 	// This is not a real error, as we still get the URL to which the user needs to be
 	// redirected to.
-	if err != nil && resp.StatusCode != 422 {
+	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
 		s.logger.Debugf("full HTTP response: %v", resp)
 		err := s.getUiError(resp.Body)
 
@@ -159,12 +289,50 @@ func (s *Service) UpdateLoginFlow(
 	return &returnToResp, resp.Cookies(), nil
 }
 
+func (s *Service) UpdateSettingsFlow(
+	ctx context.Context, flow string, body kClient.UpdateSettingsFlowBody, cookies []*http.Cookie,
+) (*kClient.SettingsFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateSettingsFlow")
+	defer span.End()
+
+	settingsFlow, resp, err := s.kratos.FrontendApi().
+		UpdateSettingsFlow(ctx).
+		Flow(flow).
+		UpdateSettingsFlowBody(body).
+		Cookie(httpHelpers.CookiesToString(cookies)).
+		Execute()
+
+	if err != nil && resp.StatusCode != http.StatusOK {
+		s.logger.Debugf("full HTTP response: %v", resp)
+		err := s.getUiError(resp.Body)
+
+		return nil, nil, err
+	}
+
+	return settingsFlow, resp.Cookies(), nil
+}
+
 func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
-	errorMessages := new(kClient.LoginFlow)
+	errorMessages := new(UiErrorMessages)
 	body, _ := io.ReadAll(responseBody)
 	json.Unmarshal([]byte(body), &errorMessages)
 
 	errorCodes := errorMessages.Ui.Messages
+
+	// if no message was found, search through nodes
+	if len(errorCodes) == 0 {
+		nodes := errorMessages.Ui.GetNodes()
+		for _, node := range nodes {
+			// look for the node where error appears
+			for _, message := range node.Messages {
+				if message.Type == "error" {
+					errorCodes = node.GetMessages()
+					s.logger.Debugf("Messages: %s", errorCodes)
+				}
+			}
+		}
+	}
+
 	if len(errorCodes) == 0 {
 		err = fmt.Errorf("error code not found")
 		s.logger.Errorf(err.Error())
@@ -176,6 +344,8 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("incorrect username or password")
 	case InactiveAccount:
 		err = fmt.Errorf("inactive account")
+	case InvalidProperty:
+		err = fmt.Errorf("invalid %s", errorCodes[0].Context["property"])
 	default:
 		err = fmt.Errorf("unknown error")
 		s.logger.Debugf("Kratos error code: %v", errorCode)
@@ -312,6 +482,38 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 			body,
 		)
 	}
+
+	return &ret, nil
+}
+
+func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateRecoveryFlowBody, error) {
+	body := new(kClient.UpdateRecoveryFlowWithCodeMethod)
+
+	err := parseBody(r.Body, &body)
+
+	if err != nil {
+		return nil, err
+	}
+	ret := kClient.UpdateRecoveryFlowWithCodeMethodAsUpdateRecoveryFlowBody(
+		body,
+	)
+
+	ret.UpdateRecoveryFlowWithCodeMethod.Method = "code"
+
+	return &ret, nil
+}
+
+func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateSettingsFlowBody, error) {
+	body := new(kClient.UpdateSettingsFlowWithPasswordMethod)
+
+	err := parseBody(r.Body, &body)
+
+	if err != nil {
+		return nil, err
+	}
+	ret := kClient.UpdateSettingsFlowWithPasswordMethodAsUpdateSettingsFlowBody(
+		body,
+	)
 
 	return &ret, nil
 }
