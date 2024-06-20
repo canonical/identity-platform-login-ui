@@ -321,12 +321,12 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 
 	// if no message was found, search through nodes
 	if len(errorCodes) == 0 {
-		nodes := errorMessages.Ui.Nodes
+		nodes := errorMessages.Ui.GetNodes()
 		for _, node := range nodes {
 			// look for the node where error appears
 			for _, message := range node.Messages {
 				if message.Type == "error" {
-					errorCodes = node.Messages
+					errorCodes = node.GetMessages()
 					s.logger.Debugf("Messages: %s", errorCodes)
 				}
 			}
