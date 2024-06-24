@@ -194,6 +194,8 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 		return nil, nil, err
 	}
 
+	// TODO: Handle aal2 redirect
+
 	return flow, resp.Cookies(), nil
 }
 
@@ -468,6 +470,17 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		ret = kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(
 			body,
 		)
+	case "totp":
+		body := new(kClient.UpdateLoginFlowWithTotpMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateLoginFlowWithTotpMethodAsUpdateLoginFlowBody(
+			body,
+		)
 	// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
 	default:
 		body := new(kClient.UpdateLoginFlowWithOidcMethod)
@@ -504,16 +517,53 @@ func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateR
 }
 
 func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateSettingsFlowBody, error) {
-	body := new(kClient.UpdateSettingsFlowWithPasswordMethod)
+	type MethodOnly struct {
+		Method string `json:"method"`
+	}
 
-	err := parseBody(r.Body, &body)
+	methodOnly := new(MethodOnly)
+
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
 
 	if err != nil {
+		return nil, errors.New("unable to read body")
+	}
+
+	// replace the body that was consumed
+	r.Body = io.NopCloser(bytes.NewReader(b))
+
+	if err := json.Unmarshal(b, methodOnly); err != nil {
 		return nil, err
 	}
-	ret := kClient.UpdateSettingsFlowWithPasswordMethodAsUpdateSettingsFlowBody(
-		body,
-	)
+
+	var ret kClient.UpdateSettingsFlowBody
+
+	switch methodOnly.Method {
+	case "password":
+		body := new(kClient.UpdateSettingsFlowWithPasswordMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateSettingsFlowWithPasswordMethodAsUpdateSettingsFlowBody(
+			body,
+		)
+	case "totp":
+		body := new(kClient.UpdateSettingsFlowWithTotpMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ret = kClient.UpdateSettingsFlowWithTotpMethodAsUpdateSettingsFlowBody(
+			body,
+		)
+	}
 
 	return &ret, nil
 }

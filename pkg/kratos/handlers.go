@@ -328,7 +328,7 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
-	returnTo, err := url.JoinPath(a.baseURL, "/ui/reset_complete")
+	returnTo, err := url.JoinPath(a.baseURL, "/ui/setup_complete")
 	if err != nil {
 		a.logger.Errorf("Failed to construct returnTo URL: ", err)
 		http.Error(w, "Failed to construct returnTo URL", http.StatusBadRequest)

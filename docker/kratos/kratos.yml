@@ -26,6 +26,8 @@ selfservice:
       - http://localhost:4455/ui/reset_email
       - http://localhost:4455/ui/reset_password
       - http://localhost:4455/ui/reset_complete
+      - http://localhost:4455/ui/setup_secure
+      - http://localhost:4455/ui/setup_complete
     default_browser_return_url:
         http://localhost:4455/ui/
     flows:
@@ -43,12 +45,18 @@ selfservice:
                     - hook: revoke_active_sessions
         settings:
             ui_url: http://localhost:4455/ui/reset_password
+            # TODO: Change to highest_available when aal2 redirect is handled
+            required_aal: aal1
         registration:
             after:
                 oidc:
                     hooks:
                     - hook: session
     methods:
+        totp:
+         enabled: true
+         config:
+           issuer: GoogleAuthenticator
         password:
             enabled: True
             config:
