@@ -73,8 +73,10 @@ const ResetPassword: NextPage = () => {
             password: password,
           },
         })
-        .then(async () => {
-          await router.push("./setup_secure");
+        .then(async (result) => {
+          const pwParam =
+            result.data.state === "success" ? "?pw_changed=success" : "";
+          await router.push(`./setup_secure${pwParam}`);
         })
         .catch(handleFlowError(router, "settings", setFlow));
     },

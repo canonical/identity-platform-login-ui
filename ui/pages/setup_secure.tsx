@@ -1,4 +1,8 @@
-import { SettingsFlow, UpdateSettingsFlowBody } from "@ory/client";
+import {
+  SettingsFlow,
+  UpdateSettingsFlowBody,
+  UpdateSettingsFlowWithTotpMethod,
+} from "@ory/client";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback } from "react";
@@ -8,14 +12,19 @@ import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
-import { Spinner } from "@canonical/react-components";
+import { Notification, Spinner } from "@canonical/react-components";
+import { UiNodeInputAttributes } from "@ory/client/api";
 
 const SetupSecure: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
 
   // Get ?flow=... from the URL
   const router = useRouter();
-  const { return_to: returnTo, flow: flowId } = router.query;
+  const {
+    return_to: returnTo,
+    flow: flowId,
+    pw_changed: pwChanged,
+  } = router.query;
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
@@ -39,8 +48,10 @@ const SetupSecure: NextPage = () => {
       })
       .then(({ data }) => {
         if (data.request_url !== undefined) {
-          window.location.href =
-            "http://localhost:4455/ui/setup_secure" + "?flow=" + data.id;
+          const pwParam = pwChanged
+            ? `&pw_changed=${pwChanged.toString()}`
+            : "";
+          window.location.href = `http://localhost:4455/ui/setup_secure?flow=${data.id}${pwParam}`;
           return;
         }
         setFlow(data);
@@ -62,7 +73,12 @@ const SetupSecure: NextPage = () => {
       return kratos
         .updateSettingsFlow({
           flow: String(flow?.id),
-          updateSettingsFlowBody: values,
+          updateSettingsFlowBody: {
+            csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
+              .value as string,
+            method: "totp",
+            totp_code: (values as UpdateSettingsFlowWithTotpMethod).totp_code,
+          },
         })
         .then(async ({ data }) => {
           console.log("Flow state: ", flow?.state);
@@ -84,9 +100,24 @@ const SetupSecure: NextPage = () => {
     [flow, router],
   );
 
+  const totpFlow = {
+    ...flow,
+    ui: {
+      ...flow?.ui,
+      nodes: flow?.ui.nodes.filter(({ group }) => {
+        return group === "totp";
+      }),
+    },
+  } as SettingsFlow;
+
   return (
     <PageLayout title="Secure your account">
-      {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
+      {pwChanged === "success" && (
+        <Notification severity="positive">
+          Password was changed successfully
+        </Notification>
+      )}
+      {flow ? <Flow onSubmit={handleSubmit} flow={totpFlow} /> : <Spinner />}
     </PageLayout>
   );
 };

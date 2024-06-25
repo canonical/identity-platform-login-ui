@@ -10,6 +10,7 @@ import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
+import { replaceAuthLabel } from "../util/replaceAuthLabel";
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
@@ -115,10 +116,14 @@ const Login: NextPage = () => {
     }
     return "";
   };
-  const title = `Sign in${getTitleSuffix()}`;
+  const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
+  const title = isAuthCode
+    ? "Verify your identity"
+    : `Sign in${getTitleSuffix()}`;
+  const renderFlow = isAuthCode ? replaceAuthLabel(flow) : flow;
   return (
     <PageLayout title={title}>
-      {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
+      {flow ? <Flow onSubmit={handleSubmit} flow={renderFlow} /> : <Spinner />}
       <a href="./reset_email">Reset password</a>
     </PageLayout>
   );
