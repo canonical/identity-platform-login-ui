@@ -80,6 +80,19 @@ export const handleFlowError =
         resetFlow(undefined);
         await router.push("/" + flowType);
         return;
+      // TODO: Handle as error ids?
+      // case 403:
+      //   // This is a legacy error code thrown. See code 422 for
+      //   // more details.
+      //   // console.log("Error response data: ", err.response.data);
+      //   window.location.href = String(err.response.data);
+      //   return;
+      // case 422:
+      //   // This status code is returned when we are trying to
+      //   // validate a session which has not yet completed
+      //   // its second factor
+      //   window.location.href = String(err.response.data);
+      //   return;
     }
 
     // We are not able to handle the error? Return it.

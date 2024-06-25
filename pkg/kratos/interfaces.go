@@ -30,7 +30,7 @@ type ServiceInterface interface {
 	CreateBrowserSettingsFlow(context.Context, string, []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error)
 	GetLoginFlow(context.Context, string, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
 	GetRecoveryFlow(context.Context, string, []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error)
-	GetSettingsFlow(context.Context, string, []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error)
+	GetSettingsFlow(context.Context, string, []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, *BrowserLocationChangeRequired, error)
 	UpdateLoginFlow(context.Context, string, kClient.UpdateLoginFlowBody, []*http.Cookie) (*BrowserLocationChangeRequired, []*http.Cookie, error)
 	UpdateRecoveryFlow(context.Context, string, kClient.UpdateRecoveryFlowBody, []*http.Cookie) (*BrowserLocationChangeRequired, []*http.Cookie, error)
 	UpdateSettingsFlow(context.Context, string, kClient.UpdateSettingsFlowBody, []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error)

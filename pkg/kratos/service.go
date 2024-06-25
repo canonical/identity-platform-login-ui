@@ -143,6 +143,9 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 		return nil, nil, err
 	}
 
+	// TODO: Remove when totp unlinking is fixed
+	s.logger.Debugf("Created settings flow id: ", flow.Id)
+
 	return flow, resp.Cookies(), nil
 }
 
@@ -180,7 +183,7 @@ func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*htt
 	return flow, resp.Cookies(), nil
 }
 
-func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error) {
+func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, *BrowserLocationChangeRequired, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetSettingsFlow")
 	defer span.End()
 
@@ -189,14 +192,28 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 		Id(id).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
-	if err != nil {
+
+	if err != nil && resp.StatusCode != http.StatusForbidden {
 		s.logger.Debugf("full HTTP response: %v", resp)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	// TODO: Handle aal2 redirect
+	if resp.StatusCode == http.StatusForbidden {
+		redirectResp := new(ErrorBrowserLocationChangeRequired)
+		err = unmarshalByteJson(resp.Body, redirectResp)
+		if err != nil {
+			s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+			return nil, nil, nil, err
+		}
 
-	return flow, resp.Cookies(), nil
+		// We trasform the kratos response to our own custom response here.
+		// The original kratos response contains an 'Error' field, which we remove
+		// because this is not a real error.
+		returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
+		return nil, resp.Cookies(), &returnToResp, nil
+	}
+
+	return flow, resp.Cookies(), nil, nil
 }
 
 func (s *Service) UpdateRecoveryFlow(
@@ -310,6 +327,10 @@ func (s *Service) UpdateSettingsFlow(
 
 		return nil, nil, err
 	}
+
+	// TODO: Remove when totp unlinking is fixed
+	s.logger.Debugf("Updated settings flow: %s", settingsFlow)
+	s.logger.Debugf("Updated settings body: %s", resp.Body)
 
 	return settingsFlow, resp.Cookies(), nil
 }
@@ -541,6 +562,7 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 
 	switch methodOnly.Method {
 	case "password":
+		s.logger.Debugf("Updating password settings")
 		body := new(kClient.UpdateSettingsFlowWithPasswordMethod)
 
 		err := parseBody(r.Body, &body)
@@ -552,6 +574,7 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 			body,
 		)
 	case "totp":
+		s.logger.Debugf("Updating totp settings")
 		body := new(kClient.UpdateSettingsFlowWithTotpMethod)
 
 		err := parseBody(r.Body, &body)

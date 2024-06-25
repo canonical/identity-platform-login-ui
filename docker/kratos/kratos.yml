@@ -28,6 +28,7 @@ selfservice:
       - http://localhost:4455/ui/reset_complete
       - http://localhost:4455/ui/setup_secure
       - http://localhost:4455/ui/setup_complete
+      - http://localhost:4455/api/kratos/self-service/settings/flows
     default_browser_return_url:
         http://localhost:4455/ui/
     flows:
@@ -45,8 +46,7 @@ selfservice:
                     - hook: revoke_active_sessions
         settings:
             ui_url: http://localhost:4455/ui/reset_password
-            # TODO: Change to highest_available when aal2 redirect is handled
-            required_aal: aal1
+            required_aal: highest_available
         registration:
             after:
                 oidc:

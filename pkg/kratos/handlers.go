@@ -280,19 +280,29 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	flow, cookies, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
+	flow, cookies, redirect, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting settings flow: %v\n", err)
 		http.Error(w, "Failed to get settings flow", http.StatusInternalServerError)
 		return
 	}
 
-	resp, err := flow.MarshalJSON()
+	resp, err := json.Marshal(flow)
 	if err != nil {
 		a.logger.Errorf("Error when marshalling json: %v\n", err)
 		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
 		return
 	}
+
+	if redirect != nil {
+		resp = []byte(*redirect.RedirectTo)
+
+		setCookies(w, cookies)
+		w.WriteHeader(http.StatusForbidden)
+		w.Write(resp)
+		return
+	}
+
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
