@@ -10,6 +10,7 @@ import PageLayout from "../components/PageLayout";
 import Password from "../components/Password";
 import { UiNodeInputAttributes } from "@ory/client/api";
 import { AxiosError } from "axios";
+import { isValidUrl } from "../util/isValidUrl";
 
 const ResetPassword: NextPage = () => {
   const [password, setPassword] = React.useState("");
@@ -31,7 +32,15 @@ const ResetPassword: NextPage = () => {
       kratos
         .getSettingsFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
-        .catch(handleFlowError(router, "settings", setFlow));
+        .catch(handleFlowError(router, "settings", setFlow))
+        .catch((err: AxiosError<string>) => {
+          if (err.response?.status === 403 && isValidUrl(err.response.data)) {
+            window.location.href = err.response.data;
+            return;
+          }
+
+          return Promise.reject(err);
+        });
       return;
     }
 
@@ -52,6 +61,10 @@ const ResetPassword: NextPage = () => {
         if (err.response?.data.trim() === "Failed to create settings flow") {
           setFlow(undefined);
           await router.push("./login");
+          return;
+        }
+        if (err.response?.status === 403 && isValidUrl(err.response.data)) {
+          window.location.href = err.response.data;
           return;
         }
 
