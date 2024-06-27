@@ -23,6 +23,7 @@ const (
 	InvalidRecoveryCode  = 4060006
 	RecoveryCodeSent     = 1060003
 	InvalidProperty      = 4000002
+	InvalidAuthCode      = 4000008
 )
 
 type Service struct {
@@ -142,9 +143,6 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
-
-	// TODO: Remove when totp unlinking is fixed
-	s.logger.Debugf("Created settings flow id: ", flow.Id)
 
 	return flow, resp.Cookies(), nil
 }
@@ -328,10 +326,6 @@ func (s *Service) UpdateSettingsFlow(
 		return nil, nil, err
 	}
 
-	// TODO: Remove when totp unlinking is fixed
-	s.logger.Debugf("Updated settings flow: %s", settingsFlow)
-	s.logger.Debugf("Updated settings body: %s", resp.Body)
-
 	return settingsFlow, resp.Cookies(), nil
 }
 
@@ -369,6 +363,8 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("inactive account")
 	case InvalidProperty:
 		err = fmt.Errorf("invalid %s", errorCodes[0].Context["property"])
+	case InvalidAuthCode:
+		err = fmt.Errorf("invalid authentication code")
 	default:
 		err = fmt.Errorf("unknown error")
 		s.logger.Debugf("Kratos error code: %v", errorCode)
@@ -562,7 +558,6 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 
 	switch methodOnly.Method {
 	case "password":
-		s.logger.Debugf("Updating password settings")
 		body := new(kClient.UpdateSettingsFlowWithPasswordMethod)
 
 		err := parseBody(r.Body, &body)
@@ -574,7 +569,6 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 			body,
 		)
 	case "totp":
-		s.logger.Debugf("Updating totp settings")
 		body := new(kClient.UpdateSettingsFlowWithTotpMethod)
 
 		err := parseBody(r.Body, &body)
