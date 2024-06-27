@@ -70,6 +70,7 @@ const SetupSecure: NextPage = () => {
 
   const handleSubmit = useCallback(
     (values: UpdateSettingsFlowBody) => {
+      const methodValues = values as UpdateSettingsFlowWithTotpMethod;
       return kratos
         .updateSettingsFlow({
           flow: String(flow?.id),
@@ -77,7 +78,8 @@ const SetupSecure: NextPage = () => {
             csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
               .value as string,
             method: "totp",
-            totp_code: (values as UpdateSettingsFlowWithTotpMethod).totp_code,
+            totp_code: methodValues.totp_code,
+            totp_unlink: methodValues.totp_unlink ? true : undefined,
           },
         })
         .then(async ({ data }) => {
