@@ -18,7 +18,9 @@ export const NodeInputText: FC<NodeInputProps> = ({
       disabled={disabled}
       defaultValue={node.messages.map(({ text }) => text).join(" ")}
       error={
-        attributes.name === "code" || attributes.name === "totp"
+        attributes.name === "code" ||
+        attributes.name === "totp" ||
+        attributes.name === "totp_code"
           ? error
           : undefined
       }
