@@ -784,7 +784,7 @@ func TestHandleCreateSettingsFlow(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
-	redirect := "https://example.com/ui/reset_complete"
+	redirect := "https://example.com/ui/setup_complete"
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
@@ -816,7 +816,7 @@ func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
-	redirect := "https://example.com/ui/reset_complete"
+	redirect := "https://example.com/ui/setup_complete"
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
@@ -855,7 +855,7 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 	values.Add("id", id)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Cookies(), nil)
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Cookies(), nil, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -897,7 +897,7 @@ func TestHandleGetSettingsFlowFail(t *testing.T) {
 	values.Add("id", id)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, nil, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	w := httptest.NewRecorder()
