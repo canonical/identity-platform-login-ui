@@ -51,7 +51,7 @@ const SetupSecure: NextPage = () => {
           const pwParam = pwChanged
             ? `&pw_changed=${pwChanged.toString()}`
             : "";
-          window.location.href = `http://localhost:4455/ui/setup_secure?flow=${data.id}${pwParam}`;
+          window.location.href = `./setup_secure?flow=${data.id}${pwParam}`;
           return;
         }
         setFlow(data);
