@@ -881,6 +881,46 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 	}
 }
 
+func TestHandleGetSettingsFlowWithRedirect(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	id := "test"
+	flow := kClient.NewSettingsFlowWithDefaults()
+	flow.SetId(id)
+	flow.SetState("show_form")
+
+	redirectTo := "https://some/path/to/somewhere"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("id", id)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(nil, req.Cookies(), redirectFlow, nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatal("Expected HTTP status code 403, got: ", res.Status)
+	}
+	_, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+}
+
 func TestHandleGetSettingsFlowFail(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
