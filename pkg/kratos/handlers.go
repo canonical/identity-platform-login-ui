@@ -3,11 +3,9 @@ package kratos
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/go-chi/chi/v5"
@@ -72,7 +70,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 	returnTo, err := url.JoinPath(a.baseURL, "/ui/login")
 	if err != nil {
-		a.logger.Fatal("Failed to construct returnTo URL: ", err)
+		a.logger.Error("Failed to construct returnTo URL: ", err)
 	}
 	returnTo = returnTo + "?login_challenge=" + loginChallenge
 
@@ -377,12 +375,4 @@ func setCookies(w http.ResponseWriter, cookies []*http.Cookie) {
 	for _, c := range cookies {
 		http.SetCookie(w, c)
 	}
-}
-
-func cookiesToString(cookies []*http.Cookie) string {
-	var ret = make([]string, len(cookies))
-	for i, c := range cookies {
-		ret[i] = fmt.Sprintf("%s=%s", c.Name, c.Value)
-	}
-	return strings.Join(ret, "; ")
 }

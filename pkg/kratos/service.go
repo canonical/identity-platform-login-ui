@@ -55,12 +55,12 @@ type UiErrorMessages struct {
 }
 
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.ToSession")
 	defer span.End()
 
 	session, resp, err := s.kratos.FrontendApi().
 		ToSession(ctx).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 
 	if err != nil {
@@ -95,7 +95,7 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc 
 func (s *Service) CreateBrowserLoginFlow(
 	ctx context.Context, aal, returnTo, loginChallenge string, refresh bool, cookies []*http.Cookie,
 ) (*kClient.LoginFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserLoginFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
@@ -104,7 +104,7 @@ func (s *Service) CreateBrowserLoginFlow(
 		ReturnTo(returnTo).
 		LoginChallenge(loginChallenge).
 		Refresh(refresh).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -148,13 +148,13 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 }
 
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetLoginFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetLoginFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
 		GetLoginFlow(ctx).
 		Id(id).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -270,14 +270,14 @@ func (s *Service) UpdateRecoveryFlow(
 func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
 ) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateLoginFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateLoginFlow")
 	defer span.End()
 
 	_, resp, err := s.kratos.FrontendApi().
 		UpdateLoginFlow(ctx).
 		Flow(flow).
 		UpdateLoginFlowBody(body).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	// We expect to get a 422 response from Kratos. The sdk forces us to
 	// make the request with an 'application/json' content-type, whereas Kratos
@@ -373,7 +373,7 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 }
 
 func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowError, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetFlowError")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetFlowError")
 	defer span.End()
 
 	flowError, resp, err := s.kratos.FrontendApi().GetFlowError(context.Background()).Id(id).Execute()
