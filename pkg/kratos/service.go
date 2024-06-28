@@ -54,6 +54,10 @@ type UiErrorMessages struct {
 	Ui kClient.UiContainer `json:"ui"`
 }
 
+type methodOnly struct {
+	Method string `json:"method"`
+}
+
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.ToSession")
 	defer span.End()
@@ -451,13 +455,8 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 }
 
 func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
-
-	type MethodOnly struct {
-		Method string `json:"method"`
-	}
-
 	// TODO: try to refactor when we bump kratos sdk to 1.x.x
-	methodOnly := new(MethodOnly)
+	methodOnly := new(methodOnly)
 
 	defer r.Body.Close()
 	b, err := io.ReadAll(r.Body)
@@ -534,11 +533,7 @@ func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateR
 }
 
 func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateSettingsFlowBody, error) {
-	type MethodOnly struct {
-		Method string `json:"method"`
-	}
-
-	methodOnly := new(MethodOnly)
+	methodOnly := new(methodOnly)
 
 	defer r.Body.Close()
 	b, err := io.ReadAll(r.Body)
