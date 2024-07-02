@@ -497,6 +497,7 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		ret = kClient.UpdateLoginFlowWithTotpMethodAsUpdateLoginFlowBody(
 			body,
 		)
+		ret.UpdateLoginFlowWithTotpMethod.Method = "totp"
 	// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
 	default:
 		body := new(kClient.UpdateLoginFlowWithOidcMethod)
