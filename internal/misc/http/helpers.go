@@ -30,14 +30,11 @@ func GetUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentReques
 		// We should never end up here
 		log.Printf("Unexpected traits format: %v\n", ok)
 	}
-	log.Println(traits)
 	for _, s := range cr.RequestedScope {
 		cs, ok := oidc.OIDCScopeMapping[s]
 		if !ok {
 			continue
 		}
-		log.Println(cs)
-		log.Println(s)
 		for _, c := range cs {
 			val, ok := traits[c]
 			if ok {

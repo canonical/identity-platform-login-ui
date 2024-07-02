@@ -63,9 +63,14 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 	session := hClient.NewAcceptOAuth2ConsentRequestSession()
 	session.SetIdToken(misc.GetUserClaims(identity, *consent))
 
+	atAudience := consent.RequestedAccessTokenAudience
+	if consent.HasClient() {
+		atAudience = append(atAudience, *consent.Client.ClientId)
+	}
+
 	r := hClient.NewAcceptOAuth2ConsentRequest()
 	r.SetGrantScope(consent.RequestedScope)
-	r.SetGrantAccessTokenAudience(consent.RequestedAccessTokenAudience)
+	r.SetGrantAccessTokenAudience(atAudience)
 	r.SetSession(*session)
 
 	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest")
