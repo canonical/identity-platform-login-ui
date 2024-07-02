@@ -22,6 +22,12 @@ oauth2:
     # configure how often a non-interactive device should poll the device token endpoint, default 5s
     token_polling_interval: 5s
 
+strategies:
+  access_token: jwt
+  jwt:
+    scope_claim: list
+  scope: exact
+
 urls:
   self:
     issuer: http://hydra:4444
