@@ -37,7 +37,7 @@ const SetupSecure: NextPage = () => {
       kratos
         .getSettingsFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
-        .catch(handleFlowError(router, "settings", setFlow));
+        .catch(handleFlowError("settings", setFlow));
       return;
     }
 
@@ -56,11 +56,11 @@ const SetupSecure: NextPage = () => {
         }
         setFlow(data);
       })
-      .catch(handleFlowError(router, "settings", setFlow))
+      .catch(handleFlowError("settings", setFlow))
       .catch(async (err: AxiosError<string>) => {
         if (err.response?.data.trim() === "Failed to create settings flow") {
           setFlow(undefined);
-          await router.push("./login");
+          window.location.href = "./login";
           return;
         }
 
@@ -82,10 +82,9 @@ const SetupSecure: NextPage = () => {
             totp_unlink: methodValues.totp_unlink ? true : undefined,
           },
         })
-        .then(async ({ data }) => {
-          console.log("Flow state: ", flow?.state);
+        .then(({ data }) => {
           if (flow?.state === "success") {
-            await router.push("./setup_complete");
+            window.location.href = "./setup_complete";
           }
           if ("redirect_to" in data) {
             window.location.href = data.redirect_to as string;
@@ -95,9 +94,9 @@ const SetupSecure: NextPage = () => {
             window.location.href = flow.return_to;
             return;
           }
-          await router.push("./error");
+          window.location.href = "./error";
         })
-        .catch(handleFlowError(router, "settings", setFlow));
+        .catch(handleFlowError("settings", setFlow));
     },
     [flow, router],
   );

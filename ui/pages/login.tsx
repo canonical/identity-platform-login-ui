@@ -40,7 +40,7 @@ const Login: NextPage = () => {
       kratos
         .getLoginFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
-        .catch(handleFlowError(router, "login", setFlow));
+        .catch(handleFlowError("login", setFlow));
       return;
     }
 
@@ -59,7 +59,7 @@ const Login: NextPage = () => {
         }
         setFlow(data);
       })
-      .catch(handleFlowError(router, "login", setFlow));
+      .catch(handleFlowError("login", setFlow));
   }, [
     flowId,
     router,
@@ -77,7 +77,7 @@ const Login: NextPage = () => {
           flow: String(flow?.id),
           updateLoginFlowBody: values,
         })
-        .then(async ({ data }) => {
+        .then(({ data }) => {
           if ("redirect_to" in data) {
             window.location.href = data.redirect_to as string;
             return;
@@ -86,9 +86,9 @@ const Login: NextPage = () => {
             window.location.href = flow.return_to;
             return;
           }
-          await router.push("./error");
+          window.location.href = "./error";
         })
-        .catch(handleFlowError(router, "login", setFlow))
+        .catch(handleFlowError("login", setFlow))
         .catch((err: AxiosError<LoginFlow>) => {
           if (err.response?.status === 400) {
             setFlow(err.response.data);

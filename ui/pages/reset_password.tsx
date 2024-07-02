@@ -32,7 +32,7 @@ const ResetPassword: NextPage = () => {
       kratos
         .getSettingsFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
-        .catch(handleFlowError(router, "settings", setFlow))
+        .catch(handleFlowError("settings", setFlow))
         .catch((err: AxiosError<string>) => {
           if (err.response?.status === 403 && isValidUrl(err.response.data)) {
             window.location.href = err.response.data;
@@ -56,11 +56,11 @@ const ResetPassword: NextPage = () => {
         }
         setFlow(data);
       })
-      .catch(handleFlowError(router, "settings", setFlow))
-      .catch(async (err: AxiosError<string>) => {
+      .catch(handleFlowError("settings", setFlow))
+      .catch((err: AxiosError<string>) => {
         if (err.response?.data.trim() === "Failed to create settings flow") {
           setFlow(undefined);
-          await router.push("./login");
+          window.location.href = "./login";
           return;
         }
         if (err.response?.status === 403 && isValidUrl(err.response.data)) {
@@ -86,12 +86,12 @@ const ResetPassword: NextPage = () => {
             password: password,
           },
         })
-        .then(async (result) => {
+        .then((result) => {
           const pwParam =
             result.data.state === "success" ? "?pw_changed=success" : "";
-          await router.push(`./setup_secure${pwParam}`);
+          window.location.href = `./setup_secure${pwParam}`;
         })
-        .catch(handleFlowError(router, "settings", setFlow));
+        .catch(handleFlowError("settings", setFlow));
     },
     [flow, router, password],
   );
