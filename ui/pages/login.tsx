@@ -10,6 +10,7 @@ import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
+import { replaceAuthLabel } from "../util/replaceAuthLabel";
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
@@ -39,7 +40,7 @@ const Login: NextPage = () => {
       kratos
         .getLoginFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
-        .catch(handleFlowError(router, "login", setFlow));
+        .catch(handleFlowError("login", setFlow));
       return;
     }
 
@@ -58,7 +59,7 @@ const Login: NextPage = () => {
         }
         setFlow(data);
       })
-      .catch(handleFlowError(router, "login", setFlow));
+      .catch(handleFlowError("login", setFlow));
   }, [
     flowId,
     router,
@@ -76,7 +77,7 @@ const Login: NextPage = () => {
           flow: String(flow?.id),
           updateLoginFlowBody: values,
         })
-        .then(async ({ data }) => {
+        .then(({ data }) => {
           if ("redirect_to" in data) {
             window.location.href = data.redirect_to as string;
             return;
@@ -85,9 +86,9 @@ const Login: NextPage = () => {
             window.location.href = flow.return_to;
             return;
           }
-          await router.push("./error");
+          window.location.href = "./error";
         })
-        .catch(handleFlowError(router, "login", setFlow))
+        .catch(handleFlowError("login", setFlow))
         .catch((err: AxiosError<LoginFlow>) => {
           if (err.response?.status === 400) {
             setFlow(err.response.data);
@@ -115,10 +116,14 @@ const Login: NextPage = () => {
     }
     return "";
   };
-  const title = `Sign in${getTitleSuffix()}`;
+  const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
+  const title = isAuthCode
+    ? "Verify your identity"
+    : `Sign in${getTitleSuffix()}`;
+  const renderFlow = isAuthCode ? replaceAuthLabel(flow) : flow;
   return (
     <PageLayout title={title}>
-      {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
+      {flow ? <Flow onSubmit={handleSubmit} flow={renderFlow} /> : <Spinner />}
       <a href="./reset_email">Reset password</a>
     </PageLayout>
   );

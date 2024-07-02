@@ -23,6 +23,7 @@ const (
 	InvalidRecoveryCode  = 4060006
 	RecoveryCodeSent     = 1060003
 	InvalidProperty      = 4000002
+	InvalidAuthCode      = 4000008
 )
 
 type Service struct {
@@ -53,13 +54,17 @@ type UiErrorMessages struct {
 	Ui kClient.UiContainer `json:"ui"`
 }
 
+type methodOnly struct {
+	Method string `json:"method"`
+}
+
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.ToSession")
 	defer span.End()
 
 	session, resp, err := s.kratos.FrontendApi().
 		ToSession(ctx).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 
 	if err != nil {
@@ -94,7 +99,7 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc 
 func (s *Service) CreateBrowserLoginFlow(
 	ctx context.Context, aal, returnTo, loginChallenge string, refresh bool, cookies []*http.Cookie,
 ) (*kClient.LoginFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserLoginFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
@@ -103,7 +108,7 @@ func (s *Service) CreateBrowserLoginFlow(
 		ReturnTo(returnTo).
 		LoginChallenge(loginChallenge).
 		Refresh(refresh).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -147,13 +152,13 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 }
 
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetLoginFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetLoginFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
 		GetLoginFlow(ctx).
 		Id(id).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", resp)
@@ -180,7 +185,7 @@ func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*htt
 	return flow, resp.Cookies(), nil
 }
 
-func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error) {
+func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, *BrowserLocationChangeRequired, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetSettingsFlow")
 	defer span.End()
 
@@ -189,12 +194,28 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 		Id(id).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
-	if err != nil {
+
+	if err != nil && resp.StatusCode != http.StatusForbidden {
 		s.logger.Debugf("full HTTP response: %v", resp)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return flow, resp.Cookies(), nil
+	if resp.StatusCode == http.StatusForbidden {
+		redirectResp := new(ErrorBrowserLocationChangeRequired)
+		err = unmarshalByteJson(resp.Body, redirectResp)
+		if err != nil {
+			s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+			return nil, nil, nil, err
+		}
+
+		// We trasform the kratos response to our own custom response here.
+		// The original kratos response contains an 'Error' field, which we remove
+		// because this is not a real error.
+		returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
+		return nil, resp.Cookies(), &returnToResp, nil
+	}
+
+	return flow, resp.Cookies(), nil, nil
 }
 
 func (s *Service) UpdateRecoveryFlow(
@@ -253,14 +274,14 @@ func (s *Service) UpdateRecoveryFlow(
 func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
 ) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.UpdateLoginFlow")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateLoginFlow")
 	defer span.End()
 
 	_, resp, err := s.kratos.FrontendApi().
 		UpdateLoginFlow(ctx).
 		Flow(flow).
 		UpdateLoginFlowBody(body).
-		Cookie(cookiesToString(cookies)).
+		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	// We expect to get a 422 response from Kratos. The sdk forces us to
 	// make the request with an 'application/json' content-type, whereas Kratos
@@ -346,6 +367,8 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("inactive account")
 	case InvalidProperty:
 		err = fmt.Errorf("invalid %s", errorCodes[0].Context["property"])
+	case InvalidAuthCode:
+		err = fmt.Errorf("invalid authentication code")
 	default:
 		err = fmt.Errorf("unknown error")
 		s.logger.Debugf("Kratos error code: %v", errorCode)
@@ -354,7 +377,7 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 }
 
 func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowError, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.GetFlowError")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetFlowError")
 	defer span.End()
 
 	flowError, resp, err := s.kratos.FrontendApi().GetFlowError(context.Background()).Id(id).Execute()
@@ -432,13 +455,8 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 }
 
 func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
-
-	type MethodOnly struct {
-		Method string `json:"method"`
-	}
-
 	// TODO: try to refactor when we bump kratos sdk to 1.x.x
-	methodOnly := new(MethodOnly)
+	methodOnly := new(methodOnly)
 
 	defer r.Body.Close()
 	b, err := io.ReadAll(r.Body)
@@ -468,6 +486,18 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		ret = kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(
 			body,
 		)
+	case "totp":
+		body := new(kClient.UpdateLoginFlowWithTotpMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateLoginFlowWithTotpMethodAsUpdateLoginFlowBody(
+			body,
+		)
+		ret.UpdateLoginFlowWithTotpMethod.Method = "totp"
 	// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
 	default:
 		body := new(kClient.UpdateLoginFlowWithOidcMethod)
@@ -504,16 +534,49 @@ func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateR
 }
 
 func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateSettingsFlowBody, error) {
-	body := new(kClient.UpdateSettingsFlowWithPasswordMethod)
+	methodOnly := new(methodOnly)
 
-	err := parseBody(r.Body, &body)
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
 
 	if err != nil {
+		return nil, errors.New("unable to read body")
+	}
+
+	// replace the body that was consumed
+	r.Body = io.NopCloser(bytes.NewReader(b))
+
+	if err := json.Unmarshal(b, methodOnly); err != nil {
 		return nil, err
 	}
-	ret := kClient.UpdateSettingsFlowWithPasswordMethodAsUpdateSettingsFlowBody(
-		body,
-	)
+
+	var ret kClient.UpdateSettingsFlowBody
+
+	switch methodOnly.Method {
+	case "password":
+		body := new(kClient.UpdateSettingsFlowWithPasswordMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateSettingsFlowWithPasswordMethodAsUpdateSettingsFlowBody(
+			body,
+		)
+	case "totp":
+		body := new(kClient.UpdateSettingsFlowWithTotpMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ret = kClient.UpdateSettingsFlowWithTotpMethodAsUpdateSettingsFlowBody(
+			body,
+		)
+	}
 
 	return &ret, nil
 }

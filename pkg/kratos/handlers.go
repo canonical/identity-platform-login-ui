@@ -3,11 +3,9 @@ package kratos
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/go-chi/chi/v5"
@@ -72,7 +70,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 	returnTo, err := url.JoinPath(a.baseURL, "/ui/login")
 	if err != nil {
-		a.logger.Fatal("Failed to construct returnTo URL: ", err)
+		a.logger.Error("Failed to construct returnTo URL: ", err)
 	}
 	returnTo = returnTo + "?login_challenge=" + loginChallenge
 
@@ -280,19 +278,29 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	flow, cookies, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
+	flow, cookies, redirect, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting settings flow: %v\n", err)
 		http.Error(w, "Failed to get settings flow", http.StatusInternalServerError)
 		return
 	}
 
-	resp, err := flow.MarshalJSON()
+	resp, err := json.Marshal(flow)
 	if err != nil {
 		a.logger.Errorf("Error when marshalling json: %v\n", err)
 		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
 		return
 	}
+
+	if redirect != nil {
+		resp = []byte(*redirect.RedirectTo)
+
+		setCookies(w, cookies)
+		w.WriteHeader(http.StatusForbidden)
+		w.Write(resp)
+		return
+	}
+
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
@@ -328,7 +336,7 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
-	returnTo, err := url.JoinPath(a.baseURL, "/ui/reset_complete")
+	returnTo, err := url.JoinPath(a.baseURL, "/ui/setup_complete")
 	if err != nil {
 		a.logger.Errorf("Failed to construct returnTo URL: ", err)
 		http.Error(w, "Failed to construct returnTo URL", http.StatusBadRequest)
@@ -367,12 +375,4 @@ func setCookies(w http.ResponseWriter, cookies []*http.Cookie) {
 	for _, c := range cookies {
 		http.SetCookie(w, c)
 	}
-}
-
-func cookiesToString(cookies []*http.Cookie) string {
-	var ret = make([]string, len(cookies))
-	for i, c := range cookies {
-		ret[i] = fmt.Sprintf("%s=%s", c.Name, c.Value)
-	}
-	return strings.Join(ret, "; ")
 }

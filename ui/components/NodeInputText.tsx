@@ -17,7 +17,13 @@ export const NodeInputText: FC<NodeInputProps> = ({
       label={getNodeLabel(node)}
       disabled={disabled}
       defaultValue={node.messages.map(({ text }) => text).join(" ")}
-      error={attributes.name === "code" ? error : undefined}
+      error={
+        attributes.name === "code" ||
+        attributes.name === "totp" ||
+        attributes.name === "totp_code"
+          ? error
+          : undefined
+      }
       onChange={(e) => void setValue(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") {

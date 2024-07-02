@@ -37,7 +37,11 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   return (
     <Button
       appearance={
-        node.group === "password" || node.group === "code" ? "positive" : ""
+        node.group === "password" ||
+        node.group === "code" ||
+        node.group === "totp"
+          ? "positive"
+          : ""
       }
       onClick={async (e) => {
         // On click, we set this value, and once set, dispatch the submission!
