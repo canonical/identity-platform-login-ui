@@ -1568,28 +1568,22 @@ func TestGetSettingsFlowSuccess(t *testing.T) {
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r kClient.FrontendApiGetSettingsFlowRequest) (*kClient.SettingsFlow, *http.Response, *ErrorBrowserLocationChangeRequired, error) {
+		func(r kClient.FrontendApiGetSettingsFlowRequest) (*kClient.SettingsFlow, *http.Response, error) {
 			if _id := (*string)(reflect.ValueOf(r).FieldByName("id").UnsafePointer()); *_id != id {
 				t.Fatalf("expected id to be %s, got %s", id, *_id)
 			}
-			if cookie := (*string)(reflect.ValueOf(r).FieldByName("cookie").UnsafePointer()); *cookie != "test=test" {
-				t.Fatalf("expected cookie string as test=test, got %s", *cookie)
-			}
 
-			return flow, &resp, nil, nil
+			return flow, &resp, nil
 		},
 	)
 
-	s, c, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
+	s, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
 
 	if s != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, s)
 	}
-	if r != nil {
-		t.Fatalf("expected redirect to be nil not  %v", r)
-	}
-	if !reflect.DeepEqual(c, resp.Cookies()) {
-		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
+	if r != &resp {
+		t.Fatalf("expected response to be %v not  %v", &resp, r)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
@@ -1626,16 +1620,13 @@ func TestGetSettingsFlowFail(t *testing.T) {
 	mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, c, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
+	f, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
 	}
-	if c != nil {
-		t.Fatalf("expected header to be %v not  %v", nil, c)
-	}
 	if r != nil {
-		t.Fatalf("expected flow to be %v not  %v", nil, r)
+		t.Fatalf("expected response to be %v not  %v", nil, r)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")

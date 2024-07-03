@@ -70,7 +70,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 	returnTo, err := url.JoinPath(a.baseURL, "/ui/login")
 	if err != nil {
-		a.logger.Error("Failed to construct returnTo URL: ", err)
+		a.logger.Errorf("Failed to construct returnTo URL: %v", err)
 	}
 	returnTo = returnTo + "?login_challenge=" + loginChallenge
 
@@ -278,30 +278,42 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	flow, cookies, redirect, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
+	flow, response, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting settings flow: %v\n", err)
 		http.Error(w, "Failed to get settings flow", http.StatusInternalServerError)
 		return
 	}
 
-	resp, err := json.Marshal(flow)
+	// If aal1, redirect to complete second factor auth
+	if response.StatusCode == http.StatusForbidden {
+		redirectResp := new(ErrorBrowserLocationChangeRequired)
+		err = unmarshalByteJson(response.Body, redirectResp)
+		if err != nil {
+			a.logger.Debugf("Failed to unmarshal JSON: %s", err)
+			return
+		}
+
+		// We trasform the kratos response to our own custom response here.
+		// The original kratos response contains an 'Error' field, which we remove
+		// because this is not a real error.
+		returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
+		resp := []byte(*returnToResp.RedirectTo)
+
+		setCookies(w, response.Cookies())
+		w.WriteHeader(http.StatusForbidden)
+		w.Write(resp)
+		return
+	}
+
+	resp, err := flow.MarshalJSON()
 	if err != nil {
 		a.logger.Errorf("Error when marshalling json: %v\n", err)
 		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
 		return
 	}
 
-	if redirect != nil {
-		resp = []byte(*redirect.RedirectTo)
-
-		setCookies(w, cookies)
-		w.WriteHeader(http.StatusForbidden)
-		w.Write(resp)
-		return
-	}
-
-	setCookies(w, cookies)
+	setCookies(w, response.Cookies())
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }

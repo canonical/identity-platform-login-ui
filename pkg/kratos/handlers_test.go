@@ -1,6 +1,7 @@
 package kratos
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -855,7 +856,11 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 	values.Add("id", id)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Cookies(), nil, nil)
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+	}
+
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, resp, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -893,16 +898,17 @@ func TestHandleGetSettingsFlowWithRedirect(t *testing.T) {
 	flow.SetId(id)
 	flow.SetState("show_form")
 
-	redirectTo := "https://some/path/to/somewhere"
-	redirectFlow := new(BrowserLocationChangeRequired)
-	redirectFlow.RedirectTo = &redirectTo
-
 	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
 	values.Add("id", id)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(nil, req.Cookies(), redirectFlow, nil)
+	resp := &http.Response{
+		StatusCode: http.StatusForbidden,
+		Body:       io.NopCloser(bytes.NewBufferString(`{"redirect_browser_to": "https://some/path/to/somewhere"}`)),
+	}
+
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, resp, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -937,7 +943,7 @@ func TestHandleGetSettingsFlowFail(t *testing.T) {
 	values.Add("id", id)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, nil, fmt.Errorf("error"))
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	w := httptest.NewRecorder()
