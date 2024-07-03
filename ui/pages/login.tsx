@@ -14,6 +14,7 @@ import { replaceAuthLabel } from "../util/replaceAuthLabel";
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
+  const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
 
   // Get ?flow=... from the URL
   const router = useRouter();
@@ -75,7 +76,10 @@ const Login: NextPage = () => {
       return kratos
         .updateLoginFlow({
           flow: String(flow?.id),
-          updateLoginFlowBody: values,
+          updateLoginFlowBody: {
+            ...values,
+            method: isAuthCode ? "totp" : "password",
+          } as UpdateLoginFlowBody,
         })
         .then(({ data }) => {
           if ("redirect_to" in data) {
@@ -116,7 +120,6 @@ const Login: NextPage = () => {
     }
     return "";
   };
-  const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
   const title = isAuthCode
     ? "Verify your identity"
     : `Sign in${getTitleSuffix()}`;
