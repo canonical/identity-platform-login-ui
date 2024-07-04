@@ -10,7 +10,7 @@ import PageLayout from "../components/PageLayout";
 import Password from "../components/Password";
 import { UiNodeInputAttributes } from "@ory/client/api";
 import { AxiosError } from "axios";
-import { isValidUrl } from "../util/isValidUrl";
+import { FlowResponse } from "./consent";
 
 const ResetPassword: NextPage = () => {
   const [password, setPassword] = React.useState("");
@@ -33,9 +33,10 @@ const ResetPassword: NextPage = () => {
         .getSettingsFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
         .catch(handleFlowError("settings", setFlow))
-        .catch((err: AxiosError<string>) => {
-          if (err.response?.status === 403 && isValidUrl(err.response.data)) {
-            window.location.href = err.response.data;
+        .catch((err: AxiosError<unknown>) => {
+          const result = err.response as FlowResponse | null;
+          if (result?.data?.redirect_to) {
+            window.location.href = result.data.redirect_to;
             return;
           }
 
@@ -63,8 +64,10 @@ const ResetPassword: NextPage = () => {
           window.location.href = "./login";
           return;
         }
-        if (err.response?.status === 403 && isValidUrl(err.response.data)) {
-          window.location.href = err.response.data;
+
+        const result = err.response as unknown as FlowResponse | null;
+        if (result?.data?.redirect_to) {
+          window.location.href = result.data.redirect_to;
           return;
         }
 
