@@ -290,7 +290,7 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		redirectResp := new(ErrorBrowserLocationChangeRequired)
 		err = unmarshalByteJson(response.Body, redirectResp)
 		if err != nil {
-			a.logger.Debugf("Failed to unmarshal JSON: %s", err)
+			a.logger.Errorf("Failed to unmarshal JSON: %s", err)
 			return
 		}
 
@@ -298,7 +298,13 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		// The original kratos response contains an 'Error' field, which we remove
 		// because this is not a real error.
 		returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
-		resp := []byte(*returnToResp.RedirectTo)
+
+		resp, err := json.Marshal(returnToResp)
+		if err != nil {
+			a.logger.Errorf("Error when marshalling json: %v\n", err)
+			http.Error(w, "Failed to parse the response", http.StatusInternalServerError)
+			return
+		}
 
 		setCookies(w, response.Cookies())
 		w.WriteHeader(http.StatusForbidden)
