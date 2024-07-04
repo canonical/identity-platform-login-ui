@@ -99,6 +99,10 @@ const ResetPassword: NextPage = () => {
     [flow, router, password],
   );
 
+  if (!flow) {
+    return null;
+  }
+
   return (
     <PageLayout title="Reset password">
       <Form onSubmit={handleSubmit}>
