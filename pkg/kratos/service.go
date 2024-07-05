@@ -205,7 +205,7 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 
 func (s *Service) UpdateRecoveryFlow(
 	ctx context.Context, flow string, body kClient.UpdateRecoveryFlowBody, cookies []*http.Cookie,
-) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+) (*ErrorBrowserLocationChangeRequired, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateRecoveryFlow")
 	defer span.End()
 
@@ -215,6 +215,20 @@ func (s *Service) UpdateRecoveryFlow(
 		UpdateRecoveryFlowBody(body).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
+
+	// Handle "session already available"
+	if err != nil && resp.StatusCode == http.StatusBadRequest {
+		s.logger.Debugf("full HTTP response: %v", resp)
+
+		kratosError := new(ErrorBrowserLocationChangeRequired)
+		errUnmarshal := unmarshalByteJson(resp.Body, kratosError)
+		if errUnmarshal != nil {
+			s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+			return nil, nil, err
+		}
+
+		return kratosError, nil, err
+	}
 
 	// If the recovery code was invalid, kratos returns a 200 response
 	// with a 4060006 error in the rendered ui messages.
@@ -248,12 +262,7 @@ func (s *Service) UpdateRecoveryFlow(
 		return nil, nil, err
 	}
 
-	// We trasform the kratos response to our own custom response here.
-	// The original kratos response contains an 'Error' field, which we remove
-	// because this is not a real error.
-	returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
-
-	return &returnToResp, resp.Cookies(), nil
+	return redirectResp, resp.Cookies(), nil
 }
 
 func (s *Service) UpdateLoginFlow(

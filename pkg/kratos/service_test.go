@@ -1349,8 +1349,8 @@ func TestUpdateRecoveryFlowSuccess(t *testing.T) {
 
 	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
 
-	if *f.RedirectTo != *flow.RedirectBrowserTo {
-		t.Fatalf("expected redirectTo to be %s not %s", *flow.RedirectBrowserTo, *f.RedirectTo)
+	if *f.RedirectBrowserTo != *flow.RedirectBrowserTo {
+		t.Fatalf("expected redirectTo to be %s not %s", *flow.RedirectBrowserTo, *f.RedirectBrowserTo)
 	}
 	if !reflect.DeepEqual(c, resp.Cookies()) {
 		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)

@@ -229,14 +229,33 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateRecoveryFlow(context.Background(), flowId, *body, r.Cookies())
+	flow, cookies, err := a.service.UpdateRecoveryFlow(r.Context(), flowId, *body, r.Cookies())
 	if err != nil {
+		if flow != nil {
+			resp, err := json.Marshal(flow)
+			if err != nil {
+				a.logger.Errorf("Error when marshalling json: %v\n", err)
+				http.Error(w, "Failed to parse recovery flow", http.StatusInternalServerError)
+				return
+			}
+
+			a.logger.Errorf("Error when updating recovery flow: %s\n", resp)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(resp)
+			return
+		}
+
 		a.logger.Errorf("Error when updating recovery flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	resp, err := json.Marshal(flow)
+	// We trasform the kratos response to our own custom response here.
+	// The original kratos response contains an 'Error' field, which we remove
+	// because this is not a real error.
+	returnToResp := BrowserLocationChangeRequired{flow.RedirectBrowserTo}
+
+	resp, err := json.Marshal(&returnToResp)
 	if err != nil {
 		a.logger.Errorf("Error when marshalling json: %v\n", err)
 		http.Error(w, "Failed to parse recovery flow", http.StatusInternalServerError)

@@ -706,8 +706,8 @@ func TestHandleUpdateRecoveryFlow(t *testing.T) {
 	flow := kClient.NewRecoveryFlowWithDefaults()
 	flow.Id = flowId
 	redirectTo := "https://example.com/ui/reset_email"
-	redirectFlow := new(BrowserLocationChangeRequired)
-	redirectFlow.RedirectTo = &redirectTo
+	redirectFlow := new(ErrorBrowserLocationChangeRequired)
+	redirectFlow.RedirectBrowserTo = &redirectTo
 
 	flowBody := new(kClient.UpdateRecoveryFlowBody)
 	flowBody.UpdateRecoveryFlowWithCodeMethod = kClient.NewUpdateRecoveryFlowWithCodeMethod("code")
