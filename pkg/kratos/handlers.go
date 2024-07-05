@@ -7,8 +7,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/go-chi/chi/v5"
+
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
 )
 
 type API struct {
@@ -231,41 +232,26 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 
 	flow, cookies, err := a.service.UpdateRecoveryFlow(r.Context(), flowId, *body, r.Cookies())
 	if err != nil {
-		if flow != nil {
-			resp, err := json.Marshal(flow)
-			if err != nil {
-				a.logger.Errorf("Error when marshalling json: %v\n", err)
-				http.Error(w, "Failed to parse recovery flow", http.StatusInternalServerError)
-				return
-			}
-
-			a.logger.Errorf("Error when updating recovery flow: %s\n", resp)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write(resp)
-			return
-		}
-
 		a.logger.Errorf("Error when updating recovery flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// We trasform the kratos response to our own custom response here.
-	// The original kratos response contains an 'Error' field, which we remove
-	// because this is not a real error.
-	returnToResp := BrowserLocationChangeRequired{flow.RedirectBrowserTo}
-
-	resp, err := json.Marshal(&returnToResp)
-	if err != nil {
-		a.logger.Errorf("Error when marshalling json: %v\n", err)
-		http.Error(w, "Failed to parse recovery flow", http.StatusInternalServerError)
+	if flow.HasError() {
+		a.logger.Errorf("Error when updating recovery flow: %v\n", flow)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(flow)
 		return
 	}
+
 	setCookies(w, cookies)
-	// Kratos returns us a '422' response but we tranform it to a '200',
-	// because this is the expected behavior for us.
+	// Kratos '422' response maps to out 200 OK, it is expected
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_ = json.NewEncoder(w).Encode(
+		BrowserLocationChangeRequired{
+			RedirectTo: flow.RedirectBrowserTo,
+		},
+	)
 }
 
 func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {

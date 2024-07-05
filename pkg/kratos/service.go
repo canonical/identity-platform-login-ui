@@ -9,12 +9,13 @@ import (
 	"io"
 	"net/http"
 
+	hClient "github.com/ory/hydra-client-go/v2"
+	kClient "github.com/ory/kratos-client-go"
+
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
-	hClient "github.com/ory/hydra-client-go/v2"
-	kClient "github.com/ory/kratos-client-go"
 )
 
 const (
@@ -43,6 +44,10 @@ type ErrorBrowserLocationChangeRequired struct {
 	Error *kClient.GenericError `json:"error,omitempty"`
 	// Points to where to redirect the user to next.
 	RedirectBrowserTo *string `json:"redirect_browser_to,omitempty"`
+}
+
+func (e *ErrorBrowserLocationChangeRequired) HasError() bool {
+	return e.Error != nil
 }
 
 type BrowserLocationChangeRequired struct {
@@ -227,7 +232,7 @@ func (s *Service) UpdateRecoveryFlow(
 			return nil, nil, err
 		}
 
-		return kratosError, nil, err
+		return kratosError, nil, nil
 	}
 
 	// If the recovery code was invalid, kratos returns a 200 response
