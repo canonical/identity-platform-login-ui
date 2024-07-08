@@ -50,6 +50,10 @@ func (e *ErrorBrowserLocationChangeRequired) HasError() bool {
 	return e.Error != nil
 }
 
+func (e *ErrorBrowserLocationChangeRequired) HasNoRedirectTo() bool {
+	return e.RedirectBrowserTo == nil
+}
+
 type BrowserLocationChangeRequired struct {
 	// Points to where to redirect the user to next.
 	RedirectTo *string `json:"redirect_to,omitempty"`
@@ -139,7 +143,7 @@ func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string
 	return flow, resp.Cookies(), nil
 }
 
-func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error) {
+func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.SettingsFlow, *http.Response, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserSettingsFlow")
 	defer span.End()
 
@@ -148,12 +152,13 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 		ReturnTo(returnTo).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
-	if err != nil {
+
+	if err != nil && resp.StatusCode != http.StatusForbidden {
 		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
 
-	return flow, resp.Cookies(), nil
+	return flow, resp, nil
 }
 
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {

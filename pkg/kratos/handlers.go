@@ -237,7 +237,7 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if flow.HasError() {
+	if flow.HasNoRedirectTo() && flow.HasError() {
 		a.logger.Errorf("Error when updating recovery flow: %v\n", flow)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(flow)
@@ -299,22 +299,13 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// We trasform the kratos response to our own custom response here.
-		// The original kratos response contains an 'Error' field, which we remove
-		// because this is not a real error.
-		returnToResp := BrowserLocationChangeRequired{redirectResp.RedirectBrowserTo}
-
-		resp, err := json.Marshal(returnToResp)
-		if err != nil {
-			a.logger.Errorf("Error when marshalling json: %v\n", err)
-			http.Error(w, "Failed to parse the response", http.StatusInternalServerError)
+		if !redirectResp.HasNoRedirectTo() && redirectResp.HasError() {
+			a.logger.Errorf("Error when updating settings flow: %v\n", flow)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(redirectResp)
 			return
 		}
 
-		setCookies(w, response.Cookies())
-		w.WriteHeader(http.StatusForbidden)
-		w.Write(resp)
-		return
 	}
 
 	resp, err := flow.MarshalJSON()
@@ -365,11 +356,29 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to construct returnTo URL", http.StatusBadRequest)
 	}
 
-	flow, cookies, err := a.service.CreateBrowserSettingsFlow(context.Background(), returnTo, r.Cookies())
+	flow, response, err := a.service.CreateBrowserSettingsFlow(context.Background(), returnTo, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Failed to create settings flow: %v", err)
 		http.Error(w, "Failed to create settings flow", http.StatusInternalServerError)
 		return
+	}
+
+	if response.StatusCode == http.StatusForbidden {
+		redirectResp := new(ErrorBrowserLocationChangeRequired)
+		err = unmarshalByteJson(response.Body, redirectResp)
+		if err != nil {
+			a.logger.Errorf("Failed to unmarshal JSON: %s", err)
+			return
+		}
+
+		a.logger.Debugf("Response settings: %s", redirectResp)
+
+		if !redirectResp.HasNoRedirectTo() && redirectResp.HasError() {
+			a.logger.Errorf("Error when updating settings flow: %v\n", flow)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(redirectResp)
+			return
+		}
 	}
 
 	resp, err := flow.MarshalJSON()
@@ -378,7 +387,7 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
 		return
 	}
-	setCookies(w, cookies)
+	setCookies(w, response.Cookies())
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
