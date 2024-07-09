@@ -784,14 +784,17 @@ func TestHandleCreateSettingsFlow(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
-	redirect := "https://example.com/ui/reset_complete"
+	redirect := "https://example.com/ui/setup_complete"
+
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = nil
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
 	req.URL.RawQuery = values.Encode()
 
 	flow := kClient.NewSettingsFlowWithDefaults()
-	mockService.EXPECT().CreateBrowserSettingsFlow(gomock.Any(), redirect, req.Cookies()).Return(flow, req.Cookies(), nil)
+	mockService.EXPECT().CreateBrowserSettingsFlow(gomock.Any(), redirect, req.Cookies()).Return(flow, redirectFlow, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -809,6 +812,43 @@ func TestHandleCreateSettingsFlow(t *testing.T) {
 	}
 }
 
+func TestHandleCreateSettingsFlowWithRedirect(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	redirect := "https://example.com/ui/setup_complete"
+
+	redirectErrorBrowserTo := "https://some/path/to/somewhere"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectErrorBrowserTo
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	req.URL.RawQuery = values.Encode()
+
+	flow := kClient.NewSettingsFlowWithDefaults()
+	mockService.EXPECT().CreateBrowserSettingsFlow(gomock.Any(), redirect, req.Cookies()).Return(flow, redirectFlow, nil)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if _, err := json.Marshal(flow); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatal("Expected HTTP status code 403, got: ", res.Status)
+	}
+}
+
 func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -816,7 +856,7 @@ func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 
-	redirect := "https://example.com/ui/reset_complete"
+	redirect := "https://example.com/ui/setup_complete"
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
@@ -855,7 +895,10 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 	values.Add("id", id)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Cookies(), nil)
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = nil
+
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, redirectFlow, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -878,6 +921,47 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 	}
 	if flowResponse.Id != flow.Id {
 		t.Fatalf("Expected id to be: %s, got: %s", flow.Id, flowResponse.Id)
+	}
+}
+
+func TestHandleGetSettingsFlowWithRedirect(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	id := "test"
+	flow := kClient.NewSettingsFlowWithDefaults()
+	flow.SetId(id)
+	flow.SetState("show_form")
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("id", id)
+	req.URL.RawQuery = values.Encode()
+
+	redirectErrorBrowserTo := "https://some/path/to/somewhere"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectErrorBrowserTo
+
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, redirectFlow, nil)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatal("Expected HTTP status code 403, got: ", res.Status)
+	}
+	_, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
 	}
 }
 
