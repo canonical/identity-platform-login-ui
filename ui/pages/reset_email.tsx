@@ -27,7 +27,7 @@ const ResetEmail: NextPage = () => {
       kratos
         .getRecoveryFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
-        .catch(handleFlowError(router, "recovery", setFlow));
+        .catch(handleFlowError("recovery", setFlow));
       return;
     }
 
@@ -50,7 +50,7 @@ const ResetEmail: NextPage = () => {
         }
         setFlow(data);
       })
-      .catch(handleFlowError(router, "recovery", setFlow));
+      .catch(handleFlowError("recovery", setFlow));
   }, [flowId, router, router.isReady, returnTo, flow]);
 
   const handleSubmit = useCallback(
@@ -60,7 +60,7 @@ const ResetEmail: NextPage = () => {
           flow: String(flow?.id),
           updateRecoveryFlowBody: values,
         })
-        .then(async ({ data }) => {
+        .then(({ data }) => {
           if (values.email) {
             setFlow(undefined); // Trigger refresh of the flow
             return;
@@ -73,9 +73,9 @@ const ResetEmail: NextPage = () => {
             window.location.href = flow.return_to;
             return;
           }
-          await router.push("./error");
+          window.location.href = "./error";
         })
-        .catch(handleFlowError(router, "recovery", setFlow));
+        .catch(handleFlowError("recovery", setFlow));
     },
     [flow, router],
   );

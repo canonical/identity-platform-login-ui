@@ -32,12 +32,14 @@ const Consent: NextPage = () => {
           case 403:
             // This is a legacy error code thrown. See code 422 for
             // more details.
-            return router.push("./login?aal=aal2");
+            window.location.href = "./login?aal=aal2";
+            return;
           case 422:
             // This status code is returned when we are trying to
             // validate a session which has not yet completed
             // its second factor
-            return router.push("./login?aal=aal2");
+            window.location.href = "./login?aal=aal2";
+            return;
           case 401:
             // do nothing, the user is not logged in
             return;
