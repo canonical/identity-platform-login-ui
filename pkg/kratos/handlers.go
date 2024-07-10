@@ -290,21 +290,8 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if response == nil {
-		resp, err := flow.MarshalJSON()
-		if err != nil {
-			a.logger.Errorf("Error when marshalling json: %v\n", err)
-			http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
-		return
-	}
-
 	// If aal1, redirect to complete second factor auth
-	if response.HasRedirectTo() {
+	if response != nil && response.HasRedirectTo() {
 		a.logger.Errorf("Failed to get settings flow due to insufficient aal: %v\n", response)
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(
@@ -315,6 +302,15 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
+
+	resp, err := flow.MarshalJSON()
+	if err != nil {
+		a.logger.Errorf("Error when marshalling json: %v\n", err)
+		http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }
 
 func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
@@ -360,20 +356,8 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if response == nil {
-		resp, err := flow.MarshalJSON()
-		if err != nil {
-			a.logger.Errorf("Error when marshalling json: %v\n", err)
-			http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
-		return
-	}
-
 	// If aal1, redirect to complete second factor auth
-	if response.HasRedirectTo() {
+	if response != nil && response.HasRedirectTo() {
 		a.logger.Errorf("Failed to create settings flow due to insufficient aal: %v\n", response)
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(
@@ -384,6 +368,15 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
+
+	resp, err := flow.MarshalJSON()
+	if err != nil {
+		a.logger.Errorf("Error when marshalling json: %v\n", err)
+		http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }
 
 func NewAPI(service ServiceInterface, baseURL string, logger logging.LoggerInterface) *API {
