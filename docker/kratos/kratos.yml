@@ -22,10 +22,7 @@ identity:
           url: file:///etc/config/kratos/identity.schema.json
 selfservice:
     allowed_return_urls:
-      - http://localhost:4455/ui/login
-      - http://localhost:4455/ui/reset_email
-      - http://localhost:4455/ui/reset_password
-      - http://localhost:4455/ui/reset_complete
+      - http://localhost:4455/ui/
     default_browser_return_url:
         http://localhost:4455/ui/
     flows:
@@ -43,12 +40,17 @@ selfservice:
                     - hook: revoke_active_sessions
         settings:
             ui_url: http://localhost:4455/ui/reset_password
+            required_aal: highest_available
         registration:
             after:
                 oidc:
                     hooks:
                     - hook: session
     methods:
+        totp:
+         enabled: true
+         config:
+           issuer: GoogleAuthenticator
         password:
             enabled: True
             config:
