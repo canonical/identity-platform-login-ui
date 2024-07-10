@@ -3,14 +3,13 @@ package kratos
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
-	"github.com/go-chi/chi/v5"
 )
 
 type API struct {
@@ -72,7 +71,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 	returnTo, err := url.JoinPath(a.baseURL, "/ui/login")
 	if err != nil {
-		a.logger.Fatal("Failed to construct returnTo URL: ", err)
+		a.logger.Errorf("Failed to construct returnTo URL: %v", err)
 	}
 	returnTo = returnTo + "?login_challenge=" + loginChallenge
 
@@ -231,24 +230,28 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateRecoveryFlow(context.Background(), flowId, *body, r.Cookies())
+	flow, cookies, err := a.service.UpdateRecoveryFlow(r.Context(), flowId, *body, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when updating recovery flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	resp, err := json.Marshal(flow)
-	if err != nil {
-		a.logger.Errorf("Error when marshalling json: %v\n", err)
-		http.Error(w, "Failed to parse recovery flow", http.StatusInternalServerError)
+	if !flow.HasRedirectTo() && flow.HasError() {
+		a.logger.Errorf("Error when updating recovery flow: %v\n", flow)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(flow)
 		return
 	}
+
 	setCookies(w, cookies)
-	// Kratos returns us a '422' response but we tranform it to a '200',
-	// because this is the expected behavior for us.
+	// Kratos '422' response maps to 200 OK, it is expected
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_ = json.NewEncoder(w).Encode(
+		BrowserLocationChangeRequired{
+			RedirectTo: flow.RedirectTo,
+		},
+	)
 }
 
 func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
@@ -280,20 +283,32 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	flow, cookies, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
+	flow, response, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting settings flow: %v\n", err)
 		http.Error(w, "Failed to get settings flow", http.StatusInternalServerError)
 		return
 	}
 
+	// If aal1, redirect to complete second factor auth
+	if response != nil && response.HasRedirectTo() {
+		a.logger.Errorf("Failed to get settings flow due to insufficient aal: %v\n", response)
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(
+			ErrorBrowserLocationChangeRequired{
+				Error:             response.Error,
+				RedirectBrowserTo: response.RedirectTo,
+			},
+		)
+		return
+	}
+
 	resp, err := flow.MarshalJSON()
 	if err != nil {
 		a.logger.Errorf("Error when marshalling json: %v\n", err)
-		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
+		http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
 		return
 	}
-	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
@@ -328,16 +343,29 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
-	returnTo, err := url.JoinPath(a.baseURL, "/ui/reset_complete")
+	returnTo, err := url.JoinPath(a.baseURL, "/ui/setup_complete")
 	if err != nil {
 		a.logger.Errorf("Failed to construct returnTo URL: ", err)
 		http.Error(w, "Failed to construct returnTo URL", http.StatusBadRequest)
 	}
 
-	flow, cookies, err := a.service.CreateBrowserSettingsFlow(context.Background(), returnTo, r.Cookies())
+	flow, response, err := a.service.CreateBrowserSettingsFlow(context.Background(), returnTo, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Failed to create settings flow: %v", err)
 		http.Error(w, "Failed to create settings flow", http.StatusInternalServerError)
+		return
+	}
+
+	// If aal1, redirect to complete second factor auth
+	if response != nil && response.HasRedirectTo() {
+		a.logger.Errorf("Failed to create settings flow due to insufficient aal: %v\n", response)
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(
+			ErrorBrowserLocationChangeRequired{
+				Error:             response.Error,
+				RedirectBrowserTo: response.RedirectTo,
+			},
+		)
 		return
 	}
 
@@ -347,7 +375,6 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to marshal json", http.StatusInternalServerError)
 		return
 	}
-	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
@@ -367,12 +394,4 @@ func setCookies(w http.ResponseWriter, cookies []*http.Cookie) {
 	for _, c := range cookies {
 		http.SetCookie(w, c)
 	}
-}
-
-func cookiesToString(cookies []*http.Cookie) string {
-	var ret = make([]string, len(cookies))
-	for i, c := range cookies {
-		ret[i] = fmt.Sprintf("%s=%s", c.Name, c.Value)
-	}
-	return strings.Join(ret, "; ")
 }

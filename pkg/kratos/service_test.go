@@ -49,7 +49,7 @@ func TestCheckSessionSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().ToSession(ctx).Times(1).Return(sessionRequest)
 	mockKratosFrontendApi.EXPECT().ToSessionExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -96,7 +96,7 @@ func TestCheckSessionFails(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().ToSession(ctx).Times(1).Return(sessionRequest)
 	mockKratosFrontendApi.EXPECT().ToSessionExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -239,7 +239,7 @@ func TestCreateBrowserLoginFlowSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -305,7 +305,7 @@ func TestCreateBrowserLoginFlowFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -348,7 +348,7 @@ func TestGetLoginFlowSuccess(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -402,7 +402,7 @@ func TestGetLoginFlowFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -451,7 +451,7 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -516,7 +516,7 @@ func TestUpdateLoginFlowFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -557,7 +557,7 @@ func TestGetFlowErrorSuccess(t *testing.T) {
 		Header: http.Header{"K": []string{"V"}},
 	}
 
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetFlowError").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetFlowError").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetFlowError(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetFlowErrorExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -605,7 +605,7 @@ func TestGetFlowErrorFail(t *testing.T) {
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "kratos.FrontendApi.GetFlowError").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetFlowError").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetFlowError(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetFlowErrorExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
@@ -985,6 +985,39 @@ func TestParseLoginFlowPasswordMethodBody(t *testing.T) {
 	flow.SetMethod("password")
 
 	body := kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(flow)
+
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+
+	actual, _ := b.MarshalJSON()
+	expected, _ := body.MarshalJSON()
+
+	if !reflect.DeepEqual(string(actual), string(expected)) {
+		t.Fatalf("expected flow to be %s not %s", string(expected), string(actual))
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestParseLoginFlowTotpMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateLoginFlowWithTotpMethodWithDefaults()
+	flow.SetMethod("totp")
+
+	body := kClient.UpdateLoginFlowWithTotpMethodAsUpdateLoginFlowBody(flow)
 
 	jsonBody, _ := body.MarshalJSON()
 
@@ -1473,6 +1506,39 @@ func TestParseSettingsFlowPasswordMethodBody(t *testing.T) {
 	}
 }
 
+func TestParseSettingsFlowTotpMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateSettingsFlowWithTotpMethodWithDefaults()
+	flow.SetMethod("totp")
+
+	body := kClient.UpdateSettingsFlowWithTotpMethodAsUpdateSettingsFlowBody(flow)
+
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
+
+	actual, _ := b.MarshalJSON()
+	expected, _ := body.MarshalJSON()
+
+	if !reflect.DeepEqual(string(actual), string(expected)) {
+		t.Fatalf("expected flow to be %s not %s", string(expected), string(actual))
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
 func TestGetSettingsFlowSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1490,37 +1556,32 @@ func TestGetSettingsFlowSuccess(t *testing.T) {
 	cookie := &http.Cookie{Name: "test", Value: "test"}
 	cookies = append(cookies, cookie)
 	id := "id"
+
 	flow := kClient.NewSettingsFlowWithDefaults()
 	request := kClient.FrontendApiGetSettingsFlowRequest{
 		ApiService: mockKratosFrontendApi,
-	}
-	resp := http.Response{
-		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r kClient.FrontendApiGetSettingsFlowRequest) (*kClient.SettingsFlow, *http.Response, error) {
+		func(r kClient.FrontendApiGetSettingsFlowRequest) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error) {
 			if _id := (*string)(reflect.ValueOf(r).FieldByName("id").UnsafePointer()); *_id != id {
 				t.Fatalf("expected id to be %s, got %s", id, *_id)
 			}
-			if cookie := (*string)(reflect.ValueOf(r).FieldByName("cookie").UnsafePointer()); *cookie != "test=test" {
-				t.Fatalf("expected cookie string as test=test, got %s", *cookie)
-			}
 
-			return flow, &resp, nil
+			return flow, nil, nil
 		},
 	)
 
-	s, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
+	s, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
 
 	if s != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, s)
 	}
-	if !reflect.DeepEqual(c, resp.Cookies()) {
-		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
+	if r != nil {
+		t.Fatalf("expected response to be nil not  %v", r)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
@@ -1557,13 +1618,13 @@ func TestGetSettingsFlowFail(t *testing.T) {
 	mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
+	f, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
 	}
-	if c != nil {
-		t.Fatalf("expected header to be %v not  %v", nil, c)
+	if r != nil {
+		t.Fatalf("expected response to be %v not  %v", nil, r)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")
@@ -1591,31 +1652,28 @@ func TestCreateBrowserSettingsFlowSuccess(t *testing.T) {
 	request := kClient.FrontendApiCreateBrowserSettingsFlowRequest{
 		ApiService: mockKratosFrontendApi,
 	}
-	resp := http.Response{
-		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
-	}
 
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlow(ctx).Times(1).Return(request)
 
 	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlowExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r kClient.FrontendApiCreateBrowserSettingsFlowRequest) (*kClient.SettingsFlow, *http.Response, error) {
+		func(r kClient.FrontendApiCreateBrowserSettingsFlowRequest) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error) {
 			if rt := (*string)(reflect.ValueOf(r).FieldByName("returnTo").UnsafePointer()); *rt != returnTo {
 				t.Fatalf("expected returnTo to be %s, got %s", returnTo, *rt)
 			}
 
-			return flow, &resp, nil
+			return flow, nil, nil
 		},
 	)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserSettingsFlow(ctx, returnTo, cookies)
+	f, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserSettingsFlow(ctx, returnTo, cookies)
 
 	if f != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, f)
 	}
-	if !reflect.DeepEqual(c, resp.Cookies()) {
-		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
+	if r != nil {
+		t.Fatalf("expected response to be nil not %v", r)
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
@@ -1642,20 +1700,23 @@ func TestCreateBrowserSettingsFlowFail(t *testing.T) {
 	request := kClient.FrontendApiCreateBrowserSettingsFlowRequest{
 		ApiService: mockKratosFrontendApi,
 	}
+	resp := http.Response{
+		StatusCode: http.StatusNotFound,
+	}
 
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlow(ctx).Times(1).Return(request)
-	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf(""))
+	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf(""))
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserSettingsFlow(ctx, returnTo, cookies)
+	f, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserSettingsFlow(ctx, returnTo, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
 	}
-	if c != nil {
-		t.Fatalf("expected cookies to be %v not  %v", nil, c)
+	if r != nil {
+		t.Fatalf("expected response to be %v not  %v", nil, r)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")

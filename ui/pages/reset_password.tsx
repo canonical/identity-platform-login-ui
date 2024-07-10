@@ -10,6 +10,7 @@ import PageLayout from "../components/PageLayout";
 import Password from "../components/Password";
 import { UiNodeInputAttributes } from "@ory/client/api";
 import { AxiosError } from "axios";
+import { FlowResponse } from "./consent";
 
 const ResetPassword: NextPage = () => {
   const [password, setPassword] = React.useState("");
@@ -31,7 +32,16 @@ const ResetPassword: NextPage = () => {
       kratos
         .getSettingsFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
-        .catch(handleFlowError(router, "settings", setFlow));
+        .catch(handleFlowError("settings", setFlow))
+        .catch((err: AxiosError<unknown>) => {
+          const result = err.response as FlowResponse | null;
+          if (result?.data?.redirect_to) {
+            window.location.href = result.data.redirect_to;
+            return;
+          }
+
+          return Promise.reject(err);
+        });
       return;
     }
 
@@ -47,11 +57,17 @@ const ResetPassword: NextPage = () => {
         }
         setFlow(data);
       })
-      .catch(handleFlowError(router, "settings", setFlow))
-      .catch(async (err: AxiosError<string>) => {
+      .catch(handleFlowError("settings", setFlow))
+      .catch((err: AxiosError<string>) => {
         if (err.response?.data.trim() === "Failed to create settings flow") {
           setFlow(undefined);
-          await router.push("./login");
+          window.location.href = "./login";
+          return;
+        }
+
+        const result = err.response as unknown as FlowResponse | null;
+        if (result?.data?.redirect_to) {
+          window.location.href = result.data.redirect_to;
           return;
         }
 
@@ -73,13 +89,19 @@ const ResetPassword: NextPage = () => {
             password: password,
           },
         })
-        .then(async () => {
-          await router.push("./reset_complete");
+        .then((result) => {
+          const pwParam =
+            result.data.state === "success" ? "?pw_changed=success" : "";
+          window.location.href = `./setup_secure${pwParam}`;
         })
-        .catch(handleFlowError(router, "settings", setFlow));
+        .catch(handleFlowError("settings", setFlow));
     },
     [flow, router, password],
   );
+
+  if (!flow) {
+    return null;
+  }
 
   return (
     <PageLayout title="Reset password">
