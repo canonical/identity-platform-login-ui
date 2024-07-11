@@ -544,6 +544,17 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 			body,
 		)
 		ret.UpdateLoginFlowWithTotpMethod.Method = "totp"
+	case "webauthn":
+		body := new(kClient.UpdateLoginFlowWithWebAuthnMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(
+			body,
+		)
 	// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
 	default:
 		body := new(kClient.UpdateLoginFlowWithOidcMethod)
@@ -620,6 +631,17 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 		}
 
 		ret = kClient.UpdateSettingsFlowWithTotpMethodAsUpdateSettingsFlowBody(
+			body,
+		)
+	case "webauthn":
+		body := new(kClient.UpdateSettingsFlowWithWebAuthnMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateSettingsFlowWithWebAuthnMethodAsUpdateSettingsFlowBody(
 			body,
 		)
 	}
