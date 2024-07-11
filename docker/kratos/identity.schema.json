@@ -59,7 +59,13 @@
                 },
                 "totp": {
                    "account_name": true
-                 }
+                },
+                "webauthn": {
+                  "identifier": true
+                },
+                "passkey": {  
+                  "display_name": true
+                }
               },
               "verification": {
                 "via": "email"

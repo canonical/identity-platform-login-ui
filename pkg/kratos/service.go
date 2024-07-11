@@ -544,6 +544,18 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 			body,
 		)
 		ret.UpdateLoginFlowWithTotpMethod.Method = "totp"
+	case "webauthn":
+		body := new(kClient.UpdateLoginFlowWithWebAuthnMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(
+			body,
+		)
+		// ret.UpdateLoginFlowWithWebAuthnMethod.Identifier = "test@example.com"
 	// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
 	default:
 		body := new(kClient.UpdateLoginFlowWithOidcMethod)
@@ -622,6 +634,20 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 		ret = kClient.UpdateSettingsFlowWithTotpMethodAsUpdateSettingsFlowBody(
 			body,
 		)
+	case "webauthn":
+		body := new(kClient.UpdateSettingsFlowWithWebAuthnMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateSettingsFlowWithWebAuthnMethodAsUpdateSettingsFlowBody(
+			body,
+		)
+		// webauthnRegister := "{\"id\":\"AeIQdujU5WNaVNGHdt3GPL9NhlNjlPNnSe8wajDVz64UJpqDTrtahwtjfVjk85_F6Q7vTKgxv2pUmfNHpb_6Y7s\",\"rawId\":\"AeIQdujU5WNaVNGHdt3GPL9NhlNjlPNnSe8wajDVz64UJpqDTrtahwtjfVjk85_F6Q7vTKgxv2pUmfNHpb_6Y7s\",\"type\":\"public-key\",\"response\":{\"attestationObject\":\"o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjFSZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NFAAAAAAAAAAAAAAAAAAAAAAAAAAAAQQHiEHbo1OVjWlTRh3bdxjy_TYZTY5TzZ0nvMGow1c-uFCaag067WocLY31Y5POfxekO70yoMb9qVJnzR6W_-mO7pQECAyYgASFYIP_1z3932uMXQ68leFjCxHR2Ql3F8XsuCB1De8LsrW29IlggLRIZ7GmfHGdXCMKmPkiQLckmEMKGNp6c4FWTQ48GTHo\",\"clientDataJSON\":\"eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiXzlQb3ZUX0lUMDRwN1RwMmE2X05VOE9JcUxHM2RlREhVTnp3UHN0YWxWQSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDQ1NSIsImNyb3NzT3JpZ2luIjpmYWxzZX0\"}}"
+		// ret.UpdateSettingsFlowWithWebAuthnMethod.WebauthnRegister = &webauthnRegister
+		// ret.UpdateSettingsFlowWithWebAuthnMethod.Method = "webauthn"
 	}
 
 	return &ret, nil

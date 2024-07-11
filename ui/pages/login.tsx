@@ -89,7 +89,13 @@ const Login: NextPage = () => {
           flow: String(flow?.id),
           updateLoginFlowBody: {
             ...values,
+<<<<<<< HEAD
             method: getMethod(),
+=======
+            method: isAuthCode ? "totp" : "password",
+            // TODO: support both webauthn and password
+            // method: isAuthCode ? "totp" : "webauthn",
+>>>>>>> aee0b19 (wip: support passwordless webauthn method)
           } as UpdateLoginFlowBody,
         })
         .then(({ data }) => {
