@@ -11,6 +11,7 @@ import { kratos } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
+import { UpdateLoginFlowWithOidcMethod } from "@ory/client/api";
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
@@ -73,12 +74,22 @@ const Login: NextPage = () => {
   ]);
   const handleSubmit = useCallback(
     (values: UpdateLoginFlowBody) => {
+      const getMethod = () => {
+        if ((values as UpdateLoginFlowWithOidcMethod).provider) {
+          return "oidc";
+        }
+        if (isAuthCode) {
+          return "totp";
+        }
+        return "password";
+      };
+
       return kratos
         .updateLoginFlow({
           flow: String(flow?.id),
           updateLoginFlowBody: {
             ...values,
-            method: isAuthCode ? "totp" : "password",
+            method: getMethod(),
           } as UpdateLoginFlowBody,
         })
         .then(({ data }) => {
