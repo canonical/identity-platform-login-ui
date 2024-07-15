@@ -1,11 +1,7 @@
-import {
-  SettingsFlow,
-  UpdateSettingsFlowBody,
-  UpdateSettingsFlowWithWebAuthnMethod,
-} from "@ory/client";
+import { SettingsFlow, UpdateSettingsFlowBody } from "@ory/client";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
@@ -13,7 +9,6 @@ import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Spinner } from "@canonical/react-components";
-import { UiNodeInputAttributes } from "@ory/client/api";
 import Head from "next/head";
 
 const SetupPasskey: NextPage = () => {
@@ -62,40 +57,11 @@ const SetupPasskey: NextPage = () => {
       });
   }, [flowId, router, router.isReady, returnTo, flow]);
 
-  const handleSubmit = useCallback(
-    (values: UpdateSettingsFlowBody) => {
-      const methodValues = values as UpdateSettingsFlowWithWebAuthnMethod;
-      console.log(values);
-      return kratos
-        .updateSettingsFlow({
-          flow: String(flow?.id),
-          updateSettingsFlowBody: {
-            csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
-              .value as string,
-            method: "webauthn",
-            webauthn_register_displayname:
-              methodValues.webauthn_register_displayname,
-            webauthn_register: methodValues.webauthn_register,
-          },
-        })
-        .then(async ({ data }) => {
-          if (flow?.state === "success") {
-            await router.push("./setup_complete");
-          }
-          if ("redirect_to" in data) {
-            window.location.href = data.redirect_to as string;
-            return;
-          }
-          if (flow?.return_to) {
-            window.location.href = flow.return_to;
-            return;
-          }
-          await router.push("./error");
-        })
-        .catch(handleFlowError("settings", setFlow));
-    },
-    [flow, router],
-  );
+  const handleSubmit = (values: UpdateSettingsFlowBody) => {
+    // this is handled by the webauthn script
+    console.log(values);
+    return Promise.resolve();
+  };
 
   const webauthnFlow = {
     ...flow,

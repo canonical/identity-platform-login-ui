@@ -11,7 +11,14 @@ export const NodeInputButton: FC<NodeInputProps> = ({
   dispatchSubmit,
 }) => {
   const handleClick = (e: MouseEvent | FormEvent) => {
-    void setValue(attributes.value as string).then(() => dispatchSubmit(e));
+    if (attributes.onclick) {
+      // handle passkeys that bring their own trigger
+      e.stopPropagation();
+      e.preventDefault();
+      eval(attributes.onclick);
+    } else {
+      void setValue(attributes.value as string).then(() => dispatchSubmit(e));
+    }
   };
 
   return (
