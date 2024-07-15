@@ -1,11 +1,11 @@
 import {
   SettingsFlow,
+  UiNodeInputAttributes,
   UpdateSettingsFlowBody,
-  UpdateSettingsFlowWithWebAuthnMethod,
 } from "@ory/client";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
@@ -13,8 +13,7 @@ import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Spinner } from "@canonical/react-components";
-import { UiNodeInputAttributes } from "@ory/client/api";
-import Head from "next/head";
+import { UpdateSettingsFlowWithWebAuthnMethod } from "@ory/client/api";
 
 const SetupPasskey: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
@@ -62,10 +61,10 @@ const SetupPasskey: NextPage = () => {
       });
   }, [flowId, router, router.isReady, returnTo, flow]);
 
-  const handleSubmit = useCallback(
-    (values: UpdateSettingsFlowBody) => {
-      const methodValues = values as UpdateSettingsFlowWithWebAuthnMethod;
-      console.log(values);
+  const handleSubmit = (values: UpdateSettingsFlowBody) => {
+    // this is handled by the webauthn script
+    const authValues = values as UpdateSettingsFlowWithWebAuthnMethod;
+    if (authValues.webauthn_remove) {
       return kratos
         .updateSettingsFlow({
           flow: String(flow?.id),
@@ -73,50 +72,29 @@ const SetupPasskey: NextPage = () => {
             csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
               .value as string,
             method: "webauthn",
-            webauthn_register_displayname:
-              methodValues.webauthn_register_displayname,
-            webauthn_register: methodValues.webauthn_register,
+            webauthn_remove: authValues.webauthn_remove,
           },
         })
-        .then(async ({ data }) => {
-          if (flow?.state === "success") {
-            await router.push("./setup_complete");
-          }
-          if ("redirect_to" in data) {
-            window.location.href = data.redirect_to as string;
-            return;
-          }
-          if (flow?.return_to) {
-            window.location.href = flow.return_to;
-            return;
-          }
-          await router.push("./error");
+        .then(() => {
+          window.location.href = "./setup_passkey";
         })
         .catch(handleFlowError("settings", setFlow));
-    },
-    [flow, router],
-  );
+    }
+    return Promise.resolve();
+  };
 
   const webauthnFlow = {
     ...flow,
     ui: {
       ...flow?.ui,
       nodes: flow?.ui.nodes.filter(({ group }) => {
-        return group === "webauthn";
+        return group === "webauthn" || group === "default";
       }),
     },
   } as SettingsFlow;
 
-  // TODO: The webauthn script should be launched on submit
   return (
     <PageLayout title="Set up a passkey login method">
-      <Head>
-        <script
-          src="http://localhost:4433/.well-known/ory/webauthn.js"
-          type="script"
-          async
-        />
-      </Head>
       {flow ? (
         <Flow onSubmit={handleSubmit} flow={webauthnFlow} />
       ) : (

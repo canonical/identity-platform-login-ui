@@ -69,7 +69,7 @@ selfservice:
                     id: localhost
                     # Set 'origin' to the exact URL of the page that prompts the user to use WebAuthn. You must include the scheme, host, and port.
                     origins:
-                        - http://localhost:4455/ui/
+                        - http://localhost:4455
                     display_name: Canonical
         oidc:
             enabled: True
