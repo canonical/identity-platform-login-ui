@@ -23,7 +23,11 @@ export const NodeInputButton: FC<NodeInputProps> = ({
 
   return (
     <>
-      <Button onClick={handleClick} disabled={attributes.disabled || disabled}>
+      <Button
+        onClick={handleClick}
+        disabled={attributes.disabled || disabled}
+        name={attributes.name}
+      >
         {getNodeLabel(node)}
       </Button>
     </>
