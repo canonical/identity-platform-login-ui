@@ -9,7 +9,6 @@ import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Spinner } from "@canonical/react-components";
-import Head from "next/head";
 
 const SetupPasskey: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
@@ -73,16 +72,8 @@ const SetupPasskey: NextPage = () => {
     },
   } as SettingsFlow;
 
-  // TODO: The webauthn script should be launched on submit
   return (
     <PageLayout title="Set up a passkey login method">
-      <Head>
-        <script
-          src="http://localhost:4433/.well-known/ory/webauthn.js"
-          type="script"
-          async
-        />
-      </Head>
       {flow ? (
         <Flow onSubmit={handleSubmit} flow={webauthnFlow} />
       ) : (
