@@ -68,7 +68,7 @@ const SetupPasskey: NextPage = () => {
     ui: {
       ...flow?.ui,
       nodes: flow?.ui.nodes.filter(({ group }) => {
-        return group === "webauthn";
+        return group === "webauthn" || group === "default";
       }),
     },
   } as SettingsFlow;

@@ -81,6 +81,9 @@ const Login: NextPage = () => {
         if (isAuthCode) {
           return "totp";
         }
+        if (values.method === "webauthn") {
+          return "webauthn";
+        }
         return "password";
       };
 

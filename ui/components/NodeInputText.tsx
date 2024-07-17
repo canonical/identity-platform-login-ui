@@ -14,6 +14,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
   return (
     <Input
       type="text"
+      name={attributes.name}
       label={getNodeLabel(node)}
       disabled={disabled}
       defaultValue={node.messages.map(({ text }) => text).join(" ")}
