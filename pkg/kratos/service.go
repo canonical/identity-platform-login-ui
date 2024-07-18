@@ -19,12 +19,13 @@ import (
 )
 
 const (
-	IncorrectCredentials = 4000006
-	InactiveAccount      = 4000010
-	InvalidRecoveryCode  = 4060006
-	RecoveryCodeSent     = 1060003
-	InvalidProperty      = 4000002
-	InvalidAuthCode      = 4000008
+	IncorrectCredentials    = 4000006
+	InactiveAccount         = 4000010
+	InvalidRecoveryCode     = 4060006
+	RecoveryCodeSent        = 1060003
+	InvalidProperty         = 4000002
+	InvalidAuthCode         = 4000008
+	MissingSecurityKeySetup = 4000015
 )
 
 type Service struct {
@@ -415,6 +416,8 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("invalid %s", errorCodes[0].Context["property"])
 	case InvalidAuthCode:
 		err = fmt.Errorf("invalid authentication code")
+	case MissingSecurityKeySetup:
+		err = fmt.Errorf("choose a different login method")
 	default:
 		err = fmt.Errorf("unknown error")
 		s.logger.Debugf("Kratos error code: %v", errorCode)
