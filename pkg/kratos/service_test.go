@@ -483,6 +483,60 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 	}
 }
 
+func TestUpdateLoginFlowErrorWebAuthnNotSet(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	body := new(kClient.UpdateLoginFlowBody)
+
+	request := kClient.FrontendApiUpdateLoginFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	errorBody := &UiErrorMessages{
+		Ui: kClient.UiContainer{
+			Messages: []kClient.UiText{
+				{
+					Id: MissingSecurityKeySetup,
+				},
+			},
+		},
+	}
+	errorBodyJson, _ := json.Marshal(errorBody)
+	resp := http.Response{
+		Body:       io.NopCloser(bytes.NewBuffer(errorBodyJson)),
+		StatusCode: 400,
+	}
+
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
+
+	_, _, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateLoginFlow(ctx, flowId, *body, cookies)
+
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+	expectedError := fmt.Errorf("choose a different login method")
+	if err.Error() != expectedError.Error() {
+		t.Fatalf("expected error to be %v not %v", expectedError, err)
+	}
+}
+
 func TestUpdateLoginFlowFail(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1036,6 +1090,39 @@ func TestParseLoginFlowTotpMethodBody(t *testing.T) {
 	}
 }
 
+func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateLoginFlowWithWebAuthnMethodWithDefaults()
+	flow.SetMethod("webauthn")
+
+	body := kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(flow)
+
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+
+	actual, _ := b.MarshalJSON()
+	expected, _ := body.MarshalJSON()
+
+	if !reflect.DeepEqual(string(actual), string(expected)) {
+		t.Fatalf("expected flow to be %s not %s", string(expected), string(actual))
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
 func TestGetProviderNameWhenNotOidcMethod(t *testing.T) {
 	loginFlow := &kClient.UpdateLoginFlowBody{}
 	service := NewService(nil, nil, nil, nil, nil, nil)
@@ -1521,6 +1608,39 @@ func TestParseSettingsFlowTotpMethodBody(t *testing.T) {
 	flow.SetMethod("totp")
 
 	body := kClient.UpdateSettingsFlowWithTotpMethodAsUpdateSettingsFlowBody(flow)
+
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
+
+	actual, _ := b.MarshalJSON()
+	expected, _ := body.MarshalJSON()
+
+	if !reflect.DeepEqual(string(actual), string(expected)) {
+		t.Fatalf("expected flow to be %s not %s", string(expected), string(actual))
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestParseSettingsFlowWebAuthnMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateSettingsFlowWithWebAuthnMethodWithDefaults()
+	flow.SetMethod("webauthn")
+
+	body := kClient.UpdateSettingsFlowWithWebAuthnMethodAsUpdateSettingsFlowBody(flow)
 
 	jsonBody, _ := body.MarshalJSON()
 
