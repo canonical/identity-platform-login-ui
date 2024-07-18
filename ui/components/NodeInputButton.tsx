@@ -61,6 +61,28 @@ export const NodeInputButton: FC<NodeInputProps> = ({
       e.stopPropagation();
       e.preventDefault();
 
+      const nameSelector = '*[name="webauthn_register_displayname"]';
+      const name = document.querySelector(nameSelector) as HTMLInputElement;
+
+      if (!name?.value) {
+        name.classList.add("is-error");
+        name.setAttribute("aria-invalid", "true");
+        name.setAttribute("aria-errormessage", "Required field");
+
+        if (!name.nextElementSibling) {
+          const warning = document.createElement("p");
+          warning.className = "p-form-validation__message";
+          warning.textContent = "Required field";
+          name.after(warning);
+        }
+
+        const groupSelector = ".p-form-validation";
+        const group = document.querySelectorAll(groupSelector);
+        group.forEach((e) => e.classList.add("is-error"));
+
+        return;
+      }
+
       const webauthnWindow = window as unknown as WebauthnWindow;
       const registrationParams = getWebAuthnPayload(onClick);
       webauthnWindow.__oryWebAuthnRegistration(registrationParams);

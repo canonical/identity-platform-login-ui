@@ -1,4 +1,8 @@
-import { SettingsFlow, UpdateSettingsFlowBody } from "@ory/client";
+import {
+  SettingsFlow,
+  UiNodeInputAttributes,
+  UpdateSettingsFlowBody,
+} from "@ory/client";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -9,6 +13,7 @@ import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Spinner } from "@canonical/react-components";
+import { UpdateSettingsFlowWithWebAuthnMethod } from "@ory/client/api";
 
 const SetupPasskey: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
@@ -58,7 +63,23 @@ const SetupPasskey: NextPage = () => {
 
   const handleSubmit = (values: UpdateSettingsFlowBody) => {
     // this is handled by the webauthn script
-    console.log(values);
+    const authValues = values as UpdateSettingsFlowWithWebAuthnMethod;
+    if (authValues.webauthn_remove) {
+      return kratos
+        .updateSettingsFlow({
+          flow: String(flow?.id),
+          updateSettingsFlowBody: {
+            csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
+              .value as string,
+            method: "webauthn",
+            webauthn_remove: authValues.webauthn_remove,
+          },
+        })
+        .then(() => {
+          window.location.href = "./setup_passkey";
+        })
+        .catch(handleFlowError("settings", setFlow));
+    }
     return Promise.resolve();
   };
 
