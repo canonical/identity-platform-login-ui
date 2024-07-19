@@ -1,4 +1,4 @@
-version: v1.2.0
+version: v1.1.0
 
 oauth2_provider:
     url: "http://hydra:4445"
