@@ -26,7 +26,6 @@ export const NodeInputButton: FC<NodeInputProps> = ({
 }) => {
   const onClick = attributes.onclick ?? "";
 
-  // automatically start the webauthn login
   const startWebAuthnLogin = () => {
     const webauthnWindow = window as unknown as WebauthnWindow;
     const loginParams = getWebAuthnPayload(onClick);
@@ -50,7 +49,11 @@ export const NodeInputButton: FC<NodeInputProps> = ({
     triggerWebauthnLogin(0);
   };
 
-  if (onClick?.startsWith("window.__oryWebAuthnLogin(")) {
+  // automatically start the webauthn login
+  if (
+    onClick?.startsWith("window.__oryWebAuthnLogin(") &&
+    getNodeLabel(node) === "Continue"
+  ) {
     startWebAuthnLogin();
   }
 
@@ -86,6 +89,17 @@ export const NodeInputButton: FC<NodeInputProps> = ({
       const webauthnWindow = window as unknown as WebauthnWindow;
       const registrationParams = getWebAuthnPayload(onClick);
       webauthnWindow.__oryWebAuthnRegistration(registrationParams);
+
+      return;
+    }
+
+    if (onClick?.startsWith("window.__oryWebAuthnLogin(")) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const webauthnWindow = window as unknown as WebauthnWindow;
+      const loginParams = getWebAuthnPayload(onClick);
+      webauthnWindow.__oryWebAuthnLogin(loginParams);
 
       return;
     }

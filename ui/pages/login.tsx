@@ -1,4 +1,9 @@
-import { LoginFlow, UpdateLoginFlowBody } from "@ory/client";
+import {
+  LoginFlow,
+  UiNode,
+  UiNodeInputAttributes,
+  UpdateLoginFlowBody,
+} from "@ory/client";
 import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
@@ -78,11 +83,11 @@ const Login: NextPage = () => {
         if ((values as UpdateLoginFlowWithOidcMethod).provider) {
           return "oidc";
         }
-        if (isAuthCode) {
-          return "totp";
-        }
         if (values.method === "webauthn") {
           return "webauthn";
+        }
+        if (isAuthCode) {
+          return "totp";
         }
         return "password";
       };
@@ -138,10 +143,81 @@ const Login: NextPage = () => {
     ? "Verify your identity"
     : `Sign in${getTitleSuffix()}`;
   const renderFlow = isAuthCode ? replaceAuthLabel(flow) : flow;
+
+  let isWebauthn = false;
+  if (renderFlow?.ui) {
+    const urlParams = new URLSearchParams(window.location.search);
+    isWebauthn =
+      urlParams.get("webauthn") === "true" ||
+      renderFlow.ui.nodes.filter(
+        (node) => node.group !== "webauthn" && node.group !== "default",
+      ).length === 0;
+
+    renderFlow.ui.nodes = renderFlow?.ui.nodes.filter((node) => {
+      // show webauthn elements in dedicated step after it is selected
+      if (isWebauthn) {
+        return node.group === "webauthn" || node.group === "default";
+      }
+      // hide webauthn everywhere else
+      return node.group !== "webauthn";
+    });
+
+    // add security key option that looks like an oidc input
+    if (!isWebauthn && !isAuthCode) {
+      renderFlow.ui.nodes.push({
+        attributes: {
+          type: "url",
+          node_type: "input",
+          name: "",
+          disabled: false,
+        },
+        group: "webauthn",
+        type: "input",
+        messages: [],
+        meta: {
+          label: {
+            id: 1,
+            text: "Sign in with Security key",
+            type: "info",
+          },
+        },
+      });
+    }
+
+    // ensure oidc options are presented after username/password inputs
+    renderFlow.ui.nodes.sort((a, b) => {
+      const toValue = (node: UiNode) => (node.group === "oidc" ? 1 : -1);
+      return toValue(a) - toValue(b);
+    });
+
+    // autosubmit webauthn in case email is provided
+    const email = urlParams.get("email");
+    if (isWebauthn && email) {
+      const csrfNode = renderFlow?.ui.nodes.find(
+        (node) =>
+          node.group === "default" &&
+          node.attributes.node_type === "input" &&
+          node.attributes.name === "csrf_token",
+      )?.attributes as UiNodeInputAttributes;
+
+      void handleSubmit({
+        method: "webauthn",
+        identifier: email,
+        csrf_token: (csrfNode.value as string) ?? "",
+      });
+
+      return null;
+    }
+  }
+
+  if (!flow) {
+    return;
+  }
+
   return (
     <PageLayout title={title}>
       {flow ? <Flow onSubmit={handleSubmit} flow={renderFlow} /> : <Spinner />}
-      <a href="./reset_email">Reset password</a>
+      {isWebauthn && <a href={flow?.return_to}>I want to use another method</a>}
     </PageLayout>
   );
 };
