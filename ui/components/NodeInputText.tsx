@@ -11,6 +11,9 @@ export const NodeInputText: FC<NodeInputProps> = ({
   dispatchSubmit,
   error,
 }) => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isWebauthn = urlParams.get("webauthn") === "true";
+
   return (
     <Input
       type="text"
@@ -21,7 +24,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
       error={
         attributes.name === "code" ||
         attributes.name === "totp" ||
-        attributes.name === "totp_code"
+        attributes.name === "totp_code" ||
+        (isWebauthn && attributes.name === "identifier")
           ? error
           : undefined
       }

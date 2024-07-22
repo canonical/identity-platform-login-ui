@@ -204,6 +204,10 @@ const Login: NextPage = () => {
         method: "webauthn",
         identifier: email,
         csrf_token: (csrfNode.value as string) ?? "",
+      }).catch(() => {
+        if (flow?.return_to) {
+          window.location.href = flow.return_to;
+        }
       });
 
       return null;
