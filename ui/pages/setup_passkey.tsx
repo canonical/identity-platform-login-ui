@@ -62,7 +62,8 @@ const SetupPasskey: NextPage = () => {
   }, [flowId, router, router.isReady, returnTo, flow]);
 
   const handleSubmit = (values: UpdateSettingsFlowBody) => {
-    // this is handled by the webauthn script
+    // adding a new key is handled by NodeInputButton that triggers the webauthn script
+    // here we only handle removal of a key
     const authValues = values as UpdateSettingsFlowWithWebAuthnMethod;
     if (authValues.webauthn_remove) {
       return kratos
