@@ -49,6 +49,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to accept login request", http.StatusInternalServerError)
 			return
 		}
+
 		setCookies(w, cookies)
 		resp, err := redirectTo.MarshalJSON()
 		if err != nil {
@@ -56,9 +57,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to marshall json", http.StatusInternalServerError)
 			return
 		}
-		// The frontend will call this endpoint with an XHR request, so the status code is
-		// not that important (the redirect happens based on the response body). But we still send
-		// a redirect code response to be consistent with the hydra response.
+
 		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
 		return
@@ -92,15 +91,10 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := flow.MarshalJSON()
-	if err != nil {
-		a.logger.Errorf("Error when marshalling Json: %v\n", err)
-		http.Error(w, "Failed to marshall json", http.StatusInternalServerError)
-		return
-	}
 	setCookies(w, cookies)
+
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_ = json.NewEncoder(w).Encode(flow)
 }
 
 // TODO: Validate response when server error handling is implemented
@@ -122,15 +116,9 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := flow.MarshalJSON()
-	if err != nil {
-		a.logger.Errorf("Error when marshalling Json: %v\n", err)
-		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
-		return
-	}
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_ = json.NewEncoder(w).Encode(flow)
 }
 
 // TODO: Validate response when server error handling is implemented
