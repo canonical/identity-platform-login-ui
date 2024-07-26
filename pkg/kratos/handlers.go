@@ -41,9 +41,9 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// call will return an empty response
 	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order
 	// to avoid this bug.
-	session, _, _ := a.service.CheckSession(context.Background(), r.Cookies())
+	session, _, _ := a.service.CheckSession(r.Context(), r.Cookies())
 	if session != nil {
-		redirectTo, cookies, err := a.service.AcceptLoginRequest(context.Background(), session.Identity.Id, loginChallenge)
+		redirectTo, cookies, err := a.service.AcceptLoginRequest(r.Context(), session.Identity.Id, loginChallenge)
 		if err != nil {
 			a.logger.Errorf("Error when accepting login request: %v\n", err)
 			http.Error(w, "Failed to accept login request", http.StatusInternalServerError)
@@ -85,7 +85,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, err = a.service.FilterFlowProviderList(context.Background(), flow)
+	flow, err = a.service.FilterFlowProviderList(r.Context(), flow)
 	if err != nil {
 		a.logger.Errorf("Error when filtering providers: %v\n", err)
 		http.Error(w, "Unexpected error", http.StatusInternalServerError)
@@ -107,7 +107,15 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	flow, cookies, err := a.service.GetLoginFlow(context.Background(), q.Get("id"), r.Cookies())
+	flowId := q.Get("id")
+	if flowId == "" {
+		a.logger.Errorf("mandatory param id is not present")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode("mandatory param id is not present")
+		return
+	}
+
+	flow, cookies, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
@@ -137,14 +145,14 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginFlow, _, err := a.service.GetLoginFlow(context.Background(), flowId, r.Cookies())
+	loginFlow, _, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
 		return
 	}
 
-	allowed, err := a.service.CheckAllowedProvider(context.Background(), loginFlow, body)
+	allowed, err := a.service.CheckAllowedProvider(r.Context(), loginFlow, body)
 	if err != nil {
 		a.logger.Errorf("Error when authorizing provider: %v\n", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
@@ -155,7 +163,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateLoginFlow(context.Background(), flowId, *body, r.Cookies())
+	flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
