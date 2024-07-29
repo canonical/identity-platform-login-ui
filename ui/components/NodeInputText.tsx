@@ -11,16 +11,21 @@ export const NodeInputText: FC<NodeInputProps> = ({
   dispatchSubmit,
   error,
 }) => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isWebauthn = urlParams.get("webauthn") === "true";
+
   return (
     <Input
       type="text"
+      name={attributes.name}
       label={getNodeLabel(node)}
       disabled={disabled}
       defaultValue={node.messages.map(({ text }) => text).join(" ")}
       error={
         attributes.name === "code" ||
         attributes.name === "totp" ||
-        attributes.name === "totp_code"
+        attributes.name === "totp_code" ||
+        (isWebauthn && attributes.name === "identifier")
           ? error
           : undefined
       }

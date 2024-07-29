@@ -19,12 +19,13 @@ import (
 )
 
 const (
-	IncorrectCredentials = 4000006
-	InactiveAccount      = 4000010
-	InvalidRecoveryCode  = 4060006
-	RecoveryCodeSent     = 1060003
-	InvalidProperty      = 4000002
-	InvalidAuthCode      = 4000008
+	IncorrectCredentials    = 4000006
+	InactiveAccount         = 4000010
+	InvalidRecoveryCode     = 4060006
+	RecoveryCodeSent        = 1060003
+	InvalidProperty         = 4000002
+	InvalidAuthCode         = 4000008
+	MissingSecurityKeySetup = 4000015
 )
 
 type Service struct {
@@ -415,6 +416,8 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("invalid %s", errorCodes[0].Context["property"])
 	case InvalidAuthCode:
 		err = fmt.Errorf("invalid authentication code")
+	case MissingSecurityKeySetup:
+		err = fmt.Errorf("choose a different login method")
 	default:
 		err = fmt.Errorf("unknown error")
 		s.logger.Debugf("Kratos error code: %v", errorCode)
@@ -544,6 +547,17 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 			body,
 		)
 		ret.UpdateLoginFlowWithTotpMethod.Method = "totp"
+	case "webauthn":
+		body := new(kClient.UpdateLoginFlowWithWebAuthnMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(
+			body,
+		)
 	// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
 	default:
 		body := new(kClient.UpdateLoginFlowWithOidcMethod)
@@ -620,6 +634,17 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 		}
 
 		ret = kClient.UpdateSettingsFlowWithTotpMethodAsUpdateSettingsFlowBody(
+			body,
+		)
+	case "webauthn":
+		body := new(kClient.UpdateSettingsFlowWithWebAuthnMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateSettingsFlowWithWebAuthnMethodAsUpdateSettingsFlowBody(
 			body,
 		)
 	}

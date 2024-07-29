@@ -39,7 +39,8 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
       appearance={
         node.group === "password" ||
         node.group === "code" ||
-        node.group === "totp"
+        node.group === "totp" ||
+        node.group === "webauthn"
           ? "positive"
           : ""
       }

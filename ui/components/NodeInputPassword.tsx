@@ -13,7 +13,15 @@ export const NodeInputPassword: FC<NodeInputProps> = ({
   return (
     <Input
       type="password"
-      label={getNodeLabel(node)}
+      label={
+        <>
+          <span>{getNodeLabel(node)}</span>
+          <a href="./reset_email" style={{ float: "right" }}>
+            Reset password
+          </a>
+        </>
+      }
+      labelClassName="password-label"
       disabled={disabled}
       defaultValue={node.messages.map(({ text }) => text).join(" ")}
       error={error}

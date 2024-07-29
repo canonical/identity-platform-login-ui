@@ -8,6 +8,7 @@ import React, { FC } from "react";
 import { NodeInputText } from "./NodeInputText";
 import { NodeInputPassword } from "./NodeInputPassword";
 import { NodeInputEmail } from "./NodeInputEmail";
+import { NodeInputUrl } from "./NodeInputUrl";
 
 export const NodeInputOIDC: FC<NodeInputProps> = ({
   attributes,
@@ -53,6 +54,8 @@ export const NodeInput: FC<NodeInputProps> = (props) => {
       return <NodeInputEmail {...props} />;
     case "password":
       return <NodeInputPassword {...props} />;
+    case "url":
+      return <NodeInputUrl {...props} />;
     case "submit":
       if (props.node.group === "oidc") {
         return <NodeInputOIDC {...props} />;
