@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.15.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.14.0...v0.15.0) (2024-07-29)
+
+
+### Features
+
+* add settings flow ([fcbd7ec](https://github.com/canonical/identity-platform-login-ui/commit/fcbd7eceb246403c2c892f8b7fa8a2609b24f795))
+* handle missing webauthn credentials error ([85979cd](https://github.com/canonical/identity-platform-login-ui/commit/85979cd9c02fdfb5b43f71b67590bdae5d3572ee))
+* settings flow ([d6770c8](https://github.com/canonical/identity-platform-login-ui/commit/d6770c8e4604f33936daa6f61576e94957dffe48))
+* support account recovery ([5fe26e5](https://github.com/canonical/identity-platform-login-ui/commit/5fe26e5e4918033fa1a8088d5442cf136fbc2372))
+* support mfa with totp method ([16df279](https://github.com/canonical/identity-platform-login-ui/commit/16df2793f5882cb0a3e4b264352b62235842c3ed))
+* support passwordless webauthn method ([ecfa6f4](https://github.com/canonical/identity-platform-login-ui/commit/ecfa6f414b003f70663b6503955cad10edef5eb9))
+* ui support for mfa flows ([dc88e6b](https://github.com/canonical/identity-platform-login-ui/commit/dc88e6bf92e276583a8a9abe93bfb8d6e4f18368))
+
+
+### Bug Fixes
+
+* add client id to at aud ([20fed79](https://github.com/canonical/identity-platform-login-ui/commit/20fed796d51fff3689ea169e8fddb58c0dfcb5f3))
+* group -&gt; parent/child relationship + add spaces for readability ([da553c4](https://github.com/canonical/identity-platform-login-ui/commit/da553c46155e078dd241a8366e547f349285447f))
+* handle invalid code case ([bbfb9f1](https://github.com/canonical/identity-platform-login-ui/commit/bbfb9f12ab93587b41f29f2507dd488c3c0fd972))
+* handle invalid recovery code case (wip) ([c60343a](https://github.com/canonical/identity-platform-login-ui/commit/c60343a14f95df240988fd0df1df7da9e6e895a9))
+* pass cookie when creating settings flow to enable password change once logged in ([0fc9bfc](https://github.com/canonical/identity-platform-login-ui/commit/0fc9bfc2d6d5ce9a72d1cd51e93063b2d4c6b9b7))
+* remove certificates from image ([bfdd295](https://github.com/canonical/identity-platform-login-ui/commit/bfdd295b22a77608fd4bce5209e2f3f14af672f3))
+* remove unnecessary logging ([f446110](https://github.com/canonical/identity-platform-login-ui/commit/f4461102f17f18767a2afce03dd3f6a3e108b2b4))
+* return to url with flow id ([39d299c](https://github.com/canonical/identity-platform-login-ui/commit/39d299c72d21a9814e054b6314db69eb43f60644))
+* update docker compose ([533a70c](https://github.com/canonical/identity-platform-login-ui/commit/533a70caee68fd0028f29510a510fcce9d306584))
+
 ## [0.14.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.13.0...v0.14.0) (2024-04-30)
 
 
