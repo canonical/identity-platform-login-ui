@@ -13,8 +13,10 @@ import (
 )
 
 type API struct {
-	service ServiceInterface
-	baseURL string
+	mfaEnabled  bool
+	service     ServiceInterface
+	baseURL     string
+	contextPath string
 
 	logger logging.LoggerInterface
 }
@@ -375,9 +377,10 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func NewAPI(service ServiceInterface, baseURL string, logger logging.LoggerInterface) *API {
+func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger logging.LoggerInterface) *API {
 	a := new(API)
 
+	a.mfaEnabled = mfaEnabled
 	a.service = service
 	a.baseURL = baseURL
 

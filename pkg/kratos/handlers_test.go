@@ -59,7 +59,7 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -107,7 +107,7 @@ func TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow(t *testing.T
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -145,7 +145,7 @@ func TestHandleCreateFlowWithoutSessionFailOnFilterProviders(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -182,7 +182,7 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -229,7 +229,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -272,7 +272,7 @@ func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -303,7 +303,7 @@ func TestHandleGetLoginFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -347,7 +347,7 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -387,7 +387,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -435,7 +435,7 @@ func TestHandleUpdateFlowWhenProviderNotAllowed(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -471,7 +471,7 @@ func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -509,7 +509,7 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -546,7 +546,7 @@ func TestHandleUpdateFlowFailOnCheckAllowedProvider(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -575,7 +575,7 @@ func TestHandleCreateRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -607,7 +607,7 @@ func TestHandleCreateRecoveryFlowFailOnCreateBrowserRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -639,7 +639,7 @@ func TestHandleGetRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -683,7 +683,7 @@ func TestHandleGetRecoveryFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -721,7 +721,7 @@ func TestHandleUpdateRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -766,7 +766,7 @@ func TestHandleUpdateRecoveryFlowFailOnParseRecoveryFlowMethodBody(t *testing.T)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -795,7 +795,7 @@ func TestHandleCreateSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -832,7 +832,7 @@ func TestHandleCreateSettingsFlowWithRedirect(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -864,7 +864,7 @@ func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -896,7 +896,7 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -944,7 +944,7 @@ func TestHandleGetSettingsFlowWithRedirect(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -980,7 +980,7 @@ func TestHandleGetSettingsFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1016,7 +1016,7 @@ func TestHandleUpdateSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1058,7 +1058,7 @@ func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
