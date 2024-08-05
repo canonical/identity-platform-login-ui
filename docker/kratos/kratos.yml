@@ -20,6 +20,10 @@ identity:
     schemas:
         - id: default
           url: file:///etc/config/kratos/identity.schema.json
+session:
+  whoami:
+    required_aal: highest_available
+
 selfservice:
     allowed_return_urls:
       - http://localhost:4455/ui/
@@ -53,7 +57,7 @@ selfservice:
         totp:
          enabled: true
          config:
-           issuer: GoogleAuthenticator
+           issuer: Identity Platform
         password:
             enabled: True
             config:

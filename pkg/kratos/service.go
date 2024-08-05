@@ -642,7 +642,22 @@ func (s *Service) contains(str []string, e string) bool {
 	return false
 }
 
-func NewService(kratos KratosClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func (s *Service) HasTOTPAvailable(ctx context.Context, id string) (bool, error) {
+
+	identity, _, err := s.kratosAdmin.IdentityApi().
+		GetIdentity(ctx, id).
+		IncludeCredential([]string{"totp"}).
+		Execute()
+
+	if err != nil {
+		return false, err
+	}
+
+	_, ok := identity.GetCredentials()["totp"]
+	return ok, nil
+}
+
+func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos

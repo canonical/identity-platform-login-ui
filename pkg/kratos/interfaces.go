@@ -44,4 +44,5 @@ type ServiceInterface interface {
 	ParseLoginFlowMethodBody(*http.Request) (*kClient.UpdateLoginFlowBody, error)
 	ParseRecoveryFlowMethodBody(*http.Request) (*kClient.UpdateRecoveryFlowBody, error)
 	ParseSettingsFlowMethodBody(*http.Request) (*kClient.UpdateSettingsFlowBody, error)
+	HasTOTPAvailable(context.Context, string) (bool, error)
 }
