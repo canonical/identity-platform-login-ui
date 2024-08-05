@@ -384,6 +384,14 @@ func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger lo
 	a.service = service
 	a.baseURL = baseURL
 
+	fullBaseURL, err := url.Parse(baseURL)
+	if err != nil {
+		// this should never happen if app is configured properly
+		a.logger.Fatalf("Failed to construct API base URL: %v\n", err)
+	}
+
+	a.contextPath = fullBaseURL.Path
+
 	a.logger = logger
 
 	return a
