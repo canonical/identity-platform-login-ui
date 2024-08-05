@@ -40,6 +40,7 @@ cmd/ui/dist:
 	@echo "copy dist npm files into cmd/ui folder"
 	mkdir -p cmd/ui/dist
 	cp -r $(UI_FOLDER)ui/dist cmd/ui/
+.PHONY: cmd/ui/dist
 
 npm-build:
 	$(MAKE) -C ui/ build
