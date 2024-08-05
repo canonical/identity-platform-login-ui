@@ -4,14 +4,15 @@ import (
 	"io/fs"
 	"net/http"
 
+	chi "github.com/go-chi/chi/v5"
+	middleware "github.com/go-chi/chi/v5/middleware"
+
 	authz "github.com/canonical/identity-platform-login-ui/internal/authorization"
 	ih "github.com/canonical/identity-platform-login-ui/internal/hydra"
 	ik "github.com/canonical/identity-platform-login-ui/internal/kratos"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
-	chi "github.com/go-chi/chi/v5"
-	middleware "github.com/go-chi/chi/v5/middleware"
 
 	"github.com/canonical/identity-platform-login-ui/pkg/device"
 	"github.com/canonical/identity-platform-login-ui/pkg/extra"
@@ -21,7 +22,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
-func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, authzClient authz.AuthorizerInterface, distFS fs.FS, baseURL string, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {
+func NewRouter(kratosClient *ik.Client, kratosAdminClient *ik.Client, hydraClient *ih.Client, authzClient authz.AuthorizerInterface, distFS fs.FS, mfaEnabled bool, baseURL string, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) http.Handler {
 	router := chi.NewMux()
 
 	middlewares := make(chi.Middlewares, 0)
@@ -47,7 +48,8 @@ func NewRouter(kratosClient *ik.Client, hydraClient *ih.Client, authzClient auth
 		logger,
 	).RegisterEndpoints(router)
 	kratos.NewAPI(
-		kratos.NewService(kratosClient, hydraClient, authzClient, tracer, monitor, logger),
+		kratos.NewService(kratosClient, kratosAdminClient, hydraClient, authzClient, tracer, monitor, logger),
+		mfaEnabled,
 		baseURL,
 		logger,
 	).RegisterEndpoints(router)

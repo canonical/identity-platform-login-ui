@@ -14,6 +14,10 @@ type KratosClientInterface interface {
 	FrontendApi() kClient.FrontendApi
 }
 
+type KratosAdminClientInterface interface {
+	IdentityApi() kClient.IdentityApi
+}
+
 type HydraClientInterface interface {
 	OAuth2Api() hydra.OAuth2Api
 }

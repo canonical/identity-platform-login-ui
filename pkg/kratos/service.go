@@ -29,9 +29,10 @@ const (
 )
 
 type Service struct {
-	kratos KratosClientInterface
-	hydra  HydraClientInterface
-	authz  AuthorizerInterface
+	kratos      KratosClientInterface
+	kratosAdmin KratosAdminClientInterface
+	hydra       HydraClientInterface
+	authz       AuthorizerInterface
 
 	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
@@ -645,6 +646,7 @@ func NewService(kratos KratosClientInterface, hydra HydraClientInterface, authzC
 	s := new(Service)
 
 	s.kratos = kratos
+	s.kratosAdmin = kratosAdmin
 	s.hydra = hydra
 	s.authz = authzClient
 
