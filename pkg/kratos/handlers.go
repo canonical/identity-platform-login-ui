@@ -160,17 +160,83 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := json.Marshal(flow)
+	shouldEnforceMfa, err := a.shouldEnforceMFA(r.Context(), cookies)
 	if err != nil {
-		a.logger.Errorf("Error when marshalling Json: %v\n", err)
-		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
+		err = fmt.Errorf("enforce check error: %v", err)
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	setCookies(w, cookies)
-	// Kratos returns us a '422' response but we tranform it to a '200',
-	// because this is the expected behavior for us.
+
+	if shouldEnforceMfa {
+		a.mfaSettingsRedirect(w)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_ = json.NewEncoder(w).Encode(flow)
+}
+
+func (a *API) shouldEnforceMFA(ctx context.Context, cookies []*http.Cookie) (bool, error) {
+	if !a.mfaEnabled {
+		return false, nil
+	}
+
+	session, _, err := a.service.CheckSession(ctx, cookies)
+	if err != nil {
+		if a.is40xError(err) {
+			a.logger.Debugf("check session failed, err: %v", err)
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	// if using OIDC external provider, do not enforce MFA
+	for _, method := range session.AuthenticationMethods {
+		if method.Method != nil && *method.Method == "oidc" {
+			return false, nil
+		}
+	}
+
+	totpAvailable, err := a.service.HasTOTPAvailable(ctx, session.Identity.GetId())
+	if err != nil {
+		return false, err
+	}
+
+	return !totpAvailable, nil
+}
+
+func (a *API) is40xError(err error) bool {
+	if openAPIErr, ok := err.(*client.GenericOpenAPIError); ok {
+		if genericKratosErr, ok := openAPIErr.Model().(client.ErrorGeneric); ok {
+			statusCode := genericKratosErr.Error.GetCode()
+			return statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden
+		}
+	}
+
+	return false
+}
+
+func (a *API) mfaSettingsRedirect(w http.ResponseWriter) {
+	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_secure")
+	if err != nil {
+		err = fmt.Errorf("unable to build mfa redirect path, possible misconfiguration, err: %v", err)
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	errorId := "session_aal2_required"
+
+	w.WriteHeader(http.StatusSeeOther)
+	_ = json.NewEncoder(w).Encode(
+		ErrorBrowserLocationChangeRequired{
+			Error:             &client.GenericError{Id: &errorId},
+			RedirectBrowserTo: &redirect,
+		},
+	)
 }
 
 // TODO: Validate response when server error handling is implemented
