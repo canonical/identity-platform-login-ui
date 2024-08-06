@@ -11,11 +11,12 @@ import (
 	reflect "reflect"
 	"testing"
 
-	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
 	"go.opentelemetry.io/otel/trace"
 	gomock "go.uber.org/mock/gomock"
+
+	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
@@ -32,6 +33,7 @@ func TestCheckSessionSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -63,7 +65,7 @@ func TestCheckSessionSuccess(t *testing.T) {
 		},
 	)
 
-	s, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckSession(ctx, cookies)
+	s, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckSession(ctx, cookies)
 
 	if s != session {
 		t.Fatalf("expected session to be %v not  %v", session, s)
@@ -83,6 +85,7 @@ func TestCheckSessionFails(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -95,7 +98,6 @@ func TestCheckSessionFails(t *testing.T) {
 		ApiService: mockKratosFrontendApi,
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().ToSession(ctx).Times(1).Return(sessionRequest)
@@ -110,7 +112,7 @@ func TestCheckSessionFails(t *testing.T) {
 		},
 	)
 
-	s, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckSession(ctx, cookies)
+	s, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckSession(ctx, cookies)
 
 	if s != nil {
 		t.Fatalf("expected session to be nil not  %v", s)
@@ -130,6 +132,7 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -160,7 +163,7 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 		},
 	)
 
-	rt, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
+	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
 
 	if rt != redirectTo {
 		t.Fatalf("expected redirect to be %v not  %v", redirectTo, rt)
@@ -180,6 +183,7 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -192,13 +196,12 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 		ApiService: mockHydraOauthApi,
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 
-	rt, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
+	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
 
 	if rt != nil {
 		t.Fatalf("expected redirect to be %v not  %v", nil, rt)
@@ -218,6 +221,7 @@ func TestCreateBrowserLoginFlowSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -264,7 +268,7 @@ func TestCreateBrowserLoginFlowSuccess(t *testing.T) {
 		},
 	)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, returnTo, loginChallenge, refresh, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, returnTo, loginChallenge, refresh, cookies)
 
 	if f != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, f)
@@ -284,6 +288,7 @@ func TestCreateBrowserLoginFlowFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -304,13 +309,12 @@ func TestCreateBrowserLoginFlowFail(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, returnTo, loginChallenge, refresh, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, returnTo, loginChallenge, refresh, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
@@ -330,6 +334,7 @@ func TestGetLoginFlowSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -364,7 +369,7 @@ func TestGetLoginFlowSuccess(t *testing.T) {
 		},
 	)
 
-	s, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetLoginFlow(ctx, id, cookies)
+	s, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetLoginFlow(ctx, id, cookies)
 
 	if s != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, s)
@@ -384,6 +389,7 @@ func TestGetLoginFlowFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -401,13 +407,12 @@ func TestGetLoginFlowFail(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetLoginFlow(ctx, id, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetLoginFlow(ctx, id, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
@@ -427,6 +432,7 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -470,7 +476,7 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 		},
 	)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateLoginFlow(ctx, flowId, *body, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateLoginFlow(ctx, flowId, *body, cookies)
 
 	if *f.RedirectTo != *flow.RedirectBrowserTo {
 		t.Fatalf("expected redirectTo to be %s not %s", *flow.RedirectBrowserTo, *f.RedirectTo)
@@ -490,6 +496,7 @@ func TestUpdateLoginFlowErrorWebAuthnNotSet(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -520,13 +527,12 @@ func TestUpdateLoginFlowErrorWebAuthnNotSet(t *testing.T) {
 		StatusCode: 400,
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	_, _, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateLoginFlow(ctx, flowId, *body, cookies)
+	_, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateLoginFlow(ctx, flowId, *body, cookies)
 
 	if err == nil {
 		t.Fatalf("expected error not nil")
@@ -544,6 +550,7 @@ func TestUpdateLoginFlowFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -569,14 +576,13 @@ func TestUpdateLoginFlowFail(t *testing.T) {
 		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateLoginFlow(ctx, flowId, *body, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateLoginFlow(ctx, flowId, *body, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not %+v", nil, f)
@@ -596,6 +602,7 @@ func TestGetFlowErrorSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -624,7 +631,7 @@ func TestGetFlowErrorSuccess(t *testing.T) {
 		},
 	)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetFlowError(ctx, id)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetFlowError(ctx, id)
 
 	if !reflect.DeepEqual(f, flow) {
 		t.Fatalf("expected flow to be %+v not %+v", flow, f)
@@ -644,6 +651,7 @@ func TestGetFlowErrorFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -658,13 +666,12 @@ func TestGetFlowErrorFail(t *testing.T) {
 		Header: http.Header{"K": []string{"V"}},
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetFlowError").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetFlowError(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetFlowErrorExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetFlowError(ctx, id)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetFlowError(ctx, id)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not %+v", nil, f)
@@ -684,6 +691,7 @@ func TestCheckAllowedProviderAllowedSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -705,7 +713,7 @@ func TestCheckAllowedProviderAllowedSuccess(t *testing.T) {
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.CheckAllowedProvider").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAuthz.EXPECT().ListObjects(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return([]string{provider}, nil)
 
-	allowed, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckAllowedProvider(ctx, flow, &body)
+	allowed, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckAllowedProvider(ctx, flow, &body)
 
 	if !allowed {
 		t.Fatalf("expected allowed to be true")
@@ -722,6 +730,7 @@ func TestCheckAllowedProviderNotAllowedSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -743,7 +752,7 @@ func TestCheckAllowedProviderNotAllowedSuccess(t *testing.T) {
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.CheckAllowedProvider").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAuthz.EXPECT().ListObjects(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return([]string{"other_provider"}, nil)
 
-	allowed, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckAllowedProvider(ctx, flow, &body)
+	allowed, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckAllowedProvider(ctx, flow, &body)
 
 	if allowed {
 		t.Fatalf("expected allowed to be false")
@@ -760,6 +769,7 @@ func TestCheckAllowedProviderFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -780,7 +790,7 @@ func TestCheckAllowedProviderFail(t *testing.T) {
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.CheckAllowedProvider").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAuthz.EXPECT().ListObjects(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(make([]string, 0), fmt.Errorf("oh no"))
 
-	_, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckAllowedProvider(ctx, flow, &body)
+	_, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CheckAllowedProvider(ctx, flow, &body)
 
 	if err == nil {
 		t.Fatalf("expected error not nil")
@@ -789,7 +799,7 @@ func TestCheckAllowedProviderFail(t *testing.T) {
 
 func TestGetClientNameOathkeeper(t *testing.T) {
 	loginFlow := &kClient.LoginFlow{}
-	service := NewService(nil, nil, nil, nil, nil, nil)
+	service := NewService(nil, nil, nil, nil, nil, nil, nil)
 
 	actualClientName := service.getClientName(loginFlow)
 
@@ -802,7 +812,7 @@ func TestGetClientNameOathkeeper(t *testing.T) {
 func TestGetClientNameOAuth2Request(t *testing.T) {
 	expectedClientName := "mockClientName"
 	loginFlow := &kClient.LoginFlow{Oauth2LoginRequest: &kClient.OAuth2LoginRequest{Client: &kClient.OAuth2Client{ClientName: &expectedClientName}}}
-	service := NewService(nil, nil, nil, nil, nil, nil)
+	service := NewService(nil, nil, nil, nil, nil, nil, nil)
 
 	actualClientName := service.getClientName(loginFlow)
 
@@ -818,6 +828,7 @@ func TestFilterFlowProviderListAllowAll(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -847,7 +858,7 @@ func TestFilterFlowProviderListAllowAll(t *testing.T) {
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.FilterFlowProviderList").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAuthz.EXPECT().ListObjects(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(kratosProviders, nil)
 
-	f, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).FilterFlowProviderList(ctx, flow)
+	f, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).FilterFlowProviderList(ctx, flow)
 
 	if !reflect.DeepEqual(f.Ui, ui) {
 		t.Fatalf("expected ui to be %v not  %v", ui, f.Ui)
@@ -864,6 +875,7 @@ func TestFilterFlowProviderListAllowSome(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -894,7 +906,7 @@ func TestFilterFlowProviderListAllowSome(t *testing.T) {
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.FilterFlowProviderList").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAuthz.EXPECT().ListObjects(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(allowedProviders, nil)
 
-	f, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).FilterFlowProviderList(ctx, flow)
+	f, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).FilterFlowProviderList(ctx, flow)
 
 	expectedUi := *kClient.NewUiContainerWithDefaults()
 	expectedUi.Nodes = []kClient.UiNode{ui.Nodes[0], ui.Nodes[3]}
@@ -913,6 +925,7 @@ func TestFilterFlowProviderListAllowNone(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -943,7 +956,7 @@ func TestFilterFlowProviderListAllowNone(t *testing.T) {
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.FilterFlowProviderList").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAuthz.EXPECT().ListObjects(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(allowedProviders, nil)
 
-	f, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).FilterFlowProviderList(ctx, flow)
+	f, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).FilterFlowProviderList(ctx, flow)
 
 	if !reflect.DeepEqual(f.Ui, ui) {
 		t.Fatalf("expected Ui to be %v not  %v", ui, f.Ui)
@@ -960,6 +973,7 @@ func TestFilterFlowProviderListFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -989,7 +1003,7 @@ func TestFilterFlowProviderListFail(t *testing.T) {
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.FilterFlowProviderList").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAuthz.EXPECT().ListObjects(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, fmt.Errorf("oh no"))
 
-	_, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).FilterFlowProviderList(ctx, flow)
+	_, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).FilterFlowProviderList(ctx, flow)
 
 	if err == nil {
 		t.Fatalf("expected error to be not nil")
@@ -1003,6 +1017,7 @@ func TestParseLoginFlowOidcMethodBody(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1012,7 +1027,7 @@ func TestParseLoginFlowOidcMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1031,6 +1046,7 @@ func TestParseLoginFlowPasswordMethodBody(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1044,7 +1060,7 @@ func TestParseLoginFlowPasswordMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1064,6 +1080,7 @@ func TestParseLoginFlowTotpMethodBody(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1077,7 +1094,7 @@ func TestParseLoginFlowTotpMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1097,6 +1114,7 @@ func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1110,7 +1128,7 @@ func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1125,7 +1143,7 @@ func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
 
 func TestGetProviderNameWhenNotOidcMethod(t *testing.T) {
 	loginFlow := &kClient.UpdateLoginFlowBody{}
-	service := NewService(nil, nil, nil, nil, nil, nil)
+	service := NewService(nil, nil, nil, nil, nil, nil, nil)
 
 	actualProviderName := service.getProviderName(loginFlow)
 
@@ -1143,6 +1161,7 @@ func TestGetProviderNameOidc(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1154,7 +1173,7 @@ func TestGetProviderNameOidc(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _ := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _ := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actualProviderName := b.UpdateLoginFlowWithOidcMethod.Provider
 	if expectedProviderName != actualProviderName {
@@ -1169,6 +1188,7 @@ func TestParseRecoveryFlowCodeMethodBody(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1182,7 +1202,7 @@ func TestParseRecoveryFlowCodeMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseRecoveryFlowMethodBody(req)
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseRecoveryFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1202,6 +1222,7 @@ func TestGetRecoveryFlowSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1236,7 +1257,7 @@ func TestGetRecoveryFlowSuccess(t *testing.T) {
 		},
 	)
 
-	s, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetRecoveryFlow(ctx, id, cookies)
+	s, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetRecoveryFlow(ctx, id, cookies)
 
 	if s != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, s)
@@ -1256,6 +1277,7 @@ func TestGetRecoveryFlowFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1273,13 +1295,12 @@ func TestGetRecoveryFlowFail(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetRecoveryFlow(ctx, id, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetRecoveryFlow(ctx, id, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
@@ -1299,6 +1320,7 @@ func TestCreateBrowserRecoveryFlowSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1331,7 +1353,7 @@ func TestCreateBrowserRecoveryFlowSuccess(t *testing.T) {
 		},
 	)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo, cookies)
 
 	if f != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, f)
@@ -1351,6 +1373,7 @@ func TestCreateBrowserRecoveryFlowFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1369,9 +1392,8 @@ func TestCreateBrowserRecoveryFlowFail(t *testing.T) {
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
@@ -1391,6 +1413,7 @@ func TestUpdateRecoveryFlowSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1434,7 +1457,7 @@ func TestUpdateRecoveryFlowSuccess(t *testing.T) {
 		},
 	)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
 
 	if *f.RedirectTo != *flow.RedirectBrowserTo {
 		t.Fatalf("expected redirectTo to be %s not %s", *flow.RedirectBrowserTo, *f.RedirectTo)
@@ -1454,6 +1477,7 @@ func TestUpdateRecoveryFlowFailOnUpdateRecoveryFlowExecute(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1479,14 +1503,13 @@ func TestUpdateRecoveryFlowFailOnUpdateRecoveryFlowExecute(t *testing.T) {
 		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not %+v", nil, f)
@@ -1506,6 +1529,7 @@ func TestUpdateRecoveryFlowFailOnInvalidRecoveryCode(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1543,7 +1567,7 @@ func TestUpdateRecoveryFlowFailOnInvalidRecoveryCode(t *testing.T) {
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlowExecute(gomock.Any()).Times(1).Return(flow, &resp, nil)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateRecoveryFlow(ctx, flowId, *body, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not %+v", nil, f)
@@ -1567,6 +1591,7 @@ func TestParseSettingsFlowPasswordMethodBody(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1580,7 +1605,7 @@ func TestParseSettingsFlowPasswordMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1600,6 +1625,7 @@ func TestParseSettingsFlowTotpMethodBody(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1613,7 +1639,7 @@ func TestParseSettingsFlowTotpMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1633,6 +1659,7 @@ func TestParseSettingsFlowWebAuthnMethodBody(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1646,7 +1673,7 @@ func TestParseSettingsFlowWebAuthnMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1666,6 +1693,7 @@ func TestGetSettingsFlowSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1695,7 +1723,7 @@ func TestGetSettingsFlowSuccess(t *testing.T) {
 		},
 	)
 
-	s, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
+	s, r, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
 
 	if s != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, s)
@@ -1715,6 +1743,7 @@ func TestGetSettingsFlowFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1732,13 +1761,12 @@ func TestGetSettingsFlowFail(t *testing.T) {
 		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 
-	f, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
+	f, r, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
@@ -1758,6 +1786,7 @@ func TestCreateBrowserSettingsFlowSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1787,7 +1816,7 @@ func TestCreateBrowserSettingsFlowSuccess(t *testing.T) {
 		},
 	)
 
-	f, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserSettingsFlow(ctx, returnTo, cookies)
+	f, r, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserSettingsFlow(ctx, returnTo, cookies)
 
 	if f != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, f)
@@ -1807,6 +1836,7 @@ func TestCreateBrowserSettingsFlowFail(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1828,9 +1858,8 @@ func TestCreateBrowserSettingsFlowFail(t *testing.T) {
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf(""))
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 
-	f, r, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserSettingsFlow(ctx, returnTo, cookies)
+	f, r, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserSettingsFlow(ctx, returnTo, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
@@ -1850,6 +1879,7 @@ func TestUpdateSettingsFlowSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1892,7 +1922,7 @@ func TestUpdateSettingsFlowSuccess(t *testing.T) {
 		},
 	)
 
-	_, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateSettingsFlow(ctx, flowId, *body, cookies)
+	_, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateSettingsFlow(ctx, flowId, *body, cookies)
 
 	if !reflect.DeepEqual(c, resp.Cookies()) {
 		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
@@ -1909,6 +1939,7 @@ func TestUpdateSettingsFlowFailOnUpdateSettingsFlowExecute(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
@@ -1932,14 +1963,13 @@ func TestUpdateSettingsFlowFailOnUpdateSettingsFlowExecute(t *testing.T) {
 		Body:   io.NopCloser(bytes.NewBuffer(flowJson)),
 	}
 
-	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
-	f, c, err := NewService(mockKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateSettingsFlow(ctx, flowId, *body, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateSettingsFlow(ctx, flowId, *body, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not %+v", nil, f)

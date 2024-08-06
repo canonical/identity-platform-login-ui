@@ -13,6 +13,8 @@ import (
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
+
+	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
@@ -24,6 +26,7 @@ func TestHandleConsentSuccess(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
 
 	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
 	consent := hClient.NewOAuth2ConsentRequest("challenge")
@@ -37,12 +40,12 @@ func TestHandleConsentSuccess(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil)
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
 	mockService.EXPECT().AcceptConsent(gomock.Any(), session.Identity, consent).Return(accept, nil)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -75,6 +78,7 @@ func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
 
 	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
 	consent := hClient.NewOAuth2ConsentRequest("challenge")
@@ -87,13 +91,13 @@ func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil)
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
 	mockService.EXPECT().AcceptConsent(gomock.Any(), session.Identity, consent).Return(nil, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -110,6 +114,7 @@ func TestHandleConsentFailOnGetConsent(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
 
 	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
 
@@ -121,12 +126,12 @@ func TestHandleConsentFailOnGetConsent(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil)
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(nil, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -143,6 +148,7 @@ func TestHandleConsentFailOnCheckSession(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
 
@@ -152,11 +158,11 @@ func TestHandleConsentFailOnCheckSession(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, fmt.Errorf("error"))
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
