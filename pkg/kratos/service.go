@@ -110,7 +110,7 @@ func (s *Service) CreateBrowserLoginFlow(
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
-		CreateBrowserLoginFlow(context.Background()).
+		CreateBrowserLoginFlow(ctx).
 		Aal(aal).
 		ReturnTo(returnTo).
 		LoginChallenge(loginChallenge).
@@ -129,7 +129,7 @@ func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
-		CreateBrowserRecoveryFlow(context.Background()).
+		CreateBrowserRecoveryFlow(ctx).
 		ReturnTo(returnTo).
 		Execute()
 	if err != nil {
@@ -144,7 +144,7 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
-		CreateBrowserSettingsFlow(context.Background()).
+		CreateBrowserSettingsFlow(ctx).
 		ReturnTo(returnTo).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
@@ -411,7 +411,7 @@ func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowErr
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetFlowError")
 	defer span.End()
 
-	flowError, resp, err := s.kratos.FrontendApi().GetFlowError(context.Background()).Id(id).Execute()
+	flowError, resp, err := s.kratos.FrontendApi().GetFlowError(ctx).Id(id).Execute()
 	if err != nil {
 		return nil, nil, err
 	}

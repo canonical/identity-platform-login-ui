@@ -3,11 +3,13 @@ package kratos
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	client "github.com/ory/kratos-client-go"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 )
@@ -36,67 +38,87 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
+	var (
+		response any
+		cookies  []*http.Cookie
+		err      error
+	)
+
 	q := r.URL.Query()
+
 	loginChallenge := q.Get("login_challenge")
-
-	// We try to see if the user is logged in, because if they are the CreateBrowserLoginFlow
-	// call will return an empty response
-	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order
-	// to avoid this bug.
-	session, _, _ := a.service.CheckSession(r.Context(), r.Cookies())
-	if session != nil {
-		redirectTo, cookies, err := a.service.AcceptLoginRequest(r.Context(), session.Identity.Id, loginChallenge)
-		if err != nil {
-			a.logger.Errorf("Error when accepting login request: %v\n", err)
-			http.Error(w, "Failed to accept login request", http.StatusInternalServerError)
-			return
-		}
-
-		setCookies(w, cookies)
-		resp, err := redirectTo.MarshalJSON()
-		if err != nil {
-			a.logger.Errorf("Error when marshalling Json: %v\n", err)
-			http.Error(w, "Failed to marshall json", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
-		return
-	}
-
+	aal := q.Get("aal")
 	refresh, err := strconv.ParseBool(q.Get("refresh"))
 	if err == nil {
 		refresh = false
 	}
 
-	returnTo, err := url.JoinPath(a.baseURL, "/ui/login")
-	if err != nil {
+	var returnTo string
+	if returnTo, err = a.returnToUrl(loginChallenge); err != nil {
+		// this should never happen if app is properly configured
 		a.logger.Errorf("Failed to construct returnTo URL: %v", err)
-	}
-	returnTo = returnTo + "?login_challenge=" + loginChallenge
-
-	// We redirect the user back to this endpoint with the login_challenge, after they log in, to bypass
-	// Kratos bug where the user is not redirected to hydra the first time they log in.
-	// Relevant issue https://github.com/ory/kratos/issues/3052
-	flow, cookies, err := a.service.CreateBrowserLoginFlow(context.Background(), q.Get("aal"), returnTo, loginChallenge, refresh, r.Cookies())
-	if err != nil {
-		// TODO: Add more context
-		http.Error(w, "Failed to create login flow", http.StatusInternalServerError)
+		http.Error(w, "Failed to construct returnTo URL", http.StatusInternalServerError)
 		return
 	}
 
-	flow, err = a.service.FilterFlowProviderList(r.Context(), flow)
+	// if the user is logged in, CreateBrowserLoginFlow call will return an empty response
+	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order to avoid this bug.
+	session, _, _ := a.service.CheckSession(r.Context(), r.Cookies())
+	if session != nil {
+		response, cookies, err = a.handleCreateFlowWithSession(r, session, loginChallenge)
+	} else {
+		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)
+	}
+
 	if err != nil {
-		a.logger.Errorf("Error when filtering providers: %v\n", err)
-		http.Error(w, "Unexpected error", http.StatusInternalServerError)
+		a.logger.Errorf(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	setCookies(w, cookies)
-
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(flow)
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo string, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
+	// redirect user to this endpoint with the login_challenge after login
+	// see https://github.com/ory/kratos/issues/3052
+	flow, cookies, err := a.service.CreateBrowserLoginFlow(r.Context(), aal, returnTo, loginChallenge, refresh, r.Cookies())
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create login flow, err: %v", err)
+	}
+
+	flow, err = a.service.FilterFlowProviderList(r.Context(), flow)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Error when filtering providers: %v\n", err)
+	}
+
+	return flow, cookies, nil
+}
+
+func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (any, []*http.Cookie, error) {
+	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session.Identity.Id, loginChallenge)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to accept login request: %v", err)
+	}
+
+	return response, cookies, nil
+}
+
+func (a *API) returnToUrl(loginChallenge string) (string, error) {
+	returnTo, err := url.JoinPath(a.baseURL, "/ui/login")
+	if err != nil {
+		return "", err
+	}
+
+	// url.JoinPath already performed this operation, if we get here we're good
+	u, _ := url.Parse(returnTo)
+	q := u.Query()
+	q.Set("login_challenge", loginChallenge)
+	u.RawQuery = q.Encode()
+
+	return u.String(), nil
 }
 
 // TODO: Validate response when server error handling is implemented
@@ -135,7 +157,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginFlow, _, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
+	loginFlow, cookies, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
@@ -148,6 +170,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
+
 	if !allowed {
 		http.Error(w, "Provider not allowed", http.StatusForbidden)
 		return
@@ -167,6 +190,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	setCookies(w, cookies)
 
 	if shouldEnforceMfa {
