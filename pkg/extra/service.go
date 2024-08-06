@@ -2,43 +2,22 @@ package extra
 
 import (
 	"context"
-	"net/http"
+
+	hClient "github.com/ory/hydra-client-go/v2"
+	kClient "github.com/ory/kratos-client-go"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	misc "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
-
-	hClient "github.com/ory/hydra-client-go/v2"
-	kClient "github.com/ory/kratos-client-go"
 )
 
 type Service struct {
-	kratos KratosClientInterface
-	hydra  HydraClientInterface
+	hydra HydraClientInterface
 
 	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
-}
-
-func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.FrontendApi.ToSession")
-	defer span.End()
-
-	session, r, err := s.kratos.FrontendApi().ToSession(
-		ctx,
-	).Cookie(
-		misc.CookiesToString(cookies),
-	).Execute()
-
-	if err != nil {
-		// TODO @shipperizer we shouldn't be logging this
-		s.logger.Debugf("full HTTP response: %v", r)
-
-		return nil, err
-	}
-	return session, nil
 }
 
 func (s *Service) GetConsent(ctx context.Context, challenge string) (*hClient.OAuth2ConsentRequest, error) {
@@ -97,10 +76,9 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 	return accept, nil
 }
 
-func NewService(kratos KratosClientInterface, hydra HydraClientInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(hydra HydraClientInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
-	s.kratos = kratos
 	s.hydra = hydra
 
 	s.monitor = monitor

@@ -47,16 +47,14 @@ func NewRouter(kratosClient *ik.Client, kratosAdminClient *ik.Client, hydraClien
 		device.NewService(hydraClient, tracer, monitor, logger),
 		logger,
 	).RegisterEndpoints(router)
+	kratosService := kratos.NewService(kratosClient, kratosAdminClient, hydraClient, authzClient, tracer, monitor, logger)
 	kratos.NewAPI(
-		kratos.NewService(kratosClient, kratosAdminClient, hydraClient, authzClient, tracer, monitor, logger),
+		kratosService,
 		mfaEnabled,
 		baseURL,
 		logger,
 	).RegisterEndpoints(router)
-	extra.NewAPI(
-		extra.NewService(kratosClient, hydraClient, tracer, monitor, logger),
-		logger,
-	).RegisterEndpoints(router)
+	extra.NewAPI(extra.NewService(hydraClient, tracer, monitor, logger), kratosService, logger).RegisterEndpoints(router)
 	status.NewAPI(
 		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataApi(), tracer, monitor, logger),
 		tracer,
