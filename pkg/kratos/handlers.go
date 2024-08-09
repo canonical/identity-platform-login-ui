@@ -39,9 +39,10 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	var (
-		response any
-		cookies  []*http.Cookie
-		err      error
+		response         any
+		shouldEnforceMfa = false
+		cookies          []*http.Cookie
+		err              error
 	)
 
 	q := r.URL.Query()
@@ -65,6 +66,13 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order to avoid this bug.
 	session, _, _ := a.service.CheckSession(r.Context(), r.Cookies())
 	if session != nil {
+		shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
+
+		if shouldEnforceMfa {
+			a.mfaSettingsRedirect(w)
+			return
+		}
+
 		response, cookies, err = a.handleCreateFlowWithSession(r, session, loginChallenge)
 	} else {
 		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)
@@ -215,6 +223,14 @@ func (a *API) shouldEnforceMFA(ctx context.Context, cookies []*http.Cookie) (boo
 		}
 
 		return false, err
+	}
+
+	return a.shouldEnforceMFAWithSession(ctx, session)
+}
+
+func (a *API) shouldEnforceMFAWithSession(ctx context.Context, session *client.Session) (bool, error) {
+	if !a.mfaEnabled {
+		return false, nil
 	}
 
 	// if using OIDC external provider, do not enforce MFA
