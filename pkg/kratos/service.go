@@ -29,9 +29,10 @@ const (
 )
 
 type Service struct {
-	kratos KratosClientInterface
-	hydra  HydraClientInterface
-	authz  AuthorizerInterface
+	kratos      KratosClientInterface
+	kratosAdmin KratosAdminClientInterface
+	hydra       HydraClientInterface
+	authz       AuthorizerInterface
 
 	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
@@ -79,9 +80,6 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 		Execute()
 
 	if err != nil {
-		// TODO @nsklikas we shouldn't be logging this
-		s.logger.Debugf("full HTTP response: %v", resp)
-
 		return nil, nil, err
 	}
 	return session, resp.Cookies(), nil
@@ -99,8 +97,6 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc 
 		Execute()
 
 	if err != nil {
-		// TODO @nsklikas we shouldn't be logging this
-		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
 
@@ -114,7 +110,7 @@ func (s *Service) CreateBrowserLoginFlow(
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
-		CreateBrowserLoginFlow(context.Background()).
+		CreateBrowserLoginFlow(ctx).
 		Aal(aal).
 		ReturnTo(returnTo).
 		LoginChallenge(loginChallenge).
@@ -122,7 +118,6 @@ func (s *Service) CreateBrowserLoginFlow(
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
 
@@ -134,11 +129,10 @@ func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
-		CreateBrowserRecoveryFlow(context.Background()).
+		CreateBrowserRecoveryFlow(ctx).
 		ReturnTo(returnTo).
 		Execute()
 	if err != nil {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
 
@@ -150,7 +144,7 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
-		CreateBrowserSettingsFlow(context.Background()).
+		CreateBrowserSettingsFlow(ctx).
 		ReturnTo(returnTo).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
@@ -158,7 +152,6 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 	// 403 means the user must be redirected to complete second factor auth
 	// in order to access settings
 	if err != nil && resp.StatusCode != http.StatusForbidden {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
 
@@ -169,7 +162,7 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
-		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
 	}
 
@@ -190,7 +183,6 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
 
@@ -207,7 +199,6 @@ func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*htt
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 	if err != nil {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
 
@@ -227,7 +218,6 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 	// 403 means the user must be redirected to complete second factor auth
 	// in order to access settings
 	if err != nil && resp.StatusCode != http.StatusForbidden {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
 
@@ -238,7 +228,7 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
-		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
 	}
 
@@ -264,12 +254,10 @@ func (s *Service) UpdateRecoveryFlow(
 
 	// if the flow responds with 400, it means a session already exists
 	if err != nil && resp.StatusCode == http.StatusBadRequest {
-		s.logger.Debugf("full HTTP response: %v", resp)
-
 		redirectResp := new(ErrorBrowserLocationChangeRequired)
 		err := unmarshalByteJson(resp.Body, redirectResp)
 		if err != nil {
-			s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+			s.logger.Errorf("Failed to unmarshal JSON: %s", err)
 			return nil, nil, err
 		}
 
@@ -291,7 +279,6 @@ func (s *Service) UpdateRecoveryFlow(
 	// redirected to.
 
 	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		err := s.getUiError(resp.Body)
 		return nil, nil, err
 	}
@@ -309,7 +296,7 @@ func (s *Service) UpdateRecoveryFlow(
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
-		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
 	}
 
@@ -336,16 +323,14 @@ func (s *Service) UpdateLoginFlow(
 	// This is not a real error, as we still get the URL to which the user needs to be
 	// redirected to.
 	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		err := s.getUiError(resp.Body)
-
 		return nil, nil, err
 	}
 
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
-		s.logger.Debugf("Failed to unmarshal JSON: %s", err)
+		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
 	}
 
@@ -371,7 +356,6 @@ func (s *Service) UpdateSettingsFlow(
 		Execute()
 
 	if err != nil && resp.StatusCode != http.StatusOK {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		err := s.getUiError(resp.Body)
 
 		return nil, nil, err
@@ -395,7 +379,6 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 			for _, message := range node.Messages {
 				if message.Type == "error" {
 					errorCodes = node.GetMessages()
-					s.logger.Debugf("Messages: %s", errorCodes)
 				}
 			}
 		}
@@ -419,8 +402,7 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 	case MissingSecurityKeySetup:
 		err = fmt.Errorf("choose a different login method")
 	default:
-		err = fmt.Errorf("unknown error")
-		s.logger.Debugf("Kratos error code: %v", errorCode)
+		err = fmt.Errorf("unknown kratos error code: %v", errorCode)
 	}
 	return err
 }
@@ -429,9 +411,8 @@ func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowErr
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetFlowError")
 	defer span.End()
 
-	flowError, resp, err := s.kratos.FrontendApi().GetFlowError(context.Background()).Id(id).Execute()
+	flowError, resp, err := s.kratos.FrontendApi().GetFlowError(ctx).Id(id).Execute()
 	if err != nil {
-		s.logger.Debugf("full HTTP response: %v", resp)
 		return nil, nil, err
 	}
 
@@ -661,10 +642,26 @@ func (s *Service) contains(str []string, e string) bool {
 	return false
 }
 
-func NewService(kratos KratosClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func (s *Service) HasTOTPAvailable(ctx context.Context, id string) (bool, error) {
+
+	identity, _, err := s.kratosAdmin.IdentityApi().
+		GetIdentity(ctx, id).
+		IncludeCredential([]string{"totp"}).
+		Execute()
+
+	if err != nil {
+		return false, err
+	}
+
+	_, ok := identity.GetCredentials()["totp"]
+	return ok, nil
+}
+
+func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos
+	s.kratosAdmin = kratosAdmin
 	s.hydra = hydra
 	s.authz = authzClient
 

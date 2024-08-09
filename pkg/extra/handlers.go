@@ -3,12 +3,15 @@ package extra
 import (
 	"net/http"
 
-	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/go-chi/chi/v5"
+
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
 )
 
 type API struct {
 	service ServiceInterface
+	kratos  kratos.ServiceInterface
 
 	logger logging.LoggerInterface
 }
@@ -19,7 +22,7 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
-	session, err := a.service.CheckSession(r.Context(), r.Cookies())
+	session, _, err := a.kratos.CheckSession(r.Context(), r.Cookies())
 
 	if err != nil {
 		a.logger.Errorf("error when calling kratos: %s", err)
@@ -57,12 +60,14 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(rr)
 	w.WriteHeader(http.StatusOK)
+
 }
 
-func NewAPI(service ServiceInterface, logger logging.LoggerInterface) *API {
+func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.service = service
+	a.kratos = kratos
 
 	a.logger = logger
 

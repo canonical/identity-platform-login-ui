@@ -23,6 +23,7 @@ export const handleFlowError =
   async (err: AxiosError<KratosErrorResponse>) => {
     switch (err.response?.data.error?.id) {
       case "session_aal2_required":
+        resetFlow(undefined)
         // 2FA is enabled and enforced, but user did not perform 2fa yet!
         window.location.href = err.response.data.redirect_browser_to;
         return;

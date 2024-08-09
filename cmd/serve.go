@@ -8,11 +8,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-
-	"github.com/spf13/cobra"
-
 	"syscall"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -69,6 +68,7 @@ func serve() {
 	}
 
 	kClient := ik.NewClient(specs.KratosPublicURL, specs.Debug)
+	kAdminClient := ik.NewClient(specs.KratosAdminURL, specs.Debug)
 	hClient := ih.NewClient(specs.HydraAdminURL, specs.Debug)
 
 	var authzClient authz.AuthzClientInterface
@@ -85,7 +85,7 @@ func serve() {
 		panic("Invalid authorization model provided")
 	}
 
-	router := web.NewRouter(kClient, hClient, authorizer, distFS, specs.BaseURL, tracer, monitor, logger)
+	router := web.NewRouter(kClient, kAdminClient, hClient, authorizer, distFS, specs.MFAEnabled, specs.BaseURL, tracer, monitor, logger)
 
 	logger.Infof("Starting server on port %v", specs.Port)
 
