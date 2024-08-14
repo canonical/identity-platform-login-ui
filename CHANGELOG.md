@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.16.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.15.0...v0.16.0) (2024-08-14)
+
+
+### Features
+
+* add MFA_ENABLED to enable/disable mfa enforcing + KRATOS_ADMIN_URL ([511e2a2](https://github.com/canonical/identity-platform-login-ui/commit/511e2a2edb9b1c607650486737835412919147fd))
+* implement method to check if totp is configured ([22c063e](https://github.com/canonical/identity-platform-login-ui/commit/22c063eb7fd63d056cc2149ac7f4c52c6b0b22fc))
+* implement mfa enforcing ([7ff6496](https://github.com/canonical/identity-platform-login-ui/commit/7ff6496be73c5ff5fbc82597c9e700f385cb57ef))
+* implement MFA enforcing for getConsent ([a17d0ae](https://github.com/canonical/identity-platform-login-ui/commit/a17d0aeb73352dc578a260d223abfac96b439aab))
+
+
+### Bug Fixes
+
+* pass request context to service ([0398690](https://github.com/canonical/identity-platform-login-ui/commit/0398690adc7f354100f82ba3fc911795e3806d6e))
+* redirection in case session is available ([b71ab84](https://github.com/canonical/identity-platform-login-ui/commit/b71ab841f1ac135d9b533e817cdcc73aaf79a572))
+
 ## [0.15.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.14.0...v0.15.0) (2024-07-29)
 
 
