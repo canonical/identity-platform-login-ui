@@ -71,17 +71,9 @@
       "schedule": ["at any time"]
     },
     {
-      "groupName": "renovate packages",
-      "matchSourceUrlPrefixes": ["https://github.com/renovatebot/"],
-      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
-      "automerge": true,
-      "schedule": ["at any time"],
-      "additionalBranchPrefix": "auto-"
-    },
-    {
       "groupName": "pre-commit hooks",
       "matchManagers": ["pre-commit"],
-      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
       "automerge": true,
       "schedule": ["at any time"],
       "additionalBranchPrefix": "auto-"
