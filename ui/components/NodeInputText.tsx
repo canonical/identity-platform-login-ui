@@ -25,6 +25,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
         attributes.name === "code" ||
         attributes.name === "totp" ||
         attributes.name === "totp_code" ||
+        attributes.name === "lookup_secret" ||
         (isWebauthn && attributes.name === "identifier")
           ? error
           : undefined

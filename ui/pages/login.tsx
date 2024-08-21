@@ -86,6 +86,9 @@ const Login: NextPage = () => {
         if (values.method === "webauthn") {
           return "webauthn";
         }
+        if (values.method === "lookup_secret") {
+          return "lookup_secret";
+        }
         if (isAuthCode) {
           return "totp";
         }
