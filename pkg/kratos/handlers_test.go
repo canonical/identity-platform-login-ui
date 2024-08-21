@@ -483,6 +483,67 @@ func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+
+	lookupMethod := kClient.NewSessionAuthenticationMethodWithDefaults()
+	lookupMethod.SetMethod("lookup_secret")
+
+	pwdMethod := kClient.NewSessionAuthenticationMethodWithDefaults()
+	pwdMethod.SetMethod("password")
+
+	session.SetAuthenticatorAssuranceLevel("aal2")
+	session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{*pwdMethod, *lookupMethod}
+
+	flowId := "test"
+	redirectTo := "https://some/path/to/somewhere"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = flowId
+
+	flowBody := new(kClient.UpdateLoginFlowBody)
+	flowBody.UpdateLoginFlowWithLookupSecretMethod = kClient.NewUpdateLoginFlowWithLookupSecretMethod("xt879l1a", "lookup_secret")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil)
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
+	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().HasTOTPAvailable(gomock.Any(), gomock.Any()).Return(true, nil)
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().HasNotEnoughLookupSecretsLeft(gomock.Any(), session.Identity.GetId()).Return(true, nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if _, err := json.Marshal(flow); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatal("Expected HTTP status code 303, got: ", res.Status)
+	}
+}
+
 func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

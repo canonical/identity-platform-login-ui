@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
@@ -19,13 +20,17 @@ import (
 )
 
 const (
-	IncorrectCredentials    = 4000006
-	InactiveAccount         = 4000010
-	InvalidRecoveryCode     = 4060006
-	RecoveryCodeSent        = 1060003
-	InvalidProperty         = 4000002
-	InvalidAuthCode         = 4000008
-	MissingSecurityKeySetup = 4000015
+	IncorrectCredentials     = 4000006
+	InactiveAccount          = 4000010
+	InvalidRecoveryCode      = 4060006
+	RecoveryCodeSent         = 1060003
+	InvalidProperty          = 4000002
+	InvalidAuthCode          = 4000008
+	MissingSecurityKeySetup  = 4000015
+	BackupCodeAlreadyUsed    = 4000012
+	InvalidBackupCode        = 4000016
+	MissingBackupCodesSetup  = 4000014
+	MinimumBackupCodesAmount = 3
 )
 
 type Service struct {
@@ -68,6 +73,11 @@ type UiErrorMessages struct {
 
 type methodOnly struct {
 	Method string `json:"method"`
+}
+
+type LookupSecrets []struct {
+	Code   string    `json:"code"`
+	UsedAt time.Time `json:"used_at,omitempty"`
 }
 
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
@@ -401,6 +411,12 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("invalid authentication code")
 	case MissingSecurityKeySetup:
 		err = fmt.Errorf("choose a different login method")
+	case BackupCodeAlreadyUsed:
+		err = fmt.Errorf("this backup code was already used")
+	case InvalidBackupCode:
+		err = fmt.Errorf("invalid backup code")
+	case MissingBackupCodesSetup:
+		err = fmt.Errorf("login with backup codes unavailable")
 	default:
 		err = fmt.Errorf("unknown kratos error code: %v", errorCode)
 	}
@@ -539,6 +555,18 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		ret = kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(
 			body,
 		)
+	case "lookup_secret":
+		body := new(kClient.UpdateLoginFlowWithLookupSecretMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ret = kClient.UpdateLoginFlowWithLookupSecretMethodAsUpdateLoginFlowBody(
+			body,
+		)
 	// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
 	default:
 		body := new(kClient.UpdateLoginFlowWithOidcMethod)
@@ -628,6 +656,18 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 		ret = kClient.UpdateSettingsFlowWithWebAuthnMethodAsUpdateSettingsFlowBody(
 			body,
 		)
+	case "lookup_secret":
+		body := new(kClient.UpdateSettingsFlowWithLookupMethod)
+
+		err := parseBody(r.Body, &body)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ret = kClient.UpdateSettingsFlowWithLookupMethodAsUpdateSettingsFlowBody(
+			body,
+		)
 	}
 
 	return &ret, nil
@@ -655,6 +695,57 @@ func (s *Service) HasTOTPAvailable(ctx context.Context, id string) (bool, error)
 
 	_, ok := identity.GetCredentials()["totp"]
 	return ok, nil
+}
+
+func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) (bool, error) {
+
+	identity, _, err := s.kratosAdmin.IdentityApi().
+		GetIdentity(ctx, id).
+		IncludeCredential([]string{"lookup_secret"}).
+		Execute()
+
+	if err != nil {
+		return false, err
+	}
+
+	lookupSecret, ok := identity.GetCredentials()["lookup_secret"]
+	if !ok {
+		s.logger.Debugf("User has no lookup secret credentials")
+		return false, nil
+	}
+
+	lookupCredentials, ok := lookupSecret.Config["recovery_codes"]
+	if !ok {
+		s.logger.Debugf("Recovery codes unavailable")
+		return false, nil
+	}
+
+	jsonbody, err := json.Marshal(lookupCredentials)
+	if err != nil {
+		s.logger.Errorf("Marshalling to json failed: %s", err)
+		return false, err
+	}
+
+	lookupSecrets := new(LookupSecrets)
+	if err := json.Unmarshal(jsonbody, &lookupSecrets); err != nil {
+		s.logger.Errorf("Unmarshalling failed: %s", err)
+		return false, err
+	}
+
+	unusedCodes := 0
+	for _, code := range *lookupSecrets {
+		if code.UsedAt.IsZero() {
+			unusedCodes += 1
+		}
+	}
+
+	if unusedCodes > MinimumBackupCodesAmount {
+		return false, nil
+	}
+
+	s.logger.Debugf("Only %d backup codes are left, redirect the user to generate a new set", unusedCodes)
+
+	return true, nil
 }
 
 func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {

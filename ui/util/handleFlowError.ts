@@ -71,6 +71,10 @@ export const handleFlowError =
         // Ory Kratos asked us to point the user to this URL.
         window.location.href = err.response.data.redirect_browser_to;
         return;
+      case "regenerate_backup_codes":
+        // The user logged in with a lookup secret and is running out of backup codes, redirect to generate a new set
+        window.location.href = err.response.data.redirect_browser_to;
+        return;
     }
 
     switch (err.response?.status) {
