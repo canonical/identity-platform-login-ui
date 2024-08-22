@@ -2,6 +2,8 @@ import { Button, CodeSnippet, List } from "@canonical/react-components";
 import { UiNode, UiNodeTextAttributes } from "@ory/client";
 import { UiText } from "@ory/client";
 import React, { FC } from "react";
+import ReactPDF from "@react-pdf/renderer";
+import BackupCodePdf from "./BackupCodePdf";
 
 interface Props {
   node: UiNode;
@@ -29,21 +31,27 @@ const Content: FC<Props> = ({ attributes }) => {
           data-testid={`node/text/${attributes.id}/text`}
         >
           <div className="row">
-            <List items={secrets} divided />
+            <List
+              items={secrets.map((item, k) => (
+                <span key={k}>{item}</span>
+              ))}
+              divided
+            />
             <div className="u-no-print">
               <Button
                 type="button"
-                onClick={() => {
-                  const text = secrets.join("\n");
-                  const element = document.createElement("a");
-                  const file = new Blob([text], {
-                    type: "text/plain",
-                  });
-                  element.href = URL.createObjectURL(file);
-                  element.download = "backup-codes.txt";
-                  document.body.appendChild(element);
-                  element.click();
-                  document.body.removeChild(element);
+                onClick={async () => {
+                  const blob = await ReactPDF.pdf(
+                    <BackupCodePdf codes={secrets} />,
+                  ).toBlob();
+
+                  const link = document.createElement("a");
+                  link.href = URL.createObjectURL(blob);
+                  link.download = "backup-codes.pdf";
+                  link.click();
+
+                  // Clean up the URL object
+                  URL.revokeObjectURL(link.href);
                 }}
               >
                 Download
