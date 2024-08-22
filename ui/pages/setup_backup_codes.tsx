@@ -12,7 +12,7 @@ import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
-import { Notification, Spinner } from "@canonical/react-components";
+import { Spinner } from "@canonical/react-components";
 import { UiNodeInputAttributes } from "@ory/client/api";
 
 const SetupBackupCodes: NextPage = () => {
@@ -20,11 +20,7 @@ const SetupBackupCodes: NextPage = () => {
 
   // Get ?flow=... from the URL
   const router = useRouter();
-  const {
-    return_to: returnTo,
-    flow: flowId,
-    pw_changed: pwChanged,
-  } = router.query;
+  const { return_to: returnTo, flow: flowId } = router.query;
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
@@ -48,10 +44,7 @@ const SetupBackupCodes: NextPage = () => {
       })
       .then(({ data }) => {
         if (data.request_url !== undefined) {
-          const pwParam = pwChanged
-            ? `&pw_changed=${pwChanged.toString()}`
-            : "";
-          window.location.href = `./setup_backup_codes?flow=${data.id}${pwParam}`;
+          window.location.href = `./setup_backup_codes?flow=${data.id}`;
           return;
         }
         setFlow(data);
@@ -70,7 +63,6 @@ const SetupBackupCodes: NextPage = () => {
 
   const handleSubmit = useCallback(
     (values: UpdateSettingsFlowBody) => {
-      console.log(values);
       const methodValues = values as UpdateSettingsFlowWithLookupMethod;
       return kratos
         .updateSettingsFlow({
@@ -93,19 +85,8 @@ const SetupBackupCodes: NextPage = () => {
               : undefined,
           },
         })
-        .then(({ data }) => {
-          if (flow?.state === "success") {
-            window.location.href = "./setup_complete";
-          }
-          if ("redirect_to" in data) {
-            window.location.href = data.redirect_to as string;
-            return;
-          }
-          if (flow?.return_to) {
-            window.location.href = flow.return_to;
-            return;
-          }
-          window.location.href = "./error";
+        .then(() => {
+          setFlow(undefined); // Reset the flow to trigger refresh
         })
         .catch(handleFlowError("settings", setFlow));
     },
@@ -124,11 +105,6 @@ const SetupBackupCodes: NextPage = () => {
 
   return (
     <PageLayout title="Set up backup codes">
-      {pwChanged === "success" && (
-        <Notification severity="positive">
-          Password was changed successfully
-        </Notification>
-      )}
       {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
     </PageLayout>
   );

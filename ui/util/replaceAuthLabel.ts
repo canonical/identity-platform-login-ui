@@ -19,6 +19,9 @@ export const replaceAuthLabel = (
               label: {
                 ...node.meta.label,
                 text: "Sign in",
+                hasBackupLink: flow.ui.nodes.some(
+                  (item) => item.group === "lookup_secret",
+                ),
               },
             },
           };

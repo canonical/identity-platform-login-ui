@@ -34,6 +34,7 @@ const Login: NextPage = () => {
     // to perform two-factor authentication/verification.
     aal,
     login_challenge,
+    use_backup_code: useBackupCode,
   } = router.query;
 
   useEffect(() => {
@@ -145,7 +146,24 @@ const Login: NextPage = () => {
   const title = isAuthCode
     ? "Verify your identity"
     : `Sign in${getTitleSuffix()}`;
-  const renderFlow = isAuthCode ? replaceAuthLabel(flow) : flow;
+
+  const filterFlow = (flow: LoginFlow | undefined): LoginFlow => {
+    if (!flow) {
+      return flow as unknown as LoginFlow;
+    }
+
+    return {
+      ...flow,
+      ui: {
+        ...flow.ui,
+        nodes: flow.ui.nodes.filter(({ group }) => {
+          return useBackupCode ? group !== "totp" : group !== "lookup_secret";
+        }),
+      },
+    };
+  };
+
+  const renderFlow = isAuthCode ? filterFlow(replaceAuthLabel(flow)) : flow;
 
   let isWebauthn = false;
   if (renderFlow?.ui) {
