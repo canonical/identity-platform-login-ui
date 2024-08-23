@@ -56,7 +56,9 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
           );
         }}
         disabled={attributes.disabled || disabled}
-        className={node.group === "oidc" ? "oidc-login-button" : ""}
+        className={
+          node.group === "oidc" ? "oidc-login-button u-no-print" : "u-no-print"
+        }
       >
         {isProvider ? (
           <>
