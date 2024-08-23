@@ -15,6 +15,18 @@ const PageLayout: FC<Props> = ({ children, title }) => {
   return (
     <>
       <Head>
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="https://assets.ubuntu.com/v1/be7e4cc6-COF-favicon-32x32.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="https://assets.ubuntu.com/v1/16c27f81-COF%20favicon-16x16.png"
+        />
         <title>{title}</title>
       </Head>
       <Row className="p-strip page-row">
