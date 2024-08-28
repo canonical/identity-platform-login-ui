@@ -1,4 +1,4 @@
-import { Button, CodeSnippet, List } from "@canonical/react-components";
+import { Button, CodeSnippet } from "@canonical/react-components";
 import { UiNode, UiNodeTextAttributes } from "@ory/client";
 import { UiText } from "@ory/client";
 import React, { FC } from "react";
@@ -31,12 +31,13 @@ const Content: FC<Props> = ({ attributes }) => {
           data-testid={`node/text/${attributes.id}/text`}
         >
           <div className="row">
-            <List
-              items={secrets.map((item, k) => (
-                <span key={k}>{item}</span>
+            <ol className="p-list--divided backup-codes">
+              {secrets.map((item, k) => (
+                <li className="p-list__item" key={k}>
+                  {item}
+                </li>
               ))}
-              divided
-            />
+            </ol>
             <div className="u-no-print">
               <Button
                 type="button"

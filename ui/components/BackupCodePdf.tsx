@@ -26,7 +26,16 @@ const BackupCodePdf: FC<Props> = ({ codes }) => {
             Please keep them in a safe place!
           </Text>
           {codes.map((code, i) => (
-            <Text key={i}>{code}</Text>
+            <Text
+              key={i}
+              style={{
+                borderBottom: "1px solid #bbb",
+                marginBottom: "10px",
+                paddingBottom: "10px",
+              }}
+            >
+              {i + 1}. {code}
+            </Text>
           ))}
         </View>
       </Page>
@@ -37,6 +46,7 @@ const BackupCodePdf: FC<Props> = ({ codes }) => {
 const styles = StyleSheet.create({
   page: {
     padding: 30,
+    fontFamily: "Helvetica",
   },
 });
 
