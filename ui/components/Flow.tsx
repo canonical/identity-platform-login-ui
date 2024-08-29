@@ -27,7 +27,6 @@ export type Methods =
   | "code"
   | "totp"
   | "webauthn"
-  | "lookup"
   | "lookup_secret";
 
 export interface Props<T> {
