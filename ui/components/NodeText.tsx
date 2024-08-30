@@ -1,7 +1,7 @@
 import { Button, CodeSnippet } from "@canonical/react-components";
 import { UiNode, UiNodeTextAttributes } from "@ory/client";
 import { UiText } from "@ory/client";
-import React, { FC } from "react";
+import React, { FC, useCallback } from "react";
 import ReactPDF from "@react-pdf/renderer";
 import BackupCodePdf from "./BackupCodePdf";
 
@@ -15,6 +15,23 @@ interface ContextSecrets {
 }
 
 const Content: FC<Props> = ({ attributes }) => {
+  const downloadPdf = useCallback(async (secrets: string[]) => {
+    const blob = await ReactPDF.pdf(<BackupCodePdf codes={secrets} />).toBlob();
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "backup-codes.pdf";
+    link.click();
+
+    // Clean up the URL object
+    URL.revokeObjectURL(link.href);
+  }, []);
+
+  const copySecrets = useCallback((secrets: string[]) => {
+    const codes = secrets.join("\n");
+    void navigator.clipboard.writeText(codes);
+  }, []);
+
   switch (attributes.text.id) {
     case 1050015:
       // This text node contains lookup secrets. Let's make them a bit more beautiful!
@@ -39,31 +56,10 @@ const Content: FC<Props> = ({ attributes }) => {
               ))}
             </ol>
             <div className="u-no-print">
-              <Button
-                type="button"
-                onClick={async () => {
-                  const blob = await ReactPDF.pdf(
-                    <BackupCodePdf codes={secrets} />,
-                  ).toBlob();
-
-                  const link = document.createElement("a");
-                  link.href = URL.createObjectURL(blob);
-                  link.download = "backup-codes.pdf";
-                  link.click();
-
-                  // Clean up the URL object
-                  URL.revokeObjectURL(link.href);
-                }}
-              >
+              <Button type="button" onClick={() => downloadPdf(secrets)}>
                 Download
               </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  const codes = secrets.join("\n");
-                  void navigator.clipboard.writeText(codes);
-                }}
-              >
+              <Button type="button" onClick={() => copySecrets(secrets)}>
                 Copy
               </Button>
               <Button type="button" onClick={print}>

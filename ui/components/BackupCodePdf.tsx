@@ -18,8 +18,8 @@ const BackupCodePdf: FC<Props> = ({ codes }) => {
       <Page size="A4" style={styles.page}>
         <View>
           <Image
-            src="./logos/Canonical.png"
-            style={{ width: 300, marginBottom: 30 }}
+            src="./backup-codes-header.png"
+            style={{ width: 530, marginBottom: 30 }}
           />
           <Text>These are your back up recovery codes.</Text>
           <Text style={{ marginBottom: 30 }}>
@@ -34,7 +34,9 @@ const BackupCodePdf: FC<Props> = ({ codes }) => {
                 paddingBottom: "10px",
               }}
             >
-              {i + 1}. {code}
+              {i + 1}
+              {"   "}
+              {code}
             </Text>
           ))}
         </View>
@@ -47,6 +49,7 @@ const styles = StyleSheet.create({
   page: {
     padding: 30,
     fontFamily: "Helvetica",
+    fontSize: 14,
   },
 });
 

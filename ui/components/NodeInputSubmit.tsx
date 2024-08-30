@@ -78,7 +78,8 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
           appearance="link"
           type="button"
           onClick={() =>
-            (window.location.href = window.location.href + "&use_backup_code=1")
+            (window.location.href =
+              window.location.href + "&use_backup_code=true")
           }
         >
           Use backup code instead
