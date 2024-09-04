@@ -55,9 +55,11 @@ selfservice:
                     - hook: session
     methods:
         totp:
-         enabled: true
-         config:
-           issuer: Identity Platform
+            enabled: true
+            config:
+                issuer: Identity Platform
+        lookup_secret:
+            enabled: true
         password:
             enabled: True
             config:

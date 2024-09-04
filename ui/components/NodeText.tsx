@@ -1,7 +1,9 @@
-import { CodeSnippet } from "@canonical/react-components";
+import { Button, CodeSnippet } from "@canonical/react-components";
 import { UiNode, UiNodeTextAttributes } from "@ory/client";
 import { UiText } from "@ory/client";
-import React, { FC } from "react";
+import React, { FC, useCallback } from "react";
+import ReactPDF from "@react-pdf/renderer";
+import BackupCodePdf from "./BackupCodePdf";
 
 interface Props {
   node: UiNode;
@@ -13,28 +15,58 @@ interface ContextSecrets {
 }
 
 const Content: FC<Props> = ({ attributes }) => {
+  const downloadPdf = useCallback(async (secrets: string[]) => {
+    const blob = await ReactPDF.pdf(<BackupCodePdf codes={secrets} />).toBlob();
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "backup-codes.pdf";
+    link.click();
+
+    // Clean up the URL object
+    URL.revokeObjectURL(link.href);
+  }, []);
+
+  const copySecrets = useCallback((secrets: string[]) => {
+    const codes = secrets.join("\n");
+    void navigator.clipboard.writeText(codes);
+  }, []);
+
   switch (attributes.text.id) {
     case 1050015:
       // This text node contains lookup secrets. Let's make them a bit more beautiful!
       // eslint-disable-next-line no-case-declarations
       const secrets = (attributes.text.context as ContextSecrets).secrets.map(
-        (text, k) => (
-          <div
-            key={k}
-            data-testid={`node/text/${attributes.id}/lookup_secret`}
-            className="col-xs-3"
-          >
-            {/* Used lookup_secret has ID 1050014 */}
-            <code>{text.id === 1050014 ? "Used" : text.text}</code>
-          </div>
-        ),
+        (text) => {
+          return text.id === 1050014 ? "Used" : text.text;
+        },
       );
+
       return (
         <div
           className="container-fluid"
           data-testid={`node/text/${attributes.id}/text`}
         >
-          <div className="row">{secrets}</div>
+          <div className="row">
+            <ol className="p-list--divided backup-codes">
+              {secrets.map((item, k) => (
+                <li className="p-list__item" key={k}>
+                  {item}
+                </li>
+              ))}
+            </ol>
+            <div className="u-no-print">
+              <Button type="button" onClick={() => downloadPdf(secrets)}>
+                Download
+              </Button>
+              <Button type="button" onClick={() => copySecrets(secrets)}>
+                Copy
+              </Button>
+              <Button type="button" onClick={print}>
+                Print
+              </Button>
+            </div>
+          </div>
         </div>
       );
   }

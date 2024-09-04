@@ -24,6 +24,7 @@ import (
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_kratos.go github.com/ory/kratos-client-go FrontendApi
+//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_identity.go github.com/ory/kratos-client-go IdentityApi
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_hydra.go -source=../../internal/hydra/interfaces.go
 
 func TestCheckSessionSuccess(t *testing.T) {
@@ -538,6 +539,60 @@ func TestUpdateLoginFlowErrorWebAuthnNotSet(t *testing.T) {
 		t.Fatalf("expected error not nil")
 	}
 	expectedError := fmt.Errorf("choose a different login method")
+	if err.Error() != expectedError.Error() {
+		t.Fatalf("expected error to be %v not %v", expectedError, err)
+	}
+}
+
+func TestUpdateLoginFlowErrorWhenBackupCodesNotSet(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	body := new(kClient.UpdateLoginFlowBody)
+
+	request := kClient.FrontendApiUpdateLoginFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	errorBody := &UiErrorMessages{
+		Ui: kClient.UiContainer{
+			Messages: []kClient.UiText{
+				{
+					Id: MissingBackupCodesSetup,
+				},
+			},
+		},
+	}
+	errorBodyJson, _ := json.Marshal(errorBody)
+	resp := http.Response{
+		Body:       io.NopCloser(bytes.NewBuffer(errorBodyJson)),
+		StatusCode: 400,
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
+
+	_, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).UpdateLoginFlow(ctx, flowId, *body, cookies)
+
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+	expectedError := fmt.Errorf("login with backup codes unavailable")
 	if err.Error() != expectedError.Error() {
 		t.Fatalf("expected error to be %v not %v", expectedError, err)
 	}
@@ -1107,6 +1162,40 @@ func TestParseLoginFlowTotpMethodBody(t *testing.T) {
 	}
 }
 
+func TestParseLoginFlowLookupSecretMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateLoginFlowWithLookupSecretMethodWithDefaults()
+	flow.SetMethod("lookup_secret")
+
+	body := kClient.UpdateLoginFlowWithLookupSecretMethodAsUpdateLoginFlowBody(flow)
+
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+
+	actual, _ := b.MarshalJSON()
+	expected, _ := body.MarshalJSON()
+
+	if !reflect.DeepEqual(string(actual), string(expected)) {
+		t.Fatalf("expected flow to be %s not %s", string(expected), string(actual))
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
 func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1652,6 +1741,40 @@ func TestParseSettingsFlowTotpMethodBody(t *testing.T) {
 	}
 }
 
+func TestParseSettingsFlowLookupMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateSettingsFlowWithLookupMethodWithDefaults()
+	flow.SetMethod("lookup_secret")
+
+	body := kClient.UpdateSettingsFlowWithLookupMethodAsUpdateSettingsFlowBody(flow)
+
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
+
+	actual, _ := b.MarshalJSON()
+	expected, _ := body.MarshalJSON()
+
+	if !reflect.DeepEqual(string(actual), string(expected)) {
+		t.Fatalf("expected flow to be %s not %s", string(expected), string(actual))
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
 func TestParseSettingsFlowWebAuthnMethodBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1976,6 +2099,86 @@ func TestUpdateSettingsFlowFailOnUpdateSettingsFlowExecute(t *testing.T) {
 	}
 	if c != nil {
 		t.Fatalf("expected header to be %v not %v", nil, c)
+	}
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+}
+
+func TestHasNotEnoughLookupSecretsLeftSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosIdentityApi := NewMockIdentityApi(ctrl)
+
+	ctx := context.Background()
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+	}
+	identityRequest := kClient.IdentityApiGetIdentityRequest{
+		ApiService: mockKratosIdentityApi,
+	}
+	identity := kClient.Identity{
+		Id: "test",
+	}
+
+	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
+	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)
+	mockKratosIdentityApi.EXPECT().GetIdentityExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r kClient.IdentityApiGetIdentityRequest) (*kClient.Identity, *http.Response, error) {
+			return &identity, &resp, nil
+		},
+	)
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
+
+	hasNotEnoughLookupSecretsLeft, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).HasNotEnoughLookupSecretsLeft(ctx, "test")
+
+	if hasNotEnoughLookupSecretsLeft != false {
+		t.Fatalf("expected return value to be false not %v", hasNotEnoughLookupSecretsLeft)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not %v", err)
+	}
+}
+
+func TestHasNotEnoughLookupSecretsLeftFailonGetIdentityExecute(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosIdentityApi := NewMockIdentityApi(ctrl)
+
+	ctx := context.Background()
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+	}
+	identityRequest := kClient.IdentityApiGetIdentityRequest{
+		ApiService: mockKratosIdentityApi,
+	}
+
+	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
+	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)
+	mockKratosIdentityApi.EXPECT().GetIdentityExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
+
+	hasNotEnoughLookupSecretsLeft, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).HasNotEnoughLookupSecretsLeft(ctx, "test")
+
+	if hasNotEnoughLookupSecretsLeft != false {
+		t.Fatalf("expected return value to be false not %v", hasNotEnoughLookupSecretsLeft)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")

@@ -21,7 +21,13 @@ export type Values = Partial<
   | UpdateVerificationFlowBody
 >;
 
-export type Methods = "oidc" | "password" | "code" | "totp" | "webauthn";
+export type Methods =
+  | "oidc"
+  | "password"
+  | "code"
+  | "totp"
+  | "webauthn"
+  | "lookup_secret";
 
 export interface Props<T> {
   // The flow

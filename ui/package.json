@@ -6,6 +6,7 @@
     "@canonical/react-components": "0.51.4",
     "@ory/client": "1.9.0",
     "@ory/integrations": "1.1.5",
+    "@react-pdf/renderer": "^3.4.4",
     "next": "14.2.1",
     "react": "18.2.0",
     "react-toastify": "10.0.5",

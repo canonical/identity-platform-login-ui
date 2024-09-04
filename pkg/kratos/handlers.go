@@ -6,13 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	client "github.com/ory/kratos-client-go"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
+
+const RegenerateBackupCodesError = "regenerate_backup_codes"
 
 type API struct {
 	mfaEnabled  bool
@@ -199,6 +203,15 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	shouldRegenerateBackupCodes, err := a.shouldRegenerateBackupCodes(r.Context(), cookies)
+	if err != nil {
+		err = fmt.Errorf("error when checking backup codes: %v", err)
+
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	setCookies(w, cookies)
 
 	if shouldEnforceMfa {
@@ -206,8 +219,51 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if shouldRegenerateBackupCodes {
+		a.lookupSecretsSettingsRedirect(w, flowId)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(flow)
+}
+
+func (a *API) shouldRegenerateBackupCodes(ctx context.Context, cookies []*http.Cookie) (bool, error) {
+	// skip the check if mfa is not enabled
+	if !a.mfaEnabled {
+		return false, nil
+	}
+
+	session, _, err := a.service.CheckSession(ctx, cookies)
+
+	if err != nil {
+		if a.is40xError(err) {
+			a.logger.Debugf("check session failed: %v", err)
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	authnMethods := session.AuthenticationMethods
+	if len(authnMethods) < 2 {
+		a.logger.Debugf("User has not yet completed 2fa")
+		return false, nil
+	}
+
+	aal2AuthenticationMethod := authnMethods[1].Method
+
+	if aal2AuthenticationMethod == nil || *aal2AuthenticationMethod != "lookup_secret" {
+		return false, nil
+	}
+
+	// check the backup codes only if aal2 method was lookup_secret
+	shouldRegenerateBackupCodes, err := a.service.HasNotEnoughLookupSecretsLeft(ctx, session.Identity.GetId())
+	if err != nil {
+		return false, err
+	}
+
+	return shouldRegenerateBackupCodes, nil
 }
 
 func (a *API) shouldEnforceMFA(ctx context.Context, cookies []*http.Cookie) (bool, error) {
@@ -269,6 +325,27 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter) {
 	}
 
 	errorId := "session_aal2_required"
+
+	w.WriteHeader(http.StatusSeeOther)
+	_ = json.NewEncoder(w).Encode(
+		ErrorBrowserLocationChangeRequired{
+			Error:             &client.GenericError{Id: &errorId},
+			RedirectBrowserTo: &redirect,
+		},
+	)
+}
+
+func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId string) {
+	redirectUrl, err := url.Parse(path.Join("/", a.contextPath, ui.UI, "/backup_codes_regenerate?flow="+flowId))
+	if err != nil {
+		err = fmt.Errorf("unable to build backup codes redirect path, possible misconfiguration, err: %v", err)
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	redirect := redirectUrl.String()
+	errorId := RegenerateBackupCodesError
 
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
