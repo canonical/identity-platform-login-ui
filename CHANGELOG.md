@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.16.0...v0.17.0) (2024-09-04)
+
+
+### Features
+
+* support lookup_secret method, offer user to regenerate the set if 3 or less codes are left ([45738a8](https://github.com/canonical/identity-platform-login-ui/commit/45738a8ab87e57ee9ded79d070552f00f8ffb50b))
+
 ## [0.16.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.15.0...v0.16.0) (2024-08-14)
 
 
