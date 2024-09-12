@@ -20,17 +20,21 @@ import (
 )
 
 const (
-	IncorrectCredentials     = 4000006
-	InactiveAccount          = 4000010
-	InvalidRecoveryCode      = 4060006
-	RecoveryCodeSent         = 1060003
-	InvalidProperty          = 4000002
-	InvalidAuthCode          = 4000008
-	MissingSecurityKeySetup  = 4000015
-	BackupCodeAlreadyUsed    = 4000012
-	InvalidBackupCode        = 4000016
-	MissingBackupCodesSetup  = 4000014
-	MinimumBackupCodesAmount = 3
+	NotEnoughCharacters          = 4000003
+	TooManyCharacters            = 4000017
+	IncorrectCredentials         = 4000006
+	InactiveAccount              = 4000010
+	InvalidRecoveryCode          = 4060006
+	RecoveryCodeSent             = 1060003
+	InvalidProperty              = 4000002
+	InvalidAuthCode              = 4000008
+	MissingSecurityKeySetup      = 4000015
+	BackupCodeAlreadyUsed        = 4000012
+	InvalidBackupCode            = 4000016
+	MissingBackupCodesSetup      = 4000014
+	PasswordIdentifierSimilarity = 4000031
+	PasswordTooLong              = 4000033
+	MinimumBackupCodesAmount     = 3
 )
 
 type Service struct {
@@ -400,6 +404,7 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		return err
 	}
 
+	// TODO: Add unit tests for all handled error codes
 	switch errorCode := errorCodes[0].Id; errorCode {
 	case IncorrectCredentials:
 		err = fmt.Errorf("incorrect username or password")
@@ -407,6 +412,10 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("inactive account")
 	case InvalidProperty:
 		err = fmt.Errorf("invalid %s", errorCodes[0].Context["property"])
+	case NotEnoughCharacters:
+		err = fmt.Errorf("at least %v characters required", errorCodes[0].Context["min_length"])
+	case TooManyCharacters, PasswordTooLong:
+		err = fmt.Errorf("maximum %v characters allowed", errorCodes[0].Context["max_length"])
 	case InvalidAuthCode:
 		err = fmt.Errorf("invalid authentication code")
 	case MissingSecurityKeySetup:
@@ -417,8 +426,11 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("invalid backup code")
 	case MissingBackupCodesSetup:
 		err = fmt.Errorf("login with backup codes unavailable")
+	case PasswordIdentifierSimilarity:
+		err = fmt.Errorf("password can not be similar to the email")
 	default:
-		err = fmt.Errorf("unknown kratos error code: %v", errorCode)
+		s.logger.Errorf("Unknown kratos error code: %v", errorCode)
+		err = fmt.Errorf("server error")
 	}
 	return err
 }
