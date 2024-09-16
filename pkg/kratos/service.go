@@ -153,13 +153,12 @@ func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string
 	return flow, resp.Cookies(), nil
 }
 
-func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error) {
+func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, cookies []*http.Cookie) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserSettingsFlow")
 	defer span.End()
 
 	flow, resp, err := s.kratos.FrontendApi().
 		CreateBrowserSettingsFlow(ctx).
-		ReturnTo(returnTo).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 

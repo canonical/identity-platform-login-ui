@@ -524,13 +524,7 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
-	returnTo, err := url.JoinPath(a.baseURL, "/ui/setup_complete")
-	if err != nil {
-		a.logger.Errorf("Failed to construct returnTo URL: ", err)
-		http.Error(w, "Failed to construct returnTo URL", http.StatusBadRequest)
-	}
-
-	flow, response, err := a.service.CreateBrowserSettingsFlow(context.Background(), returnTo, r.Cookies())
+	flow, response, err := a.service.CreateBrowserSettingsFlow(context.Background(), r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Failed to create settings flow: %v", err)
 		http.Error(w, "Failed to create settings flow", http.StatusInternalServerError)
