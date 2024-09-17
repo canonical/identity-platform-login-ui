@@ -51,8 +51,8 @@ const ResetPassword: NextPage = () => {
         returnTo: returnTo ? String(returnTo) : undefined,
       })
       .then(({ data }) => {
-        if (data.request_url !== undefined) {
-          window.location.href = data.request_url;
+        if (data.return_to !== undefined) {
+          window.location.href = data.return_to;
           return;
         }
         setFlow(data);
