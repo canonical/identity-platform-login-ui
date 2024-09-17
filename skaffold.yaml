@@ -1,6 +1,24 @@
 apiVersion: skaffold/v4beta6
 kind: Config
 
+build:
+  artifacts:
+  - image: "identity-platform-login-ui"
+    sync:
+      infer:
+      - "internal/"
+      - "pkg/"
+      - "main.go"
+      - "go.mod"
+      - "go.sum"
+    custom:
+      buildCommand: ./build.sh
+      dependencies:
+        paths:
+          - rockcraft.yaml
+    platforms: ["linux/amd64"]
+  local:
+    push: true
 test:
   - image: "ghcr.io/canonical/identity-platform-login-ui"
     structureTests:
