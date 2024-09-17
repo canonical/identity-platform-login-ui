@@ -45,6 +45,10 @@ selfservice:
         settings:
             ui_url: http://localhost:4455/ui/reset_password
             required_aal: highest_available
+            after:
+                default_browser_return_url: http://localhost:4455/ui/setup_complete
+                password:
+                    default_browser_return_url: http://localhost:4455/ui/setup_complete
         registration:
             after:
                 oidc:

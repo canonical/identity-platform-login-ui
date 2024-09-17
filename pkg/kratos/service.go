@@ -320,11 +320,11 @@ func (s *Service) UpdateRecoveryFlow(
 
 func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
-) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+) (*BrowserLocationChangeRequired, *kClient.SuccessfulNativeLogin, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateLoginFlow")
 	defer span.End()
 
-	_, resp, err := s.kratos.FrontendApi().
+	f, resp, err := s.kratos.FrontendApi().
 		UpdateLoginFlow(ctx).
 		Flow(flow).
 		UpdateLoginFlowBody(body).
@@ -337,14 +337,18 @@ func (s *Service) UpdateLoginFlow(
 	// redirected to.
 	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
 		err := s.getUiError(resp.Body)
-		return nil, nil, err
+		return nil, nil, nil, err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		return nil, f, nil, nil
 	}
 
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
 		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// We trasform the kratos response to our own custom response here.
@@ -352,7 +356,7 @@ func (s *Service) UpdateLoginFlow(
 	// because this is not a real error.
 	returnToResp := BrowserLocationChangeRequired{RedirectTo: redirectResp.RedirectBrowserTo}
 
-	return &returnToResp, resp.Cookies(), nil
+	return &returnToResp, nil, resp.Cookies(), nil
 }
 
 func (s *Service) UpdateSettingsFlow(

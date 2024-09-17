@@ -94,7 +94,11 @@ const SetupSecure: NextPage = () => {
             window.location.href = flow.return_to;
             return;
           }
-          window.location.href = "./error";
+          // TODO: Is this correct??
+          if ("error" in data) {
+            window.location.href = "./error";
+          }
+          window.location.href = "./setup_complete";
         })
         .catch(handleFlowError("settings", setFlow));
     },

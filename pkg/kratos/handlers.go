@@ -188,10 +188,16 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, r.Cookies())
+	flow, f, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if f != nil {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(f)
 		return
 	}
 
@@ -534,11 +540,17 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	// If aal1, redirect to complete second factor auth
 	if response != nil && response.HasRedirectTo() {
 		a.logger.Errorf("Failed to create settings flow due to insufficient aal: %v\n", response)
+		returnTo, _ := url.JoinPath(a.baseURL, "/ui/reset_password")
+		redirectTo, err := addReturnTo(*response.RedirectTo, returnTo)
+		if err != nil {
+			a.logger.Error("Failed to construct URL: ", err.Error())
+			http.Error(w, "Failed to construct URL", http.StatusInternalServerError)
+		}
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(
 			ErrorBrowserLocationChangeRequired{
 				Error:             response.Error,
-				RedirectBrowserTo: response.RedirectTo,
+				RedirectBrowserTo: redirectTo,
 			},
 		)
 		return
@@ -572,6 +584,18 @@ func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger lo
 	a.logger = logger
 
 	return a
+}
+
+func addReturnTo(destinationUrl string, returnTo string) (*string, error) {
+	d, err := url.Parse(destinationUrl)
+	if err != nil {
+		return nil, err
+	}
+	q := d.Query()
+	q.Add("return_to", returnTo)
+	d.RawQuery = q.Encode()
+	dd := d.String()
+	return &dd, nil
 }
 
 func setCookies(w http.ResponseWriter, cookies []*http.Cookie) {
