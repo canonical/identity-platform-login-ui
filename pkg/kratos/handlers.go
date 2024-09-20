@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	client "github.com/ory/kratos-client-go"
@@ -17,6 +18,7 @@ import (
 )
 
 const RegenerateBackupCodesError = "regenerate_backup_codes"
+const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
 
 type API struct {
 	mfaEnabled  bool
@@ -456,7 +458,12 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setCookies(w, cookies)
+	setCookies(w, cookies, KRATOS_SESSION_COOKIE_NAME)
+	// We delete any active Kratos sessions. If there were any active Kratos sessions,
+	// recovery wouldn't be needed.
+	// See https://github.com/canonical/kratos-operator/issues/259 for more info.
+	a.deleteKratosSession(w)
+
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
@@ -560,6 +567,22 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+func (a *API) deleteKratosSession(w http.ResponseWriter) {
+	// To delete the session we delete the kratos session cookie.
+	// This is hacky as it does not call the Kratos API and is likely to break on
+	// a new Kratos version, but there is no easy way to delete the session
+	// from the Kratos API
+	c := &http.Cookie{
+		Name:     KRATOS_SESSION_COOKIE_NAME,
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Secure:   true,
+	}
+	http.SetCookie(w, c)
+}
+
 func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger logging.LoggerInterface) *API {
 	a := new(API)
 
@@ -580,8 +603,14 @@ func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger lo
 	return a
 }
 
-func setCookies(w http.ResponseWriter, cookies []*http.Cookie) {
+func setCookies(w http.ResponseWriter, cookies []*http.Cookie, exclude ...string) {
+l1:
 	for _, c := range cookies {
+		for _, n := range exclude {
+			if c.Name == n {
+				continue l1
+			}
+		}
 		http.SetCookie(w, c)
 	}
 }
