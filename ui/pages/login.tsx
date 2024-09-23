@@ -37,6 +37,11 @@ const Login: NextPage = () => {
     use_backup_code: useBackupCode,
   } = router.query;
 
+  const redirectToErrorPage = () => {
+    const idParam = flowId ? `?id=${flowId.toString()}` : "";
+    window.location.href = `./error${idParam}`;
+  };
+
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
     if (!router.isReady || flow) {
@@ -48,7 +53,8 @@ const Login: NextPage = () => {
       kratos
         .getLoginFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
-        .catch(handleFlowError("login", setFlow));
+        .catch(handleFlowError("login", setFlow))
+        .catch(redirectToErrorPage);
       return;
     }
 
@@ -67,7 +73,8 @@ const Login: NextPage = () => {
         }
         setFlow(data);
       })
-      .catch(handleFlowError("login", setFlow));
+      .catch(handleFlowError("login", setFlow))
+      .catch(redirectToErrorPage);
   }, [
     flowId,
     router,
