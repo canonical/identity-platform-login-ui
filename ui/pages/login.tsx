@@ -163,9 +163,12 @@ const Login: NextPage = () => {
     };
   };
 
+  let isWebauthn = false;
+  const supportsWebauthn = flow?.ui.nodes.some(
+    (node) => node.group === "webauthn",
+  );
   const renderFlow = isAuthCode ? filterFlow(replaceAuthLabel(flow)) : flow;
 
-  let isWebauthn = false;
   if (renderFlow?.ui) {
     const urlParams = new URLSearchParams(window.location.search);
     isWebauthn =
@@ -184,7 +187,7 @@ const Login: NextPage = () => {
     });
 
     // add security key option that looks like an oidc input
-    if (!isWebauthn && !isAuthCode) {
+    if (!isWebauthn && !isAuthCode && supportsWebauthn) {
       renderFlow.ui.nodes.push({
         attributes: {
           type: "url",
