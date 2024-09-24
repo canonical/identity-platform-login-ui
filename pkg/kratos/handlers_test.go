@@ -905,6 +905,7 @@ func TestHandleCreateSettingsFlow(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
+	values.Set("return_to", redirect)
 	req.URL.RawQuery = values.Encode()
 
 	flow := kClient.NewSettingsFlowWithDefaults()
@@ -941,6 +942,7 @@ func TestHandleCreateSettingsFlowWithRedirect(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
+	values.Set("return_to", redirect)
 	req.URL.RawQuery = values.Encode()
 
 	flow := kClient.NewSettingsFlowWithDefaults()
@@ -974,6 +976,7 @@ func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
+	values.Set("return_to", redirect)
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CreateBrowserSettingsFlow(gomock.Any(), redirect, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))

@@ -75,7 +75,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
 
 		if shouldEnforceMfa {
-			a.mfaSettingsRedirect(w)
+			a.mfaSettingsRedirect(w, returnTo)
 			return
 		}
 
@@ -217,7 +217,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 
 	if shouldEnforceMfa {
-		a.mfaSettingsRedirect(w)
+		a.mfaSettingsRedirect(w, *loginFlow.ReturnTo)
 		return
 	}
 
@@ -317,8 +317,9 @@ func (a *API) is40xError(err error) bool {
 	return false
 }
 
-func (a *API) mfaSettingsRedirect(w http.ResponseWriter) {
+func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string) {
 	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_secure")
+
 	if err != nil {
 		err = fmt.Errorf("unable to build mfa redirect path, possible misconfiguration, err: %v", err)
 		a.logger.Error(err.Error())
@@ -328,11 +329,19 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter) {
 
 	errorId := "session_aal2_required"
 
+	// Set the original login URL as return_to, to continue the flow after mfa
+	// has been set.
+	u, _ := url.Parse(redirect)
+	q := u.Query()
+	q.Set("return_to", returnTo)
+	u.RawQuery = q.Encode()
+	r := u.String()
+
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
 		ErrorBrowserLocationChangeRequired{
 			Error:             &client.GenericError{Id: &errorId},
-			RedirectBrowserTo: &redirect,
+			RedirectBrowserTo: &r,
 		},
 	)
 }
@@ -531,11 +540,7 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
-	returnTo, err := url.JoinPath(a.baseURL, "/ui/setup_complete")
-	if err != nil {
-		a.logger.Errorf("Failed to construct returnTo URL: ", err)
-		http.Error(w, "Failed to construct returnTo URL", http.StatusBadRequest)
-	}
+	returnTo := r.URL.Query().Get("return_to")
 
 	flow, response, err := a.service.CreateBrowserSettingsFlow(context.Background(), returnTo, r.Cookies())
 	if err != nil {
