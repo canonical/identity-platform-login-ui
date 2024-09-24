@@ -44,26 +44,27 @@ const SetupSecure: NextPage = () => {
     // Otherwise we initialize it
     kratos
       .createBrowserSettingsFlow({
-        returnTo: returnTo ? String(returnTo) : undefined,
+        returnTo: returnTo
+          ? returnTo.toString()
+          : window.location.pathname.replace("setup_secure", "setup_complete"),
       })
-      .then(({ data }) => {
-        if (data.request_url !== undefined) {
-          const pwParam = pwChanged
-            ? `&pw_changed=${pwChanged.toString()}`
-            : "";
-          window.location.href = `./setup_secure?flow=${data.id}${pwParam}`;
-          return;
-        }
+      .then(async ({ data }) => {
+        const pwParam = pwChanged ? pwChanged.toString() : "false";
+        router.query.flow = data.id;
+        router.query.pw_changed = pwParam;
+
+        await router.replace(
+          {
+            pathname: window.location.pathname,
+            query: router.query,
+          },
+          undefined,
+          { shallow: true },
+        );
         setFlow(data);
       })
       .catch(handleFlowError("settings", setFlow))
       .catch(async (err: AxiosError<string>) => {
-        if (err.response?.data.trim() === "Failed to create settings flow") {
-          setFlow(undefined);
-          window.location.href = "./login";
-          return;
-        }
-
         return Promise.reject(err);
       });
   }, [flowId, router, router.isReady, returnTo, flow]);
@@ -83,15 +84,12 @@ const SetupSecure: NextPage = () => {
           },
         })
         .then(({ data }) => {
-          if (flow?.state === "success") {
-            window.location.href = "./setup_complete";
-          }
           if ("redirect_to" in data) {
             window.location.href = data.redirect_to as string;
             return;
           }
-          if (flow?.return_to) {
-            window.location.href = flow.return_to;
+          if (data?.return_to) {
+            window.location.href = data?.return_to;
             return;
           }
           window.location.href = "./error";
