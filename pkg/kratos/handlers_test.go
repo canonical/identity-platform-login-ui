@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	gomock "go.uber.org/mock/gomock"
@@ -648,6 +649,60 @@ func TestHandleCreateRecoveryFlow(t *testing.T) {
 	}
 	if res.StatusCode != http.StatusOK {
 		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+}
+
+func TestHandleCreateRecoveryFlowWithSession(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	redirect := "https://example.com/ui/reset_email"
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_RECOVERY_FLOW_URL, nil)
+	values := req.URL.Query()
+	req.URL.RawQuery = values.Encode()
+
+	sessionCookie := &http.Cookie{
+		Name:     KRATOS_SESSION_COOKIE_NAME,
+		Value:    "some_value",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+	}
+	req.AddCookie(sessionCookie)
+
+	flow := kClient.NewRecoveryFlowWithDefaults()
+	mockService.EXPECT().CreateBrowserRecoveryFlow(gomock.Any(), redirect, req.Cookies()).Return(flow, req.Cookies(), nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if _, err := json.Marshal(flow); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+	deleted := false
+	for _, c := range res.Cookies() {
+		if c.Name == KRATOS_SESSION_COOKIE_NAME {
+			if c.Expires.Equal(time.Unix(0, 0)) {
+				deleted = true
+			} else {
+				t.Fatal("Kratos session cookie was set")
+			}
+		}
+	}
+	if !deleted {
+		t.Fatal("Kratos session cookie was not deleted")
 	}
 }
 
