@@ -58,11 +58,11 @@ services:
     networks:
       - intranet
   hydra:
-    image: ghcr.io/canonical/hydra:2.2.0-canonical
+    image: oryd/hydra:latest-sqlite
     ports:
       - "4444:4444" # Public port
       - "4445:4445" # Admin port
-    command: exec hydra serve -c /etc/config/hydra/hydra.yml all --dev
+    command: serve -c /etc/config/hydra/hydra.yml all --dev
     volumes:
       - type: bind
         source: ./docker/hydra
@@ -76,10 +76,10 @@ services:
     networks:
       - intranet
   hydra-migrate:
-    image: ghcr.io/canonical/hydra:2.2.0-canonical
+    image: oryd/hydra:latest-sqlite
     environment:
       - DSN=postgres://hydra:hydra@postgres/hydra?sslmode=disable
-    command: exec hydra migrate -c /etc/config/hydra/hydra.yml sql -e --yes
+    command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
       - type: bind
         source: ./docker/hydra
