@@ -123,14 +123,19 @@ func (s *Service) CreateBrowserLoginFlow(
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserLoginFlow")
 	defer span.End()
 
-	flow, resp, err := s.kratos.FrontendApi().
+	request := s.kratos.FrontendApi().
 		CreateBrowserLoginFlow(ctx).
 		Aal(aal).
 		ReturnTo(returnTo).
-		LoginChallenge(loginChallenge).
 		Refresh(refresh).
-		Cookie(httpHelpers.CookiesToString(cookies)).
-		Execute()
+		Cookie(httpHelpers.
+		CookiesToString(cookies))
+
+	if loginChallenge != "" {
+		request.LoginChallenge(loginChallenge)
+	}
+
+	flow, resp, err := request.Execute()
 	if err != nil {
 		return nil, nil, err
 	}

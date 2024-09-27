@@ -56,7 +56,7 @@ const SetupBackupCodes: NextPage = () => {
       .catch(async (err: AxiosError<string>) => {
         if (err.response?.data.trim() === "Failed to create settings flow") {
           setFlow(undefined);
-          window.location.href = "./login";
+          window.location.href = `./login?return_to=${window.location.pathname}`;
           return;
         }
 
