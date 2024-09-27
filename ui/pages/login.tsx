@@ -35,6 +35,7 @@ const Login: NextPage = () => {
     aal,
     login_challenge,
     use_backup_code: useBackupCode,
+    reset_email: resetEmail,
   } = router.query;
 
   const redirectToErrorPage = () => {
@@ -45,6 +46,18 @@ const Login: NextPage = () => {
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
     if (!router.isReady || flow) {
+      return;
+    }
+
+    if (resetEmail) {
+      void fetch("/api/kratos/self-service/clear-session", {
+        method: "DELETE",
+      }).then(() => {
+        window.location.href = window.location.href.replace(
+          "&reset_email=1",
+          "",
+        );
+      });
       return;
     }
 
@@ -171,12 +184,38 @@ const Login: NextPage = () => {
   };
 
   let isWebauthn = false;
+  let isPasswordOnly = false;
   const supportsWebauthn = flow?.ui.nodes.some(
     (node) => node.group === "webauthn",
   );
   const renderFlow = isAuthCode ? filterFlow(replaceAuthLabel(flow)) : flow;
 
   if (renderFlow?.ui) {
+    isPasswordOnly =
+      renderFlow.ui.messages?.length === 1 &&
+      renderFlow.ui.messages[0].id === 1010003;
+    if (isPasswordOnly) {
+      renderFlow.ui.nodes = renderFlow.ui.nodes.map((node) => {
+        if (
+          node.group !== "default" ||
+          (node.attributes as UiNodeInputAttributes).name !== "identifier"
+        ) {
+          return node;
+        }
+
+        return {
+          ...node,
+          meta: {
+            label: {
+              id: 1,
+              text: "Change e-mail",
+              type: "info",
+            },
+          },
+        };
+      });
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     isWebauthn =
       urlParams.get("webauthn") === "true" ||
@@ -194,7 +233,7 @@ const Login: NextPage = () => {
     });
 
     // add security key option that looks like an oidc input
-    if (!isWebauthn && !isAuthCode && supportsWebauthn) {
+    if (!isWebauthn && !isAuthCode && supportsWebauthn && !isPasswordOnly) {
       renderFlow.ui.nodes.push({
         attributes: {
           type: "url",
@@ -253,6 +292,11 @@ const Login: NextPage = () => {
     <PageLayout title={title}>
       {flow ? <Flow onSubmit={handleSubmit} flow={renderFlow} /> : <Spinner />}
       {isWebauthn && <a href={flow?.return_to}>I want to use another method</a>}
+      {isPasswordOnly && (
+        <a href={`${window.location.href}&reset_email=1`}>
+          I want to use another method
+        </a>
+      )}
     </PageLayout>
   );
 };
