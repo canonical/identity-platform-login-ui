@@ -30,6 +30,7 @@ type API struct {
 }
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
+	mux.Delete("/api/kratos/self-service/clear-session", a.handleClearKratosSession)
 	mux.Post("/api/kratos/self-service/login", a.handleUpdateFlow)
 	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
 	mux.Get("/api/kratos/self-service/login/flows", a.handleGetLoginFlow)
@@ -40,6 +41,17 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Post("/api/kratos/self-service/settings", a.handleUpdateSettingsFlow)
 	mux.Get("/api/kratos/self-service/settings/browser", a.handleCreateSettingsFlow)
 	mux.Get("/api/kratos/self-service/settings/flows", a.handleGetSettingsFlow)
+}
+
+func (a *API) handleClearKratosSession(w http.ResponseWriter, _ *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:   KRATOS_SESSION_COOKIE_NAME,
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // TODO: Validate response when server error handling is implemented
