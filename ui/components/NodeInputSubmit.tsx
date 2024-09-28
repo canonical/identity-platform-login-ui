@@ -36,6 +36,9 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const showBackupLink =
     (node.meta.label as unknown as { hasBackupLink: boolean })?.hasBackupLink ??
     false;
+  const showTotpLink =
+    (node.meta.label as unknown as { hasTotpLink: boolean })?.hasTotpLink ??
+    false;
 
   return (
     <>
@@ -85,6 +88,21 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
           }
         >
           Use backup code instead
+        </Button>
+      )}
+      {showTotpLink && (
+        <Button
+          appearance="link"
+          tabIndex={5}
+          type="button"
+          onClick={() =>
+            (window.location.href = window.location.href.replace(
+              "&use_backup_code=true",
+              "",
+            ))
+          }
+        >
+          Use authentication code instead
         </Button>
       )}
     </>
