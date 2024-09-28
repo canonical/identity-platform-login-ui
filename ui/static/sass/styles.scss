@@ -27,11 +27,17 @@ $breakpoint-navigation-threshold: 820px;
 }
 
 .oidc-login-button {
+  background: #fff;
+  border-color: $colors--theme--border-default;
   display: flex;
   justify-content: flex-start;
   overflow: hidden;
   padding: 0.5rem;
   width: 100%;
+}
+
+hr {
+  margin-bottom: $sph--large;
 }
 
 .password-label {
