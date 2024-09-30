@@ -54,18 +54,21 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	loginChallenge := q.Get("login_challenge")
+	returnTo := q.Get("return_to")
 	aal := q.Get("aal")
 	refresh, err := strconv.ParseBool(q.Get("refresh"))
 	if err == nil {
 		refresh = false
 	}
 
-	var returnTo string
-	if returnTo, err = a.returnToUrl(loginChallenge); err != nil {
-		// this should never happen if app is properly configured
-		a.logger.Errorf("Failed to construct returnTo URL: %v", err)
-		http.Error(w, "Failed to construct returnTo URL", http.StatusInternalServerError)
-		return
+	if returnTo == "" {
+		returnTo, err = a.returnToUrl(loginChallenge)
+		if err != nil {
+			// this should never happen if app is properly configured
+			a.logger.Errorf("Failed to construct returnTo URL: %v", err)
+			http.Error(w, "Failed to construct returnTo URL", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// if the user is logged in, CreateBrowserLoginFlow call will return an empty response
@@ -129,7 +132,9 @@ func (a *API) returnToUrl(loginChallenge string) (string, error) {
 	// url.JoinPath already performed this operation, if we get here we're good
 	u, _ := url.Parse(returnTo)
 	q := u.Query()
-	q.Set("login_challenge", loginChallenge)
+	if loginChallenge != "" {
+		q.Set("login_challenge", loginChallenge)
+	}
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
