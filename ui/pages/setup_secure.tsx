@@ -48,19 +48,15 @@ const SetupSecure: NextPage = () => {
           ? returnTo.toString()
           : window.location.pathname.replace("setup_secure", "setup_complete"),
       })
-      .then(async ({ data }) => {
-        const pwParam = pwChanged ? pwChanged.toString() : "false";
-        router.query.flow = data.id;
-        router.query.pw_changed = pwParam;
-
-        await router.replace(
-          {
-            pathname: window.location.pathname,
-            query: router.query,
-          },
-          undefined,
-          { shallow: true },
-        );
+      .then(({ data }) => {
+        const pwParam = pwChanged ? `&pw_changed=${pwChanged.toString()}` : "";
+        if (flowId !== data.id) {
+          window.history.replaceState(
+            null,
+            "",
+            `./reset_password?flow=${data.id}${pwParam}`,
+          );
+        }
         setFlow(data);
       })
       .catch(handleFlowError("settings", setFlow))

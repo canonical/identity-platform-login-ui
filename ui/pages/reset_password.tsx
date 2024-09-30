@@ -51,9 +51,12 @@ const ResetPassword: NextPage = () => {
         returnTo: returnTo ? String(returnTo) : undefined,
       })
       .then(({ data }) => {
-        if (data.request_url !== undefined) {
-          window.location.href = data.request_url;
-          return;
+        if (flowId !== data.id) {
+          window.history.replaceState(
+            null,
+            "",
+            `./reset_password?flow=${data.id}`,
+          );
         }
         setFlow(data);
       })
