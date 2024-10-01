@@ -43,9 +43,12 @@ const SetupPasskey: NextPage = () => {
         returnTo: returnTo ? String(returnTo) : undefined,
       })
       .then(({ data }) => {
-        if (data.request_url !== undefined) {
-          window.location.href = `./setup_passkey?flow=${data.id}`;
-          return;
+        if (flowId !== data.id) {
+          window.history.replaceState(
+            null,
+            "",
+            `./setup_passkey?flow=${data.id}`,
+          );
         }
         setFlow(data);
       })
