@@ -110,7 +110,14 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo string, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
 	// redirect user to this endpoint with the login_challenge after login
 	// see https://github.com/ory/kratos/issues/3052
-	flow, cookies, err := a.service.CreateBrowserLoginFlow(r.Context(), aal, returnTo, loginChallenge, refresh, r.Cookies())
+	flow, cookies, err := a.service.CreateBrowserLoginFlow(
+		r.Context(),
+		aal,
+		returnTo,
+		loginChallenge,
+		refresh,
+		filterCookies(r.Cookies(), KRATOS_SESSION_COOKIE_NAME),
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create login flow, err: %v", err)
 	}
@@ -584,7 +591,12 @@ func (a *API) deleteKratosSession(w http.ResponseWriter) {
 	// This is hacky as it does not call the Kratos API and is likely to break on
 	// a new Kratos version, but there is no easy way to delete the session
 	// from the Kratos API
-	c := &http.Cookie{
+	c := kratosSessionUnsetCookie()
+	http.SetCookie(w, c)
+}
+
+func kratosSessionUnsetCookie() *http.Cookie {
+	return &http.Cookie{
 		Name:     KRATOS_SESSION_COOKIE_NAME,
 		Value:    "",
 		Path:     "/",
@@ -592,7 +604,6 @@ func (a *API) deleteKratosSession(w http.ResponseWriter) {
 		HttpOnly: true,
 		Secure:   true,
 	}
-	http.SetCookie(w, c)
 }
 
 func addParamsToURL(u string, qs ...queryParam) (string, error) {
@@ -630,6 +641,13 @@ func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger lo
 }
 
 func setCookies(w http.ResponseWriter, cookies []*http.Cookie, exclude ...string) {
+	for _, c := range filterCookies(cookies, exclude...) {
+		http.SetCookie(w, c)
+	}
+}
+
+func filterCookies(cookies []*http.Cookie, exclude ...string) []*http.Cookie {
+	ret := []*http.Cookie{}
 l1:
 	for _, c := range cookies {
 		for _, n := range exclude {
@@ -637,6 +655,7 @@ l1:
 				continue l1
 			}
 		}
-		http.SetCookie(w, c)
+		ret = append(ret, c)
 	}
+	return ret
 }

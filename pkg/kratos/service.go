@@ -128,8 +128,7 @@ func (s *Service) CreateBrowserLoginFlow(
 		Aal(aal).
 		ReturnTo(returnTo).
 		Refresh(refresh).
-		Cookie(httpHelpers.
-			CookiesToString(cookies))
+		Cookie(httpHelpers.CookiesToString(cookies))
 
 	if loginChallenge != "" {
 		request = request.LoginChallenge(loginChallenge)
@@ -355,12 +354,24 @@ func (s *Service) UpdateLoginFlow(
 		return nil, nil, err
 	}
 
+	c := resp.Cookies()
+	if body.UpdateLoginFlowWithOidcMethod != nil {
+		// If this is an oidc flow, we need to delete the session cookie
+		// A session cookie (probably) means that the user used 1fa, but went back from the 2nd factor screen
+		// If the session cookie is set, then Kratos will redirect the user to the default return to URL
+		// The only way to avoid this is by setting refresh=true, but the user has no kratos session.
+		// This is probably a bug on kratos side, as they check if a session exists to set refresh=false.
+		// But in oidc they only check if the session cookie exists, which is not sufficient as the user may not have
+		// enough aal
+		c = append(c, kratosSessionUnsetCookie())
+	}
+
 	// We trasform the kratos response to our own custom response here.
 	// The original kratos response contains an 'Error' field, which we remove
 	// because this is not a real error.
 	returnToResp := BrowserLocationChangeRequired{RedirectTo: redirectResp.RedirectBrowserTo}
 
-	return &returnToResp, resp.Cookies(), nil
+	return &returnToResp, c, nil
 }
 
 func (s *Service) UpdateSettingsFlow(
@@ -784,7 +795,7 @@ func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) 
 
 func (s *Service) is1FAMethod(method string) bool {
 	switch method {
-	case "password", "webauthn":
+	case "password", "webauthn", "oidc":
 		return true
 	default:
 		return false
