@@ -519,25 +519,27 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 	return flow, nil
 }
 
-func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, error) {
+func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, []*http.Cookie, error) {
 	// TODO: try to refactor when we bump kratos sdk to 1.x.x
+	var (
+		ret     kClient.UpdateLoginFlowBody
+		cookies = r.Cookies()
+	)
 	methodOnly := new(methodOnly)
 
 	defer r.Body.Close()
 	b, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		return nil, errors.New("unable to read body")
+		return nil, cookies, errors.New("unable to read body")
 	}
 
 	// replace the body that was consumed
 	r.Body = io.NopCloser(bytes.NewReader(b))
 
 	if err := json.Unmarshal(b, methodOnly); err != nil {
-		return nil, err
+		return nil, cookies, err
 	}
-
-	var ret kClient.UpdateLoginFlowBody
 
 	switch methodOnly.Method {
 	case "password":
@@ -546,7 +548,7 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		err := parseBody(r.Body, &body)
 
 		if err != nil {
-			return nil, err
+			return nil, cookies, err
 		}
 		ret = kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(
 			body,
@@ -557,7 +559,7 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		err := parseBody(r.Body, &body)
 
 		if err != nil {
-			return nil, err
+			return nil, cookies, err
 		}
 		ret = kClient.UpdateLoginFlowWithTotpMethodAsUpdateLoginFlowBody(
 			body,
@@ -569,7 +571,7 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		err := parseBody(r.Body, &body)
 
 		if err != nil {
-			return nil, err
+			return nil, cookies, err
 		}
 		ret = kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(
 			body,
@@ -580,7 +582,7 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		err := parseBody(r.Body, &body)
 
 		if err != nil {
-			return nil, err
+			return nil, cookies, err
 		}
 
 		ret = kClient.UpdateLoginFlowWithLookupSecretMethodAsUpdateLoginFlowBody(
@@ -593,7 +595,7 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		err := parseBody(r.Body, &body)
 
 		if err != nil {
-			return nil, err
+			return nil, cookies, err
 		}
 
 		ret = kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(
@@ -601,7 +603,20 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		)
 	}
 
-	return &ret, nil
+	if s.is1FAMethod(methodOnly.Method) {
+		for i, c := range cookies {
+			if c.Name == KRATOS_SESSION_COOKIE_NAME {
+				if i == len(cookies)-1 {
+					cookies = cookies[:i]
+				} else {
+					cookies[i] = cookies[len(cookies)-1]
+					cookies = cookies[:len(cookies)-1]
+				}
+			}
+		}
+	}
+
+	return &ret, cookies, nil
 }
 
 func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateRecoveryFlowBody, error) {
@@ -765,6 +780,15 @@ func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) 
 	s.logger.Debugf("Only %d backup codes are left, redirect the user to generate a new set", unusedCodes)
 
 	return true, nil
+}
+
+func (s *Service) is1FAMethod(method string) bool {
+	switch method {
+	case "password", "webauthn":
+		return true
+	default:
+		return false
+	}
 }
 
 func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {

@@ -169,14 +169,14 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
 
-	body, err := a.service.ParseLoginFlowMethodBody(r)
+	body, cookies, err := a.service.ParseLoginFlowMethodBody(r)
 	if err != nil {
 		a.logger.Errorf("Error when parsing request body: %v\n", err)
 		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
 		return
 	}
 
-	loginFlow, cookies, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
+	loginFlow, _, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
@@ -195,7 +195,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, r.Cookies())
+	flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, cookies)
 	if err != nil {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

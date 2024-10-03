@@ -1185,7 +1185,7 @@ func TestParseLoginFlowOidcMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1218,7 +1218,7 @@ func TestParseLoginFlowPasswordMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1252,7 +1252,7 @@ func TestParseLoginFlowTotpMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1286,7 +1286,7 @@ func TestParseLoginFlowLookupSecretMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1320,7 +1320,7 @@ func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -1365,7 +1365,7 @@ func TestGetProviderNameOidc(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _ := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, _ := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
 
 	actualProviderName := b.UpdateLoginFlowWithOidcMethod.Provider
 	if expectedProviderName != actualProviderName {
