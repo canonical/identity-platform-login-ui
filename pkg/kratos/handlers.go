@@ -29,6 +29,11 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
+type queryParam struct {
+	name  string
+	value string
+}
+
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Post("/api/kratos/self-service/login", a.handleUpdateFlow)
 	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
@@ -57,7 +62,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	returnTo := q.Get("return_to")
 	aal := q.Get("aal")
 	refresh, err := strconv.ParseBool(q.Get("refresh"))
-	if err == nil {
+	if err != nil {
 		refresh = false
 	}
 
@@ -77,6 +82,10 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	if session != nil {
 		shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
 
+		if err != nil {
+			a.logger.Errorf("Failed check for MFA: %v", err)
+			http.Error(w, "Failed check for MFA", http.StatusInternalServerError)
+		}
 		if shouldEnforceMfa {
 			a.mfaSettingsRedirect(w, returnTo)
 			return
@@ -130,14 +139,11 @@ func (a *API) returnToUrl(loginChallenge string) (string, error) {
 	}
 
 	// url.JoinPath already performed this operation, if we get here we're good
-	u, _ := url.Parse(returnTo)
-	q := u.Query()
 	if loginChallenge != "" {
-		q.Set("login_challenge", loginChallenge)
+		return addParamsToURL(returnTo, queryParam{name: "login_challenge", value: loginChallenge})
 	}
-	u.RawQuery = q.Encode()
 
-	return u.String(), nil
+	return returnTo, nil
 }
 
 // TODO: Validate response when server error handling is implemented
@@ -336,11 +342,7 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string) {
 
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
-	u, _ := url.Parse(redirect)
-	q := u.Query()
-	q.Set("return_to", returnTo)
-	u.RawQuery = q.Encode()
-	r := u.String()
+	r, _ := addParamsToURL(redirect, queryParam{"return_to", returnTo})
 
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
@@ -591,6 +593,20 @@ func (a *API) deleteKratosSession(w http.ResponseWriter) {
 		Secure:   true,
 	}
 	http.SetCookie(w, c)
+}
+
+func addParamsToURL(u string, qs ...queryParam) (string, error) {
+	uu, err := url.Parse(u)
+	if err != nil {
+		return "", err
+	}
+	q := uu.Query()
+	for _, qp := range qs {
+		q.Set(qp.name, qp.value)
+	}
+	uu.RawQuery = q.Encode()
+
+	return uu.String(), nil
 }
 
 func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger logging.LoggerInterface) *API {
