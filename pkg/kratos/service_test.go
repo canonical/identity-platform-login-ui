@@ -215,7 +215,7 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	}
 }
 
-func TestCreateBrowserLoginFlowSuccess(t *testing.T) {
+func TestCreateBrowserLoginFlowWithLoginChallengeSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -279,6 +279,109 @@ func TestCreateBrowserLoginFlowSuccess(t *testing.T) {
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestCreateBrowserLoginFlowWithReturnToSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	aal := "aal"
+	returnTo := "https://return/to/somewhere"
+	refresh := false
+	flow := kClient.NewLoginFlowWithDefaults()
+	request := kClient.FrontendApiCreateBrowserLoginFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r kClient.FrontendApiCreateBrowserLoginFlowRequest) (*kClient.LoginFlow, *http.Response, error) {
+			if _aal := (*string)(reflect.ValueOf(r).FieldByName("aal").UnsafePointer()); *_aal != aal {
+				t.Fatalf("expected aal to be %s, got %s", aal, *_aal)
+			}
+			if rt := (*string)(reflect.ValueOf(r).FieldByName("returnTo").UnsafePointer()); *rt != returnTo {
+				t.Fatalf("expected returnTo to be %s, got %s", returnTo, *rt)
+			}
+			if ref := (*bool)(reflect.ValueOf(r).FieldByName("refresh").UnsafePointer()); *ref != refresh {
+				t.Fatalf("expected refresh to be %v, got %v", refresh, *ref)
+			}
+			if cookie := (*string)(reflect.ValueOf(r).FieldByName("cookie").UnsafePointer()); *cookie != "test=test" {
+				t.Fatalf("expected cookie string as test=test, got %s", *cookie)
+			}
+
+			return flow, &resp, nil
+		},
+	)
+
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, returnTo, "", refresh, cookies)
+
+	if f != flow {
+		t.Fatalf("expected flow to be %v not  %v", flow, f)
+	}
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestCreateBrowserLoginFlowWithoutReturnToLoginChallenge(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendApi(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	aal := "aal"
+	refresh := false
+	request := kClient.FrontendApiCreateBrowserLoginFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
+
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).CreateBrowserLoginFlow(ctx, aal, "", "", refresh, cookies)
+
+	if f != nil {
+		t.Fatalf("expected flow to be %v not  %v", nil, f)
+	}
+	if c != nil {
+		t.Fatalf("expected cookies to be %v not  %v", nil, c)
+	}
+	if err == nil {
+		t.Fatalf("expected error to be nil")
 	}
 }
 
