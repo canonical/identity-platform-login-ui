@@ -17,6 +17,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
   return (
     <Input
       type="text"
+      autoFocus={true}
+      tabIndex={1}
       name={attributes.name}
       label={getNodeLabel(node)}
       disabled={disabled}

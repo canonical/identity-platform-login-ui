@@ -49,6 +49,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
             ? "positive"
             : ""
         }
+        tabIndex={4}
         onClick={async (e) => {
           // On click, we set this value, and once set, dispatch the submission!
           await setValue(attributes.value as string).then(() =>
@@ -76,6 +77,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
       {showBackupLink && (
         <Button
           appearance="link"
+          tabIndex={5}
           type="button"
           onClick={() =>
             (window.location.href =
