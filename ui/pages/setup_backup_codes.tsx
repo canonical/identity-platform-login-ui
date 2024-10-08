@@ -88,11 +88,11 @@ const SetupBackupCodes: NextPage = () => {
               : undefined,
           },
         })
-        .then(() => {
+        .then((res) => {
           if (methodValues.lookup_secret_confirm) {
             window.location.href = "./setup_complete";
           } else {
-            setFlow(undefined); // Reset the flow to trigger refresh
+            setFlow(res.data); // Reset the flow to trigger refresh
           }
         })
         .catch(handleFlowError("settings", setFlow));
