@@ -54,13 +54,17 @@ const SetupSecure: NextPage = () => {
           window.history.replaceState(
             null,
             "",
-            `./reset_password?flow=${data.id}${pwParam}`,
+            `./setup_secure?flow=${data.id}${pwParam}`,
           );
         }
         setFlow(data);
       })
       .catch(handleFlowError("settings", setFlow))
       .catch(async (err: AxiosError<string>) => {
+        if (err.response?.data.trim() === "Failed to create settings flow") {
+          window.location.href = "./login";
+          return;
+        }
         return Promise.reject(err);
       });
   }, [flowId, router, router.isReady, returnTo, flow]);
@@ -80,15 +84,13 @@ const SetupSecure: NextPage = () => {
           },
         })
         .then(({ data }) => {
-          if ("redirect_to" in data) {
-            window.location.href = data.redirect_to as string;
-            return;
+          if (data?.return_to && !data.return_to.endsWith("/setup_complete")) {
+            // we do a have a valid return_to, show the completion step, and it will redirect after 3 seconds
+            window.location.href = `./setup_complete?flow=${data.id}}`;
+          } else {
+            // no return_to, show the setup complete page, and it will ask the user to close the tab
+            window.location.href = "./setup_complete";
           }
-          if (data?.return_to) {
-            window.location.href = data?.return_to;
-            return;
-          }
-          window.location.href = "./error";
         })
         .catch(handleFlowError("settings", setFlow));
     },
