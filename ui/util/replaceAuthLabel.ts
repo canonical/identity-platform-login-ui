@@ -26,6 +26,21 @@ export const replaceAuthLabel = (
             },
           };
         }
+        if (node.meta.label?.text === "Use backup recovery code") {
+          return {
+            ...node,
+            meta: {
+              ...node.meta,
+              label: {
+                ...node.meta.label,
+                text: "Sign in",
+                hasTotpLink: flow.ui.nodes.some(
+                  (item) => item.group === "totp",
+                ),
+              },
+            },
+          };
+        }
         return node;
       }),
     },

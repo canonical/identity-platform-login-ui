@@ -2,6 +2,7 @@ import { getNodeLabel } from "@ory/integrations/ui";
 import { Button } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
 import React, { FC } from "react";
+import { useRouter } from "next/router";
 
 export const NodeInputSubmit: FC<NodeInputProps> = ({
   node,
@@ -10,6 +11,8 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   disabled,
   dispatchSubmit,
 }) => {
+  const router = useRouter();
+
   const getProviderImage = (value: string) => {
     if (value.toLowerCase().startsWith("auth0")) {
       return "logos/Auth0.svg";
@@ -35,6 +38,9 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const image = getProviderImage(provider);
   const showBackupLink =
     (node.meta.label as unknown as { hasBackupLink: boolean })?.hasBackupLink ??
+    false;
+  const showTotpLink =
+    (node.meta.label as unknown as { hasTotpLink: boolean })?.hasTotpLink ??
     false;
 
   return (
@@ -79,12 +85,40 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
           appearance="link"
           tabIndex={5}
           type="button"
-          onClick={() =>
-            (window.location.href =
-              window.location.href + "&use_backup_code=true")
-          }
+          onClick={() => {
+            const newQuery = { ...router.query, ["use_backup_code"]: "true" };
+            void router.push(
+              {
+                pathname: window.location.pathname,
+                query: newQuery,
+              },
+              undefined,
+              { shallow: true },
+            );
+          }}
         >
           Use backup code instead
+        </Button>
+      )}
+      {showTotpLink && (
+        <Button
+          appearance="link"
+          tabIndex={5}
+          type="button"
+          onClick={() => {
+            const newQuery = { ...router.query };
+            delete newQuery.use_backup_code;
+            void router.push(
+              {
+                pathname: window.location.pathname,
+                query: newQuery,
+              },
+              undefined,
+              { shallow: true },
+            );
+          }}
+        >
+          Use authentication code instead
         </Button>
       )}
     </>
