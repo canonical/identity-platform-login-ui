@@ -29,6 +29,11 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
+type queryParam struct {
+	name  string
+	value string
+}
+
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Post("/api/kratos/self-service/login", a.handleUpdateFlow)
 	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
@@ -57,7 +62,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	returnTo := q.Get("return_to")
 	aal := q.Get("aal")
 	refresh, err := strconv.ParseBool(q.Get("refresh"))
-	if err == nil {
+	if err != nil {
 		refresh = false
 	}
 
@@ -77,6 +82,10 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	if session != nil {
 		shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
 
+		if err != nil {
+			a.logger.Errorf("Failed check for MFA: %v", err)
+			http.Error(w, "Failed check for MFA", http.StatusInternalServerError)
+		}
 		if shouldEnforceMfa {
 			a.mfaSettingsRedirect(w, returnTo)
 			return
@@ -101,7 +110,14 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo string, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
 	// redirect user to this endpoint with the login_challenge after login
 	// see https://github.com/ory/kratos/issues/3052
-	flow, cookies, err := a.service.CreateBrowserLoginFlow(r.Context(), aal, returnTo, loginChallenge, refresh, r.Cookies())
+	flow, cookies, err := a.service.CreateBrowserLoginFlow(
+		r.Context(),
+		aal,
+		returnTo,
+		loginChallenge,
+		refresh,
+		filterCookies(r.Cookies(), KRATOS_SESSION_COOKIE_NAME),
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create login flow, err: %v", err)
 	}
@@ -130,14 +146,11 @@ func (a *API) returnToUrl(loginChallenge string) (string, error) {
 	}
 
 	// url.JoinPath already performed this operation, if we get here we're good
-	u, _ := url.Parse(returnTo)
-	q := u.Query()
 	if loginChallenge != "" {
-		q.Set("login_challenge", loginChallenge)
+		return addParamsToURL(returnTo, queryParam{name: "login_challenge", value: loginChallenge})
 	}
-	u.RawQuery = q.Encode()
 
-	return u.String(), nil
+	return returnTo, nil
 }
 
 // TODO: Validate response when server error handling is implemented
@@ -169,14 +182,14 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
 
-	body, err := a.service.ParseLoginFlowMethodBody(r)
+	body, cookies, err := a.service.ParseLoginFlowMethodBody(r)
 	if err != nil {
 		a.logger.Errorf("Error when parsing request body: %v\n", err)
 		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
 		return
 	}
 
-	loginFlow, cookies, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
+	loginFlow, _, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
@@ -195,7 +208,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, r.Cookies())
+	flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, cookies)
 	if err != nil {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -336,11 +349,7 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string) {
 
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
-	u, _ := url.Parse(redirect)
-	q := u.Query()
-	q.Set("return_to", returnTo)
-	u.RawQuery = q.Encode()
-	r := u.String()
+	r, _ := addParamsToURL(redirect, queryParam{"return_to", returnTo})
 
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
@@ -582,7 +591,12 @@ func (a *API) deleteKratosSession(w http.ResponseWriter) {
 	// This is hacky as it does not call the Kratos API and is likely to break on
 	// a new Kratos version, but there is no easy way to delete the session
 	// from the Kratos API
-	c := &http.Cookie{
+	c := kratosSessionUnsetCookie()
+	http.SetCookie(w, c)
+}
+
+func kratosSessionUnsetCookie() *http.Cookie {
+	return &http.Cookie{
 		Name:     KRATOS_SESSION_COOKIE_NAME,
 		Value:    "",
 		Path:     "/",
@@ -590,7 +604,20 @@ func (a *API) deleteKratosSession(w http.ResponseWriter) {
 		HttpOnly: true,
 		Secure:   true,
 	}
-	http.SetCookie(w, c)
+}
+
+func addParamsToURL(u string, qs ...queryParam) (string, error) {
+	uu, err := url.Parse(u)
+	if err != nil {
+		return "", err
+	}
+	q := uu.Query()
+	for _, qp := range qs {
+		q.Set(qp.name, qp.value)
+	}
+	uu.RawQuery = q.Encode()
+
+	return uu.String(), nil
 }
 
 func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger logging.LoggerInterface) *API {
@@ -614,6 +641,13 @@ func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger lo
 }
 
 func setCookies(w http.ResponseWriter, cookies []*http.Cookie, exclude ...string) {
+	for _, c := range filterCookies(cookies, exclude...) {
+		http.SetCookie(w, c)
+	}
+}
+
+func filterCookies(cookies []*http.Cookie, exclude ...string) []*http.Cookie {
+	ret := []*http.Cookie{}
 l1:
 	for _, c := range cookies {
 		for _, n := range exclude {
@@ -621,6 +655,7 @@ l1:
 				continue l1
 			}
 		}
-		http.SetCookie(w, c)
+		ret = append(ret, c)
 	}
+	return ret
 }

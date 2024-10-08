@@ -41,7 +41,7 @@ type ServiceInterface interface {
 	GetFlowError(context.Context, string) (*kClient.FlowError, []*http.Cookie, error)
 	CheckAllowedProvider(context.Context, *kClient.LoginFlow, *kClient.UpdateLoginFlowBody) (bool, error)
 	FilterFlowProviderList(context.Context, *kClient.LoginFlow) (*kClient.LoginFlow, error)
-	ParseLoginFlowMethodBody(*http.Request) (*kClient.UpdateLoginFlowBody, error)
+	ParseLoginFlowMethodBody(*http.Request) (*kClient.UpdateLoginFlowBody, []*http.Cookie, error)
 	ParseRecoveryFlowMethodBody(*http.Request) (*kClient.UpdateRecoveryFlowBody, error)
 	ParseSettingsFlowMethodBody(*http.Request) (*kClient.UpdateSettingsFlowBody, error)
 	HasTOTPAvailable(context.Context, string) (bool, error)

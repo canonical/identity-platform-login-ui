@@ -120,7 +120,6 @@ const Login: NextPage = () => {
             window.location.href = flow.return_to;
             return;
           }
-          window.location.href = "./error";
         })
         .catch(handleFlowError("login", setFlow))
         .catch((err: AxiosError<LoginFlow>) => {
