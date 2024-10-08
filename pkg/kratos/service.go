@@ -163,11 +163,15 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserSettingsFlow")
 	defer span.End()
 
-	flow, resp, err := s.kratos.FrontendApi().
+	request := s.kratos.FrontendApi().
 		CreateBrowserSettingsFlow(ctx).
-		ReturnTo(returnTo).
-		Cookie(httpHelpers.CookiesToString(cookies)).
-		Execute()
+		Cookie(httpHelpers.CookiesToString(cookies))
+
+	if returnTo != "" {
+		request = request.ReturnTo(returnTo)
+	}
+
+	flow, resp, err := request.Execute()
 
 	// 403 means the user must be redirected to complete second factor auth
 	// in order to access settings
