@@ -40,7 +40,11 @@ const BackupCodesRegenerate: NextPage = () => {
         Generating new codes will invalidate all previous codes.
       </p>
       <div>
-        <Button onClick={() => (window.location.href = "./setup_backup_codes")}>
+        <Button
+          onClick={() =>
+            (window.location.href = `./setup_backup_codes?return_to=${flow?.return_to}`)
+          }
+        >
           Generate new codes
         </Button>
         <Button

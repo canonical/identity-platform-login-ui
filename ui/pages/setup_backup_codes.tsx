@@ -87,11 +87,15 @@ const SetupBackupCodes: NextPage = () => {
               : undefined,
           },
         })
-        .then((res) => {
+        .then(({ data }) => {
           if (methodValues.lookup_secret_confirm) {
-            window.location.href = "./setup_complete";
+            const flowParam =
+              data?.return_to && !data.return_to.endsWith("/setup_complete")
+                ? `?flow=${data.id}`
+                : "";
+            window.location.href = `./setup_complete${flowParam}`;
           } else {
-            setFlow(res.data); // Reset the flow to trigger refresh
+            setFlow(data); // Reset the flow to trigger refresh
           }
         })
         .catch(handleFlowError("settings", setFlow));

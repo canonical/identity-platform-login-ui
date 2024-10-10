@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path"
 	"strconv"
 	"time"
 
@@ -235,7 +234,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 
 	if shouldRegenerateBackupCodes {
-		a.lookupSecretsSettingsRedirect(w, flowId)
+		a.lookupSecretsSettingsRedirect(w, flowId, *loginFlow.ReturnTo)
 		return
 	}
 
@@ -360,8 +359,8 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string) {
 	)
 }
 
-func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId string) {
-	redirectUrl, err := url.Parse(path.Join("/", a.contextPath, ui.UI, "/backup_codes_regenerate?flow="+flowId))
+func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId string, returnTo string) {
+	redirect, err := url.JoinPath("/", a.contextPath, ui.UI, "/backup_codes_regenerate")
 	if err != nil {
 		err = fmt.Errorf("unable to build backup codes redirect path, possible misconfiguration, err: %v", err)
 		a.logger.Error(err.Error())
@@ -369,14 +368,14 @@ func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId string
 		return
 	}
 
-	redirect := redirectUrl.String()
+	r, _ := addParamsToURL(redirect, queryParam{"return_to", returnTo}, queryParam{"flow", flowId})
 	errorId := RegenerateBackupCodesError
 
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
 		ErrorBrowserLocationChangeRequired{
 			Error:             &client.GenericError{Id: &errorId},
-			RedirectBrowserTo: &redirect,
+			RedirectBrowserTo: &r,
 		},
 	)
 }
