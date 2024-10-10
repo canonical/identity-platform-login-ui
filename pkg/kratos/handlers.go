@@ -336,11 +336,11 @@ func (a *API) shouldEnforceMFAWithSession(ctx context.Context, session *client.S
 	}
 
 	// if using OIDC external provider, do not enforce MFA
-	for _, method := range session.AuthenticationMethods {
-		if method.Method != nil && *method.Method == "oidc" {
-			return false, nil
-		}
-	}
+	// for _, method := range session.AuthenticationMethods {
+	// 	if method.Method != nil && *method.Method == "oidc" {
+	// 		return false, nil
+	// 	}
+	// }
 
 	totpAvailable, err := a.service.HasTOTPAvailable(ctx, session.Identity.GetId())
 	if err != nil {

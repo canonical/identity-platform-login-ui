@@ -178,11 +178,11 @@ func (s *Service) CreateBrowserLoginFlow(
 		Refresh(refresh).
 		Cookie(httpHelpers.CookiesToString(cookies))
 
-	if loginChallenge != "" {
-		request = request.LoginChallenge(loginChallenge)
-	} else if loginChallenge == "" && returnTo == "" {
-		return nil, nil, fmt.Errorf("no return_to or login_challenge was provided")
-	}
+	// if loginChallenge != "" {
+	// 	request = request.LoginChallenge(loginChallenge)
+	// } else if loginChallenge == "" && returnTo == "" {
+	// 	return nil, nil, fmt.Errorf("no return_to or login_challenge was provided")
+	// }
 
 	flow, resp, err := request.Execute()
 	if err != nil {
