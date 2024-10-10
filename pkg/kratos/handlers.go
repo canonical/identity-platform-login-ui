@@ -234,13 +234,13 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 	setCookies(w, cookies)
 
-	if shouldEnforceMfa {
-		a.mfaSettingsRedirect(w, *loginFlow.ReturnTo)
+	if shouldRegenerateBackupCodes {
+		a.lookupSecretsSettingsRedirect(w, flowId)
 		return
 	}
 
-	if shouldRegenerateBackupCodes {
-		a.lookupSecretsSettingsRedirect(w, flowId)
+	if shouldEnforceMfa {
+		a.mfaSettingsRedirect(w, *loginFlow.ReturnTo)
 		return
 	}
 
