@@ -86,12 +86,23 @@ const Content: FC<Props> = ({ attributes }) => {
 };
 
 export const NodeText: FC<Props> = ({ node, attributes }) => {
+  const isTotpSetup = attributes.id === "totp_secret_key";
+
   return (
     <>
+      {isTotpSetup && <hr />}
       <p data-testid={`node/text/${attributes.id}/label`}>
-        {node.meta.label?.text}
+        {isTotpSetup ? (
+          <>
+            Or <strong>if you can not scan the QR code</strong>, use the
+            provided one-time code
+          </>
+        ) : (
+          node.meta.label?.text
+        )}
       </p>
       <Content node={node} attributes={attributes} />
+      {isTotpSetup && <hr />}
     </>
   );
 };
