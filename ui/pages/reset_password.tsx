@@ -57,6 +57,7 @@ const ResetPassword: NextPage = () => {
             "",
             `./reset_password?flow=${data.id}`,
           );
+          router.query.flow = data.id;
         }
         setFlow(data);
       })

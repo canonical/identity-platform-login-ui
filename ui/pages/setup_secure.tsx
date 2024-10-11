@@ -56,6 +56,7 @@ const SetupSecure: NextPage = () => {
             "",
             `./setup_secure?flow=${data.id}${pwParam}`,
           );
+          router.query.flow = data.id;
         }
         setFlow(data);
       })

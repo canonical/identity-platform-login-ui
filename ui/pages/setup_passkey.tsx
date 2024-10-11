@@ -49,6 +49,7 @@ const SetupPasskey: NextPage = () => {
             "",
             `./setup_passkey?flow=${data.id}`,
           );
+          router.query.flow = data.id;
         }
         setFlow(data);
       })
