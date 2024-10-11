@@ -15,7 +15,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isInvalid = !emailRegex.test((value as string) ?? "");
-  const localError = isInvalid ? "Invalid email address" : undefined;
+  const localError = isInvalid ? "Incorrect email address" : undefined;
 
   const error = hasLocalValidation ? localError : upstreamError;
 
