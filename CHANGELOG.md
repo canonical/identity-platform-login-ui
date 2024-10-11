@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.18.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.17.0...v0.18.0) (2024-10-11)
+
+
+### Features
+
+* add security headers ([37241fd](https://github.com/canonical/identity-platform-login-ui/commit/37241fd6c06de9547bad783e43810d81989a0c26))
+
+
+### Bug Fixes
+
+* add return_to parameter for regenerate backup codes redirect ([4bb01a9](https://github.com/canonical/identity-platform-login-ui/commit/4bb01a9e7b5cfd6222f8117851b4a8b27f4abd52))
+* delete session on recovery ([fa39b00](https://github.com/canonical/identity-platform-login-ui/commit/fa39b00a4f2ce922de44eb8d2b4e23435809eb73))
+* **deps:** update go deps ([d7b601b](https://github.com/canonical/identity-platform-login-ui/commit/d7b601baf1c06a86ff13444c3f05253ca741fbf0))
+* do not redirect to error, on no error ([4f74f07](https://github.com/canonical/identity-platform-login-ui/commit/4f74f07d365cfb1488b08b8b729033b90152ef58))
+* do not send kratos session cookie on new login flow ([89fbe03](https://github.com/canonical/identity-platform-login-ui/commit/89fbe03a3abd384a82280822b94a10702f0d4d16))
+* do not send session cookie on 1fa ([a951882](https://github.com/canonical/identity-platform-login-ui/commit/a9518824e6410206bc45ba956c9b00a5d62d2d2b))
+* fix backup codes setup ([19254b1](https://github.com/canonical/identity-platform-login-ui/commit/19254b143591ebd74aefe574d8de37e35b14f20f))
+* handle login flow without login_challenge ([b902910](https://github.com/canonical/identity-platform-login-ui/commit/b902910ba8905e9752830ca49df0d7162d8e52cf))
+* pass the return_to from request ([d4e2399](https://github.com/canonical/identity-platform-login-ui/commit/d4e2399af22a6b2194890cc8b3fac73ae4942bfb))
+* update the setup_secure page ([4f92c65](https://github.com/canonical/identity-platform-login-ui/commit/4f92c6576aed90c6c96067a500b2f23fa393edd4))
+
 ## [0.17.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.16.0...v0.17.0) (2024-09-04)
 
 
