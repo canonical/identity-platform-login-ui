@@ -49,6 +49,7 @@ const SetupBackupCodes: NextPage = () => {
             "",
             `./setup_backup_codes?flow=${data.id}`,
           );
+          router.query.flow = data.id;
         }
         setFlow(data);
       })
