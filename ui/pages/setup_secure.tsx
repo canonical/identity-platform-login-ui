@@ -86,7 +86,7 @@ const SetupSecure: NextPage = () => {
         .then(({ data }) => {
           if (data?.return_to && !data.return_to.endsWith("/setup_complete")) {
             // we do a have a valid return_to, show the completion step, and it will redirect after 3 seconds
-            window.location.href = `./setup_complete?flow=${data.id}}`;
+            window.location.href = `./setup_complete?flow=${data.id}`;
           } else {
             // no return_to, show the setup complete page, and it will ask the user to close the tab
             window.location.href = "./setup_complete";

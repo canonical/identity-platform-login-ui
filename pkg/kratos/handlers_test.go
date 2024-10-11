@@ -509,6 +509,8 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = flowId
+	returnTo := "https://some/return/url"
+	flow.ReturnTo = &returnTo
 
 	flowBody := new(kClient.UpdateLoginFlowBody)
 	flowBody.UpdateLoginFlowWithLookupSecretMethod = kClient.NewUpdateLoginFlowWithLookupSecretMethod("xt879l1a", "lookup_secret")
