@@ -43,6 +43,7 @@ const ResetEmail: NextPage = () => {
             "",
             `./reset_email?flow=${data.id}`,
           );
+          router.query.flow = data.id;
         }
         setFlow(data);
       })
