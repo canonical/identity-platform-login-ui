@@ -1,8 +1,7 @@
 import { RecoveryFlow, UpdateRecoveryFlowBody } from "@ory/client";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState, useCallback } from "react";
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
@@ -77,16 +76,52 @@ const ResetEmail: NextPage = () => {
     [flow, router],
   );
 
+  const wasEmailSent = flow?.state === "sent_email";
+
   const getTitle = () => {
-    if (flow?.state === "sent_email") {
+    if (wasEmailSent) {
       return "Enter the code you received via email";
     }
     return "Enter an email to reset your password";
   };
 
+  const getRenderFlow = (): RecoveryFlow | undefined => {
+    if (!flow) {
+      return flow;
+    }
+    const isEnterEmail = flow.ui.nodes.length === 3;
+
+    return {
+      ...flow,
+      ui: {
+        ...flow.ui,
+        nodes: flow.ui.nodes.map((node) => {
+          if (isEnterEmail && node.meta.label?.text === "Submit") {
+            return {
+              ...node,
+              meta: {
+                ...node.meta,
+                label: {
+                  ...node.meta.label,
+                  text: "Reset password",
+                },
+              },
+            };
+          } else {
+            return node;
+          }
+        }),
+      },
+    } as RecoveryFlow;
+  };
+
   return (
     <PageLayout title={getTitle()}>
-      {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
+      {flow ? (
+        <Flow onSubmit={handleSubmit} flow={getRenderFlow()} />
+      ) : (
+        <Spinner />
+      )}
     </PageLayout>
   );
 };
