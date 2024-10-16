@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.0...v0.18.1) (2024-10-16)
+
+
+### Bug Fixes
+
+* improve ui for reset password flow. fixes [#322](https://github.com/canonical/identity-platform-login-ui/issues/322) ([2dde4e7](https://github.com/canonical/identity-platform-login-ui/commit/2dde4e791e4a416ada18fa4d99434412c2d4fbc3))
+
 ## [0.18.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.17.0...v0.18.0) (2024-10-11)
 
 
