@@ -42,9 +42,21 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const showTotpLink =
     (node.meta.label as unknown as { hasTotpLink: boolean })?.hasTotpLink ??
     false;
+  const showBackLink = node.meta?.label?.text === "Reset password";
 
   return (
     <>
+      {showBackLink && (
+        <Button
+          tabIndex={3}
+          type="button"
+          onClick={() => {
+            void window.history.back();
+          }}
+        >
+          Back
+        </Button>
+      )}
       <Button
         appearance={
           node.group === "password" ||
