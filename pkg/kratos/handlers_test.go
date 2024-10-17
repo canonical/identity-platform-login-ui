@@ -35,6 +35,32 @@ const (
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_kratos.go -source=./interfaces.go
 
+func TestHandleCreateFlowWithoutParams(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = "test"
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected HTTP status code 400 got %v", res.StatusCode)
+	}
+}
+
 func TestHandleCreateFlowWithoutSession(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

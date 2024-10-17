@@ -66,6 +66,10 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if returnTo == "" {
+		if loginChallenge == "" {
+			http.Error(w, "One of return_to or login_challenge must be provided", http.StatusBadRequest)
+			return
+		}
 		returnTo, err = a.returnToUrl(loginChallenge)
 		if err != nil {
 			// this should never happen if app is properly configured
