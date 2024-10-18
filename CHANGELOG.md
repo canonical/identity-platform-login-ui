@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.1...v0.18.2) (2024-10-18)
+
+
+### Bug Fixes
+
+* **deps:** update ui deps ([6228aa2](https://github.com/canonical/identity-platform-login-ui/commit/6228aa227085d8829a8377d68a8c9f40daf89942))
+* return error is no login_challenge or return_to ([1efbff4](https://github.com/canonical/identity-platform-login-ui/commit/1efbff4d3dd59505ead437cb844cb4c77e4e7047))
+
 ## [0.18.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.0...v0.18.1) (2024-10-16)
 
 
