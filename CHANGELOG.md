@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.2...v0.18.3) (2024-10-21)
+
+
+### Bug Fixes
+
+* update google.golang.org/grpc to address GHSA-m425-mq94-257g ([96e4f44](https://github.com/canonical/identity-platform-login-ui/commit/96e4f44ed014e6b067dd7834b4e62748631764ec))
+
 ## [0.18.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.1...v0.18.2) (2024-10-21)
 
 
