@@ -3,6 +3,9 @@ run-name: Publish ROCK image from ${{ inputs.rock }} to ghcr.io/canonical/identi
 
 on:
   workflow_call:
+    secrets:
+      token:
+        required: true
     inputs:
       rock:
         type: string
@@ -79,3 +82,35 @@ jobs:
       - name: Set output of image
         id: set
         run: echo "image=$image" >> "$GITHUB_OUTPUT"
+
+  oci-factory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
+      - name: Golang setup
+        uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.22.0'
+      # install oci-factory via golang and set path in environment
+      - name: Install oci-factory
+        run: |
+          sudo apt update && sudo apt install -y git
+          go install github.com/canonical/oci-factory/tools/cli-client/cmd/oci-factory@latest
+          go install github.com/mikefarah/yq/v4@v4.44.3
+          echo "OCI_FACTORY=$(go env GOPATH)/bin/oci-factory" >> $GITHUB_ENV
+          echo "YQ=$(go env GOPATH)/bin/yq" >> $GITHUB_ENV
+        env:
+          GO111MODULE: "on"
+      - name: Set EOLs and version
+        run: |
+          echo EOL_STABLE=$(date -d "$(date +'%Y-%m-%d') +6 month" "+%Y-%m-%d") >> $GITHUB_ENV
+          echo EOL_CANDIDATE=$(date -d "$(date +'%Y-%m-%d') +14 day" "+%Y-%m-%d") >> $GITHUB_ENV
+          echo IMAGE_VERSION_STABLE=$($YQ '.version | split(".").0' rockcraft.yaml) >> $GITHUB_ENV
+          echo IMAGE_VERSION_CANDIDATE=$($YQ '.version' rockcraft.yaml) >> $GITHUB_ENV
+      - name: Release
+        run: |
+          $OCI_FACTORY upload -y --release track=$IMAGE_VERSION_STABLE-22.04,risks=stable,eol=$EOL_STABLE
+          $OCI_FACTORY upload -y --release track=$IMAGE_VERSION_CANDIDATE-22.04,risks=candidate,edge,eol=$EOL_CANDIDATE
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}                 

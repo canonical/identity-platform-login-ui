@@ -24,6 +24,8 @@ jobs:
     uses: ./.github/workflows/publish.yaml
     with:
       rock: ${{ needs.build.outputs.rock }}
+    secrets:
+      token: ${{ secrets.PAT_TOKEN }}
   scan:
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: publish
