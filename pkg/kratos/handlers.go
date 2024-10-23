@@ -94,6 +94,14 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+	}
+
+	forceLogin, err := a.service.MustReAuthenticate(r.Context(), loginChallenge, session)
+	if err != nil {
+		a.logger.Errorf("Failed to fetch hydra flow: %v", err)
+		http.Error(w, "Failed to fetch hydra flow", http.StatusInternalServerError)
+	}
+	if !forceLogin {
 		response, cookies, err = a.handleCreateFlowWithSession(r, session, loginChallenge)
 	} else {
 		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)

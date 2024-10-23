@@ -100,7 +100,7 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 }
 
 func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest")
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.AcceptLoginRequest")
 	defer span.End()
 
 	accept := hClient.NewAcceptOAuth2LoginRequest(identityID)
@@ -115,6 +115,41 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc 
 	}
 
 	return redirectTo, resp.Cookies(), nil
+}
+
+func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*hClient.OAuth2LoginRequest, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetLoginRequest")
+	defer span.End()
+
+	redirectTo, resp, err := s.hydra.OAuth2Api().
+		GetOAuth2LoginRequest(ctx).
+		LoginChallenge(loginChallenge).
+		Execute()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return redirectTo, resp.Cookies(), nil
+}
+
+func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge string, session *kClient.Session) (bool, error) {
+	if session == nil {
+		// No session exists, user is not logged in
+		return true, nil
+	}
+
+	if hydraLoginChallenge == "" {
+		// It's not a hydra flow, let kratos handle it
+		return true, nil
+	}
+
+	hydraLoginRequest, _, err := s.GetLoginRequest(ctx, hydraLoginChallenge)
+	if err != nil {
+		return true, err
+	}
+
+	return !hydraLoginRequest.GetSkip(), nil
 }
 
 func (s *Service) CreateBrowserLoginFlow(

@@ -29,6 +29,7 @@ type AuthorizerInterface interface {
 type ServiceInterface interface {
 	CheckSession(context.Context, []*http.Cookie) (*kClient.Session, []*http.Cookie, error)
 	AcceptLoginRequest(context.Context, string, string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error)
+	MustReAuthenticate(context.Context, string, *kClient.Session) (bool, error)
 	CreateBrowserLoginFlow(context.Context, string, string, string, bool, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
 	CreateBrowserRecoveryFlow(context.Context, string, []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error)
 	CreateBrowserSettingsFlow(context.Context, string, []*http.Cookie) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error)
