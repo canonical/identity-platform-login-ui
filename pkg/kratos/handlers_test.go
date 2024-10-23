@@ -81,6 +81,7 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
 
@@ -131,6 +132,7 @@ func TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow(t *testing.T
 
 	mockLogger.EXPECT().Errorf("failed to create login flow, err: error")
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
 
 	w := httptest.NewRecorder()
@@ -167,6 +169,7 @@ func TestHandleCreateFlowWithoutSessionFailOnFilterProviders(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(nil, fmt.Errorf("oh no"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
@@ -205,6 +208,7 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
 
@@ -253,6 +257,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session).Return(false, nil)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), "test", loginChallenge).Return(redirectTo, req.Cookies(), nil)
 
 	w := httptest.NewRecorder()
@@ -295,6 +300,7 @@ func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session).Return(false, nil)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), "test", loginChallenge).Return(nil, nil, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
