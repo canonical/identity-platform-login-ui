@@ -29,7 +29,7 @@ type AuthorizerInterface interface {
 type ServiceInterface interface {
 	CheckSession(context.Context, []*http.Cookie) (*kClient.Session, []*http.Cookie, error)
 	AcceptLoginRequest(context.Context, string, string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error)
-	MustReAuthenticate(context.Context, string, *kClient.Session) (bool, error)
+	MustReAuthenticate(context.Context, string, *kClient.Session, FlowStateCookie) (bool, error)
 	CreateBrowserLoginFlow(context.Context, string, string, string, bool, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
 	CreateBrowserRecoveryFlow(context.Context, string, []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error)
 	CreateBrowserSettingsFlow(context.Context, string, []*http.Cookie) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error)
@@ -47,4 +47,20 @@ type ServiceInterface interface {
 	ParseSettingsFlowMethodBody(*http.Request) (*kClient.UpdateSettingsFlowBody, error)
 	HasTOTPAvailable(context.Context, string) (bool, error)
 	HasNotEnoughLookupSecretsLeft(context.Context, string) (bool, error)
+}
+
+type AuthCookieManagerInterface interface {
+	// SetStateCookie sets the nonce cookie on the response with the specified duration as MaxAge
+	SetStateCookie(http.ResponseWriter, FlowStateCookie) error
+	// GetStateCookie returns the string value of the nonce cookie if present, or empty string otherwise
+	GetStateCookie(*http.Request) (FlowStateCookie, error)
+	// ClearStateCookie sets the expiration of the cookie to epoch
+	ClearStateCookie(http.ResponseWriter)
+}
+
+type EncryptInterface interface {
+	// Encrypt a plain text string, returns the encrypted string in hex format or an error
+	Encrypt(string) (string, error)
+	// Decrypt a hex string, returns the decrypted string or an error
+	Decrypt(string) (string, error)
 }

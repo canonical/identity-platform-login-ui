@@ -2,6 +2,8 @@ package kratos
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,12 +20,14 @@ import (
 
 const RegenerateBackupCodesError = "regenerate_backup_codes"
 const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
+const LOGIN_UI_STATE_COOKIE = "login_ui_state"
 
 type API struct {
-	mfaEnabled  bool
-	service     ServiceInterface
-	baseURL     string
-	contextPath string
+	mfaEnabled    bool
+	service       ServiceInterface
+	baseURL       string
+	contextPath   string
+	cookieManager AuthCookieManagerInterface
 
 	logger logging.LoggerInterface
 }
@@ -88,18 +92,25 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			a.logger.Errorf("Failed check for MFA: %v", err)
 			http.Error(w, "Failed check for MFA", http.StatusInternalServerError)
-		}
-		if shouldEnforceMfa {
-			a.mfaSettingsRedirect(w, returnTo)
 			return
 		}
-
+		if shouldEnforceMfa {
+			a.mfaSettingsRedirect(w, returnTo, loginChallenge)
+			return
+		}
 	}
 
-	forceLogin, err := a.service.MustReAuthenticate(r.Context(), loginChallenge, session)
+	c, err := a.cookieManager.GetStateCookie(r)
+	if err != nil {
+		a.logger.Errorf("Failed to parse state cookie: %v", err)
+		http.Error(w, "Failed to parse state cookie", http.StatusInternalServerError)
+		return
+	}
+	forceLogin, err := a.service.MustReAuthenticate(r.Context(), loginChallenge, session, c)
 	if err != nil {
 		a.logger.Errorf("Failed to fetch hydra flow: %v", err)
 		http.Error(w, "Failed to fetch hydra flow", http.StatusInternalServerError)
+		return
 	}
 	if !forceLogin {
 		response, cookies, err = a.handleCreateFlowWithSession(r, session, loginChallenge)
@@ -251,7 +262,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if shouldEnforceMfa {
-		a.mfaSettingsRedirect(w, *loginFlow.ReturnTo)
+		a.mfaSettingsRedirect(w, *loginFlow.ReturnTo, loginFlow.GetOauth2LoginChallenge())
 		return
 	}
 
@@ -346,7 +357,9 @@ func (a *API) is40xError(err error) bool {
 	return false
 }
 
-func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string) {
+func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo, loginChallenge string) {
+	var sessionId string
+
 	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_secure")
 
 	if err != nil {
@@ -358,10 +371,14 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string) {
 
 	errorId := "session_aal2_required"
 
+	if loginChallenge != "" {
+		sessionId = hash(loginChallenge)
+	}
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
 	r, _ := addParamsToURL(redirect, queryParam{"return_to", returnTo})
 
+	a.cookieManager.SetStateCookie(w, FlowStateCookie{LoginChallengeHash: sessionId, TotpSetup: true})
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
 		ErrorBrowserLocationChangeRequired{
@@ -631,12 +648,18 @@ func addParamsToURL(u string, qs ...queryParam) (string, error) {
 	return uu.String(), nil
 }
 
-func NewAPI(service ServiceInterface, mfaEnabled bool, baseURL string, logger logging.LoggerInterface) *API {
+func NewAPI(
+	service ServiceInterface,
+	mfaEnabled bool,
+	baseURL string,
+	cookieManager AuthCookieManagerInterface,
+	logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.mfaEnabled = mfaEnabled
 	a.service = service
 	a.baseURL = baseURL
+	a.cookieManager = cookieManager
 
 	fullBaseURL, err := url.Parse(baseURL)
 	if err != nil {
@@ -669,4 +692,16 @@ l1:
 		ret = append(ret, c)
 	}
 	return ret
+}
+
+func hash(plain string) string {
+	h := md5.New()
+	h.Write([]byte(plain))
+	return base64.URLEncoding.EncodeToString(h.Sum(nil))
+}
+
+func validateHash(plain, sig string) bool {
+	h := md5.New()
+	h.Write([]byte(plain))
+	return base64.URLEncoding.EncodeToString(h.Sum(nil)) == sig
 }

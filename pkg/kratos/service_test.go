@@ -314,12 +314,16 @@ func TestMustReAuthenticateSuccess(t *testing.T) {
 
 	ctx := context.Background()
 	loginChallenge := "123456"
+	sessionId := "1234"
 	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 	lr := hClient.NewOAuth2LoginRequestWithDefaults()
 	lr.Skip = true
+	lr.SessionId = &sessionId
 	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+
+	state := FlowStateCookie{LoginChallengeHash: sessionId, TotpSetup: false}
 
 	resp := new(http.Response)
 
@@ -336,7 +340,7 @@ func TestMustReAuthenticateSuccess(t *testing.T) {
 	)
 
 	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
-		MustReAuthenticate(ctx, loginChallenge, session)
+		MustReAuthenticate(ctx, loginChallenge, session, state)
 
 	if ret != false {
 		t.Fatalf("expected returned value to be `false` not  %v", ret)
@@ -361,12 +365,16 @@ func TestMustReAuthenticateNoSkip(t *testing.T) {
 
 	ctx := context.Background()
 	loginChallenge := "123456"
+	sessionId := "1234"
 	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 	lr := hClient.NewOAuth2LoginRequestWithDefaults()
 	lr.Skip = false
+	lr.SessionId = &sessionId
 	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+
+	state := FlowStateCookie{LoginChallengeHash: sessionId, TotpSetup: false}
 
 	resp := new(http.Response)
 
@@ -383,7 +391,7 @@ func TestMustReAuthenticateNoSkip(t *testing.T) {
 	)
 
 	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
-		MustReAuthenticate(ctx, loginChallenge, session)
+		MustReAuthenticate(ctx, loginChallenge, session, state)
 
 	if ret != true {
 		t.Fatalf("expected returned value to be `true` not  %v", ret)
@@ -409,7 +417,7 @@ func TestMustReAuthenticateNoLoginChallenge(t *testing.T) {
 	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
 
 	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
-		MustReAuthenticate(ctx, "", session)
+		MustReAuthenticate(ctx, "", session, FlowStateCookie{})
 
 	if ret != true {
 		t.Fatalf("expected returned value to be `true` not  %v", ret)
@@ -435,7 +443,7 @@ func TestMustReAuthenticateNoSession(t *testing.T) {
 	loginChallenge := "123456"
 
 	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
-		MustReAuthenticate(ctx, loginChallenge, nil)
+		MustReAuthenticate(ctx, loginChallenge, nil, FlowStateCookie{})
 
 	if ret != true {
 		t.Fatalf("expected response to be `true` not  %v", ret)
@@ -471,7 +479,7 @@ func TestMustReAuthenticateFails(t *testing.T) {
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 
 	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
-		MustReAuthenticate(ctx, loginChallenge, session)
+		MustReAuthenticate(ctx, loginChallenge, session, FlowStateCookie{})
 
 	if ret != true {
 		t.Fatalf("expected returned value to be `true` not  %v", ret)

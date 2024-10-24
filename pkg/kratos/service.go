@@ -133,7 +133,7 @@ func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*
 	return redirectTo, resp.Cookies(), nil
 }
 
-func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge string, session *kClient.Session) (bool, error) {
+func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge string, session *kClient.Session, c FlowStateCookie) (bool, error) {
 	if session == nil {
 		// No session exists, user is not logged in
 		return true, nil
@@ -142,6 +142,11 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 	if hydraLoginChallenge == "" {
 		// It's not a hydra flow, let kratos handle it
 		return true, nil
+	}
+
+	// This is the first user login, they set up their authenticator app, no need to re-auth
+	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && c.TotpSetup {
+		return false, nil
 	}
 
 	hydraLoginRequest, _, err := s.GetLoginRequest(ctx, hydraLoginChallenge)

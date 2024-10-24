@@ -23,6 +23,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus"
 	fga "github.com/canonical/identity-platform-login-ui/internal/openfga"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
+	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
 	"github.com/canonical/identity-platform-login-ui/pkg/web"
 )
 
@@ -71,6 +72,13 @@ func serve() {
 	kAdminClient := ik.NewClient(specs.KratosAdminURL, specs.Debug)
 	hClient := ih.NewClient(specs.HydraAdminURL, specs.Debug)
 
+	encrypt := kratos.NewEncrypt([]byte(specs.CookiesEncryptionKey), logger, tracer)
+	cookieManager := kratos.NewAuthCookieManager(
+		specs.CookieTTL,
+		encrypt,
+		logger,
+	)
+
 	var authzClient authz.AuthzClientInterface
 	if specs.AuthorizationEnabled {
 		logger.Info("Authorization is enabled")
@@ -85,7 +93,7 @@ func serve() {
 		panic("Invalid authorization model provided")
 	}
 
-	router := web.NewRouter(kClient, kAdminClient, hClient, authorizer, distFS, specs.MFAEnabled, specs.BaseURL, tracer, monitor, logger)
+	router := web.NewRouter(kClient, kAdminClient, hClient, authorizer, cookieManager, distFS, specs.MFAEnabled, specs.BaseURL, tracer, monitor, logger)
 
 	logger.Infof("Starting server on port %v", specs.Port)
 
