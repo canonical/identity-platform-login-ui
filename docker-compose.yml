@@ -6,6 +6,7 @@ services:
     image: ghcr.io/canonical/identity-platform-login-ui:latest
     environment:
       - KRATOS_PUBLIC_URL=http://kratos:4433
+      - KRATOS_ADMIN_URL=http://kratos:4434
       - HYDRA_ADMIN_URL=http://hydra:4445
       - BASE_URL=http://localhost:4455
       - PORT=4455
