@@ -133,7 +133,7 @@ func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*
 	return redirectTo, resp.Cookies(), nil
 }
 
-func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge string, session *kClient.Session) (bool, error) {
+func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge string, session *kClient.Session, c FlowStateCookie) (bool, error) {
 	if session == nil {
 		// No session exists, user is not logged in
 		return true, nil
@@ -147,6 +147,10 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 	hydraLoginRequest, _, err := s.GetLoginRequest(ctx, hydraLoginChallenge)
 	if err != nil {
 		return true, err
+	}
+
+	if hydraLoginRequest.GetChallenge() == c.SessionId && c.TotpSetup {
+		return true, nil
 	}
 
 	return !hydraLoginRequest.GetSkip(), nil
