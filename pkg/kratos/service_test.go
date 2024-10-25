@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	reflect "reflect"
 	"testing"
+	"time"
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
@@ -146,6 +147,9 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 	acceptLoginRequest := hClient.OAuth2ApiAcceptOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
+	session := kClient.NewSession("test", *kClient.NewIdentity(identityID, "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	session.SetExpiresAt(time.Now().Add(300 * time.Second))
+	leeway := int64(2)
 
 	resp := new(http.Response)
 
@@ -160,11 +164,14 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 			if id := (*hClient.AcceptOAuth2LoginRequest)(reflect.ValueOf(r).FieldByName("acceptOAuth2LoginRequest").UnsafePointer()); id.Subject != identityID {
 				t.Fatalf("expected identityID to be %s, got %s", identityID, id.Subject)
 			}
+			if id := (*hClient.AcceptOAuth2LoginRequest)(reflect.ValueOf(r).FieldByName("acceptOAuth2LoginRequest").UnsafePointer()); 300-id.GetRememberFor() > leeway {
+				t.Fatalf("expected RememberFor to be close to 300, got %v", id.GetRememberFor())
+			}
 			return redirectTo, resp, nil
 		},
 	)
 
-	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
+	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, session, loginChallenge)
 
 	if rt != redirectTo {
 		t.Fatalf("expected redirect to be %v not  %v", redirectTo, rt)
@@ -196,13 +203,14 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	acceptLoginRequest := hClient.OAuth2ApiAcceptOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
+	session := kClient.NewSession("test", *kClient.NewIdentity(identityID, "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
 
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 
-	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
+	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, session, loginChallenge)
 
 	if rt != nil {
 		t.Fatalf("expected redirect to be %v not  %v", nil, rt)

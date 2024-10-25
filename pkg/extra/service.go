@@ -54,6 +54,7 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 	r.SetGrantScope(consent.RequestedScope)
 	r.SetGrantAccessTokenAudience(atAudience)
 	r.SetSession(*session)
+	r.SetRemember(true)
 
 	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest")
 	defer span.End()

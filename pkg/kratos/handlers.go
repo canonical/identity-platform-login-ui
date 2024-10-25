@@ -153,7 +153,7 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo s
 }
 
 func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (any, []*http.Cookie, error) {
-	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session.Identity.Id, loginChallenge)
+	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session, loginChallenge)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to accept login request: %v", err)
 	}

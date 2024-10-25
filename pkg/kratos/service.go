@@ -99,11 +99,18 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 	return session, resp.Cookies(), nil
 }
 
-func (s *Service) AcceptLoginRequest(ctx context.Context, identityID string, lc string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error) {
+func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Session, lc string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.AcceptLoginRequest")
 	defer span.End()
 
-	accept := hClient.NewAcceptOAuth2LoginRequest(identityID)
+	accept := hClient.NewAcceptOAuth2LoginRequest(session.Identity.Id)
+	accept.SetRemember(true)
+	if session.ExpiresAt != nil {
+		expAt := time.Until(*session.ExpiresAt)
+		// Set the session to expire when the kratos session expires
+		accept.SetRememberFor(int64(expAt.Seconds()))
+	}
+
 	redirectTo, resp, err := s.hydra.OAuth2Api().
 		AcceptOAuth2LoginRequest(ctx).
 		LoginChallenge(lc).
