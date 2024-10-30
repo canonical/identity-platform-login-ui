@@ -112,42 +112,62 @@ services:
       retries: 5
     networks:
       - intranet
-  migrateopenfga:
-    image: openfga/openfga:latest
-    container_name: migrateopenfga
-    command: migrate --datastore-engine postgres --datastore-uri 'postgresql://openfga:openfga@postgres/openfga?sslmode=disable'
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - intranet
-  insert-hardcoded-store:
-    image: governmentpaas/psql
-    container_name: insert-hardcoded-store
-    command: psql -Atx postgresql://openfga:openfga@postgres/openfga?sslmode=disable -c "INSERT INTO store (id,name,created_at,updated_at) VALUES ('01GP1254CHWJC1MNGVB0WDG1T0','login-ui',NOW(),NOW()) ON CONFLICT DO NOTHING;"
-    depends_on:
-      migrateopenfga:
-        condition: service_completed_successfully
-    networks:
-      - intranet
-  openfga:
-    image: openfga/openfga:latest
-    environment:
-      OPENFGA_DATASTORE_ENGINE: "postgres"
-      OPENFGA_DATASTORE_URI: "postgresql://openfga:openfga@postgres/openfga?sslmode=disable"
-      OPENFGA_AUTHN_PRESHARED_KEYS: "42"
-    command: run
+  oauth2-proxy:
+    container_name: oauth2-proxy
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+    command: --config /oauth2-proxy.cfg
+    volumes:
+      # - "./oauth2-proxy.cfg:/oauth2-proxy.cfg"
+      - "./oauth2-proxy-traefik.cfg:/oauth2-proxy.cfg"
+    restart: unless-stopped
     ports:
-      - 8080:8080
-      - 8081:8081
-      - 3000:3000
-    depends_on:
-      migrateopenfga:
-        condition: service_completed_successfully
-      insert-hardcoded-store:
-        condition: service_completed_successfully
+      - 4180:4180/tcp
     networks:
       - intranet
+    depends_on:
+      - httpbin
+      - kratos
+      - hydra
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oauth2-proxy.rule=Host(`oauth2-proxy`)"
+      - "traefik.http.routers.oauth2-proxy.entrypoints=web"
+      - "traefik.http.routers.oauth2-proxy.service=oauth2-proxy"
+      - "traefik.http.services.oauth2-proxy.loadbalancer.server.port=4180"
+      # - "traefik.http.middlewares.oauth2-proxy.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth"
+      - "traefik.http.middlewares.oauth2-proxy.forwardauth.address=http://oauth2-proxy:4180"
+      - "traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=X-User,X-Custom-Header"
+
+  httpbin:
+    image: "kennethreitz/httpbin"
+    networks:
+      - intranet
+    labels:
+      - "traefik.enable=true"
+      # App settings
+      - "traefik.http.routers.httpbin.rule=Host(`localhost`)"
+      - "traefik.http.routers.httpbin.entrypoints=web"
+      - "traefik.http.routers.httpbin.service=httpbin"
+      - "traefik.http.services.httpbin.loadbalancer.server.port=80"
+      # Attach to the middleware defined in oauth2-proxy
+      - "traefik.http.routers.httpbin.middlewares=oauth2-proxy@docker"
+  traefik:
+    image: "traefik:v2.9.6" # same image as in traefik-k8s charm
+    container_name: "traefik"
+    networks:
+      - intranet
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "8080:80"
+      - "8081:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
 networks:
   intranet:
 volumes:

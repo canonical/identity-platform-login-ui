@@ -30,7 +30,7 @@ strategies:
 
 urls:
   self:
-    issuer: http://localhost:4444
+    issuer: http://hydra:4444
     public: http://localhost:4444
   consent: http://localhost:4455/ui/consent
   login: http://localhost:4455/ui/login
@@ -41,3 +41,8 @@ urls:
 secrets:
   system:
     - youReallyNeedToChangeThis
+
+webfinger:
+  oidc_discovery:
+    token_url: http://hydra:4444/oauth2/token
+    userinfo_url: http://hydra:4444/userinfo
