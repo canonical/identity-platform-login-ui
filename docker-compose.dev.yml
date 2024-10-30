@@ -136,7 +136,10 @@ services:
       - "traefik.http.services.oauth2-proxy.loadbalancer.server.port=4180"
       # - "traefik.http.middlewares.oauth2-proxy.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth"
       - "traefik.http.middlewares.oauth2-proxy.forwardauth.address=http://oauth2-proxy:4180"
-      - "traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=X-User,X-Custom-Header"
+      - "traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=X-Forwarded-User,X-Forwarded-Groups"
+      # - "traefik.http.middlewares.oauth2-proxy.headers.accessControlAllowHeaders=*"
+      # - "traefik.http.middlewares.oauth2-proxy.forwardedHeaders.insecure=true" 
+      # - "traefik.http.middlewares.auth.headers.customrequestheaders.X-Forwarded-Proto=https"
 
   httpbin:
     image: "kennethreitz/httpbin"
