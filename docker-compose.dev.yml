@@ -130,16 +130,12 @@ services:
       - hydra
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.oauth2-proxy.rule=Host(`oauth2-proxy`)"
-      - "traefik.http.routers.oauth2-proxy.entrypoints=web"
-      - "traefik.http.routers.oauth2-proxy.service=oauth2-proxy"
       - "traefik.http.services.oauth2-proxy.loadbalancer.server.port=4180"
-      # - "traefik.http.middlewares.oauth2-proxy.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth"
+      - "traefik.http.routers.oauth2-proxy.entrypoints=web"
       - "traefik.http.middlewares.oauth2-proxy.forwardauth.address=http://oauth2-proxy:4180"
-      - "traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=X-Forwarded-User,X-Forwarded-Groups"
-      # - "traefik.http.middlewares.oauth2-proxy.headers.accessControlAllowHeaders=*"
-      # - "traefik.http.middlewares.oauth2-proxy.forwardedHeaders.insecure=true" 
-      # - "traefik.http.middlewares.auth.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=Authorization,X-Auth-Request-User,X-Auth-Request-Email,X-Forwarded-User,X-User,X-Forwarded-Groups"
+      - "traefik.http.middlewares.oauth2-proxy.forwardauth.trustForwardHeader=true"
+      - "traefik.http.routers.oauth2-proxy.rule=PathPrefix(`/oauth2`)"
 
   httpbin:
     image: "kennethreitz/httpbin"
@@ -155,7 +151,7 @@ services:
       # Attach to the middleware defined in oauth2-proxy
       - "traefik.http.routers.httpbin.middlewares=oauth2-proxy@docker"
   traefik:
-    image: "traefik:v2.9.6" # same image as in traefik-k8s charm
+    image: "traefik:v2.9.6"
     container_name: "traefik"
     networks:
       - intranet
