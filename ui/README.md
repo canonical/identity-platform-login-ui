@@ -33,3 +33,20 @@ Your app is ready to be deployed!
 See the section
 about [deployment](https://facebook.github.io/create-react-app/docs/deployment)
 for more information.
+
+## Testing
+
+We rely on playwright as an end-to-end executor for end-to-end testing.
+
+To run the tests, follow these steps:
+1. bootup the login-ui cluster locally
+2. start the login ui locally
+3. register grafana as client and boot its container
+4. Run the tests with the following command:
+
+
+    cd ui && npx playwright test
+
+You can follow the tests with the ui parameter.
+
+    cd ui && npx playwright test --ui

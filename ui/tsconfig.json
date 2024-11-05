@@ -25,6 +25,7 @@
   },
   "include": [
     "next-env.d.ts",
+    "playwright.config.ts",
     ".eslintrc.js",
     "**/*.ts",
     "**/*.tsx"
