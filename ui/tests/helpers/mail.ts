@@ -1,14 +1,10 @@
 import { BrowserContext } from "playwright-core";
-import { Page } from "@playwright/test";
 
 const MAIL_SLURP_URL = "http://localhost:4436";
 
-export const getRecoveryCodeFromMailSlurp = async (
-  context: BrowserContext,
-  page: Page,
-) => {
+export const getRecoveryCodeFromMailSlurp = async (context: BrowserContext) => {
   const mailSlurp = await context.newPage();
-  await page.waitForTimeout(1000); // wait for email to be sent
+  await mailSlurp.waitForTimeout(1000); // wait for email to be sent
   await mailSlurp.goto(MAIL_SLURP_URL);
   await mailSlurp
     .getByRole("link", { name: "Recover access to your account" })

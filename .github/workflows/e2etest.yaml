@@ -1,0 +1,56 @@
+name: End-to-end tests
+run-name: End-to-end test for ${{ github.sha }} on ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
+      - uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4
+        with:
+          go-version: '1.21'
+      - uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4
+        with:
+          node-version: 18
+      - name: Install docker compose
+        run: |
+          sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose version
+
+      - name: Boot the cluster with dependant backend systems
+        run: |
+          ./ui/tests/scripts/01-start-cluster.sh &
+          sleep 30 # wait for cluster to boot up
+
+      - name: Start the login ui
+        run: |
+          ./ui/tests/scripts/02-start-ui.sh &
+          curl --head --fail --retry-delay 2 --retry 100 --retry-connrefused --insecure http://localhost:4455/ui/reset_email
+
+      - name: Register grafana as client and boot its container
+        run: |
+          ./ui/tests/scripts/03-start-grafana.sh &
+          sleep 10 # wait for grafana to boot up
+
+      - name: Install Playwright Browser
+        run: cd ui && npx playwright install --with-deps chromium
+
+      - name: Install Kratos binary
+        run: |
+          bash <(curl https://raw.githubusercontent.com/ory/meta/master/install.sh) -d -b . kratos v1.3.0
+          sudo mv ./kratos /usr/local/bin/
+
+      - name: Run the tests
+        run: cd ui && npx playwright test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        with:
+          name: playwright-results
+          path: ui/playwright-report

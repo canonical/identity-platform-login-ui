@@ -16,6 +16,8 @@ on:
 jobs:
   unit-test:
     uses: ./.github/workflows/unittest.yaml
+  e2e-test:
+    uses: ./.github/workflows/e2etest.yaml
   build:
     uses: ./.github/workflows/build.yaml
   publish:

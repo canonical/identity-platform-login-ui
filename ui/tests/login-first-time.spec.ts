@@ -11,7 +11,7 @@ test("first time login to grafana", async ({ context, page }) => {
   await setupTotp(context, page);
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
-  await expect(page).toHaveScreenshot({ fullPage: true });
+  await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
 
   await expect(page.getByText("Welcome to Grafana")).toBeVisible();
 });

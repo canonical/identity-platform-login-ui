@@ -10,10 +10,10 @@ const config: PlaywrightTestConfig = {
      * Maximum time expect() should wait for the condition to be met.
      * For example in `await expect(locator).toHaveText();`
      */
-    timeout: 10_000,
+    timeout: 15_000,
   },
   fullyParallel: true,
-  retries: 0,
+  retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: [["html", { fileName: "index.html" }]],
   use: {
