@@ -25,6 +25,7 @@ const config: PlaywrightTestConfig = {
     trace: "on-first-retry",
   },
   maxFailures: 3,
+  snapshotPathTemplate: "{testDir}/__screenshots__/{testFileName}/{arg}{ext}",
   projects: [
     {
       name: "chromium",

@@ -3,9 +3,9 @@ import { getTotpCode, setupTotp } from "./helpers/totp";
 import { startGrafanaNewUserFlow } from "./helpers/grafana";
 import { resetIdentities } from "./helpers/kratosIdentities";
 import { getRecoveryCodeFromMailSlurp } from "./helpers/mail";
-import { USER_EMAIL, userPassLogin } from "./helpers/login";
+import { USER_EMAIL, USER_PASSWORD, userPassLogin } from "./helpers/login";
 
-const PASSWORD_NEW = "abcABC123!!!";
+const USER_PASSWORD_NEW = "abcABC123!!!";
 
 test("reset password from grafana", async ({ context, page }) => {
   resetIdentities();
@@ -26,8 +26,8 @@ test("reset password from grafana", async ({ context, page }) => {
 
   await expect(page.getByText("Reset password").first()).toBeVisible();
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
-  await page.getByLabel("New password", { exact: true }).fill(PASSWORD_NEW);
-  await page.getByLabel("Confirm New password").fill(PASSWORD_NEW);
+  await page.getByLabel("New password", { exact: true }).fill(USER_PASSWORD_NEW);
+  await page.getByLabel("Confirm New password").fill(USER_PASSWORD_NEW);
   await page.getByRole("button", { name: "Reset password" }).click();
 
   const totpPage = await setupTotp(context, page);
@@ -38,12 +38,11 @@ test("reset password from grafana", async ({ context, page }) => {
   await context.clearCookies({ domain: "localhost" });
   await startGrafanaNewUserFlow(page);
 
-  await userPassLogin(page);
+  await userPassLogin(page, USER_EMAIL, USER_PASSWORD);
   await expect(page.getByText("Incorrect username or password")).toBeVisible();
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
 
-  await page.getByLabel("Password").fill(PASSWORD_NEW);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await userPassLogin(page, USER_EMAIL, USER_PASSWORD_NEW);
 
   await expect(page.getByText("Verify your identity")).toBeVisible();
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
