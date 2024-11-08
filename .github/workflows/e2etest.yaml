@@ -16,11 +16,6 @@ jobs:
       - uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4
         with:
           node-version: 18
-      - name: Install docker compose
-        run: |
-          sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose version
 
       - name: Boot the cluster with dependant backend systems
         run: |

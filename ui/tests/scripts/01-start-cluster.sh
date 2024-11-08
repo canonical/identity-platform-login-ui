@@ -16,4 +16,4 @@ export TRACING_ENABLED="false"
 export LOG_LEVEL="debug"
 export AUTHORIZATION_ENABLED="false"
 
-docker-compose -f docker-compose.dev.yml up --build --force-recreate --remove-orphans
+docker compose -f docker-compose.dev.yml up --force-recreate --remove-orphans
