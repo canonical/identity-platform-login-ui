@@ -2,6 +2,14 @@ import { randomNameSuffix } from "./name";
 import { BrowserContext } from "playwright-core";
 import { expect, Page } from "@playwright/test";
 
+export const enterTotpCode = async (page: Page, totpPage: Page) => {
+  await expect(page.getByText("Verify your identity")).toBeVisible();
+  await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
+  const totpCode = await getTotpCode(totpPage);
+  await page.getByLabel("Authentication code").fill(totpCode);
+  await page.getByRole("button", { name: "Sign in" }).click();
+};
+
 export const getTotpCode = async (totpPage: Page) => {
   const totpCode = await totpPage.locator(".code").textContent();
   if (!totpCode) {
@@ -12,7 +20,10 @@ export const getTotpCode = async (totpPage: Page) => {
 
 export const setupTotp = async (context: BrowserContext, page: Page) => {
   await expect(page.getByText("Secure your account")).toBeVisible();
-  await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixelRatio: 0.05 }); // the code differs every time
+  await expect(page).toHaveScreenshot({
+    fullPage: true,
+    maxDiffPixelRatio: 0.05,
+  }); // the code differs every time
   const setupCode = await getTotpSetupCode(page);
   const totpPage = await setupTotpApp(context, setupCode);
   const totpCode = await getTotpCode(totpPage);

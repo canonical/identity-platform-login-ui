@@ -3,6 +3,7 @@ import { setupTotp } from "./helpers/totp";
 import { startGrafanaNewUserFlow } from "./helpers/grafana";
 import { resetIdentities } from "./helpers/kratosIdentities";
 import { userPassLogin } from "./helpers/login";
+import { clickButton, verifyBackupCode } from "./helpers/backupCode";
 
 test("backup recovery code setup and usage", async ({ context, page }) => {
   resetIdentities();
@@ -11,21 +12,14 @@ test("backup recovery code setup and usage", async ({ context, page }) => {
   await setupTotp(context, page);
 
   await page.goto("http://localhost:4455/ui/setup_backup_codes");
-  await page
-    .getByRole("button", {
-      name: "Generate new backup recovery codes",
-      exact: true,
-    })
-    .click();
+  await clickButton(page, "Generate new backup recovery codes");
 
   const backupCode = await page.locator(".p-list__item").first().textContent();
   if (!backupCode) {
     throw new Error("Backup code not found");
   }
 
-  await page
-    .getByRole("button", { name: "Confirm backup recovery codes", exact: true })
-    .click();
+  await clickButton(page, "Confirm backup recovery codes");
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
@@ -34,14 +28,8 @@ test("backup recovery code setup and usage", async ({ context, page }) => {
   await startGrafanaNewUserFlow(page);
   await userPassLogin(page);
 
-  await page
-    .getByRole("button", { name: "Use backup code instead", exact: true })
-    .click();
-
-  await expect(page.getByText("Verify your identity")).toBeVisible();
-  await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
-  await page.getByLabel("Backup recovery code").fill(backupCode);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await clickButton(page, "Use backup code instead");
+  await verifyBackupCode(page, backupCode);
 
   await expect(page.getByText("Welcome to Grafana")).toBeVisible();
 });
