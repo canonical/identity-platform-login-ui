@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	reflect "reflect"
 	"testing"
+	"time"
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
@@ -146,10 +147,13 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 	acceptLoginRequest := hClient.OAuth2ApiAcceptOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
+	session := kClient.NewSession("test", *kClient.NewIdentity(identityID, "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	session.SetExpiresAt(time.Now().Add(300 * time.Second))
+	leeway := int64(2)
 
 	resp := new(http.Response)
 
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -160,11 +164,14 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 			if id := (*hClient.AcceptOAuth2LoginRequest)(reflect.ValueOf(r).FieldByName("acceptOAuth2LoginRequest").UnsafePointer()); id.Subject != identityID {
 				t.Fatalf("expected identityID to be %s, got %s", identityID, id.Subject)
 			}
+			if id := (*hClient.AcceptOAuth2LoginRequest)(reflect.ValueOf(r).FieldByName("acceptOAuth2LoginRequest").UnsafePointer()); 300-id.GetRememberFor() > leeway {
+				t.Fatalf("expected RememberFor to be close to 300, got %v", id.GetRememberFor())
+			}
 			return redirectTo, resp, nil
 		},
 	)
 
-	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
+	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, session, loginChallenge)
 
 	if rt != redirectTo {
 		t.Fatalf("expected redirect to be %v not  %v", redirectTo, rt)
@@ -196,19 +203,294 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	acceptLoginRequest := hClient.OAuth2ApiAcceptOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
+	session := kClient.NewSession("test", *kClient.NewIdentity(identityID, "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
 
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2LoginRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 
-	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, identityID, loginChallenge)
+	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, session, loginChallenge)
 
 	if rt != nil {
 		t.Fatalf("expected redirect to be %v not  %v", nil, rt)
 	}
 	if c != nil {
 		t.Fatalf("expected cookies to be %v not  %v", nil, c)
+	}
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+}
+
+func TestGetLoginRequestSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+
+	ctx := context.Background()
+	loginChallenge := "123456"
+	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+		ApiService: mockHydraOauthApi,
+	}
+	lr := hClient.NewOAuth2LoginRequestWithDefaults()
+
+	resp := new(http.Response)
+
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r hClient.OAuth2ApiGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
+			if lc := (*string)(reflect.ValueOf(r).FieldByName("loginChallenge").UnsafePointer()); *lc != loginChallenge {
+				t.Fatalf("expected loginChallenge to be %s, got %s", loginChallenge, *lc)
+			}
+			return lr, resp, nil
+		},
+	)
+
+	ret, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetLoginRequest(ctx, loginChallenge)
+
+	if ret != lr {
+		t.Fatalf("expected response to be %v not  %v", lr, ret)
+	}
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestGetLoginRequestFails(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+
+	ctx := context.Background()
+	loginChallenge := "123456"
+	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+		ApiService: mockHydraOauthApi,
+	}
+
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
+
+	ret, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).GetLoginRequest(ctx, loginChallenge)
+
+	if ret != nil {
+		t.Fatalf("expected redirect to be %v not  %v", nil, ret)
+	}
+	if c != nil {
+		t.Fatalf("expected cookies to be %v not  %v", nil, c)
+	}
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+}
+
+func TestMustReAuthenticateSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+
+	ctx := context.Background()
+	loginChallenge := "123456"
+	sessionId := "1234"
+	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+		ApiService: mockHydraOauthApi,
+	}
+	lr := hClient.NewOAuth2LoginRequestWithDefaults()
+	lr.Skip = true
+	lr.SessionId = &sessionId
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+
+	state := FlowStateCookie{LoginChallengeHash: sessionId, TotpSetup: false}
+
+	resp := new(http.Response)
+
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r hClient.OAuth2ApiGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
+			if lc := (*string)(reflect.ValueOf(r).FieldByName("loginChallenge").UnsafePointer()); *lc != loginChallenge {
+				t.Fatalf("expected loginChallenge to be %s, got %s", loginChallenge, *lc)
+			}
+			return lr, resp, nil
+		},
+	)
+
+	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
+		MustReAuthenticate(ctx, loginChallenge, session, state)
+
+	if ret != false {
+		t.Fatalf("expected returned value to be `false` not  %v", ret)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestMustReAuthenticateNoSkip(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+
+	ctx := context.Background()
+	loginChallenge := "123456"
+	sessionId := "1234"
+	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+		ApiService: mockHydraOauthApi,
+	}
+	lr := hClient.NewOAuth2LoginRequestWithDefaults()
+	lr.Skip = false
+	lr.SessionId = &sessionId
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+
+	state := FlowStateCookie{LoginChallengeHash: sessionId, TotpSetup: false}
+
+	resp := new(http.Response)
+
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r hClient.OAuth2ApiGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
+			if lc := (*string)(reflect.ValueOf(r).FieldByName("loginChallenge").UnsafePointer()); *lc != loginChallenge {
+				t.Fatalf("expected loginChallenge to be %s, got %s", loginChallenge, *lc)
+			}
+			return lr, resp, nil
+		},
+	)
+
+	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
+		MustReAuthenticate(ctx, loginChallenge, session, state)
+
+	if ret != true {
+		t.Fatalf("expected returned value to be `true` not  %v", ret)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestMustReAuthenticateNoLoginChallenge(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	ctx := context.Background()
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+
+	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
+		MustReAuthenticate(ctx, "", session, FlowStateCookie{})
+
+	if ret != true {
+		t.Fatalf("expected returned value to be `true` not  %v", ret)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestMustReAuthenticateNoSession(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	ctx := context.Background()
+	loginChallenge := "123456"
+
+	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
+		MustReAuthenticate(ctx, loginChallenge, nil, FlowStateCookie{})
+
+	if ret != true {
+		t.Fatalf("expected response to be `true` not  %v", ret)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestMustReAuthenticateFails(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+
+	ctx := context.Background()
+	loginChallenge := "123456"
+	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+		ApiService: mockHydraOauthApi,
+	}
+	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
+
+	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
+		MustReAuthenticate(ctx, loginChallenge, session, FlowStateCookie{})
+
+	if ret != true {
+		t.Fatalf("expected returned value to be `true` not  %v", ret)
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")

@@ -53,6 +53,7 @@ At the moment the application is sourcing the following from the environment:
   `log.txt`. **Make sure application user has permissions to write**.
 - `PORT` - HTTP server port, defaults to `8080`
 - `BASE_URL` - the base url that the application will be running on
+- `COOKIES_ENCRYPTION_KEY`: 32 bytes string used for encrypting cookies
 - `KRATOS_PUBLIC_URL` - address of Kratos Public APIs
 - `KRATOS_ADMIN_URL` - address of Kratos Admin APIs
 - `HYDRA_ADMIN_URL` - address of Hydra admin APIs

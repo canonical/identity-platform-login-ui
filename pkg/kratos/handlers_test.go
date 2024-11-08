@@ -41,6 +41,7 @@ func TestHandleCreateFlowWithoutParams(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = "test"
@@ -49,7 +50,7 @@ func TestHandleCreateFlowWithoutParams(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -67,6 +68,7 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = "test"
@@ -81,12 +83,14 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -116,6 +120,7 @@ func TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow(t *testing.T
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = "test"
@@ -129,13 +134,15 @@ func TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow(t *testing.T
 	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
 
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
 	mockLogger.EXPECT().Errorf("failed to create login flow, err: error")
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -153,6 +160,7 @@ func TestHandleCreateFlowWithoutSessionFailOnFilterProviders(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = "test"
@@ -167,13 +175,15 @@ func TestHandleCreateFlowWithoutSessionFailOnFilterProviders(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(nil, fmt.Errorf("oh no"))
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -191,6 +201,7 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = "test"
@@ -205,12 +216,14 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -240,6 +253,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
 	redirect := "https://some/path/to/somewhere"
@@ -253,11 +267,13 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
-	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), "test", loginChallenge).Return(redirectTo, req.Cookies(), nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(redirectTo, req.Cookies(), nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -278,12 +294,14 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 		t.Fatalf("Expected redirect to %s, got: %s", redirect, res.Header["Location"][0])
 	}
 }
+
 func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
 
@@ -295,12 +313,14 @@ func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
-	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), "test", loginChallenge).Return(nil, nil, fmt.Errorf("error"))
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(nil, nil, fmt.Errorf("error"))
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -317,6 +337,7 @@ func TestHandleGetLoginFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	id := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
@@ -331,7 +352,7 @@ func TestHandleGetLoginFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -360,6 +381,7 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	id := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
@@ -375,7 +397,7 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -392,6 +414,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
@@ -415,7 +438,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -441,6 +464,7 @@ func TestHandleUpdateFlowWhenProviderNotAllowed(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
@@ -463,7 +487,7 @@ func TestHandleUpdateFlowWhenProviderNotAllowed(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -480,6 +504,7 @@ func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
 	redirectTo := "https://some/path/to/somewhere"
@@ -499,7 +524,7 @@ func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -516,6 +541,7 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
 
@@ -559,7 +585,7 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, true, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -579,6 +605,7 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
@@ -600,7 +627,7 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -617,6 +644,7 @@ func TestHandleUpdateFlowFailOnCheckAllowedProvider(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
@@ -637,7 +665,7 @@ func TestHandleUpdateFlowFailOnCheckAllowedProvider(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -654,6 +682,7 @@ func TestHandleCreateRecoveryFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	redirect := "https://example.com/ui/reset_email"
 
@@ -666,7 +695,7 @@ func TestHandleCreateRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -686,6 +715,7 @@ func TestHandleCreateRecoveryFlowWithSession(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	redirect := "https://example.com/ui/reset_email"
 
@@ -707,7 +737,7 @@ func TestHandleCreateRecoveryFlowWithSession(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -740,6 +770,7 @@ func TestHandleCreateRecoveryFlowFailOnCreateBrowserRecoveryFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	redirect := "https://example.com/ui/reset_email"
 
@@ -752,7 +783,7 @@ func TestHandleCreateRecoveryFlowFailOnCreateBrowserRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -769,6 +800,7 @@ func TestHandleGetRecoveryFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	id := "test"
 	flow := kClient.NewRecoveryFlowWithDefaults()
@@ -784,7 +816,7 @@ func TestHandleGetRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -813,6 +845,7 @@ func TestHandleGetRecoveryFlowFail(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	id := "test"
 	flow := kClient.NewRecoveryFlowWithDefaults()
@@ -828,7 +861,7 @@ func TestHandleGetRecoveryFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -845,6 +878,7 @@ func TestHandleUpdateRecoveryFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
 	flow := kClient.NewRecoveryFlowWithDefaults()
@@ -866,7 +900,7 @@ func TestHandleUpdateRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -892,6 +926,7 @@ func TestHandleUpdateRecoveryFlowFailOnParseRecoveryFlowMethodBody(t *testing.T)
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
 	redirectTo := "https://example.com/ui/reset_email"
@@ -911,7 +946,7 @@ func TestHandleUpdateRecoveryFlowFailOnParseRecoveryFlowMethodBody(t *testing.T)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -928,6 +963,7 @@ func TestHandleCreateSettingsFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	redirect := "https://example.com/ui/setup_complete"
 
@@ -941,7 +977,7 @@ func TestHandleCreateSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -961,6 +997,7 @@ func TestHandleCreateSettingsFlowWithRedirect(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	redirect := "https://example.com/ui/setup_complete"
 
@@ -979,7 +1016,7 @@ func TestHandleCreateSettingsFlowWithRedirect(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -999,6 +1036,7 @@ func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	redirect := "https://example.com/ui/setup_complete"
 
@@ -1012,7 +1050,7 @@ func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1029,6 +1067,7 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	id := "test"
 	flow := kClient.NewSettingsFlowWithDefaults()
@@ -1044,7 +1083,7 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1072,6 +1111,7 @@ func TestHandleGetSettingsFlowWithRedirect(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	id := "test"
 	flow := kClient.NewSettingsFlowWithDefaults()
@@ -1092,7 +1132,7 @@ func TestHandleGetSettingsFlowWithRedirect(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1113,6 +1153,7 @@ func TestHandleGetSettingsFlowFail(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	id := "test"
 	flow := kClient.NewSettingsFlowWithDefaults()
@@ -1128,7 +1169,7 @@ func TestHandleGetSettingsFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1145,6 +1186,7 @@ func TestHandleUpdateSettingsFlow(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
 	flow := kClient.NewSettingsFlowWithDefaults()
@@ -1164,7 +1206,7 @@ func TestHandleUpdateSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1190,6 +1232,7 @@ func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T)
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
 
@@ -1206,7 +1249,7 @@ func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, BASE_URL, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
