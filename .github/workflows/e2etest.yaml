@@ -40,11 +40,6 @@ jobs:
       - name: Install Playwright Browser
         run: cd ui && npx playwright install --with-deps chromium
 
-      - name: Install Kratos binary
-        run: |
-          bash <(curl https://raw.githubusercontent.com/ory/meta/master/install.sh) -d -b . kratos v1.3.0
-          sudo mv ./kratos /usr/local/bin/
-
       - name: Run the tests
         run: cd ui && npx playwright test
 

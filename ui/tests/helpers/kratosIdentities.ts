@@ -7,12 +7,12 @@ export const resetIdentities = () => {
 
 export const deleteIdentity = () => {
   execSync(
-    "kratos delete identity  --endpoint http://localhost:4434 $(kratos list identities --endpoint http://localhost:4434 --format json | jq -r .identities[].id)",
+    'ID=$(curl --silent -H "Content-Type: application/json" -X GET "http://localhost:4434/admin/identities" | jq -r .[0].id) && curl --silent -H "Accept: application/json" -X DELETE "http://localhost:4434/admin/identities/$ID"',
   );
 };
 
 export const createIdentity = () => {
   execSync(
-    "kratos import identities ../docker/kratos/identity.json --endpoint http://localhost:4434",
+    'curl --silent -H "Content-Type: application/json" -X POST "http://localhost:4434/admin/identities" -d @../docker/kratos/identity.json',
   );
 };
