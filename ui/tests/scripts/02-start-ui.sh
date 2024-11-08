@@ -19,6 +19,5 @@ export LOG_LEVEL="debug"
 export AUTHORIZATION_ENABLED="false"
 export COOKIES_ENCRYPTION_KEY=WrfOcYmVBwyduEbKYTUhO4X7XVaOQ1wF
 
-go build . -o app ./
-./app serve
+go run . serve
 
