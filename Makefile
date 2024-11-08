@@ -51,11 +51,9 @@ update-openfga-model:
 .PHONY: update-openfga-model
 
 test-e2e:
-	@echo "Running e2e tests"
-	cd ui && npx playwright test
+	$(MAKE) -C ui/ test-e2e
 .PHONY: test-e2e
 
 test-e2e-debug:
-	@echo "Running e2e tests"
-	cd ui && npx playwright test --ui
+	$(MAKE) -C ui/ test-e2e-debug
 .PHONY: test-e2e

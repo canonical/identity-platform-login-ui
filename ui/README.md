@@ -52,8 +52,8 @@ We rely on playwright as an executor for end-to-end testing.  To run the tests, 
 
 4. Run the tests with the following command:
 
-    `cd ui && npx playwright test`
+    `make test-e2e`
 
-You can follow the tests with the ui parameter. This is helpful in case of failures to debug the root cause.
+You can follow the tests with an open browser. This is helpful in case of failures to debug the root cause.
 
-    cd ui && npx playwright test --ui
+    make test-e2e-debug
