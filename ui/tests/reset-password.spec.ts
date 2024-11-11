@@ -21,7 +21,7 @@ test("reset password from grafana", async ({ context, page }) => {
   await confirmMailCode(page, context);
   await enterNewPassword(page, USER_PASSWORD_NEW);
 
-  const totpPage = await setupTotp(context, page);
+  const totpSetupKey = await setupTotp(page);
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
@@ -34,7 +34,7 @@ test("reset password from grafana", async ({ context, page }) => {
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
 
   await userPassLogin(page, USER_EMAIL, USER_PASSWORD_NEW);
-  await enterTotpCode(page, totpPage);
+  await enterTotpCode(page, totpSetupKey);
 
   await expect(page.getByText("Welcome to Grafana")).toBeVisible();
 });

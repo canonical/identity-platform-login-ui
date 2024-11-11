@@ -9,7 +9,7 @@ test("backup recovery code setup and usage", async ({ context, page }) => {
   resetIdentities();
   await startGrafanaNewUserFlow(page);
   await userPassLogin(page);
-  await setupTotp(context, page);
+  await setupTotp(page);
 
   await page.goto("http://localhost:4455/ui/setup_backup_codes");
   await clickButton(page, "Generate new backup recovery codes");

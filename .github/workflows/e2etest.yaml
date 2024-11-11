@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: 18
 
+      - name: Install oathtool
+        run: |
+          sudo apt update
+          sudo apt install oathtool
+
       - name: Boot the cluster with dependant backend systems
         run: |
           ./ui/tests/scripts/01-start-cluster.sh &

@@ -1,54 +1,35 @@
-import { randomNameSuffix } from "./name";
-import { BrowserContext } from "playwright-core";
 import { expect, Page } from "@playwright/test";
+import { execSync } from "child_process";
 
-export const enterTotpCode = async (page: Page, totpPage: Page) => {
+export const enterTotpCode = async (page: Page, setupKey: string) => {
   await expect(page.getByText("Verify your identity")).toBeVisible();
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
-  const totpCode = await getTotpCode(totpPage);
-  await page.getByLabel("Authentication code").fill(totpCode);
+  const code = getTotpCode(setupKey);
+  await page.getByLabel("Authentication code").fill(code);
   await page.getByRole("button", { name: "Sign in" }).click();
 };
 
-export const getTotpCode = async (totpPage: Page) => {
-  const totpCode = await totpPage.locator(".code").textContent();
-  if (!totpCode) {
-    throw new Error("TOTP code not found");
-  }
-  return totpCode;
+const getTotpCode = (setupKey: string) => {
+  return execSync(`oathtool -b --totp '${setupKey}'`).toString();
 };
 
-export const setupTotp = async (context: BrowserContext, page: Page) => {
+export const setupTotp = async (page: Page) => {
   await expect(page.getByText("Secure your account")).toBeVisible();
   await expect(page).toHaveScreenshot({
     fullPage: true,
     maxDiffPixelRatio: 0.05,
   }); // the code differs every time
-  const setupCode = await getTotpSetupCode(page);
-  const totpPage = await setupTotpApp(context, setupCode);
-  const totpCode = await getTotpCode(totpPage);
+  const setupKey = await getTotpSetupKey(page);
+  const totpCode = getTotpCode(setupKey);
   await page.getByLabel("Verify code").fill(totpCode);
   await page.getByRole("button", { name: "Save" }).click();
-  return totpPage;
+  return setupKey;
 };
 
-const getTotpSetupCode = async (page: Page) => {
-  const secretKey = await page.locator("pre").textContent();
-  if (!secretKey) {
+const getTotpSetupKey = async (page: Page) => {
+  const setupKey = await page.locator("pre").textContent();
+  if (!setupKey) {
     throw new Error("TOTP setup code not found");
   }
-  return secretKey;
-};
-
-const setupTotpApp = async (context: BrowserContext, setupCode: string) => {
-  const appName = `app-${randomNameSuffix()}`;
-
-  const totpPage = await context.newPage();
-  await totpPage.goto("https://totp.app/");
-  await totpPage.getByTitle("Add").click();
-  await totpPage.getByPlaceholder("Secret key").fill(setupCode);
-  await totpPage.getByPlaceholder("Application name").fill(appName);
-  await totpPage.getByRole("button", { name: "Add" }).click();
-
-  return totpPage;
+  return setupKey;
 };
