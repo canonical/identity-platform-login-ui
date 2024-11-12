@@ -33,3 +33,27 @@ Your app is ready to be deployed!
 See the section
 about [deployment](https://facebook.github.io/create-react-app/docs/deployment)
 for more information.
+
+## Testing
+
+We rely on playwright as an executor for end-to-end testing.  To run the tests, follow these steps below.
+
+1. boot the cluster with dependant backend systems:
+
+    `./ui/tests/scripts/01-start-cluster.sh`
+
+2. start the login ui:
+
+    `./ui/tests/scripts/02-start-ui.sh`
+
+3. register grafana as client and boot its container:
+
+   `./ui/tests/scripts/03-start-grafana.sh`
+
+4. Run the tests with the following command:
+
+    `make test-e2e`
+
+You can follow the tests with an open browser. This is helpful in case of failures to debug the root cause.
+
+    make test-e2e-debug
