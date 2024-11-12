@@ -107,7 +107,7 @@ jobs:
           echo EOL_STABLE=$(date -d "$(date +'%Y-%m-%d') +6 month" "+%Y-%m-%d") >> $GITHUB_ENV
           echo EOL_CANDIDATE=$(date -d "$(date +'%Y-%m-%d') +14 day" "+%Y-%m-%d") >> $GITHUB_ENV
           echo IMAGE_VERSION_STABLE=$($YQ '.version | split(".").0' rockcraft.yaml) >> $GITHUB_ENV
-          echo IMAGE_VERSION_CANDIDATE=$($YQ '.version' rockcraft.yaml) >> $GITHUB_ENV
+          echo IMAGE_VERSION_CANDIDATE=$($YQ '.version | split(".").[0:2] | join(".")' rockcraft.yaml) >> $GITHUB_ENV
       - name: Release
         run: |
           $OCI_FACTORY upload -y --release track=$IMAGE_VERSION_STABLE-22.04,risks=stable,eol=$EOL_STABLE
