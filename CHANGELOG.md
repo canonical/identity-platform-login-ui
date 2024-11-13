@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.5](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.4...v0.18.5) (2024-11-13)
+
+
+### Bug Fixes
+
+* update rock to go 1.23.2 to deal with CVE-2024-34156 ([9d6701a](https://github.com/canonical/identity-platform-login-ui/commit/9d6701a63ce47d1b1a37bee42dd71446a6bb9e33))
+
 ## [0.18.4](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.3...v0.18.4) (2024-11-13)
 
 
