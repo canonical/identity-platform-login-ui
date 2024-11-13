@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.18.4](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.3...v0.18.4) (2024-11-13)
+
+
+### Bug Fixes
+
+* check hydra request skip value ([ca08006](https://github.com/canonical/identity-platform-login-ui/commit/ca08006a412c057635b4613ca0ceaaffb2b9a71a))
+* remember hydra sessions ([84494d4](https://github.com/canonical/identity-platform-login-ui/commit/84494d45eeb530a55b3e41b7f18532902d4b6cb2))
+* use cookies to handle first login ([f0ede5f](https://github.com/canonical/identity-platform-login-ui/commit/f0ede5f3623b267e8499cba24abf65d4c5763bd8))
+
 ## [0.18.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.2...v0.18.3) (2024-10-21)
 
 
