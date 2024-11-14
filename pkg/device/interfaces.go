@@ -11,7 +11,7 @@ import (
 )
 
 type KratosClientInterface interface {
-	FrontendApi() kClient.FrontendApi
+	FrontendApi() kClient.FrontendAPI
 }
 
 type HydraClientInterface interface {

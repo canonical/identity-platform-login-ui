@@ -11,11 +11,11 @@ import (
 )
 
 type KratosClientInterface interface {
-	FrontendApi() kClient.FrontendApi
+	FrontendApi() kClient.FrontendAPI
 }
 
 type KratosAdminClientInterface interface {
-	IdentityApi() kClient.IdentityApi
+	IdentityApi() kClient.IdentityAPI
 }
 
 type HydraClientInterface interface {

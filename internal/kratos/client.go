@@ -11,16 +11,16 @@ type Client struct {
 	c *client.APIClient
 }
 
-func (c *Client) FrontendApi() client.FrontendApi {
-	return c.c.FrontendApi
+func (c *Client) FrontendApi() client.FrontendAPI {
+	return c.c.FrontendAPI
 }
 
-func (c *Client) IdentityApi() client.IdentityApi {
-	return c.c.IdentityApi
+func (c *Client) IdentityApi() client.IdentityAPI {
+	return c.c.IdentityAPI
 }
 
-func (c *Client) MetadataApi() client.MetadataApi {
-	return c.c.MetadataApi
+func (c *Client) MetadataApi() client.MetadataAPI {
+	return c.c.MetadataAPI
 }
 
 func NewClient(url string, debug bool) *Client {
