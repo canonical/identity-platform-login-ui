@@ -15,6 +15,10 @@ import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Button, Icon, Spinner } from "@canonical/react-components";
 import { UpdateSettingsFlowWithWebAuthnMethod } from "@ory/client/api";
+import {
+  ORY_LABEL_ID_NAME_OF_THE_SECURITY_KEY,
+  ORY_LABEL_ID_REMOVE_SECURITY_ID,
+} from "../util/constants";
 
 const SetupPasskey: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
@@ -102,14 +106,14 @@ const SetupPasskey: NextPage = () => {
       ...renderFlow?.ui,
       nodes: renderFlow?.ui.nodes
         .filter((node) => {
-          if (node.meta.label?.id === 1050018) {
+          if (node.meta.label?.id === ORY_LABEL_ID_REMOVE_SECURITY_ID) {
             existingKeys.push(node);
             return false;
           }
           return node.group === "webauthn" || node.group === "default";
         })
         .map((node) => {
-          if (node.meta.label?.id === 1050013) {
+          if (node.meta.label?.id === ORY_LABEL_ID_NAME_OF_THE_SECURITY_KEY) {
             node.meta.label.text = "Security key name";
           }
           return node;
