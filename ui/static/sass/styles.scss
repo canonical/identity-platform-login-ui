@@ -47,3 +47,9 @@ hr {
 .backup-codes li:before {
   font-weight: 700;
 }
+
+.security-key-row {
+  border-top: $border;
+  padding-bottom: $spv--small;
+  padding-top: $spv--small;
+}

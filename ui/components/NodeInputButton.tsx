@@ -107,9 +107,13 @@ export const NodeInputButton: FC<NodeInputProps> = ({
     void setValue(attributes.value as string).then(() => dispatchSubmit(e));
   };
 
+  // add security key button is supposed to be positive green
+  const appearance = node.meta.label?.id === 1050012 ? "positive" : "";
+
   return (
     <>
       <Button
+        appearance={appearance}
         onClick={handleClick}
         disabled={attributes.disabled || disabled}
         name={attributes.name}
