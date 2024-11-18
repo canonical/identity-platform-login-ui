@@ -159,12 +159,12 @@ const SetupPasskey: NextPage = () => {
                     }
 
                     return (
-                      <div className="row security-key-row" key={k}>
-                        <div className="col-2">{displayName}</div>
-                        <div className="col-2 u-text--muted">
+                      <div className="security-key-list" key={k}>
+                        <div className="name">{displayName}</div>
+                        <div className="u-text--muted u-hide--small created">
                           Created {addedAt}
                         </div>
-                        <div className="col-2">
+                        <div className="delete">
                           <Button
                             type="button"
                             className="u-no-margin--bottom"
