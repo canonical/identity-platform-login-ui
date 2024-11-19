@@ -22,8 +22,9 @@ const BackupCodePdf: FC<Props> = ({ codes }) => {
             style={{ width: 530, marginBottom: 30 }}
           />
           <Text>These are your back up recovery codes.</Text>
+          <Text>Each backup code can be used once.</Text>
           <Text style={{ marginBottom: 30 }}>
-            Please keep them in a safe place!
+            Store these in a secure place.
           </Text>
           {codes.map((code, i) => (
             <Text

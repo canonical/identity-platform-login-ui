@@ -44,8 +44,34 @@ hr {
   width: 100%;
 }
 
-.backup-codes li:before {
-  font-weight: 700;
+.backup-codes {
+  border-bottom: $border;
+  border-top: $border;
+  margin-top: $spv--small;
+
+  @media screen and (min-width: $breakpoint-small) {
+    column-count: 2;
+  }
+
+  li:before {
+    font-weight: 700;
+  }
+}
+
+.checkbox-save-backup-codes {
+  margin-top: -1rem;
+}
+
+.deactivate-backup-codes-list {
+  list-style: inside;
+  margin-top: $spv--large;
+  max-width: 36rem;
+
+  li {
+    border-top: $border;
+    margin-bottom: $spv--large;
+    padding-left: $sph--x-large;
+  }
 }
 
 .security-key-list {

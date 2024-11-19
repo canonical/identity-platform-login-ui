@@ -48,6 +48,29 @@ const Content: FC<Props> = ({ attributes }) => {
           data-testid={`node/text/${attributes.id}/text`}
         >
           <div className="row">
+            <div className="u-sv1 u-no-print">
+              <Button
+                type="button"
+                className="u-no-margin--bottom"
+                onClick={() => downloadPdf(secrets)}
+              >
+                Download
+              </Button>
+              <Button
+                type="button"
+                className="u-no-margin--bottom"
+                onClick={() => copySecrets(secrets)}
+              >
+                Copy
+              </Button>
+              <Button
+                type="button"
+                className="u-no-margin--bottom"
+                onClick={print}
+              >
+                Print
+              </Button>
+            </div>
             <ol className="p-list--divided backup-codes">
               {secrets.map((item, k) => (
                 <li className="p-list__item" key={k}>
@@ -55,17 +78,6 @@ const Content: FC<Props> = ({ attributes }) => {
                 </li>
               ))}
             </ol>
-            <div className="u-no-print">
-              <Button type="button" onClick={() => downloadPdf(secrets)}>
-                Download
-              </Button>
-              <Button type="button" onClick={() => copySecrets(secrets)}>
-                Copy
-              </Button>
-              <Button type="button" onClick={print}>
-                Print
-              </Button>
-            </div>
           </div>
         </div>
       );

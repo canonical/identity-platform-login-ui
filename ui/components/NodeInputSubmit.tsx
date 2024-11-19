@@ -1,5 +1,10 @@
 import { getNodeLabel } from "@ory/integrations/ui";
-import { Button } from "@canonical/react-components";
+import {
+  Button,
+  CheckboxInput,
+  List,
+  Modal,
+} from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
 import React, { FC } from "react";
 import { useRouter } from "next/router";
@@ -12,6 +17,8 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   dispatchSubmit,
 }) => {
   const router = useRouter();
+  const [saved, setSaved] = React.useState(false);
+  const [hasModal, setHasModal] = React.useState(false);
 
   const getProviderImage = (value: string) => {
     if (value.toLowerCase().startsWith("auth0")) {
@@ -43,9 +50,50 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     (node.meta.label as unknown as { hasTotpLink: boolean })?.hasTotpLink ??
     false;
   const showBackLink = node.meta?.label?.text === "Reset password";
+  const showBackupCodesIntro =
+    (node.meta.label?.context as unknown as { showBackupCodesIntro: boolean })
+      ?.showBackupCodesIntro ?? false;
+  const hasSavedCodeCheckbox =
+    (node.meta.label?.context as unknown as { hasSavedCodeCheckbox: boolean })
+      ?.hasSavedCodeCheckbox ?? false;
+  const getAppearance = () => {
+    const appearance = (
+      node.meta.label?.context as unknown as { appearance: string }
+    )?.appearance;
+    if (appearance !== undefined) {
+      return appearance;
+    }
+    return node.group === "password" ||
+      node.group === "code" ||
+      node.group === "totp" ||
+      node.group === "webauthn" ||
+      node.group === "lookup_secret"
+      ? "positive"
+      : "";
+  };
+  const hasConfirmBackupCodeModal =
+    (
+      node.meta.label?.context as unknown as {
+        hasConfirmBackupCodeModal: boolean;
+      }
+    )?.hasConfirmBackupCodeModal ?? false;
 
   return (
     <>
+      {showBackupCodesIntro && (
+        <div className="u-sv2">
+          Backup codes are on-time passwords you can use to log in when your
+          main two-factor authentication method isn{"'"}t available.
+        </div>
+      )}
+      {hasSavedCodeCheckbox && (
+        <div className="u-sv3 u-no-print checkbox-save-backup-codes">
+          <CheckboxInput
+            label="I saved the backup codes"
+            onClick={() => setSaved(!saved)}
+          />
+        </div>
+      )}
       {showBackLink && (
         <Button
           tabIndex={3}
@@ -58,23 +106,22 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
         </Button>
       )}
       <Button
-        appearance={
-          node.group === "password" ||
-          node.group === "code" ||
-          node.group === "totp" ||
-          node.group === "webauthn" ||
-          node.group === "lookup_secret"
-            ? "positive"
-            : ""
-        }
+        appearance={getAppearance()}
         tabIndex={4}
         onClick={async (e) => {
+          if (hasConfirmBackupCodeModal) {
+            e.preventDefault();
+            setHasModal(true);
+            return;
+          }
           // On click, we set this value, and once set, dispatch the submission!
           await setValue(attributes.value as string).then(() =>
             dispatchSubmit(e),
           );
         }}
-        disabled={attributes.disabled || disabled}
+        disabled={
+          attributes.disabled || disabled || (hasSavedCodeCheckbox && !saved)
+        }
         className={
           node.group === "oidc" ? "oidc-login-button u-no-print" : "u-no-print"
         }
@@ -132,6 +179,48 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
         >
           Use authentication code instead
         </Button>
+      )}
+      {hasModal && (
+        <Modal
+          buttonRow={
+            <>
+              <Button
+                className="u-no-margin--bottom"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setHasModal(false);
+                }}
+                appearance="base"
+              >
+                Cancel
+              </Button>
+              <Button
+                appearance="negative"
+                className="u-no-margin--bottom"
+                onClick={(e) => {
+                  e.preventDefault();
+                  void setValue(attributes.value as string).then(() =>
+                    dispatchSubmit(e),
+                  );
+                }}
+              >
+                Deactivate backup codes
+              </Button>
+            </>
+          }
+          title="Deactivate backup codes"
+        >
+          You{"'"}re about to deactivate your backup codes. Please be aware of
+          the following:
+          <List
+            className="deactivate-backup-codes-list"
+            items={[
+              "All your current backup codes will no longer work.",
+              "You won't be able to use backup codes to access your account if you lose access to your primary authentication method.",
+              "You'll need to set up new backup codes if you want to use them again in the future.",
+            ]}
+          />
+        </Modal>
       )}
     </>
   );
