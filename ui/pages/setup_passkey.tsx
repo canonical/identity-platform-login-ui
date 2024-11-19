@@ -99,6 +99,7 @@ const SetupPasskey: NextPage = () => {
 
   const renderFlow = flow ?? loadingKeysFlow;
   const existingKeys: UiNode[] = [];
+  const existingKeyNames: string[] = [];
 
   const webauthnFlow = {
     ...renderFlow,
@@ -108,6 +109,14 @@ const SetupPasskey: NextPage = () => {
         .filter((node) => {
           if (node.meta.label?.id === ORY_LABEL_ID_REMOVE_SECURITY_ID) {
             existingKeys.push(node);
+            if (
+              node.meta.label?.context &&
+              "display_name" in node.meta.label.context
+            ) {
+              existingKeyNames.push(
+                node.meta.label.context.display_name as string,
+              );
+            }
             return false;
           }
           return node.group === "webauthn" || node.group === "default";
@@ -115,6 +124,10 @@ const SetupPasskey: NextPage = () => {
         .map((node) => {
           if (node.meta.label?.id === ORY_LABEL_ID_NAME_OF_THE_SECURITY_KEY) {
             node.meta.label.text = "Security key name";
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              deduplicateValues: existingKeyNames,
+            };
           }
           return node;
         }),
