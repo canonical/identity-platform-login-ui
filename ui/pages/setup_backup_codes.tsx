@@ -21,9 +21,14 @@ import {
   ORY_LABEL_BACKUP_CODE_DEACTIVATE,
   ORY_LABEL_BACKUP_CODE_VIEW,
 } from "../util/constants";
+import { BackupCodeDeletionModal } from "../components/BackupCodeDeletionModal";
+import { BackupIntro } from "../components/BackupIntro";
+import { BackupCodeSavedCheckbox } from "../components/BackupCodeSavedCheckbox";
 
 const SetupBackupCodes: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
+  const [hasDeletionModal, setHasDeletionModal] = React.useState(false);
+  const [hasSavedCodes, setSavedCodes] = React.useState(false);
 
   // Get ?flow=... from the URL
   const router = useRouter();
@@ -125,7 +130,7 @@ const SetupBackupCodes: NextPage = () => {
             node.meta.label.text = "Create backup codes";
             node.meta.label.context = {
               ...node.meta.label.context,
-              showBackupCodesIntro: true,
+              beforeComponent: <BackupIntro />,
             };
           }
           if (
@@ -136,7 +141,6 @@ const SetupBackupCodes: NextPage = () => {
             node.meta.label.context = {
               ...node.meta.label.context,
               appearance: "",
-              showBackupCodesIntro: false,
             };
           }
           if (node.meta.label?.id === ORY_LABEL_BACKUP_CODE_CONFIRM_TEXT) {
@@ -145,9 +149,16 @@ const SetupBackupCodes: NextPage = () => {
           }
           if (node.meta.label?.id === ORY_LABEL_BACKUP_CODE_CONFIRM) {
             node.meta.label.text = "Create backup codes";
+            (node.attributes as UiNodeInputAttributes).disabled =
+              !hasSavedCodes;
             node.meta.label.context = {
               ...node.meta.label.context,
-              hasSavedCodeCheckbox: true,
+              beforeComponent: (
+                <BackupCodeSavedCheckbox
+                  isChecked={hasSavedCodes}
+                  toggleChecked={() => setSavedCodes(!hasSavedCodes)}
+                />
+              ),
             };
           }
           if (node.meta.label?.id === ORY_LABEL_BACKUP_CODE_VIEW) {
@@ -155,7 +166,7 @@ const SetupBackupCodes: NextPage = () => {
             node.meta.label.context = {
               ...node.meta.label.context,
               appearance: "",
-              showBackupCodesIntro: true,
+              beforeComponent: <BackupIntro />,
             };
           }
           if (node.meta.label?.id === ORY_LABEL_BACKUP_CODE_DEACTIVATE) {
@@ -163,7 +174,21 @@ const SetupBackupCodes: NextPage = () => {
             node.meta.label.context = {
               ...node.meta.label.context,
               appearance: "negative",
-              hasConfirmBackupCodeModal: true,
+              onClick: () => {
+                setHasDeletionModal(true);
+              },
+              afterComponent: (
+                <BackupCodeDeletionModal
+                  hasModal={hasDeletionModal}
+                  onCancel={() => setHasDeletionModal(false)}
+                  onConfirm={() =>
+                    void handleSubmit({
+                      method: "lookup_secret",
+                      lookup_secret_disable: true,
+                    })
+                  }
+                />
+              ),
             };
             hasDisableCodes = true;
           }
