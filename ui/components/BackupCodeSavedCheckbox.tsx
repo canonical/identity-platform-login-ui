@@ -10,7 +10,6 @@ export const BackupCodeSavedCheckbox: FC<Props> = ({
   isChecked,
   toggleChecked,
 }) => {
-
   return (
     <div className="u-sv3 u-no-print checkbox-save-backup-codes">
       <CheckboxInput
