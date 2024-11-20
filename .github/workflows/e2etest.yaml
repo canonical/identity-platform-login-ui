@@ -32,10 +32,9 @@ jobs:
           ./ui/tests/scripts/02-start-ui.sh &
           curl --head --fail --retry-delay 2 --retry 100 --retry-connrefused --insecure http://localhost:4455/ui/reset_email
 
-      - name: Register grafana as client and boot its container
+      - name: Register a client and boot its container
         run: |
-          ./ui/tests/scripts/03-start-grafana.sh &
-          sleep 10 # wait for grafana to boot up
+          ./ui/tests/scripts/03-start-oidc-app.sh
 
       - name: Install Playwright Browser
         run: cd ui && npx playwright install --with-deps chromium
