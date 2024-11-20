@@ -82,7 +82,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     <>
       {showBackupCodesIntro && (
         <div className="u-sv2">
-          Backup codes are on-time passwords you can use to log in when your
+          Backup codes are one-time passwords you can use to log in when your
           main two-factor authentication method isn{"'"}t available.
         </div>
       )}
