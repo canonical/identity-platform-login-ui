@@ -15,11 +15,11 @@ import { AxiosError } from "axios";
 import { Spinner } from "@canonical/react-components";
 import { UiNodeInputAttributes } from "@ory/client/api";
 import {
-  ORY_LABEL_BACKUP_CODE_CONFIRM,
-  ORY_LABEL_BACKUP_CODE_CONFIRM_TEXT,
-  ORY_LABEL_BACKUP_CODE_CREATE,
-  ORY_LABEL_BACKUP_CODE_DEACTIVATE,
-  ORY_LABEL_BACKUP_CODE_VIEW,
+  isBackupCodeConfirm,
+  isBackupCodeConfirmText,
+  isBackupCodeCreate,
+  isBackupCodeDeactivate,
+  isBackupCodeView,
 } from "../util/constants";
 import { BackupCodeDeletionModal } from "../components/BackupCodeDeletionModal";
 import { BackupIntro } from "../components/BackupIntro";
@@ -126,28 +126,25 @@ const SetupBackupCodes: NextPage = () => {
           return group === "lookup_secret";
         })
         .map((node) => {
-          if (node.meta.label?.id === ORY_LABEL_BACKUP_CODE_CREATE) {
+          if (isBackupCodeCreate(node)) {
             node.meta.label.text = "Create backup codes";
             node.meta.label.context = {
               ...node.meta.label.context,
               beforeComponent: <BackupIntro />,
             };
           }
-          if (
-            node.meta.label?.id === ORY_LABEL_BACKUP_CODE_CREATE &&
-            hasDisableCodes
-          ) {
+          if (isBackupCodeCreate(node) && hasDisableCodes) {
             node.meta.label.text = "Create new backup codes";
             node.meta.label.context = {
               ...node.meta.label.context,
               appearance: "",
             };
           }
-          if (node.meta.label?.id === ORY_LABEL_BACKUP_CODE_CONFIRM_TEXT) {
+          if (isBackupCodeConfirmText(node)) {
             node.meta.label.text =
               "These are your back up codes. Each backup code can be used once. Store these in a secure place.";
           }
-          if (node.meta.label?.id === ORY_LABEL_BACKUP_CODE_CONFIRM) {
+          if (isBackupCodeConfirm(node)) {
             node.meta.label.text = "Create backup codes";
             (node.attributes as UiNodeInputAttributes).disabled =
               !hasSavedCodes;
@@ -161,7 +158,7 @@ const SetupBackupCodes: NextPage = () => {
               ),
             };
           }
-          if (node.meta.label?.id === ORY_LABEL_BACKUP_CODE_VIEW) {
+          if (isBackupCodeView(node)) {
             node.meta.label.text = "View backup codes";
             node.meta.label.context = {
               ...node.meta.label.context,
@@ -169,7 +166,7 @@ const SetupBackupCodes: NextPage = () => {
               beforeComponent: <BackupIntro />,
             };
           }
-          if (node.meta.label?.id === ORY_LABEL_BACKUP_CODE_DEACTIVATE) {
+          if (isBackupCodeDeactivate(node)) {
             node.meta.label.text = "Deactivate backup codes";
             node.meta.label.context = {
               ...node.meta.label.context,
@@ -195,16 +192,10 @@ const SetupBackupCodes: NextPage = () => {
           return node;
         })
         .sort((a, b) => {
-          if (
-            a.meta.label?.id === ORY_LABEL_BACKUP_CODE_CREATE &&
-            b.meta.label?.id === ORY_LABEL_BACKUP_CODE_DEACTIVATE
-          ) {
+          if (isBackupCodeCreate(a) && isBackupCodeDeactivate(b)) {
             return -1;
           }
-          if (
-            a.meta.label?.id === ORY_LABEL_BACKUP_CODE_DEACTIVATE &&
-            b.meta.label?.id === ORY_LABEL_BACKUP_CODE_CREATE
-          ) {
+          if (isBackupCodeDeactivate(a) && isBackupCodeCreate(b)) {
             return 1;
           }
           return 0;
