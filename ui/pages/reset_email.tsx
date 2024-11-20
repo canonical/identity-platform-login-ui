@@ -7,6 +7,7 @@ import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { Spinner } from "@canonical/react-components";
+import { BackButton } from "../components/BackButton";
 
 const ResetEmail: NextPage = () => {
   const [flow, setFlow] = useState<RecoveryFlow>();
@@ -104,6 +105,10 @@ const ResetEmail: NextPage = () => {
                 label: {
                   ...node.meta.label,
                   text: "Reset password",
+                  context: {
+                    ...node.meta.label.context,
+                    beforeComponent: <BackButton />,
+                  },
                 },
               },
             };

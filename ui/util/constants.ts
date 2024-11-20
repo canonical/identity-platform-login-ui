@@ -9,6 +9,8 @@ const ORY_LABEL_BACKUP_CODE_CONFIRM_TEXT = 1050010;
 const ORY_LABEL_BACKUP_CODE_CONFIRM = 1050011;
 const ORY_LABEL_BACKUP_CODE_VIEW = 1050007;
 const ORY_LABEL_BACKUP_CODE_DEACTIVATE = 1050016;
+const ORY_LABEL_USE_AUTHENTICATOR = 1010009;
+const ORY_LABEL_USE_BACKUP_CODE = 1010010;
 
 type NodeWithLabel = UiNode & { meta: { label: object } };
 
@@ -26,3 +28,9 @@ export const isBackupCodeView = (node: UiNode): node is NodeWithLabel =>
 
 export const isBackupCodeDeactivate = (node: UiNode): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_BACKUP_CODE_DEACTIVATE;
+
+export const isUseAuthenticator = (node: UiNode): node is NodeWithLabel =>
+  node.meta.label?.id === ORY_LABEL_USE_AUTHENTICATOR;
+
+export const isUseBackupCode = (node: UiNode): node is NodeWithLabel =>
+  node.meta.label?.id === ORY_LABEL_USE_BACKUP_CODE;
