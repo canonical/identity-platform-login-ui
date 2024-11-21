@@ -130,7 +130,7 @@ To test the authorization code flow you can use the Ory Hydra CLI:
 ```shell
 code_client=$(hydra create client \
   --endpoint http://localhost:4445 \
-  --name grafana \
+  --name "Some App" \
   --grant-type authorization_code,refresh_token \
   --response-type code \
   --format json \

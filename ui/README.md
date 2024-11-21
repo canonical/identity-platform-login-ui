@@ -38,22 +38,32 @@ for more information.
 
 We rely on playwright as an executor for end-to-end testing.  To run the tests, follow these steps below.
 
-1. boot the cluster with dependant backend systems:
+1. make sure you have installed our test dependencies playwright and oathtool:
+
+    ```console
+    sudo npx playwright install-deps
+    sudo apt install oathtool
+    ```
+
+   Also make sure that you have installed docker:
+   See https://docs.docker.com/engine/install/ubuntu/ on how to install docker
+
+2. boot the cluster with dependant backend systems:
 
     `./ui/tests/scripts/01-start-cluster.sh`
 
-2. start the login ui:
+3. start the login ui:
 
     `./ui/tests/scripts/02-start-ui.sh`
 
-3. register grafana as client and boot its container:
+4. register an OIDC client and boot its container using the hydra CLI:
 
-   `./ui/tests/scripts/03-start-grafana.sh`
+   `./ui/tests/scripts/03-start-oidc-app.sh`
 
-4. Run the tests with the following command:
+5. Run the tests with the following command:
 
     `make test-e2e`
 
 You can follow the tests with an open browser. This is helpful in case of failures to debug the root cause.
 
-    make test-e2e-debug
+    `make test-e2e-debug`
