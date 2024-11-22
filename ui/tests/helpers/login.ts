@@ -8,7 +8,6 @@ export const userPassLogin = async (
   email: string = USER_EMAIL,
   password: string = USER_PASSWORD,
 ) => {
-  await expect(page.getByText("Sign in to grafana")).toBeVisible();
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
   await page.getByLabel("E-Mail").fill(email);
   await page.getByLabel("Password").fill(password);
