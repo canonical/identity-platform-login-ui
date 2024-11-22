@@ -142,7 +142,7 @@ const SetupBackupCodes: NextPage = () => {
           }
           if (isBackupCodeConfirmText(node)) {
             node.meta.label.text =
-              "These are your back up codes. Each backup code can be used once. Store these in a secure place.";
+              "These are your backup codes. Each backup code can be used once. Store these in a secure place.";
           }
           if (isBackupCodeConfirm(node)) {
             node.meta.label.text = "Create backup codes";
