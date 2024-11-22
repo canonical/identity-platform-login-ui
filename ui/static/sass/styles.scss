@@ -47,3 +47,24 @@ hr {
 .backup-codes li:before {
   font-weight: 700;
 }
+
+.security-key-list {
+  border-top: $border;
+  display: flex;
+  padding-bottom: $spv--small;
+  padding-top: $spv--small;
+
+  .name {
+    flex-grow: 1;
+  }
+
+  .created {
+    min-width: 12rem;
+    text-align: right;
+  }
+
+  .delete {
+    min-width: 8rem;
+    text-align: right;
+  }
+}

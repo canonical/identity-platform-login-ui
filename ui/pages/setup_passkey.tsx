@@ -1,5 +1,6 @@
 import {
   SettingsFlow,
+  UiNode,
   UiNodeInputAttributes,
   UpdateSettingsFlowBody,
 } from "@ory/client";
@@ -12,11 +13,16 @@ import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
-import { Spinner } from "@canonical/react-components";
+import { Button, Icon, Spinner } from "@canonical/react-components";
 import { UpdateSettingsFlowWithWebAuthnMethod } from "@ory/client/api";
+import {
+  ORY_LABEL_ID_NAME_OF_THE_SECURITY_KEY,
+  ORY_LABEL_ID_REMOVE_SECURITY_ID,
+} from "../util/constants";
 
 const SetupPasskey: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
+  const [loadingKeysFlow, setLoadingKeysFlow] = useState<SettingsFlow>();
 
   // Get ?flow=... from the URL
   const router = useRouter();
@@ -32,7 +38,10 @@ const SetupPasskey: NextPage = () => {
     if (flowId) {
       kratos
         .getSettingsFlow({ id: String(flowId) })
-        .then((res) => setFlow(res.data))
+        .then((res) => {
+          setFlow(res.data);
+          setLoadingKeysFlow(undefined);
+        })
         .catch(handleFlowError("settings", setFlow));
       return;
     }
@@ -80,27 +89,120 @@ const SetupPasskey: NextPage = () => {
           },
         })
         .then(() => {
-          window.location.href = "./setup_passkey";
+          setFlow(undefined);
+          setLoadingKeysFlow(flow);
         })
         .catch(handleFlowError("settings", setFlow));
     }
     return Promise.resolve();
   };
 
+  const renderFlow = flow ?? loadingKeysFlow;
+  const existingKeys: UiNode[] = [];
+  const existingKeyNames: string[] = [];
+
   const webauthnFlow = {
-    ...flow,
+    ...renderFlow,
     ui: {
-      ...flow?.ui,
-      nodes: flow?.ui.nodes.filter(({ group }) => {
-        return group === "webauthn" || group === "default";
-      }),
+      ...renderFlow?.ui,
+      nodes: renderFlow?.ui.nodes
+        .filter((node) => {
+          if (node.meta.label?.id === ORY_LABEL_ID_REMOVE_SECURITY_ID) {
+            existingKeys.push(node);
+            if (
+              node.meta.label?.context &&
+              "display_name" in node.meta.label.context
+            ) {
+              existingKeyNames.push(
+                node.meta.label.context.display_name as string,
+              );
+            }
+            return false;
+          }
+          return node.group === "webauthn" || node.group === "default";
+        })
+        .map((node) => {
+          if (node.meta.label?.id === ORY_LABEL_ID_NAME_OF_THE_SECURITY_KEY) {
+            node.meta.label.text = "Security key name";
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              deduplicateValues: existingKeyNames,
+            };
+          }
+          return node;
+        }),
     },
   } as SettingsFlow;
 
   return (
-    <PageLayout title="Set up a passkey login method">
-      {flow ? (
-        <Flow onSubmit={handleSubmit} flow={webauthnFlow} />
+    <PageLayout title="Add a security key">
+      {webauthnFlow ? (
+        <>
+          <Flow onSubmit={handleSubmit} flow={webauthnFlow} />
+          {existingKeys.length > 0 && (
+            <>
+              <h2 className="p-heading--4">Security keys</h2>
+
+              {loadingKeysFlow && <Spinner />}
+              {!loadingKeysFlow && (
+                <>
+                  {existingKeys.map((item, k) => {
+                    let displayName = "";
+                    if (
+                      item.meta.label?.context &&
+                      "display_name" in item.meta.label.context
+                    ) {
+                      displayName = item.meta.label.context
+                        .display_name as string;
+                    }
+                    let addedAt = "";
+                    if (
+                      item.meta.label?.context &&
+                      "added_at_unix" in item.meta.label.context
+                    ) {
+                      const date = new Date(
+                        (item.meta.label.context.added_at_unix as number) *
+                          1000,
+                      );
+                      addedAt = date.toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "2-digit",
+                      });
+                    }
+
+                    return (
+                      <div className="security-key-list" key={k}>
+                        <div className="name">{displayName}</div>
+                        <div className="u-text--muted u-hide--small created">
+                          Created {addedAt}
+                        </div>
+                        <div className="delete">
+                          <Button
+                            type="button"
+                            className="u-no-margin--bottom"
+                            hasIcon
+                            onClick={() => {
+                              void handleSubmit({
+                                method: "webauthn",
+                                webauthn_remove: (
+                                  item.attributes as UiNodeInputAttributes
+                                )?.value as string,
+                              });
+                            }}
+                          >
+                            <Icon name="delete" />
+                            <span>Delete</span>
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </>
+          )}
+        </>
       ) : (
         <Spinner />
       )}

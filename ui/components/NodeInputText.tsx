@@ -6,6 +6,7 @@ import { NodeInputProps } from "./helpers";
 export const NodeInputText: FC<NodeInputProps> = ({
   attributes,
   node,
+  value,
   setValue,
   disabled,
   dispatchSubmit,
@@ -13,6 +14,14 @@ export const NodeInputText: FC<NodeInputProps> = ({
 }) => {
   const urlParams = new URLSearchParams(window.location.search);
   const isWebauthn = urlParams.get("webauthn") === "true";
+
+  let deduplicateValues: string[] = [];
+  if (node.meta.label?.context) {
+    if ("deduplicateValues" in node.meta.label.context) {
+      deduplicateValues = node.meta.label.context.deduplicateValues as string[];
+    }
+  }
+  const isDuplicate = deduplicateValues.includes(value as string);
 
   return (
     <Input
@@ -30,7 +39,9 @@ export const NodeInputText: FC<NodeInputProps> = ({
         attributes.name === "lookup_secret" ||
         (isWebauthn && attributes.name === "identifier")
           ? error
-          : undefined
+          : isDuplicate
+            ? "This value is already in use"
+            : undefined
       }
       onChange={(e) => void setValue(e.target.value)}
       onKeyDown={(e) => {

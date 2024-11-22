@@ -2,6 +2,7 @@ import { getNodeLabel } from "@ory/integrations/ui";
 import { Button } from "@canonical/react-components";
 import React, { FC, FormEvent } from "react";
 import { NodeInputProps } from "./helpers";
+import { ORY_LABEL_ID_ADD_SECURITY_KEY } from "../util/constants";
 
 const getWebAuthnPayload = (evalCode: string): unknown => {
   const tmp = evalCode
@@ -107,9 +108,14 @@ export const NodeInputButton: FC<NodeInputProps> = ({
     void setValue(attributes.value as string).then(() => dispatchSubmit(e));
   };
 
+  // add security key button is supposed to be positive green
+  const appearance =
+    node.meta.label?.id === ORY_LABEL_ID_ADD_SECURITY_KEY ? "positive" : "";
+
   return (
     <>
       <Button
+        appearance={appearance}
         onClick={handleClick}
         disabled={attributes.disabled || disabled}
         name={attributes.name}
