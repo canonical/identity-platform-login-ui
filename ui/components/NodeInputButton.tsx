@@ -6,15 +6,15 @@ import { ORY_LABEL_ID_ADD_SECURITY_KEY } from "../util/constants";
 
 const getWebAuthnPayload = (evalCode: string): unknown => {
   const tmp = evalCode
-    .replace("window.__oryWebAuthnRegistration(", "")
-    .replace("window.__oryWebAuthnLogin(", "");
+    .replace("window.oryWebAuthnRegistration(", "")
+    .replace("window.oryWebAuthnLogin(", "");
   const raw = tmp.substring(0, tmp.length - 1);
   return JSON.parse(raw) as unknown;
 };
 
 interface WebauthnWindow extends Window {
-  __oryWebAuthnRegistration: (a: unknown) => void;
-  __oryWebAuthnLogin: (a: unknown) => void;
+  oryWebAuthnRegistration: (a: unknown) => void;
+  oryWebAuthnLogin: (a: unknown) => void;
   __oryStartedLogin: boolean;
 }
 
@@ -37,11 +37,11 @@ export const NodeInputButton: FC<NodeInputProps> = ({
     webauthnWindow.__oryStartedLogin = true;
 
     // retry login until the webauthn.js script is finished loading
-    // and the __oryWebAuthnLogin function is available
+    // and the oryWebAuthnLogin function is available
     const triggerWebauthnLogin = (count: number) =>
       setTimeout(() => {
-        if ("__oryWebAuthnLogin" in webauthnWindow) {
-          webauthnWindow.__oryWebAuthnLogin(loginParams);
+        if ("oryWebAuthnLogin" in webauthnWindow) {
+          webauthnWindow.oryWebAuthnLogin(loginParams);
         } else if (count < 100) {
           triggerWebauthnLogin(count + 1);
         }
@@ -52,7 +52,7 @@ export const NodeInputButton: FC<NodeInputProps> = ({
 
   // automatically start the webauthn login
   if (
-    onClick?.startsWith("window.__oryWebAuthnLogin(") &&
+    onClick?.startsWith("window.oryWebAuthnLogin(") &&
     getNodeLabel(node) === "Continue"
   ) {
     startWebAuthnLogin();
@@ -61,7 +61,7 @@ export const NodeInputButton: FC<NodeInputProps> = ({
   const handleClick = (e: MouseEvent | FormEvent) => {
     // webauthn has a custom handler in webauthn.js to be called
     // preventing the call of eval with below code
-    if (onClick?.startsWith("window.__oryWebAuthnRegistration(")) {
+    if (onClick?.startsWith("window.oryWebAuthnRegistration(")) {
       e.stopPropagation();
       e.preventDefault();
 
@@ -89,18 +89,18 @@ export const NodeInputButton: FC<NodeInputProps> = ({
 
       const webauthnWindow = window as unknown as WebauthnWindow;
       const registrationParams = getWebAuthnPayload(onClick);
-      webauthnWindow.__oryWebAuthnRegistration(registrationParams);
+      webauthnWindow.oryWebAuthnRegistration(registrationParams);
 
       return;
     }
 
-    if (onClick?.startsWith("window.__oryWebAuthnLogin(")) {
+    if (onClick?.startsWith("window.oryWebAuthnLogin(")) {
       e.stopPropagation();
       e.preventDefault();
 
       const webauthnWindow = window as unknown as WebauthnWindow;
       const loginParams = getWebAuthnPayload(onClick);
-      webauthnWindow.__oryWebAuthnLogin(loginParams);
+      webauthnWindow.oryWebAuthnLogin(loginParams);
 
       return;
     }
