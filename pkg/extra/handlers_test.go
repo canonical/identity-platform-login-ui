@@ -28,7 +28,8 @@ func TestHandleConsentSuccess(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
 
-	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	session := kClient.NewSession("test")
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 	consent := hClient.NewOAuth2ConsentRequest("challenge")
 	accept := hClient.NewOAuth2RedirectTo("test")
 
@@ -42,7 +43,7 @@ func TestHandleConsentSuccess(t *testing.T) {
 
 	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
-	mockService.EXPECT().AcceptConsent(gomock.Any(), session.Identity, consent).Return(accept, nil)
+	mockService.EXPECT().AcceptConsent(gomock.Any(), *session.Identity, consent).Return(accept, nil)
 
 	mux := chi.NewMux()
 	NewAPI(mockService, mockKratosService, mockLogger).RegisterEndpoints(mux)
@@ -80,7 +81,8 @@ func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
 
-	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	session := kClient.NewSession("test")
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 	consent := hClient.NewOAuth2ConsentRequest("challenge")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
@@ -93,7 +95,7 @@ func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 
 	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
-	mockService.EXPECT().AcceptConsent(gomock.Any(), session.Identity, consent).Return(nil, fmt.Errorf("error"))
+	mockService.EXPECT().AcceptConsent(gomock.Any(), *session.Identity, consent).Return(nil, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
@@ -116,7 +118,8 @@ func TestHandleConsentFailOnGetConsent(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
 
-	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	session := kClient.NewSession("test")
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
 
