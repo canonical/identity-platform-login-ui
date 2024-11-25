@@ -14,9 +14,21 @@ import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Spinner } from "@canonical/react-components";
 import { UiNodeInputAttributes } from "@ory/client/api";
+import {
+  isBackupCodeConfirm,
+  isBackupCodeConfirmText,
+  isBackupCodeCreate,
+  isBackupCodeDeactivate,
+  isBackupCodeView,
+} from "../util/constants";
+import { BackupCodeDeletionModal } from "../components/BackupCodeDeletionModal";
+import { BackupIntro } from "../components/BackupIntro";
+import { BackupCodeSavedCheckbox } from "../components/BackupCodeSavedCheckbox";
 
 const SetupBackupCodes: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
+  const [hasDeletionModal, setHasDeletionModal] = React.useState(false);
+  const [hasSavedCodes, setSavedCodes] = React.useState(false);
 
   // Get ?flow=... from the URL
   const router = useRouter();
@@ -104,18 +116,95 @@ const SetupBackupCodes: NextPage = () => {
     [flow, router],
   );
 
+  let hasDisableCodes = false;
   const lookupFlow = {
     ...flow,
     ui: {
       ...flow?.ui,
-      nodes: flow?.ui.nodes.filter(({ group }) => {
-        return group === "lookup_secret";
-      }),
+      nodes: flow?.ui.nodes
+        .filter(({ group }) => {
+          return group === "lookup_secret";
+        })
+        .map((node) => {
+          if (isBackupCodeCreate(node)) {
+            node.meta.label.text = "Create backup codes";
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              beforeComponent: <BackupIntro />,
+            };
+          }
+          if (isBackupCodeCreate(node) && hasDisableCodes) {
+            node.meta.label.text = "Create new backup codes";
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              appearance: "",
+            };
+          }
+          if (isBackupCodeConfirmText(node)) {
+            node.meta.label.text =
+              "These are your backup codes. Each backup code can be used once. Store these in a secure place.";
+          }
+          if (isBackupCodeConfirm(node)) {
+            node.meta.label.text = "Create backup codes";
+            (node.attributes as UiNodeInputAttributes).disabled =
+              !hasSavedCodes;
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              beforeComponent: (
+                <BackupCodeSavedCheckbox
+                  isChecked={hasSavedCodes}
+                  toggleChecked={() => setSavedCodes(!hasSavedCodes)}
+                />
+              ),
+            };
+          }
+          if (isBackupCodeView(node)) {
+            node.meta.label.text = "View backup codes";
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              appearance: "",
+              beforeComponent: <BackupIntro />,
+            };
+          }
+          if (isBackupCodeDeactivate(node)) {
+            node.meta.label.text = "Deactivate backup codes";
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              appearance: "negative",
+              onClick: () => {
+                setHasDeletionModal(true);
+              },
+              afterComponent: (
+                <BackupCodeDeletionModal
+                  hasModal={hasDeletionModal}
+                  onCancel={() => setHasDeletionModal(false)}
+                  onConfirm={() =>
+                    void handleSubmit({
+                      method: "lookup_secret",
+                      lookup_secret_disable: true,
+                    })
+                  }
+                />
+              ),
+            };
+            hasDisableCodes = true;
+          }
+          return node;
+        })
+        .sort((a, b) => {
+          if (isBackupCodeCreate(a) && isBackupCodeDeactivate(b)) {
+            return -1;
+          }
+          if (isBackupCodeDeactivate(a) && isBackupCodeCreate(b)) {
+            return 1;
+          }
+          return 0;
+        }),
     },
   } as SettingsFlow;
 
   return (
-    <PageLayout title="Set up backup codes">
+    <PageLayout title="Backup codes">
       {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
     </PageLayout>
   );

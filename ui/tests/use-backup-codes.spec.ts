@@ -13,14 +13,15 @@ test("backup recovery code setup and usage", async ({ context, page }) => {
   await finishAuthFlow(page);
 
   await page.goto("http://localhost:4455/ui/setup_backup_codes");
-  await clickButton(page, "Generate new backup recovery codes");
+  await clickButton(page, "Create backup codes");
 
   const backupCode = await page.locator(".p-list__item").first().textContent();
   if (!backupCode) {
     throw new Error("Backup code not found");
   }
 
-  await clickButton(page, "Confirm backup recovery codes");
+  await page.getByText("I saved the backup codes").click();
+  await clickButton(page, "Create backup codes");
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
