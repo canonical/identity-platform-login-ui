@@ -12,6 +12,7 @@ const ORY_LABEL_BACKUP_CODE_DEACTIVATE = 1050016;
 const ORY_LABEL_USE_AUTHENTICATOR = 1010009;
 const ORY_LABEL_USE_BACKUP_CODE = 1010010;
 const ORY_LABEL_SIGN_IN_WITH_PASSWORD = 1010022;
+const ORY_LABEL_CONTINUE_PASSWORD_RESET = 1070009;
 
 type NodeWithLabel = UiNode & { meta: { label: object } };
 
@@ -38,3 +39,6 @@ export const isUseBackupCode = (node: UiNode): node is NodeWithLabel =>
 
 export const isSignInWithPassword = (node: UiNode): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_SIGN_IN_WITH_PASSWORD;
+
+export const isContinueWithPasswordReset = (node: UiNode): node is NodeWithLabel =>
+  node.meta.label?.id === ORY_LABEL_CONTINUE_PASSWORD_RESET;
