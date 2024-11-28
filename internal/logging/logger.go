@@ -16,7 +16,7 @@ import (
 // defer logger.Desugar().Sync()
 // ```
 // to make sure all has been piped out before terminating
-func NewLogger(l, logpath string) *zap.SugaredLogger {
+func NewLogger(l string) *zap.SugaredLogger {
 	var lvl string
 
 	val := strings.ToLower(l)

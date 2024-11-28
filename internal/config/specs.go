@@ -9,7 +9,6 @@ type EnvSpec struct {
 	TracingEnabled   bool   `envconfig:"tracing_enabled" default:"true"`
 
 	LogLevel string `envconfig:"log_level" default:"error"`
-	LogFile  string `envconfig:"log_file" default:"log.txt"`
 	Debug    bool   `envconfig:"debug" default:"false"`
 
 	Port    int    `envconfig:"port" default:"8080"`
