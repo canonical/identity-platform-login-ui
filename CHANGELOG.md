@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.6](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.5...v0.18.6) (2024-11-28)
+
+
+### Bug Fixes
+
+* set SettingsFlow.ContinueWith to nil to work around the json marshal error ([dddf488](https://github.com/canonical/identity-platform-login-ui/commit/dddf488861d16c22c4abfe76d481fd478919f075))
+* use hydra CLI to perform OIDC flow ([ed22b51](https://github.com/canonical/identity-platform-login-ui/commit/ed22b512564e4e1088f305b0117f78e5cf1d2385))
+
 ## [0.18.5](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.4...v0.18.5) (2024-11-13)
 
 
