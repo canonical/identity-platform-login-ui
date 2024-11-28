@@ -8,7 +8,6 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // NewLogger creates a new default logger
@@ -17,7 +16,7 @@ import (
 // defer logger.Desugar().Sync()
 // ```
 // to make sure all has been piped out before terminating
-func NewLogger(l, logpath string) *zap.SugaredLogger {
+func NewLogger(l string) *zap.SugaredLogger {
 	var lvl string
 
 	val := strings.ToLower(l)
@@ -54,22 +53,8 @@ func NewLogger(l, logpath string) *zap.SugaredLogger {
 		panic(err)
 	}
 
-	core := zapcore.NewTee(
-		zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.AddSync(newRotator(logpath)), cfg.Level),
-		zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.AddSync(os.Stdout), cfg.Level),
-	)
+	core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.AddSync(os.Stdout), cfg.Level)
 
 	return zap.New(core).Sugar()
 
-}
-
-func newRotator(path string) *lumberjack.Logger {
-	r := new(lumberjack.Logger)
-
-	r.Filename = path
-	r.MaxSize = 500 // megabyte
-	r.MaxBackups = 2
-	r.MaxAge = 3 // day
-
-	return r
 }

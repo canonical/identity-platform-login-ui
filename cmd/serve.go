@@ -55,7 +55,7 @@ func serve() {
 		panic(fmt.Errorf("issues with environment sourcing: %s", err))
 	}
 
-	logger := logging.NewLogger(specs.LogLevel, specs.LogFile)
+	logger := logging.NewLogger(specs.LogLevel)
 
 	logger.Debugf("env vars: %v", specs)
 
