@@ -42,7 +42,7 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accept, err := a.service.AcceptConsent(r.Context(), session.Identity, consent)
+	accept, err := a.service.AcceptConsent(r.Context(), *session.Identity, consent)
 	if err != nil {
 		a.logger.Errorf("error when calling hydra: %s", err)
 		// TODO @shipperizer evaluate return status

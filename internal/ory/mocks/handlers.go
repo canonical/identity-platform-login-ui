@@ -85,7 +85,7 @@ func SetSchemaServerURL(url string) {
 
 func SelfServiceLoginBrowserHandler(w http.ResponseWriter, r *http.Request) {
 	uiContainer := kratos_client.NewUiContainerWithDefaults()
-	response := kratos_client.NewLoginFlow(time.Now(), BROWSER_LOGIN_ID, time.Now(), r.URL.Path, BROWSER_LOGIN_TYPE, *uiContainer)
+	response := kratos_client.NewLoginFlow(time.Now(), BROWSER_LOGIN_ID, time.Now(), r.URL.Path, "choose_method", BROWSER_LOGIN_TYPE, *uiContainer)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	jsonResp, err := json.Marshal(response)
@@ -98,7 +98,7 @@ func SelfServiceLoginBrowserHandler(w http.ResponseWriter, r *http.Request) {
 
 func SelfServiceGetLoginHandler(w http.ResponseWriter, r *http.Request) {
 	uiContainer := kratos_client.NewUiContainerWithDefaults()
-	response := kratos_client.NewLoginFlow(time.Now(), BROWSER_LOGIN_ID, time.Now(), r.URL.Path, BROWSER_LOGIN_TYPE, *uiContainer)
+	response := kratos_client.NewLoginFlow(time.Now(), BROWSER_LOGIN_ID, time.Now(), r.URL.Path, "choose_method", BROWSER_LOGIN_TYPE, *uiContainer)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	jsonResp, err := json.Marshal(response)
@@ -136,7 +136,8 @@ func Oauth2AuthRequestLoginAcceptHandler(w http.ResponseWriter, r *http.Request)
 func SessionWhoAmIHandler(w http.ResponseWriter, r *http.Request) {
 	traits := IdentityTraits{Name: TRAITS_NAME}
 	identity := kratos_client.NewIdentity(IDENTITY_ID, SCHEMA_ID, schemaServerURL, traits)
-	response := kratos_client.NewSession(SESSION_ID, *identity)
+	response := kratos_client.NewSession(SESSION_ID)
+	response.SetIdentity(*identity)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
@@ -151,8 +152,9 @@ func SessionWhoAmIHandler(w http.ResponseWriter, r *http.Request) {
 func SelfServiceLoginHandler(w http.ResponseWriter, r *http.Request) {
 	traits := IdentityTraits{Name: TRAITS_NAME}
 	identity := kratos_client.NewIdentity(IDENTITY_ID, SCHEMA_ID, schemaServerURL, traits)
-	session := kratos_client.NewSession(SESSION_ID, *identity)
+	session := kratos_client.NewSession(SESSION_ID)
 	response := kratos_client.NewSuccessfulNativeLogin(*session)
+	response.Session.SetIdentity(*identity)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	jsonResp, err := json.Marshal(response)

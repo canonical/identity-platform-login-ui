@@ -8,6 +8,7 @@ import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { Spinner } from "@canonical/react-components";
 import { BackButton } from "../components/BackButton";
+import { isContinueWithPasswordReset } from "../util/constants";
 
 const ResetEmail: NextPage = () => {
   const [flow, setFlow] = useState<RecoveryFlow>();
@@ -119,6 +120,13 @@ const ResetEmail: NextPage = () => {
       },
     } as RecoveryFlow;
   };
+
+  flow?.ui.nodes.map((node) => {
+    if (isContinueWithPasswordReset(node)) {
+      node.meta.label.text = "Submit";
+    }
+    return node;
+  });
 
   return (
     <PageLayout title={getTitle()}>

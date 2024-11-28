@@ -72,6 +72,7 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = "test"
+	flow.State = "passed_challenge"
 
 	loginChallenge := "login_challenge_2341235123231"
 	returnTo, _ := url.JoinPath(BASE_URL, "ui/login")
@@ -205,6 +206,7 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed(t *testing.T) {
 
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = "test"
+	flow.State = "passed_challenge"
 
 	loginChallenge := "login_challenge_2341235123231"
 	returnTo, _ := url.JoinPath(BASE_URL, "ui/login")
@@ -255,7 +257,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
-	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	session := kClient.NewSession("test")
 	redirect := "https://some/path/to/somewhere"
 	redirectTo := hClient.NewOAuth2RedirectTo(redirect)
 
@@ -303,7 +305,7 @@ func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
-	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	session := kClient.NewSession("test")
 
 	loginChallenge := "login_challenge_2341235123231"
 
@@ -342,6 +344,7 @@ func TestHandleGetLoginFlow(t *testing.T) {
 	id := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.SetId(id)
+	flow.SetState("choose_method")
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_LOGIN_FLOW_URL, nil)
 	values := req.URL.Query()
@@ -419,6 +422,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 	flowId := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = flowId
+	flow.ExpiresAt = time.Now().UTC()
 	redirectTo := "https://some/path/to/somewhere"
 	redirectFlow := new(BrowserLocationChangeRequired)
 	redirectFlow.RedirectTo = &redirectTo
@@ -452,7 +456,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
-	flowResponse := kClient.NewLoginFlowWithDefaults()
+	flowResponse := new(BrowserLocationChangeRequired)
 	if err := json.Unmarshal(data, flowResponse); err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
@@ -543,7 +547,7 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
-	session := kClient.NewSession("test", *kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"}))
+	session := kClient.NewSession("test")
 
 	lookupMethod := kClient.NewSessionAuthenticationMethodWithDefaults()
 	lookupMethod.SetMethod("lookup_secret")
@@ -883,6 +887,8 @@ func TestHandleUpdateRecoveryFlow(t *testing.T) {
 	flowId := "test"
 	flow := kClient.NewRecoveryFlowWithDefaults()
 	flow.Id = flowId
+	flow.ExpiresAt = time.Now().UTC()
+
 	redirectTo := "https://example.com/ui/reset_email"
 	redirectFlow := new(BrowserLocationChangeRequired)
 	redirectFlow.RedirectTo = &redirectTo
@@ -914,7 +920,7 @@ func TestHandleUpdateRecoveryFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
-	flowResponse := kClient.NewRecoveryFlowWithDefaults()
+	flowResponse := new(BrowserLocationChangeRequired)
 	if err := json.Unmarshal(data, flowResponse); err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
@@ -1073,6 +1079,7 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 	flow := kClient.NewSettingsFlowWithDefaults()
 	flow.SetId(id)
 	flow.SetState("show_form")
+	flow.Identity.SetTraits(map[string]string{"name": "name"})
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
@@ -1192,6 +1199,7 @@ func TestHandleUpdateSettingsFlow(t *testing.T) {
 	flow := kClient.NewSettingsFlowWithDefaults()
 	flow.Id = flowId
 	flow.State = "show_form"
+	flow.Identity.SetTraits(map[string]string{"name": "name"})
 
 	flowBody := new(kClient.UpdateSettingsFlowBody)
 	flowBody.UpdateSettingsFlowWithPasswordMethod = kClient.NewUpdateSettingsFlowWithPasswordMethod("password", "password")

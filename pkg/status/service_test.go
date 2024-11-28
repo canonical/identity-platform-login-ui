@@ -18,7 +18,7 @@ import (
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_status.go -source=./interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_kratos.go -mock_names MetadataApi=MockKratosMetadataApi github.com/ory/kratos-client-go MetadataApi
+//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_kratos.go -mock_names MetadataApi=MockKratosMetadataAPI github.com/ory/kratos-client-go MetadataAPI
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_hydra.go -mock_names MetadataApi=MockHydraMetadataApi "github.com/ory/hydra-client-go/v2" MetadataApi
 
 func TestKratosReadySuccess(t *testing.T) {
@@ -28,12 +28,12 @@ func TestKratosReadySuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockKratos := NewMockKratosMetadataApi(ctrl)
+	mockKratos := NewMockMetadataAPI(ctrl)
 	mockHydra := NewMockHydraMetadataApi(ctrl)
 
 	ctx := context.Background()
 
-	kratosIsReadyReturn := kClient.MetadataApiIsReadyRequest{
+	kratosIsReadyReturn := kClient.MetadataAPIIsReadyRequest{
 		ApiService: mockKratos,
 	}
 
@@ -42,7 +42,7 @@ func TestKratosReadySuccess(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).AnyTimes().Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().IsReady(gomock.Any()).Times(1).Return(kratosIsReadyReturn)
 	mockKratos.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r kClient.MetadataApiIsReadyRequest) (*kClient.IsAlive200Response, *http.Response, error) {
+		func(r kClient.MetadataAPIIsReadyRequest) (*kClient.IsAlive200Response, *http.Response, error) {
 			isAlive := kClient.NewIsAlive200ResponseWithDefaults()
 			httpResp := new(http.Response)
 			httpResp.StatusCode = http.StatusOK
@@ -68,7 +68,7 @@ func TestHydraReadySuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockKratos := NewMockKratosMetadataApi(ctrl)
+	mockKratos := NewMockMetadataAPI(ctrl)
 	mockHydra := NewMockHydraMetadataApi(ctrl)
 
 	ctx := context.Background()
@@ -108,12 +108,12 @@ func TestKratosReadyFailure(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockKratos := NewMockKratosMetadataApi(ctrl)
+	mockKratos := NewMockMetadataAPI(ctrl)
 	mockHydra := NewMockHydraMetadataApi(ctrl)
 
 	ctx := context.Background()
 
-	kratosIsReadyReturn := kClient.MetadataApiIsReadyRequest{
+	kratosIsReadyReturn := kClient.MetadataAPIIsReadyRequest{
 		ApiService: mockKratos,
 	}
 
@@ -122,7 +122,7 @@ func TestKratosReadyFailure(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).AnyTimes().Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().IsReady(gomock.Any()).Times(1).Return(kratosIsReadyReturn)
 	mockKratos.EXPECT().IsReadyExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r kClient.MetadataApiIsReadyRequest) (*kClient.IsAlive200Response, *http.Response, error) {
+		func(r kClient.MetadataAPIIsReadyRequest) (*kClient.IsAlive200Response, *http.Response, error) {
 			httpResp := new(http.Response)
 			httpResp.StatusCode = http.StatusInternalServerError
 			return nil, httpResp, fmt.Errorf("error")
@@ -147,7 +147,7 @@ func TestHydraReadyFailure(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockKratos := NewMockKratosMetadataApi(ctrl)
+	mockKratos := NewMockMetadataAPI(ctrl)
 	mockHydra := NewMockHydraMetadataApi(ctrl)
 
 	ctx := context.Background()

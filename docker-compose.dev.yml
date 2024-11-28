@@ -1,7 +1,7 @@
 version: '3.7'
 services:
   kratos-migrate:
-    image: ghcr.io/canonical/kratos:1.1.0
+    image: ghcr.io/canonical/kratos:1.3.1
     environment:
       - DSN=postgres://kratos:kratos@postgres/kratos?sslmode=disable
     volumes:
@@ -19,7 +19,7 @@ services:
   kratos:
     depends_on:
       - kratos-migrate
-    image: ghcr.io/canonical/kratos:1.1.0
+    image: ghcr.io/canonical/kratos:1.3.1
     container_name: kratos
     ports:
       - '4433:4433' # public
@@ -42,7 +42,7 @@ services:
     networks:
       - intranet
   kratos-setup:
-    image: ghcr.io/canonical/kratos:1.1.0
+    image: ghcr.io/canonical/kratos:1.3.1
     depends_on:
       - kratos
     restart: "no"
