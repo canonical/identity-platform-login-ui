@@ -42,17 +42,9 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 	session := hClient.NewAcceptOAuth2ConsentRequestSession()
 	session.SetIdToken(misc.GetUserClaims(identity, *consent))
 
-	atAudience := make([]string, 0)
-	if consent.RequestedAccessTokenAudience != nil {
-		atAudience = append(atAudience, consent.RequestedAccessTokenAudience...)
-	}
-	if consent.HasClient() {
-		atAudience = append(atAudience, *consent.Client.ClientId)
-	}
-
 	r := hClient.NewAcceptOAuth2ConsentRequest()
 	r.SetGrantScope(consent.RequestedScope)
-	r.SetGrantAccessTokenAudience(atAudience)
+	r.SetGrantAccessTokenAudience(consent.RequestedAccessTokenAudience)
 	r.SetSession(*session)
 	r.SetRemember(true)
 
