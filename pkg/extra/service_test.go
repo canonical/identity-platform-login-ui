@@ -62,7 +62,6 @@ func TestGetConsentSuccess(t *testing.T) {
 		t.Fatalf("expected error to be nil not  %v", err)
 	}
 }
-
 func TestGetConsentFails(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -120,10 +119,7 @@ func TestAcceptConsentSuccess(t *testing.T) {
 		ApiService: mockHydraOAuth2Api,
 	}
 	consent := hClient.NewOAuth2ConsentRequest("test.challenge")
-	client := hClient.NewOAuth2Client()
-	client.SetClientId("client_id")
-	consent.SetClient(*client)
-	identity := kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]interface{}{"name": "name"})
+	identity := kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 	accept := hClient.NewOAuth2RedirectTo(redirect)
 	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOAuth2Api)
@@ -141,10 +137,8 @@ func TestAcceptConsentSuccess(t *testing.T) {
 				t.Fatalf("expected scope as %s, got %s", consent.GetRequestedScope(), acceptReq.GetGrantScope())
 			}
 
-			atAud := consent.GetRequestedAccessTokenAudience()
-			atAud = append(atAud, "client_id")
-			if !reflect.DeepEqual(acceptReq.GetGrantAccessTokenAudience(), atAud) {
-				t.Fatalf("expected audience as %s, got %s", atAud, acceptReq.GetGrantAccessTokenAudience())
+			if !reflect.DeepEqual(acceptReq.GetGrantAccessTokenAudience(), consent.GetRequestedAccessTokenAudience()) {
+				t.Fatalf("expected audience as %s, got %s", consent.GetRequestedAccessTokenAudience(), acceptReq.GetGrantAccessTokenAudience())
 			}
 
 			return accept, new(http.Response), nil
@@ -177,10 +171,7 @@ func TestAcceptConsentFails(t *testing.T) {
 		ApiService: mockHydraOAuth2Api,
 	}
 	consent := hClient.NewOAuth2ConsentRequest("test.challenge")
-	client := hClient.NewOAuth2Client()
-	client.SetClientId("client_id")
-	consent.SetClient(*client)
-	identity := kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]interface{}{"name": "name"})
+	identity := kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
@@ -199,10 +190,8 @@ func TestAcceptConsentFails(t *testing.T) {
 				t.Fatalf("expected scope as %s, got %s", consent.GetRequestedScope(), acceptReq.GetGrantScope())
 			}
 
-			atAud := consent.GetRequestedAccessTokenAudience()
-			atAud = append(atAud, "client_id")
-			if !reflect.DeepEqual(acceptReq.GetGrantAccessTokenAudience(), atAud) {
-				t.Fatalf("expected audience as %s, got %s", atAud, acceptReq.GetGrantAccessTokenAudience())
+			if !reflect.DeepEqual(acceptReq.GetGrantAccessTokenAudience(), consent.GetRequestedAccessTokenAudience()) {
+				t.Fatalf("expected audience as %s, got %s", consent.GetRequestedAccessTokenAudience(), acceptReq.GetGrantAccessTokenAudience())
 			}
 
 			return nil, new(http.Response), fmt.Errorf("error")
