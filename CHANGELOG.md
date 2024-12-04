@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.19.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.6...v0.19.0) (2024-12-04)
+
+
+### Features
+
+* drop LOG_FILE env var ([9a97de7](https://github.com/canonical/identity-platform-login-ui/commit/9a97de7c895e3ab936af153b9b7156574de76fd6))
+
+
+### Bug Fixes
+
+* do not write logs to file ([031bd55](https://github.com/canonical/identity-platform-login-ui/commit/031bd5577d8927470f7ed039865701523e9d2b74))
+
 ## [0.18.6](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.5...v0.18.6) (2024-11-28)
 
 
