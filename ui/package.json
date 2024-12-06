@@ -6,15 +6,15 @@
     "@canonical/react-components": "0.51.4",
     "@ory/client": "1.15.6",
     "@ory/integrations": "1.2.1",
-    "@react-pdf/renderer": "^3.4.4",
-    "next": "14.2.1",
-    "react": "18.3.1",
+    "@react-pdf/renderer": "^4.0.0",
+    "next": "15.0.4",
+    "react": "19.0.0",
     "react-toastify": "10.0.5",
     "sass": "^1.75.0",
     "vanilla-framework": "4.10.0"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "clean": "rm -rf node_modules css static/css *.log _site/ .next/",
@@ -43,14 +43,14 @@
     ]
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "14.2.1",
+    "@next/eslint-plugin-next": "15.0.4",
     "@playwright/test": "1.46.0",
     "@testing-library/jest-dom": "6.6.2",
-    "@testing-library/react": "15.0.2",
+    "@testing-library/react": "16.1.0",
     "@testing-library/user-event": "14.5.2",
-    "@typescript-eslint/eslint-plugin": "7.18.0",
+    "@typescript-eslint/eslint-plugin": "8.17.0",
     "autoprefixer": "10.4.19",
-    "eslint": "8.57.1",
+    "eslint": "9.16.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-prettier": "5.2.1",
     "eslint-plugin-react": "7.37.1",
