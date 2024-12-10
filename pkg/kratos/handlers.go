@@ -257,7 +257,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 
 	if shouldRegenerateBackupCodes {
-		a.lookupSecretsSettingsRedirect(w, flowId, *loginFlow.ReturnTo)
+		a.lookupSecretsSettingsRedirect(w, flowId, *loginFlow.ReturnTo, loginFlow.GetOauth2LoginChallenge())
 		return
 	}
 
@@ -388,7 +388,9 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo, loginChalleng
 	)
 }
 
-func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId string, returnTo string) {
+func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, returnTo, loginChallenge string) {
+	var sessionId string
+
 	redirect, err := url.JoinPath("/", a.contextPath, ui.UI, "/backup_codes_regenerate")
 	if err != nil {
 		err = fmt.Errorf("unable to build backup codes redirect path, possible misconfiguration, err: %v", err)
@@ -397,9 +399,14 @@ func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId string
 		return
 	}
 
+	if loginChallenge != "" {
+		sessionId = hash(loginChallenge)
+	}
+
 	r, _ := addParamsToURL(redirect, queryParam{"return_to", returnTo}, queryParam{"flow", flowId})
 	errorId := RegenerateBackupCodesError
 
+	a.cookieManager.SetStateCookie(w, FlowStateCookie{LoginChallengeHash: sessionId, BackupCodeUsed: true})
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
 		ErrorBrowserLocationChangeRequired{
