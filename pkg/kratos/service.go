@@ -151,8 +151,9 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 		return true, nil
 	}
 
-	// This is the first user login, they set up their authenticator app, no need to re-auth
-	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && c.TotpSetup {
+	// This is the first user login, they set up their authenticator app
+	// Or backup code was used for login, no need to re-auth
+	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed) {
 		return false, nil
 	}
 

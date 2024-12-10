@@ -362,6 +362,58 @@ func TestMustReAuthenticateSuccess(t *testing.T) {
 	}
 }
 
+func TestMustReAuthenticateBackupCodeUsed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+
+	ctx := context.Background()
+	loginChallenge := "123456"
+	sessionId := "1234"
+	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+		ApiService: mockHydraOauthApi,
+	}
+	lr := hClient.NewOAuth2LoginRequestWithDefaults()
+	lr.Skip = true
+	lr.SessionId = &sessionId
+	session := kClient.NewSession("test")
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+
+	state := FlowStateCookie{LoginChallengeHash: sessionId, BackupCodeUsed: true}
+
+	resp := new(http.Response)
+
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
+	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r hClient.OAuth2ApiGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
+			if lc := (*string)(reflect.ValueOf(r).FieldByName("loginChallenge").UnsafePointer()); *lc != loginChallenge {
+				t.Fatalf("expected loginChallenge to be %s, got %s", loginChallenge, *lc)
+			}
+			return lr, resp, nil
+		},
+	)
+
+	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).
+		MustReAuthenticate(ctx, loginChallenge, session, state)
+
+	if ret != false {
+		t.Fatalf("expected returned value to be `false` not  %v", ret)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
 func TestMustReAuthenticateNoSkip(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

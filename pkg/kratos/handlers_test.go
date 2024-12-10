@@ -586,6 +586,7 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().HasNotEnoughLookupSecretsLeft(gomock.Any(), session.Identity.GetId()).Return(true, nil)
+	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
