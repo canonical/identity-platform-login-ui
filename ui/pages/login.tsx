@@ -16,7 +16,10 @@ import { kratos } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
-import { UpdateLoginFlowWithOidcMethod } from "@ory/client/api";
+import {
+  UpdateLoginFlowWithOidcMethod,
+  UpdateLoginFlowWithPasswordMethod,
+} from "@ory/client/api";
 import { isSignInEmailInput, isSignInWithPassword } from "../util/constants";
 
 const Login: NextPage = () => {
@@ -103,13 +106,25 @@ const Login: NextPage = () => {
         }
         return "password";
       };
+      const method = getMethod();
+
+      const isPasswordMissing = !(values as UpdateLoginFlowWithPasswordMethod)
+        .password;
+
+      const setEmptyPassword = () => {
+        (values as UpdateLoginFlowWithPasswordMethod).password = "";
+      };
+
+      if (method === "password" && isPasswordMissing) {
+        setEmptyPassword();
+      }
 
       return kratos
         .updateLoginFlow({
           flow: String(flow?.id),
           updateLoginFlowBody: {
             ...values,
-            method: getMethod(),
+            method,
           } as UpdateLoginFlowBody,
         })
         .then(({ data }) => {
