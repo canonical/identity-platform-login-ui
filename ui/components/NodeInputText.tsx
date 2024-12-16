@@ -14,6 +14,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
 }) => {
   const urlParams = new URLSearchParams(window.location.search);
   const isWebauthn = urlParams.get("webauthn") === "true";
+  const ucFirst = (s?: string) =>
+    s ? String(s[0]).toUpperCase() + String(s).slice(1) : s;
 
   let deduplicateValues: string[] = [];
   if (node.meta.label?.context) {
@@ -38,7 +40,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
         attributes.name === "totp_code" ||
         attributes.name === "lookup_secret" ||
         (isWebauthn && attributes.name === "identifier")
-          ? error
+          ? ucFirst(error)
           : isDuplicate
             ? "This value is already in use"
             : undefined
