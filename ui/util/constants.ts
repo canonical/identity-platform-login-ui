@@ -11,6 +11,7 @@ const ORY_LABEL_BACKUP_CODE_VIEW = 1050007;
 const ORY_LABEL_BACKUP_CODE_DEACTIVATE = 1050016;
 const ORY_LABEL_USE_AUTHENTICATOR = 1010009;
 const ORY_LABEL_USE_BACKUP_CODE = 1010010;
+const ORY_LABEL_SIGN_IN_EMAIL_INPUT = 1070002;
 const ORY_LABEL_SIGN_IN_WITH_PASSWORD = 1010022;
 const ORY_LABEL_CONTINUE_PASSWORD_RESET = 1070009;
 
@@ -36,6 +37,9 @@ export const isUseAuthenticator = (node: UiNode): node is NodeWithLabel =>
 
 export const isUseBackupCode = (node: UiNode): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_USE_BACKUP_CODE;
+
+export const isSignInEmailInput = (node: UiNode): node is NodeWithLabel =>
+  node.meta.label?.id === ORY_LABEL_SIGN_IN_EMAIL_INPUT;
 
 export const isSignInWithPassword = (node: UiNode): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_SIGN_IN_WITH_PASSWORD;
