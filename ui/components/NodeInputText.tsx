@@ -25,6 +25,33 @@ export const NodeInputText: FC<NodeInputProps> = ({
   }
   const isDuplicate = deduplicateValues.includes(value as string);
 
+  const message = node.messages.map(({ text }) => text).join(" ");
+  const defaultValue = message.includes("Invalid login method")
+    ? (value as string)
+    : message;
+
+  const getError = () => {
+    if (message.startsWith("Invalid login method")) {
+      return "Invalid login method";
+    }
+
+    if (isDuplicate) {
+      return "This value is already in use";
+    }
+
+    if (
+      attributes.name === "code" ||
+      attributes.name === "totp" ||
+      attributes.name === "totp_code" ||
+      attributes.name === "lookup_secret" ||
+      (isWebauthn && attributes.name === "identifier")
+    ) {
+      return ucFirst(error);
+    }
+
+    return undefined;
+  };
+
   return (
     <Input
       type="text"
@@ -33,18 +60,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
       name={attributes.name}
       label={getNodeLabel(node)}
       disabled={disabled}
-      defaultValue={node.messages.map(({ text }) => text).join(" ")}
-      error={
-        attributes.name === "code" ||
-        attributes.name === "totp" ||
-        attributes.name === "totp_code" ||
-        attributes.name === "lookup_secret" ||
-        (isWebauthn && attributes.name === "identifier")
-          ? ucFirst(error)
-          : isDuplicate
-            ? "This value is already in use"
-            : undefined
-      }
+      defaultValue={defaultValue}
+      error={getError()}
       onChange={(e) => void setValue(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
