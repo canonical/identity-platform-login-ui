@@ -108,13 +108,25 @@ const Login: NextPage = () => {
         }
         return "password";
       };
+      const method = getMethod();
+
+      const isPasswordMissing = !(values as UpdateLoginFlowWithPasswordMethod)
+        .password;
+
+      const setEmptyPassword = () => {
+        (values as UpdateLoginFlowWithPasswordMethod).password = "";
+      };
+
+      if (method === "password" && isPasswordMissing) {
+        setEmptyPassword();
+      }
 
       return kratos
         .updateLoginFlow({
           flow: String(flow?.id),
           updateLoginFlowBody: {
             ...values,
-            method: getMethod(),
+            method,
           } as UpdateLoginFlowBody,
         })
         .then(({ data }) => {
