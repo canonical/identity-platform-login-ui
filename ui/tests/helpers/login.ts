@@ -9,7 +9,7 @@ export const userPassLogin = async (
   password: string = USER_PASSWORD,
 ) => {
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
-  await page.getByLabel("E-Mail").fill(email);
+  await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 };

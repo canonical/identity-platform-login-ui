@@ -17,7 +17,7 @@ import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
 import { UpdateLoginFlowWithOidcMethod } from "@ory/client/api";
-import { isSignInWithPassword } from "../util/constants";
+import { isSignInEmailInput, isSignInWithPassword } from "../util/constants";
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
@@ -252,6 +252,9 @@ const Login: NextPage = () => {
   renderFlow?.ui.nodes.map((node) => {
     if (isSignInWithPassword(node)) {
       node.meta.label.text = "Sign in";
+    }
+    if (isSignInEmailInput(node)) {
+      node.meta.label.text = "Email";
     }
     return node;
   });
