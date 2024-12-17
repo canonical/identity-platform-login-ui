@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
@@ -11,6 +12,11 @@ import (
 
 	oidc "github.com/canonical/identity-platform-login-ui/pkg/oidc"
 )
+
+type QueryParam struct {
+	Name  string
+	Value string
+}
 
 // dump these in here for now
 
@@ -44,4 +50,18 @@ func GetUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentReques
 	}
 
 	return ret
+}
+
+func AddParamsToURL(u string, qs ...QueryParam) (string, error) {
+	uu, err := url.Parse(u)
+	if err != nil {
+		return "", err
+	}
+	q := uu.Query()
+	for _, qp := range qs {
+		q.Set(qp.Name, qp.Value)
+	}
+	uu.RawQuery = q.Encode()
+
+	return uu.String(), nil
 }
