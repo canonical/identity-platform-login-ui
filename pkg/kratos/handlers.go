@@ -86,7 +86,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// if the user is logged in, CreateBrowserLoginFlow call will return an empty response
 	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order to avoid this bug.
 	session, _, _ := a.service.CheckSession(r.Context(), r.Cookies())
-	if session != nil {
+	if session != nil && a.mfaEnabled {
 		shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
 
 		if err != nil {

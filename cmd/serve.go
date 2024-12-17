@@ -93,7 +93,7 @@ func serve() {
 		panic("Invalid authorization model provided")
 	}
 
-	router := web.NewRouter(kClient, kAdminClient, hClient, authorizer, cookieManager, distFS, specs.MFAEnabled, specs.BaseURL, tracer, monitor, logger)
+	router := web.NewRouter(kClient, kAdminClient, hClient, authorizer, cookieManager, distFS, specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.BaseURL, tracer, monitor, logger)
 
 	logger.Infof("Starting server on port %v", specs.Port)
 
