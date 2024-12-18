@@ -22,6 +22,7 @@ type API struct {
 	logger                        logging.LoggerInterface
 	baseURL                       string
 	oidcWebAuthnSequencingEnabled bool
+	contextPath                   string
 }
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
@@ -40,6 +41,8 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	consent_challenge := r.URL.Query().Get("consent_challenge")
+
 	if a.oidcWebAuthnSequencingEnabled {
 		// enforce webauthn setup
 		shouldEnforceWebAuthn, err := a.shouldEnforceWebAuthnWithSession(r.Context(), session)
@@ -51,13 +54,15 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if shouldEnforceWebAuthn {
-			a.webAuthnSettingsRedirect(w, r.Referer())
+			return_to, _ := url.JoinPath("/", a.contextPath, "/ui/consent")
+			return_to_consent, _ := httpHelpers.AddParamsToURL(return_to, httpHelpers.QueryParam{Name: "consent_challenge", Value: consent_challenge})
+			a.webAuthnSettingsRedirect(w, return_to_consent)
 			return
 		}
 	}
 
 	// Get the consent request
-	consent, err := a.service.GetConsent(r.Context(), r.URL.Query().Get("consent_challenge"))
+	consent, err := a.service.GetConsent(r.Context(), consent_challenge)
 
 	if err != nil {
 		a.logger.Errorf("error when calling hydra: %s", err)
@@ -88,11 +93,16 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *client.Session) (bool, error) {
-	// enforce only if authenticated with OIDC external provider as 1fa
+	hasOIDC := false
+	// enforce only if one of the authentication methods was oidc
 	for _, method := range session.AuthenticationMethods {
-		if method.Method != nil && *method.Method != "oidc" {
-			return false, nil
+		if method.Method != nil && *method.Method == "oidc" {
+			hasOIDC = true
 		}
+	}
+
+	if !hasOIDC {
+		return false, nil
 	}
 
 	webAuthnAvailable, err := a.kratos.HasWebAuthnAvailable(ctx, session.Identity.GetId())
@@ -104,7 +114,7 @@ func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *cli
 }
 
 func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, returnTo string) {
-	redirect, err := url.JoinPath(a.baseURL, "/ui/setup_passkey")
+	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_passkey")
 	if err != nil {
 		err = fmt.Errorf("unable to build webauthn redirect path, possible misconfiguration, err: %v", err)
 		a.logger.Error(err.Error())
@@ -115,13 +125,13 @@ func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, returnTo string) {
 	errorId := "session_aal2_required"
 
 	// Set the original consent URL as return_to, to continue the flow after WebAuthn key is set
-	r, _ := httpHelpers.AddParamsToURL(redirect, httpHelpers.QueryParam{Name: "return_to", Value: returnTo})
+	redirect_to, _ := httpHelpers.AddParamsToURL(redirect, httpHelpers.QueryParam{Name: "return_to", Value: returnTo})
 
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
 		kratos.ErrorBrowserLocationChangeRequired{
 			Error:             &client.GenericError{Id: &errorId},
-			RedirectBrowserTo: &r,
+			RedirectBrowserTo: &redirect_to,
 		},
 	)
 }
@@ -136,6 +146,13 @@ func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, logger log
 
 	a.baseURL = baseURL
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
+
+	fullBaseURL, err := url.Parse(baseURL)
+	if err != nil {
+		// this should never happen if app is configured properly
+		a.logger.Fatalf("Failed to construct API base URL: %v\n", err)
+	}
+	a.contextPath = fullBaseURL.Path
 
 	return a
 }
