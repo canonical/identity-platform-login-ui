@@ -84,10 +84,6 @@ type LookupSecrets []struct {
 	UsedAt time.Time `json:"used_at,omitempty"`
 }
 
-type WebAuthnCredentialsFlags []struct {
-	IsPasswordless bool `json:"is_passwordless"`
-}
-
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.ToSession")
 	defer span.End()
@@ -812,32 +808,36 @@ func (s *Service) HasWebAuthnAvailable(ctx context.Context, id string) (bool, er
 		return false, err
 	}
 
-	webauthnCredentials, ok := identity.GetCredentials()["webauthn"].Config["credentials"]
-	if !ok {
-		s.logger.Debugf("Identity has no webauthn credentials")
+	var (
+		webauthnInfo kClient.IdentityCredentials
+		ok           = false
+	)
+
+	if webauthnInfo, ok = identity.GetCredentials()["webauthn"]; !ok {
 		return false, nil
 	}
 
-	jsonbody, err := json.Marshal(webauthnCredentials)
-	if err != nil {
-		s.logger.Errorf("Marshalling to json failed: %s", err)
-		return false, err
+	credentialsSlice, ok := webauthnInfo.Config["credentials"].([]interface{})
+	if !ok {
+		// user has no webauthn keys
+		return false, nil
 	}
 
-	passwordlessFlag := new(WebAuthnCredentialsFlags)
-	if err := json.Unmarshal(jsonbody, &passwordlessFlag); err != nil {
-		s.logger.Errorf("Unmarshalling failed: %s", err)
-		return false, err
-	}
+	for _, credentialElem := range credentialsSlice {
+		if credential, ok := credentialElem.(map[string]interface{}); ok {
+			pwdless, ok := credential["is_passwordless"]
+			if !ok {
+				continue
+			}
 
-	for _, credential := range *passwordlessFlag {
-		if !credential.IsPasswordless {
-			s.logger.Debugf("Identity %s already has a 2fa webauthn key", id)
-			return true, nil
+			if !pwdless.(bool) {
+				s.logger.Debugf("Identity %s has a 2fa webauthn key", id)
+				return true, nil
+			}
 		}
 	}
 
-	return ok, nil
+	return false, nil
 }
 
 func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) (bool, error) {
