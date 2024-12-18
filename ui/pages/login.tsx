@@ -16,7 +16,10 @@ import { kratos } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
-import { UpdateLoginFlowWithOidcMethod } from "@ory/client/api";
+import {
+  UpdateLoginFlowWithOidcMethod,
+  UpdateLoginFlowWithPasswordMethod,
+} from "@ory/client/api";
 import { isSignInEmailInput, isSignInWithPassword } from "../util/constants";
 
 const Login: NextPage = () => {
@@ -36,6 +39,8 @@ const Login: NextPage = () => {
     aal,
     login_challenge,
     use_backup_code: useBackupCode,
+    email,
+    invalid_method,
   } = router.query;
 
   const redirectToErrorPage = () => {
@@ -129,6 +134,20 @@ const Login: NextPage = () => {
             return;
           }
 
+          if (
+            err.response?.data.toString().trim() ===
+            "choose a different login method"
+          ) {
+            const url = new URL(window.location.href);
+            url.searchParams.set(
+              "email",
+              (values as UpdateLoginFlowWithPasswordMethod).identifier,
+            );
+            url.searchParams.set("invalid_method", "1");
+            window.location.href = url.toString();
+            return;
+          }
+
           return Promise.reject(err);
         });
     },
@@ -178,11 +197,14 @@ const Login: NextPage = () => {
 
   if (renderFlow?.ui) {
     const urlParams = new URLSearchParams(window.location.search);
-    isWebauthn =
-      urlParams.get("webauthn") === "true" ||
+    const hasWebauthnInUrlParam = urlParams.get("webauthn") === "true";
+    const hasOnlyWebauthnNodes =
       renderFlow.ui.nodes.filter(
         (node) => node.group !== "webauthn" && node.group !== "default",
       ).length === 0;
+
+    isWebauthn =
+      (hasWebauthnInUrlParam || hasOnlyWebauthnNodes) && !invalid_method;
 
     renderFlow.ui.nodes = renderFlow?.ui.nodes.filter((node) => {
       // show webauthn elements in dedicated step after it is selected
@@ -255,6 +277,15 @@ const Login: NextPage = () => {
     }
     if (isSignInEmailInput(node)) {
       node.meta.label.text = "Email";
+    }
+    if (isSignInEmailInput(node) && email && invalid_method) {
+      (node.attributes as unknown as { value: string }).value =
+        typeof email === "string" ? email : email[email.length - 1];
+      node.messages.push({
+        id: 1,
+        type: "error",
+        text: "Invalid login method",
+      });
     }
     return node;
   });
