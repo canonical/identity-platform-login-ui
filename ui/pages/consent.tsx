@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/router";
 import React from "react";
 import { LoginFlow } from "@ory/client";
+import { KratosErrorResponse } from "../util/handleFlowError";
 
 export interface FlowResponse {
   data: {
@@ -42,6 +43,19 @@ const Consent: NextPage = () => {
             return;
           case 401:
             // do nothing, the user is not logged in
+            return;
+          case 303:
+            // This status is returned when user must be redirected
+            // to set up 2fa
+            if (
+              (err.response?.data as KratosErrorResponse).error?.id ==
+              "session_aal2_required"
+            ) {
+              window.location.href = (
+                err.response?.data as KratosErrorResponse
+              ).redirect_browser_to;
+              return;
+            }
             return;
         }
 
