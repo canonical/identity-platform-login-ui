@@ -15,6 +15,7 @@ import (
 	client "github.com/ory/kratos-client-go"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
@@ -86,7 +87,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// if the user is logged in, CreateBrowserLoginFlow call will return an empty response
 	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order to avoid this bug.
 	session, _, _ := a.service.CheckSession(r.Context(), r.Cookies())
-	if session != nil {
+	if session != nil && a.mfaEnabled {
 		shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
 
 		if err != nil {
@@ -169,7 +170,7 @@ func (a *API) returnToUrl(loginChallenge string) (string, error) {
 
 	// url.JoinPath already performed this operation, if we get here we're good
 	if loginChallenge != "" {
-		return addParamsToURL(returnTo, queryParam{name: "login_challenge", value: loginChallenge})
+		return httpHelpers.AddParamsToURL(returnTo, httpHelpers.QueryParam{Name: "login_challenge", Value: loginChallenge})
 	}
 
 	return returnTo, nil
@@ -376,7 +377,7 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo, loginChalleng
 	}
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
-	r, _ := addParamsToURL(redirect, queryParam{"return_to", returnTo})
+	r, _ := httpHelpers.AddParamsToURL(redirect, httpHelpers.QueryParam{Name: "return_to", Value: returnTo})
 
 	a.cookieManager.SetStateCookie(w, FlowStateCookie{LoginChallengeHash: sessionId, TotpSetup: true})
 	w.WriteHeader(http.StatusSeeOther)
@@ -403,7 +404,7 @@ func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, retur
 		sessionId = hash(loginChallenge)
 	}
 
-	r, _ := addParamsToURL(redirect, queryParam{"return_to", returnTo}, queryParam{"flow", flowId})
+	r, _ := httpHelpers.AddParamsToURL(redirect, httpHelpers.QueryParam{Name: "return_to", Value: returnTo}, httpHelpers.QueryParam{Name: "flow", Value: flowId})
 	errorId := RegenerateBackupCodesError
 
 	a.cookieManager.SetStateCookie(w, FlowStateCookie{LoginChallengeHash: sessionId, BackupCodeUsed: true})
@@ -639,20 +640,6 @@ func kratosSessionUnsetCookie() *http.Cookie {
 		HttpOnly: true,
 		Secure:   true,
 	}
-}
-
-func addParamsToURL(u string, qs ...queryParam) (string, error) {
-	uu, err := url.Parse(u)
-	if err != nil {
-		return "", err
-	}
-	q := uu.Query()
-	for _, qp := range qs {
-		q.Set(qp.name, qp.value)
-	}
-	uu.RawQuery = q.Encode()
-
-	return uu.String(), nil
 }
 
 func NewAPI(
