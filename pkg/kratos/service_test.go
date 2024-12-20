@@ -2628,3 +2628,82 @@ func TestHasNotEnoughLookupSecretsLeftFailonGetIdentityExecute(t *testing.T) {
 		t.Fatalf("expected error not nil")
 	}
 }
+
+func TestHasWebAuthnAvailableSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosIdentityApi := NewMockIdentityAPI(ctrl)
+
+	ctx := context.Background()
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+	}
+	identityRequest := kClient.IdentityAPIGetIdentityRequest{
+		ApiService: mockKratosIdentityApi,
+	}
+	identity := kClient.Identity{
+		Id: "test",
+	}
+
+	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
+	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)
+	mockKratosIdentityApi.EXPECT().GetIdentityExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r kClient.IdentityAPIGetIdentityRequest) (*kClient.Identity, *http.Response, error) {
+			return &identity, &resp, nil
+		},
+	)
+
+	HasWebAuthnAvailable, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).HasWebAuthnAvailable(ctx, "test")
+
+	if HasWebAuthnAvailable != false {
+		t.Fatalf("expected return value to be false not %v", HasWebAuthnAvailable)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not %v", err)
+	}
+}
+
+func TestHasWebAuthnAvailableFailonGetIdentityExecute(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosIdentityApi := NewMockIdentityAPI(ctrl)
+
+	ctx := context.Background()
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	resp := http.Response{
+		Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+	}
+	identityRequest := kClient.IdentityAPIGetIdentityRequest{
+		ApiService: mockKratosIdentityApi,
+	}
+
+	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
+	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)
+	mockKratosIdentityApi.EXPECT().GetIdentityExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
+
+	HasWebAuthnAvailable, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).HasWebAuthnAvailable(ctx, "test")
+
+	if HasWebAuthnAvailable != false {
+		t.Fatalf("expected return value to be false not %v", HasWebAuthnAvailable)
+	}
+	if err == nil {
+		t.Fatalf("expected error not nil")
+	}
+}
