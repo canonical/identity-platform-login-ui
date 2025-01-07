@@ -1,6 +1,6 @@
 import { getNodeLabel } from "@ory/integrations/ui";
 import { Input } from "@canonical/react-components";
-import React, { FC } from "react";
+import React, { FC, useEffect } from "react";
 import { NodeInputProps } from "./helpers";
 
 export const NodeInputEmail: FC<NodeInputProps> = ({
@@ -13,7 +13,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
 }) => {
   const [hasLocalValidation, setLocalValidation] = React.useState(false);
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+$/;
   const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
   const localError = isInvalid ? "Incorrect email address" : undefined;
   const message = node.messages.map(({ text }) => text).join(" ");
@@ -23,9 +23,27 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
 
   const error = hasLocalValidation ? localError : upstreamError;
 
+  useEffect(() => {
+    const submitBtn =
+      document.getElementsByClassName("p-button--positive")?.[0];
+    if (error) {
+      submitBtn?.setAttribute("disabled", "");
+    } else {
+      submitBtn?.removeAttribute("disabled");
+    }
+  }, [error]);
+
   if (value == undefined) {
     void setValue(defaultValue);
   }
+
+  const submitOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !error) {
+      e.preventDefault();
+      e.stopPropagation();
+      void dispatchSubmit(e, "code");
+    }
+  };
 
   return (
     <Input
@@ -37,13 +55,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
       error={error}
       onChange={(e) => void setValue(e.target.value)}
       onBlur={() => setLocalValidation(true)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.stopPropagation();
-          void dispatchSubmit(e, "code");
-        }
-      }}
+      onKeyDown={submitOnEnter}
     />
   );
 };
