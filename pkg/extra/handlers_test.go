@@ -48,7 +48,7 @@ func TestHandleConsentSuccess(t *testing.T) {
 	mockService.EXPECT().AcceptConsent(gomock.Any(), *session.Identity, consent).Return(accept, nil)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, mockLogger, BASE_URL, false).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -109,7 +109,7 @@ func TestHandleConsentWhenOIDCSequencingEnabled(t *testing.T) {
 	mockService.EXPECT().AcceptConsent(gomock.Any(), *session.Identity, consent).Return(accept, nil)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, mockLogger, BASE_URL, true).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, true, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -162,7 +162,7 @@ func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, mockLogger, BASE_URL, false).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -197,7 +197,7 @@ func TestHandleConsentFailOnGetConsent(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, mockLogger, BASE_URL, false).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -228,7 +228,7 @@ func TestHandleConsentFailOnCheckSession(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, mockLogger, BASE_URL, false).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 

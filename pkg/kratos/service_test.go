@@ -2654,6 +2654,7 @@ func TestHasWebAuthnAvailableSuccess(t *testing.T) {
 		Id: "test",
 	}
 
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.HasWebAuthnAvailable").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
 	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)
 	mockKratosIdentityApi.EXPECT().GetIdentityExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -2661,6 +2662,7 @@ func TestHasWebAuthnAvailableSuccess(t *testing.T) {
 			return &identity, &resp, nil
 		},
 	)
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 
 	HasWebAuthnAvailable, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, mockTracer, mockMonitor, mockLogger).HasWebAuthnAvailable(ctx, "test")
 
@@ -2672,7 +2674,7 @@ func TestHasWebAuthnAvailableSuccess(t *testing.T) {
 	}
 }
 
-func TestHasWebAuthnAvailableFailonGetIdentityExecute(t *testing.T) {
+func TestHasWebAuthnAvailableFailOnGetIdentityExecute(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -2694,6 +2696,7 @@ func TestHasWebAuthnAvailableFailonGetIdentityExecute(t *testing.T) {
 		ApiService: mockKratosIdentityApi,
 	}
 
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.HasWebAuthnAvailable").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
 	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)
 	mockKratosIdentityApi.EXPECT().GetIdentityExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
