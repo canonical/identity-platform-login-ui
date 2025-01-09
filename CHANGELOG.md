@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.19.0...v0.19.1) (2025-01-08)
+
+
+### Bug Fixes
+
+* do not enforce re-authentication when user was offered to regenerate backup codes ([718be4d](https://github.com/canonical/identity-platform-login-ui/commit/718be4dc5dd5464ed02d39a63f0b7f93999f37f8))
+
 ## [0.19.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.18.6...v0.19.0) (2024-12-04)
 
 
