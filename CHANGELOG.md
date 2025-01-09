@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.19.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.19.2...v0.19.3) (2025-01-09)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @canonical/react-components to v1 ([c2f5ba9](https://github.com/canonical/identity-platform-login-ui/commit/c2f5ba99a7ee68b2894234e8c6f551e8f044ae20))
+* **deps:** update internal ui dependencies ([9ceb235](https://github.com/canonical/identity-platform-login-ui/commit/9ceb235d151248cb9b97f49931cb2f36108f5e02))
+* **deps:** update ui deps ([fc98396](https://github.com/canonical/identity-platform-login-ui/commit/fc9839630e952133767706b2a8068cb07b115359))
+
 ## [0.19.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.19.1...v0.19.2) (2025-01-09)
 
 
