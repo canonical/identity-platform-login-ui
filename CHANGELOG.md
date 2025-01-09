@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.19.1...v0.19.2) (2025-01-09)
+
+
+### Bug Fixes
+
+* upgrade net lib to address CVE-2024-45338 ([ae20da9](https://github.com/canonical/identity-platform-login-ui/commit/ae20da9eade9f3e7b1f12aec50beba5ea648f770)), closes [#397](https://github.com/canonical/identity-platform-login-ui/issues/397)
+
 ## [0.19.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.19.0...v0.19.1) (2025-01-08)
 
 
