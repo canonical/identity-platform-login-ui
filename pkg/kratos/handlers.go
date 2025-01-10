@@ -32,11 +32,6 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
-type queryParam struct {
-	name  string
-	value string
-}
-
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Post("/api/kratos/self-service/login", a.handleUpdateFlow)
 	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
@@ -169,7 +164,16 @@ func (a *API) returnToUrl(loginChallenge string) (string, error) {
 
 	// url.JoinPath already performed this operation, if we get here we're good
 	if loginChallenge != "" {
-		return addParamsToURL(returnTo, queryParam{name: "login_challenge", value: loginChallenge})
+		redirectTo, err := url.ParseRequestURI(returnTo)
+		if err != nil {
+			return "", err
+		}
+
+		q := redirectTo.Query()
+		q.Set("login_challenge", loginChallenge)
+		redirectTo.RawQuery = q.Encode()
+		r := redirectTo.String()
+		return r, nil
 	}
 
 	return returnTo, nil
@@ -376,7 +380,17 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo, loginChalleng
 	}
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
-	r, _ := addParamsToURL(redirect, queryParam{"return_to", returnTo})
+	redirectTo, err := url.ParseRequestURI(redirect)
+	if err != nil {
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	q := redirectTo.Query()
+	q.Set("return_to", returnTo)
+	redirectTo.RawQuery = q.Encode()
+	r := redirectTo.String()
 
 	a.cookieManager.SetStateCookie(w, FlowStateCookie{LoginChallengeHash: sessionId, TotpSetup: true})
 	w.WriteHeader(http.StatusSeeOther)
@@ -403,7 +417,18 @@ func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, retur
 		sessionId = hash(loginChallenge)
 	}
 
-	r, _ := addParamsToURL(redirect, queryParam{"return_to", returnTo}, queryParam{"flow", flowId})
+	redirectTo, err := url.ParseRequestURI(redirect)
+	if err != nil {
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	q := redirectTo.Query()
+	q.Add("return_to", returnTo)
+	q.Add("flow", flowId)
+	redirectTo.RawQuery = q.Encode()
+	r := redirectTo.String()
 	errorId := RegenerateBackupCodesError
 
 	a.cookieManager.SetStateCookie(w, FlowStateCookie{LoginChallengeHash: sessionId, BackupCodeUsed: true})
@@ -639,20 +664,6 @@ func kratosSessionUnsetCookie() *http.Cookie {
 		HttpOnly: true,
 		Secure:   true,
 	}
-}
-
-func addParamsToURL(u string, qs ...queryParam) (string, error) {
-	uu, err := url.Parse(u)
-	if err != nil {
-		return "", err
-	}
-	q := uu.Query()
-	for _, qp := range qs {
-		q.Set(qp.name, qp.value)
-	}
-	uu.RawQuery = q.Encode()
-
-	return uu.String(), nil
 }
 
 func NewAPI(
