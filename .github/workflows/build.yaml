@@ -23,7 +23,7 @@ jobs:
         id: set
         run: echo "rock=${{ steps.rockcraft.outputs.rock }}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
         with:
           path: ${{ steps.rockcraft.outputs.rock }}
           name: ${{ steps.rockcraft.outputs.rock }}
@@ -36,7 +36,7 @@ jobs:
         run: syft $(realpath ${{ steps.rockcraft.outputs.rock }}) -o spdx-json=identity_platform_login_ui.sbom.json
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
         with:
           name: identity-platform-login-ui-sbom
           path: "identity_platform_login_ui.sbom.json"
