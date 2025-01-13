@@ -2,7 +2,7 @@ import { AxiosError } from "axios";
 import { Dispatch, SetStateAction } from "react";
 import { toast } from "react-toastify";
 
-interface KratosErrorResponse {
+export interface KratosErrorResponse {
   error?: {
     id: string;
   };

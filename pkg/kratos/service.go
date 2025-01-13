@@ -798,6 +798,52 @@ func (s *Service) HasTOTPAvailable(ctx context.Context, id string) (bool, error)
 	return ok, nil
 }
 
+func (s *Service) HasWebAuthnAvailable(ctx context.Context, id string) (bool, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.HasWebAuthnAvailable")
+	defer span.End()
+
+	identity, _, err := s.kratosAdmin.IdentityApi().
+		GetIdentity(ctx, id).
+		IncludeCredential([]string{"webauthn"}).
+		Execute()
+
+	if err != nil {
+		return false, err
+	}
+
+	var (
+		webauthnInfo kClient.IdentityCredentials
+		ok           = false
+	)
+
+	if webauthnInfo, ok = identity.GetCredentials()["webauthn"]; !ok {
+		s.logger.Debugf("Identity %s has no credential entries", id)
+		return false, nil
+	}
+
+	credentialsSlice, ok := webauthnInfo.Config["credentials"].([]interface{})
+	if !ok {
+		// user has no webauthn keys
+		s.logger.Debugf("Identity %s has no webauthn credentials", id)
+		return false, nil
+	}
+
+	for _, credentialElem := range credentialsSlice {
+		credential, ok := credentialElem.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		isPasswordless, ok := credential["is_passwordless"]
+		if ok && !isPasswordless.(bool) {
+			s.logger.Debugf("Identity %s has a 2fa webauthn key", id)
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) (bool, error) {
 
 	identity, _, err := s.kratosAdmin.IdentityApi().

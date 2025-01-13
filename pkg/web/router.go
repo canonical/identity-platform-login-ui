@@ -30,6 +30,7 @@ func NewRouter(
 	cookieManager *kratos.AuthCookieManager,
 	distFS fs.FS,
 	mfaEnabled bool,
+	oidcWebAuthnSequencingEnabled bool,
 	baseURL string,
 	tracer tracing.TracingInterface,
 	monitor monitoring.MonitorInterface,
@@ -67,7 +68,7 @@ func NewRouter(
 		cookieManager,
 		logger,
 	).RegisterEndpoints(router)
-	extra.NewAPI(extra.NewService(hydraClient, tracer, monitor, logger), kratosService, logger).RegisterEndpoints(router)
+	extra.NewAPI(extra.NewService(hydraClient, tracer, monitor, logger), kratosService, baseURL, oidcWebAuthnSequencingEnabled, logger).RegisterEndpoints(router)
 	status.NewAPI(
 		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataApi(), tracer, monitor, logger),
 		tracer,
