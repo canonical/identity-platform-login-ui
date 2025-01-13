@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.20.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.19.3...v0.20.0) (2025-01-13)
+
+
+### Features
+
+* support oidc and webauthn sequencing ([0a3b26e](https://github.com/canonical/identity-platform-login-ui/commit/0a3b26ee165e0583a273a80d9d0de01a48126efa))
+
+
+### Bug Fixes
+
+* **deps:** update dependency @canonical/react-components to v1.8.0 ([040d543](https://github.com/canonical/identity-platform-login-ui/commit/040d543e9fc3355343ed610e1e105d76183560df))
+
 ## [0.19.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.19.2...v0.19.3) (2025-01-09)
 
 
