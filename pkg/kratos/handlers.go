@@ -90,9 +90,8 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if shouldEnforceMfa {
-			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge)}
-			a.mfaSettingsRedirect(w, returnTo, flowCookie)
-			a.cookieManager.SetStateCookie(w, flowCookie)
+			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge), KratosSessionIdHash: hash(session.Id)}
+			a.mfaSettingsRedirect(w, returnTo, &flowCookie)
 			return
 		}
 	}
@@ -112,6 +111,9 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	if !forceLogin {
 		response, cookies, err = a.handleCreateFlowWithSession(w, r, session, loginChallenge)
 	} else {
+		if session != nil {
+			refresh = true
+		}
 		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)
 	}
 
@@ -236,7 +238,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, cookies)
+	redirectTo, flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, cookies)
 	if err != nil {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -244,7 +246,14 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u, _ := url.Parse(loginFlow.GetReturnTo())
-	flowCookie := FlowStateCookie{OidcLogin: true, LoginChallengeHash: hash(u.Query().Get("login_challenge"))}
+	flowCookie := FlowStateCookie{LoginChallengeHash: hash(u.Query().Get("login_challenge"))}
+	session, _, err := a.service.CheckSession(r.Context(), cookies)
+	if err == nil {
+		flowCookie.KratosSessionIdHash = hash(session.Id)
+	}
+	if body.GetActualInstance() == body.UpdateLoginFlowWithOidcMethod {
+		flowCookie.OidcLogin = true
+	}
 	shouldEnforceMfa, err := a.shouldEnforceMFA(r.Context(), cookies)
 	if err != nil {
 		err = fmt.Errorf("enforce check error: %v", err)
@@ -265,20 +274,31 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 
 	if shouldRegenerateBackupCodes {
-		a.lookupSecretsSettingsRedirect(w, flowId, *loginFlow.ReturnTo, flowCookie)
-		a.cookieManager.SetStateCookie(w, flowCookie)
+		a.lookupSecretsSettingsRedirect(w, flowId, *loginFlow.ReturnTo, &flowCookie)
 		return
 	}
 
 	if shouldEnforceMfa {
-		a.mfaSettingsRedirect(w, *loginFlow.ReturnTo, flowCookie)
-		a.cookieManager.SetStateCookie(w, flowCookie)
+		a.mfaSettingsRedirect(w, *loginFlow.ReturnTo, &flowCookie)
 		return
 	}
 
 	a.cookieManager.SetStateCookie(w, flowCookie)
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(flow)
+	if redirectTo != nil {
+		_ = json.NewEncoder(w).Encode(redirectTo)
+	} else {
+		response, cookies, err := a.handleCreateFlowWithSession(w, r, &flow.Session, u.Query().Get("login_challenge"))
+		if err != nil {
+			a.logger.Errorf(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		setCookies(w, cookies)
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(response)
+	}
 }
 
 func (a *API) shouldRegenerateBackupCodes(ctx context.Context, cookies []*http.Cookie) (bool, error) {
@@ -368,7 +388,7 @@ func (a *API) is40xError(err error) bool {
 	return false
 }
 
-func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string, c FlowStateCookie) {
+func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string, c *FlowStateCookie) {
 
 	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_secure")
 
@@ -396,6 +416,7 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string, c Flow
 	redirectTo.RawQuery = q.Encode()
 	r := redirectTo.String()
 
+	a.cookieManager.SetStateCookie(w, *c)
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
 		ErrorBrowserLocationChangeRequired{
@@ -405,7 +426,7 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string, c Flow
 	)
 }
 
-func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, returnTo string, c FlowStateCookie) {
+func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, returnTo string, c *FlowStateCookie) {
 	redirect, err := url.JoinPath("/", a.contextPath, ui.UI, "/backup_codes_regenerate")
 	if err != nil {
 		err = fmt.Errorf("unable to build backup codes redirect path, possible misconfiguration, err: %v", err)
@@ -429,6 +450,7 @@ func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, retur
 	errorId := RegenerateBackupCodesError
 
 	c.BackupCodeUsed = true
+	a.cookieManager.SetStateCookie(w, *c)
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
 		ErrorBrowserLocationChangeRequired{
@@ -707,6 +729,15 @@ l1:
 		ret = append(ret, c)
 	}
 	return ret
+}
+
+func getCookie(cookies []*http.Cookie, name string) *http.Cookie {
+	for _, c := range cookies {
+		if c.Name == name {
+			return c
+		}
+	}
+	return nil
 }
 
 func hash(plain string) string {

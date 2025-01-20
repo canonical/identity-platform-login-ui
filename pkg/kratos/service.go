@@ -153,7 +153,7 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 
 	// This is the first user login, they set up their authenticator app
 	// Or backup code was used for login, no need to re-auth
-	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed || c.OidcLogin) {
+	if validateHash(session.Id, c.KratosSessionIdHash) && validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed || c.OidcLogin) {
 		return false, nil
 	}
 
@@ -379,11 +379,11 @@ func (s *Service) UpdateRecoveryFlow(
 
 func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
-) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+) (*BrowserLocationChangeRequired, *kClient.SuccessfulNativeLogin, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateLoginFlow")
 	defer span.End()
 
-	_, resp, err := s.kratos.FrontendApi().
+	f, resp, err := s.kratos.FrontendApi().
 		UpdateLoginFlow(ctx).
 		Flow(flow).
 		UpdateLoginFlowBody(body).
@@ -396,14 +396,14 @@ func (s *Service) UpdateLoginFlow(
 	// redirected to.
 	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
 		err := s.getUiError(resp.Body)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
 		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	c := resp.Cookies()
@@ -423,7 +423,10 @@ func (s *Service) UpdateLoginFlow(
 	// because this is not a real error.
 	returnToResp := BrowserLocationChangeRequired{RedirectTo: redirectResp.RedirectBrowserTo}
 
-	return &returnToResp, c, nil
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		return &returnToResp, nil, c, nil
+	}
+	return nil, f, c, nil
 }
 
 func (s *Service) UpdateSettingsFlow(
