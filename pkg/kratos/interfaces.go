@@ -30,7 +30,7 @@ type ServiceInterface interface {
 	CheckSession(context.Context, []*http.Cookie) (*kClient.Session, []*http.Cookie, error)
 	AcceptLoginRequest(context.Context, *kClient.Session, string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error)
 	MustReAuthenticate(context.Context, string, *kClient.Session, FlowStateCookie) (bool, error)
-	CreateBrowserLoginFlow(context.Context, string, string, string, bool, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
+	CreateBrowserLoginFlow(context.Context, string, string, string, bool, []*http.Cookie, bool) (*kClient.LoginFlow, []*http.Cookie, error)
 	CreateBrowserRecoveryFlow(context.Context, string, []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error)
 	CreateBrowserSettingsFlow(context.Context, string, []*http.Cookie) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error)
 	GetLoginFlow(context.Context, string, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
