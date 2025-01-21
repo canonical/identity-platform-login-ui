@@ -105,6 +105,12 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 
 	accept := hClient.NewAcceptOAuth2LoginRequest(session.Identity.Id)
 	accept.SetRemember(true)
+	accept.Amr = []string{}
+	for _, r := range session.AuthenticationMethods {
+		accept.Amr = append(accept.Amr, r.GetMethod())
+	}
+	// Uncomment after we upgrade hydra sdk version
+	// accept.IdentityProviderSessionId = &session.Id
 	if session.ExpiresAt != nil {
 		expAt := time.Until(*session.ExpiresAt)
 		// Set the session to expire when the kratos session expires
