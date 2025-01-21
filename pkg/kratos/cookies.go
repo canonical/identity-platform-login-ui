@@ -29,8 +29,7 @@ type AuthCookieManager struct {
 
 type FlowStateCookie struct {
 	LoginChallengeHash string `json:"lc,omitempty"`
-	TotpSetup          bool   `json:"t,omitempty"`
-	BackupCodeUsed     bool   `json:"bc,omitempty"`
+	RequestedAt        string `json:"ra",omitempty`
 }
 
 func (a *AuthCookieManager) SetStateCookie(w http.ResponseWriter, state FlowStateCookie) error {
