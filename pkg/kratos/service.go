@@ -153,7 +153,7 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 
 	// This is the first user login, they set up their authenticator app
 	// Or backup code was used for login, no need to re-auth
-	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed) {
+	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed || c.OidcLogin) {
 		return false, nil
 	}
 
@@ -166,7 +166,7 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 }
 
 func (s *Service) CreateBrowserLoginFlow(
-	ctx context.Context, aal, returnTo, loginChallenge string, refresh bool, cookies []*http.Cookie,
+	ctx context.Context, aal, returnTo, loginChallenge string, refresh bool, cookies []*http.Cookie, oidcSequencing bool,
 ) (*kClient.LoginFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserLoginFlow")
 	defer span.End()
@@ -178,10 +178,12 @@ func (s *Service) CreateBrowserLoginFlow(
 		Refresh(refresh).
 		Cookie(httpHelpers.CookiesToString(cookies))
 
-	if loginChallenge != "" {
-		request = request.LoginChallenge(loginChallenge)
-	} else if loginChallenge == "" && returnTo == "" {
-		return nil, nil, fmt.Errorf("no return_to or login_challenge was provided")
+	if !oidcSequencing {
+		if loginChallenge != "" {
+			request = request.LoginChallenge(loginChallenge)
+		} else if loginChallenge == "" && returnTo == "" {
+			return nil, nil, fmt.Errorf("no return_to or login_challenge was provided")
+		}
 	}
 
 	flow, resp, err := request.Execute()

@@ -64,6 +64,7 @@ func NewRouter(
 	kratos.NewAPI(
 		kratosService,
 		mfaEnabled,
+		oidcWebAuthnSequencingEnabled,
 		baseURL,
 		cookieManager,
 		logger,

@@ -23,11 +23,12 @@ const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
 const LOGIN_UI_STATE_COOKIE = "login_ui_state"
 
 type API struct {
-	mfaEnabled    bool
-	service       ServiceInterface
-	baseURL       string
-	contextPath   string
-	cookieManager AuthCookieManagerInterface
+	mfaEnabled                    bool
+	oidcWebAuthnSequencingEnabled bool
+	service                       ServiceInterface
+	baseURL                       string
+	contextPath                   string
+	cookieManager                 AuthCookieManagerInterface
 
 	logger logging.LoggerInterface
 }
@@ -48,10 +49,11 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	var (
-		response         any
-		shouldEnforceMfa = false
-		cookies          []*http.Cookie
-		err              error
+		response              any
+		shouldEnforceMfa      = false
+		shouldEnforceWebAuthn = false
+		cookies               []*http.Cookie
+		err                   error
 	)
 
 	q := r.URL.Query()
@@ -95,6 +97,22 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if session != nil && a.oidcWebAuthnSequencingEnabled {
+		shouldEnforceWebAuthn, err = a.shouldEnforceWebAuthnWithSession(r.Context(), session)
+
+		if err != nil {
+			a.logger.Errorf("Failed check for WebAuthn: %v", err)
+			http.Error(w, "Failed check for WebAuthn", http.StatusInternalServerError)
+			return
+		}
+		if shouldEnforceWebAuthn {
+			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge)}
+			a.webAuthnSettingsRedirect(w, returnTo, flowCookie)
+			a.cookieManager.SetStateCookie(w, flowCookie)
+			return
+		}
+	}
+
 	c, err := a.cookieManager.GetStateCookie(r)
 	if err != nil {
 		a.logger.Errorf("Failed to parse state cookie: %v", err)
@@ -108,7 +126,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !forceLogin {
-		response, cookies, err = a.handleCreateFlowWithSession(r, session, loginChallenge)
+		response, cookies, err = a.handleCreateFlowWithSession(w, r, session, loginChallenge)
 	} else {
 		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)
 	}
@@ -134,6 +152,7 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo s
 		loginChallenge,
 		refresh,
 		filterCookies(r.Cookies(), KRATOS_SESSION_COOKIE_NAME),
+		a.oidcWebAuthnSequencingEnabled, // TODO: this breaks pwd flows when sequencing is enabled
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create login flow, err: %v", err)
@@ -147,12 +166,13 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo s
 	return flow, cookies, nil
 }
 
-func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (any, []*http.Cookie, error) {
+func (a *API) handleCreateFlowWithSession(w http.ResponseWriter, r *http.Request, session *client.Session, loginChallenge string) (any, []*http.Cookie, error) {
 	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session, loginChallenge)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to accept login request: %v", err)
 	}
 
+	a.cookieManager.ClearStateCookie(w)
 	return response, cookies, nil
 }
 
@@ -241,7 +261,18 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	u, _ := url.Parse(loginFlow.GetReturnTo())
+	flowCookie := FlowStateCookie{OidcLogin: true, LoginChallengeHash: hash(u.Query().Get("login_challenge"))}
+
 	shouldEnforceMfa, err := a.shouldEnforceMFA(r.Context(), cookies)
+	if err != nil {
+		err = fmt.Errorf("enforce check error: %v", err)
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	shouldEnforceWebAuthn, err := a.shouldEnforceWebAuthn(r.Context(), cookies)
 	if err != nil {
 		err = fmt.Errorf("enforce check error: %v", err)
 		a.logger.Error(err.Error())
@@ -270,6 +301,13 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if shouldEnforceWebAuthn {
+		a.webAuthnSettingsRedirect(w, *loginFlow.ReturnTo, flowCookie)
+		a.cookieManager.SetStateCookie(w, flowCookie)
+		return
+	}
+
+	a.cookieManager.SetStateCookie(w, flowCookie)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(flow)
 }
@@ -359,6 +397,69 @@ func (a *API) is40xError(err error) bool {
 	}
 
 	return false
+}
+
+func (a *API) shouldEnforceWebAuthn(ctx context.Context, cookies []*http.Cookie) (bool, error) {
+	if !a.oidcWebAuthnSequencingEnabled {
+		return false, nil
+	}
+
+	session, _, err := a.service.CheckSession(ctx, cookies)
+	if err != nil {
+		if a.is40xError(err) {
+			a.logger.Debugf("check session failed, err: %v", err)
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return a.shouldEnforceWebAuthnWithSession(ctx, session)
+}
+
+func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *client.Session) (bool, error) {
+	// enforce only if one of the authentication methods was oidc
+	for _, method := range session.AuthenticationMethods {
+		if method.GetMethod() == "oidc" {
+			webAuthnAvailable, err := a.service.HasWebAuthnAvailable(ctx, session.Identity.GetId())
+			if err != nil {
+				return false, err
+			}
+			return !webAuthnAvailable, nil
+		}
+	}
+	return false, nil
+}
+
+func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, returnTo string, c FlowStateCookie) {
+	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_passkey")
+	if err != nil {
+		return
+	}
+
+	errorId := "session_aal2_required"
+
+	// Set the original login URL as return_to, to continue the flow after mfa
+	// has been set.
+	redirectTo, err := url.ParseRequestURI(redirect)
+	if err != nil {
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	q := redirectTo.Query()
+	q.Set("return_to", returnTo)
+	redirectTo.RawQuery = q.Encode()
+	redirectPath := redirectTo.String()
+
+	w.WriteHeader(http.StatusSeeOther)
+	_ = json.NewEncoder(w).Encode(
+		ErrorBrowserLocationChangeRequired{
+			Error:             &client.GenericError{Id: &errorId},
+			RedirectBrowserTo: &redirectPath,
+		},
+	)
 }
 
 func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo, loginChallenge string) {
@@ -669,12 +770,14 @@ func kratosSessionUnsetCookie() *http.Cookie {
 func NewAPI(
 	service ServiceInterface,
 	mfaEnabled bool,
+	oidcWebAuthnSequencingEnabled bool,
 	baseURL string,
 	cookieManager AuthCookieManagerInterface,
 	logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.mfaEnabled = mfaEnabled
+	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.service = service
 	a.baseURL = baseURL
 	a.cookieManager = cookieManager
