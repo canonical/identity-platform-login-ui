@@ -151,10 +151,16 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 		return true, nil
 	}
 
-	// This is the first user login, they set up their authenticator app
-	// Or backup code was used for login, no need to re-auth
-	if validateHash(session.Id, c.KratosSessionIdHash) && validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed || c.OidcLogin) {
-		return false, nil
+	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) {
+		// This is the first user login, they set up their authenticator app
+		// Or backup code was used for login, no need to re-auth
+		if c.TotpSetup || c.BackupCodeUsed {
+			return false, nil
+		}
+		// The user logged in using OIDC and they ended up on the `/login` page again
+		if c.OidcLogin && session.AuthenticationMethods[0].GetMethod() == "oidc" {
+			return false, nil
+		}
 	}
 
 	hydraLoginRequest, _, err := s.GetLoginRequest(ctx, hydraLoginChallenge)
@@ -416,6 +422,7 @@ func (s *Service) UpdateLoginFlow(
 		// But in oidc they only check if the session cookie exists, which is not sufficient as the user may not have
 		// enough aal
 		c = append(c, kratosSessionUnsetCookie())
+		s.KratosSessionUnsetCookie(cookies)
 	}
 
 	// We trasform the kratos response to our own custom response here.
@@ -905,6 +912,14 @@ func (s *Service) is1FAMethod(method string) bool {
 	default:
 		return false
 	}
+}
+
+func (s *Service) KratosSessionUnsetCookie(cookies []*http.Cookie) {
+	session, _, err := s.CheckSession(context.Background(), cookies)
+	if err != nil {
+		return
+	}
+	s.kratosAdmin.IdentityApi().DisableSession(context.Background(), session.Id).Execute()
 }
 
 func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {

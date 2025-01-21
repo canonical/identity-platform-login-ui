@@ -48,6 +48,7 @@ type ServiceInterface interface {
 	HasTOTPAvailable(context.Context, string) (bool, error)
 	HasWebAuthnAvailable(context.Context, string) (bool, error)
 	HasNotEnoughLookupSecretsLeft(context.Context, string) (bool, error)
+	KratosSessionUnsetCookie([]*http.Cookie)
 }
 
 type AuthCookieManagerInterface interface {

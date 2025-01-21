@@ -90,7 +90,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if shouldEnforceMfa {
-			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge), KratosSessionIdHash: hash(session.Id)}
+			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge)}
 			a.mfaSettingsRedirect(w, returnTo, &flowCookie)
 			return
 		}
@@ -247,10 +247,6 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 	u, _ := url.Parse(loginFlow.GetReturnTo())
 	flowCookie := FlowStateCookie{LoginChallengeHash: hash(u.Query().Get("login_challenge"))}
-	session, _, err := a.service.CheckSession(r.Context(), cookies)
-	if err == nil {
-		flowCookie.KratosSessionIdHash = hash(session.Id)
-	}
 	if body.GetActualInstance() == body.UpdateLoginFlowWithOidcMethod {
 		flowCookie.OidcLogin = true
 	}
@@ -564,7 +560,7 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	// We delete any active Kratos sessions. If there were any active Kratos sessions,
 	// recovery wouldn't be needed.
 	// See https://github.com/canonical/kratos-operator/issues/259 for more info.
-	a.deleteKratosSession(w)
+	a.service.KratosSessionUnsetCookie(r.Cookies())
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
@@ -665,15 +661,6 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func (a *API) deleteKratosSession(w http.ResponseWriter) {
-	// To delete the session we delete the kratos session cookie.
-	// This is hacky as it does not call the Kratos API and is likely to break on
-	// a new Kratos version, but there is no easy way to delete the session
-	// from the Kratos API
-	c := kratosSessionUnsetCookie()
-	http.SetCookie(w, c)
-}
-
 func kratosSessionUnsetCookie() *http.Cookie {
 	return &http.Cookie{
 		Name:     KRATOS_SESSION_COOKIE_NAME,
@@ -729,15 +716,6 @@ l1:
 		ret = append(ret, c)
 	}
 	return ret
-}
-
-func getCookie(cookies []*http.Cookie, name string) *http.Cookie {
-	for _, c := range cookies {
-		if c.Name == name {
-			return c
-		}
-	}
-	return nil
 }
 
 func hash(plain string) string {

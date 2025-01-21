@@ -28,11 +28,10 @@ type AuthCookieManager struct {
 }
 
 type FlowStateCookie struct {
-	LoginChallengeHash  string `json:"lc,omitempty"`
-	KratosSessionIdHash string `json:"sh",omitempty`
-	TotpSetup           bool   `json:"t,omitempty"`
-	BackupCodeUsed      bool   `json:"bc,omitempty"`
-	OidcLogin           bool   `json:"oi,omitempty"`
+	LoginChallengeHash string `json:"lc,omitempty"`
+	TotpSetup          bool   `json:"t,omitempty"`
+	BackupCodeUsed     bool   `json:"bc,omitempty"`
+	OidcLogin          bool   `json:"ol,omitempty"`
 }
 
 func (a *AuthCookieManager) SetStateCookie(w http.ResponseWriter, state FlowStateCookie) error {
