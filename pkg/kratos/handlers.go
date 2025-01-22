@@ -106,9 +106,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if shouldEnforceWebAuthn {
-			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge)}
-			a.webAuthnSettingsRedirect(w, returnTo, flowCookie)
-			a.cookieManager.SetStateCookie(w, flowCookie)
+			a.webAuthnSettingsRedirect(w, returnTo, loginChallenge)
 			return
 		}
 	}
@@ -302,8 +300,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if shouldEnforceWebAuthn {
-		a.webAuthnSettingsRedirect(w, *loginFlow.ReturnTo, flowCookie)
-		a.cookieManager.SetStateCookie(w, flowCookie)
+		a.webAuthnSettingsRedirect(w, *loginFlow.ReturnTo, loginFlow.GetOauth2LoginChallenge())
 		return
 	}
 
@@ -431,13 +428,18 @@ func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *cli
 	return false, nil
 }
 
-func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, returnTo string, c FlowStateCookie) {
+func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, returnTo string, loginChallenge string) {
+	var sessionId string
 	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_passkey")
 	if err != nil {
 		return
 	}
 
 	errorId := "session_aal2_required"
+
+	if loginChallenge != "" {
+		sessionId = hash(loginChallenge)
+	}
 
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
@@ -453,6 +455,7 @@ func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, returnTo string, c
 	redirectTo.RawQuery = q.Encode()
 	redirectPath := redirectTo.String()
 
+	a.cookieManager.SetStateCookie(w, FlowStateCookie{LoginChallengeHash: sessionId, OidcLogin: true})
 	w.WriteHeader(http.StatusSeeOther)
 	_ = json.NewEncoder(w).Encode(
 		ErrorBrowserLocationChangeRequired{
