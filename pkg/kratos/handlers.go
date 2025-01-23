@@ -260,7 +260,10 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u, _ := url.Parse(loginFlow.GetReturnTo())
-	flowCookie := FlowStateCookie{OidcLogin: true, LoginChallengeHash: hash(u.Query().Get("login_challenge"))}
+	flowCookie := FlowStateCookie{LoginChallengeHash: hash(u.Query().Get("login_challenge"))}
+	if body.GetActualInstance() == body.UpdateLoginFlowWithOidcMethod && a.oidcWebAuthnSequencingEnabled {
+		flowCookie.OidcLogin = true
+	}
 
 	shouldEnforceMfa, err := a.shouldEnforceMFA(r.Context(), cookies)
 	if err != nil {
