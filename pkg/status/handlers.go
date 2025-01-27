@@ -22,8 +22,13 @@ type Health struct {
 	Hydra  bool `json:"hydra"`
 }
 
+type DeploymentInfo struct {
+	OidcSequencingEnabled bool `json:"oidc_webauthn_sequencing_enabled"`
+}
+
 type API struct {
-	service ServiceInterface
+	oidcWebAuthnSequencingEnabled bool
+	service                       ServiceInterface
 
 	tracer tracing.TracingInterface
 
@@ -35,6 +40,7 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Get("/api/v0/status", a.alive)
 	mux.Get("/api/v0/version", a.version)
 	mux.Get("/api/v0/ready", a.ready)
+	mux.Get("/api/v0/app-config", a.appConfig)
 }
 
 func (a *API) alive(w http.ResponseWriter, r *http.Request) {
@@ -76,9 +82,20 @@ func (a *API) ready(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(health)
 }
 
-func NewAPI(service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
+func (a *API) appConfig(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	info := new(DeploymentInfo)
+	info.OidcSequencingEnabled = a.oidcWebAuthnSequencingEnabled
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(info)
+}
+
+func NewAPI(oidcWebAuthnSequencingEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
+	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.service = service
 	a.tracer = tracer
 	a.monitor = monitor
