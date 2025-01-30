@@ -4,24 +4,25 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
-      - "release-**"
+    - main
+    - "release-**"
+
+permissions:
+    contents: write
+    pull-requests: write
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: google-github-actions/release-please-action@e4dc86ba9405554aeba3c6bb2d169500e7d3b4ee # v4
-        with:
-          release-type: simple
-          package-name: ""
-          default-branch: main
-          pull-request-title-pattern: "ci: release ${version}"
-          token: ${{ secrets.PAT_TOKEN }}
-          extra-files: |
-            rockcraft.yaml
-            internal/version/const.go
+      - uses: googleapis/release-please-action@v4
         id: release
+        with:   
+          token: ${{ secrets.PAT_TOKEN }}
+          # optional. customize path to release-please-config.json
+          config-file: release-please-config.json
+          # optional. customize path to .release-please-manifest.json
+          manifest-file: .release-please-manifest.json
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Workaround for https://github.com/googleapis/release-please/issues/922
         if: ${{ steps.release.outputs.pr != '' }}
