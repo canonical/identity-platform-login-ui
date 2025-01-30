@@ -1,0 +1,19 @@
+{
+  "packages": {
+    ".": {
+      "changelog-path": "CHANGELOG.md",
+      "release-type": "simple",
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false,
+      "draft": false,
+      "prerelease": false,
+      "pull-request-title-pattern": "ci: release ${version}",
+      "package-name": "",
+      "extra-files": [
+        "rockcraft.yaml",
+        "internal/version/const.go"
+      ]
+    }
+  },
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+}
