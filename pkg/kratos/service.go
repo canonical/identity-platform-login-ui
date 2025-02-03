@@ -43,6 +43,8 @@ type Service struct {
 	hydra       HydraClientInterface
 	authz       AuthorizerInterface
 
+	oidcWebAuthnSequencingEnabled bool
+
 	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
@@ -105,6 +107,13 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 
 	accept := hClient.NewAcceptOAuth2LoginRequest(session.Identity.Id)
 	accept.SetRemember(true)
+	accept.Amr = []string{}
+	for _, r := range session.AuthenticationMethods {
+		accept.Amr = append(accept.Amr, r.GetMethod())
+	}
+	// TODO: Uncomment after we upgrade hydra sdk version
+	// accept.IdentityProviderSessionId = &session.Id
+
 	if session.ExpiresAt != nil {
 		expAt := time.Until(*session.ExpiresAt)
 		// Set the session to expire when the kratos session expires
@@ -153,7 +162,7 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 
 	// This is the first user login, they set up their authenticator app
 	// Or backup code was used for login, no need to re-auth
-	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed || c.OidcLogin) {
+	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed || c.WebauthnSetup) {
 		return false, nil
 	}
 
@@ -166,7 +175,7 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 }
 
 func (s *Service) CreateBrowserLoginFlow(
-	ctx context.Context, aal, returnTo, loginChallenge string, refresh bool, cookies []*http.Cookie, oidcSequencing bool,
+	ctx context.Context, aal, returnTo, loginChallenge string, refresh bool, cookies []*http.Cookie,
 ) (*kClient.LoginFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserLoginFlow")
 	defer span.End()
@@ -178,7 +187,7 @@ func (s *Service) CreateBrowserLoginFlow(
 		Refresh(refresh).
 		Cookie(httpHelpers.CookiesToString(cookies))
 
-	if !oidcSequencing {
+	if !s.oidcWebAuthnSequencingEnabled {
 		if loginChallenge != "" {
 			request = request.LoginChallenge(loginChallenge)
 		} else if loginChallenge == "" && returnTo == "" {
@@ -381,11 +390,11 @@ func (s *Service) UpdateRecoveryFlow(
 
 func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
-) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+) (*BrowserLocationChangeRequired, *kClient.SuccessfulNativeLogin, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateLoginFlow")
 	defer span.End()
 
-	_, resp, err := s.kratos.FrontendApi().
+	f, resp, err := s.kratos.FrontendApi().
 		UpdateLoginFlow(ctx).
 		Flow(flow).
 		UpdateLoginFlowBody(body).
@@ -398,14 +407,14 @@ func (s *Service) UpdateLoginFlow(
 	// redirected to.
 	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
 		err := s.getUiError(resp.Body)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
 		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	c := resp.Cookies()
@@ -420,12 +429,17 @@ func (s *Service) UpdateLoginFlow(
 		c = append(c, kratosSessionUnsetCookie())
 	}
 
-	// We trasform the kratos response to our own custom response here.
-	// The original kratos response contains an 'Error' field, which we remove
-	// because this is not a real error.
-	returnToResp := BrowserLocationChangeRequired{RedirectTo: redirectResp.RedirectBrowserTo}
-
-	return &returnToResp, c, nil
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		// We trasform the kratos response to our own custom response here.
+		// The original kratos response contains an 'Error' field, which we remove
+		// because this is not a real error.
+		returnToResp := BrowserLocationChangeRequired{RedirectTo: redirectResp.RedirectBrowserTo}
+		return &returnToResp, nil, c, nil
+	}
+	// Workaround for marshalling error
+	// TODO: Evaluate if we can get rid of that when kratos sdk 1.3 is out
+	f.ContinueWith = nil
+	return nil, f, c, nil
 }
 
 func (s *Service) UpdateSettingsFlow(
@@ -607,7 +621,8 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 	r.Body = io.NopCloser(bytes.NewReader(b))
 
 	if err := json.Unmarshal(b, methodOnly); err != nil {
-		return nil, cookies, err
+		// return nil, cookies, err
+		methodOnly.Method = "webauthn"
 	}
 
 	switch methodOnly.Method {
@@ -636,8 +651,21 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		ret.UpdateLoginFlowWithTotpMethod.Method = "totp"
 	case "webauthn":
 		body := new(kClient.UpdateLoginFlowWithWebAuthnMethod)
-
-		err := parseBody(r.Body, &body)
+		var err error
+		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+			// TODO: fix me. The UI should start sending that data in json format
+			err = r.ParseForm()
+			if err != nil {
+				return nil, cookies, err
+			}
+			csrf := r.Form.Get("csrf_token")
+			l := r.Form.Get("webauthn_login")
+			body.CsrfToken = &csrf
+			body.Identifier = r.Form.Get("identifier")
+			body.WebauthnLogin = &l
+		} else {
+			err = parseBody(r.Body, &body)
+		}
 
 		if err != nil {
 			return nil, cookies, err
@@ -899,20 +927,24 @@ func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) 
 
 func (s *Service) is1FAMethod(method string) bool {
 	switch method {
-	case "password", "webauthn", "oidc":
+	case "password", "oidc":
 		return true
+	case "webauthn":
+		return !s.oidcWebAuthnSequencingEnabled
 	default:
 		return false
 	}
 }
 
-func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos
 	s.kratosAdmin = kratosAdmin
 	s.hydra = hydra
 	s.authz = authzClient
+
+	s.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 
 	s.monitor = monitor
 	s.tracer = tracer
