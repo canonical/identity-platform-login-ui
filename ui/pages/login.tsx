@@ -4,7 +4,7 @@ import {
   UiNodeInputAttributes,
   UpdateLoginFlowBody,
 } from "@ory/client";
-import { Spinner } from "@canonical/react-components";
+import { CheckboxInput, Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
@@ -20,11 +20,32 @@ import {
   UpdateLoginFlowWithOidcMethod,
   UpdateLoginFlowWithPasswordMethod,
 } from "@ory/client/api";
-import { isSignInEmailInput, isSignInWithPassword } from "../util/constants";
+import {
+  isSignInEmailInput,
+  isSignInWithHardwareKey,
+  isSignInWithPassword,
+} from "../util/constants";
+import {
+  isWebauthnAutologin,
+  toggleWebauthnSkip,
+} from "../util/webauthnAutoLogin";
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
+  const [isSequencedLogin, setSequencedLogin] = useState(false);
   const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
+
+  useEffect(() => {
+    void fetch("/api/v0/app-config")
+      .then((response) => {
+        const data = response.json();
+        return data as { oidc_webauthn_sequencing_enabled?: boolean };
+      })
+      .then((data) => {
+        setSequencedLogin(data.oidc_webauthn_sequencing_enabled ?? false);
+      })
+      .catch(console.error);
+  }, []);
 
   // Get ?flow=... from the URL
   const router = useRouter();
@@ -299,13 +320,63 @@ const Login: NextPage = () => {
         text: "Invalid login method",
       });
     }
+    if (isSignInWithHardwareKey(node) && isSequencedLogin) {
+      node.meta.label.text = "Sign in using Passkey";
+    }
     return node;
   });
 
+  // automatically forward to single oidc provider if it is the only option
+  const isSingleOidcOption =
+    isSequencedLogin &&
+    renderFlow?.ui.nodes.length === 2 &&
+    renderFlow?.ui.nodes[1].group === "oidc" &&
+    (renderFlow?.ui.nodes[0].attributes as UiNodeInputAttributes).name ===
+      "csrf_token";
+  if (isSingleOidcOption) {
+    const csrfNode = renderFlow?.ui.nodes[0];
+    const oidcNode = renderFlow?.ui.nodes[1];
+    const oidcAttributes = oidcNode.attributes as UiNodeInputAttributes;
+    const csrfAttributes = csrfNode.attributes as UiNodeInputAttributes;
+    void handleSubmit({
+      method: "oidc",
+      provider: oidcAttributes.value as string,
+      csrf_token: csrfAttributes.value as string,
+    });
+  }
+
   return (
     <PageLayout title={title}>
-      {flow ? <Flow onSubmit={handleSubmit} flow={renderFlow} /> : <Spinner />}
-      {isWebauthn && <a href={flow?.return_to}>I want to use another method</a>}
+      {isSingleOidcOption ? (
+        <p className="u-text--muted">
+          <Spinner style={{ marginRight: "0.5rem" }} />
+          You will be redirected to the login provider.
+        </p>
+      ) : (
+        <>
+          {isWebauthn && isSequencedLogin && (
+            <p className="u-text--muted">
+              Another layer of authentication before you get access to{" "}
+              {getTitleSuffix()}
+            </p>
+          )}
+          {flow ? (
+            <Flow onSubmit={handleSubmit} flow={renderFlow} />
+          ) : (
+            <Spinner />
+          )}
+          {isWebauthn && !isSequencedLogin && (
+            <a href={flow?.return_to}>I want to use another method</a>
+          )}
+          {isWebauthn && isSequencedLogin && (
+            <CheckboxInput
+              label="Don't show again"
+              defaultChecked={isWebauthnAutologin()}
+              onChange={toggleWebauthnSkip}
+            />
+          )}
+        </>
+      )}
     </PageLayout>
   );
 };
