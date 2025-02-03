@@ -1,0 +1,23 @@
+name: 'Close stale issues and PRs'
+on:
+  schedule:
+    - cron: '0 7 * * 1-5' # every morning at 7 AM, only work days
+
+permissions:
+  issues: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/stale@v9
+        with:
+          days-before-stale: 60
+          stale-issue-message: "This issue has been marked as stale due to the lack of updates in the last 60 days"
+          days-before-close: 7
+          close-issue-message: "This issue has been closed due to the lack of updates"
+          stale-issue-label: 'stale'
+          exempt-issue-labels: 'high-priority'
+          stale-pr-label: ''  # Don't mark PRs as stale
+          exempt-pr-labels: '*'  # Exclude PRs
+          start-date: '2025-02-03T00:00:00+0000' # the ISO 8601 day of the PR
