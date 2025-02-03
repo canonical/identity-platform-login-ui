@@ -32,6 +32,7 @@ func TestHandleConsentSuccess(t *testing.T) {
 
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL1)
 	consent := hClient.NewOAuth2ConsentRequest("challenge")
 	accept := hClient.NewOAuth2RedirectTo("test")
 
@@ -48,7 +49,7 @@ func TestHandleConsentSuccess(t *testing.T) {
 	mockService.EXPECT().AcceptConsent(gomock.Any(), *session.Identity, consent).Return(accept, nil)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, false, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -86,6 +87,7 @@ func TestHandleConsentWhenOIDCSequencingEnabled(t *testing.T) {
 	session := kClient.NewSessionWithDefaults()
 	session.SetId("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL2)
 
 	method := "oidc"
 	var authnMethods []kClient.SessionAuthenticationMethod
@@ -104,12 +106,11 @@ func TestHandleConsentWhenOIDCSequencingEnabled(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
-	mockKratosService.EXPECT().HasWebAuthnAvailable(gomock.Any(), gomock.Any()).Return(true, nil)
 	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
 	mockService.EXPECT().AcceptConsent(gomock.Any(), *session.Identity, consent).Return(accept, nil)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, true, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, true, true, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -136,6 +137,88 @@ func TestHandleConsentWhenOIDCSequencingEnabled(t *testing.T) {
 	}
 }
 
+func TestHandleConsentInvalidPasswordAAL(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+
+	session := kClient.NewSessionWithDefaults()
+	session.SetId("test")
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL1)
+
+	method := "password"
+	var authnMethods []kClient.SessionAuthenticationMethod
+	authnMethods = append(authnMethods, kClient.SessionAuthenticationMethod{Method: &method})
+	session.AuthenticationMethods = authnMethods
+
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
+	w := httptest.NewRecorder()
+
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockKratosService, BASE_URL, true, true, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected HTTP status code 200 got %v", res.StatusCode)
+	}
+}
+
+func TestHandleConsentInvalidOIDCAAL(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+
+	session := kClient.NewSessionWithDefaults()
+	session.SetId("test")
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL1)
+
+	method := "oidc"
+	var authnMethods []kClient.SessionAuthenticationMethod
+	authnMethods = append(authnMethods, kClient.SessionAuthenticationMethod{Method: &method})
+	session.AuthenticationMethods = authnMethods
+
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
+	w := httptest.NewRecorder()
+
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockKratosService, BASE_URL, true, true, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected HTTP status code 200 got %v", res.StatusCode)
+	}
+}
+
 func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -146,6 +229,7 @@ func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL1)
 	consent := hClient.NewOAuth2ConsentRequest("challenge")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
@@ -162,7 +246,7 @@ func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, false, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -183,6 +267,7 @@ func TestHandleConsentFailOnGetConsent(t *testing.T) {
 
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL1)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
 
@@ -197,7 +282,7 @@ func TestHandleConsentFailOnGetConsent(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, false, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -228,7 +313,7 @@ func TestHandleConsentFailOnCheckSession(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, false, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 

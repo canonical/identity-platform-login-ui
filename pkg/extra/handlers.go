@@ -9,6 +9,7 @@ import (
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
+	kClient "github.com/ory/kratos-client-go"
 )
 
 type API struct {
@@ -17,6 +18,7 @@ type API struct {
 
 	baseURL                       string
 	oidcWebAuthnSequencingEnabled bool
+	mfaEnabled                    bool
 	contextPath                   string
 	logger                        logging.LoggerInterface
 }
@@ -34,6 +36,12 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 		// TODO @shipperizer evaluate return status
 		w.WriteHeader(http.StatusForbidden)
 
+		return
+	}
+
+	if session.GetAuthenticatorAssuranceLevel() < a.sessionRequiredAAL(session) {
+		a.logger.Errorf("insufficient session aal, this indicates a misconfiguration in kratos")
+		http.Error(w, "insufficient session aal", http.StatusForbidden)
 		return
 	}
 
@@ -76,7 +84,30 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL string, oidcWebAuthnSequencingEnabled bool, logger logging.LoggerInterface) *API {
+// sessionRequiredAAL returns the required aal, based on the session's authentication methods.
+func (a *API) sessionRequiredAAL(session *kClient.Session) kClient.AuthenticatorAssuranceLevel {
+	var authMethod string
+	ret := kClient.AUTHENTICATORASSURANCELEVEL_AAL1
+
+	if methods, ok := session.GetAuthenticationMethodsOk(); ok {
+		authMethod = methods[0].GetMethod()
+	}
+
+	switch authMethod {
+	case "oidc":
+		if a.oidcWebAuthnSequencingEnabled {
+			ret = kClient.AUTHENTICATORASSURANCELEVEL_AAL2
+		}
+	case "password", "webauthn":
+		if a.mfaEnabled {
+			ret = kClient.AUTHENTICATORASSURANCELEVEL_AAL2
+		}
+	}
+
+	return ret
+}
+
+func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL string, mfaEnabled, oidcWebAuthnSequencingEnabled bool, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.service = service
@@ -86,6 +117,7 @@ func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL st
 
 	a.baseURL = baseURL
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
+	a.mfaEnabled = mfaEnabled
 
 	fullBaseURL, err := url.Parse(baseURL)
 	if err != nil {
