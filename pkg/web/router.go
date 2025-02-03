@@ -69,7 +69,7 @@ func NewRouter(
 		cookieManager,
 		logger,
 	).RegisterEndpoints(router)
-	extra.NewAPI(extra.NewService(hydraClient, tracer, monitor, logger), kratosService, baseURL, oidcWebAuthnSequencingEnabled, logger).RegisterEndpoints(router)
+	extra.NewAPI(extra.NewService(hydraClient, tracer, monitor, logger), kratosService, baseURL, mfaEnabled, oidcWebAuthnSequencingEnabled, logger).RegisterEndpoints(router)
 	status.NewAPI(
 		baseURL,
 		oidcWebAuthnSequencingEnabled,
