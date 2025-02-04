@@ -168,6 +168,7 @@ const Login: NextPage = () => {
           }
 
           if (
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
             err.response?.data.toString().trim() ===
             "choose a different login method"
           ) {
