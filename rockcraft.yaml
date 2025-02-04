@@ -25,7 +25,7 @@ parts:
     source-type: local
     build-snaps:
       - go/1.23/stable
-      - node/18/stable
+      - node/20/stable
     build-packages:
       - make
       - git
