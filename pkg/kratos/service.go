@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -200,6 +201,12 @@ func (s *Service) CreateBrowserLoginFlow(
 		return nil, nil, err
 	}
 
+	// Populate the flow with the hydra login req, so that the UI can retrieve this info
+	flow, err = s.hydrateKratosLoginFlow(ctx, flow)
+	if err != nil {
+		s.logger.Warnf("Failed to fetch the hydra oauth2 request: %v", err)
+	}
+
 	return flow, resp.Cookies(), nil
 }
 
@@ -269,6 +276,11 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 		return nil, nil, err
 	}
 
+	// Populate the flow with the hydra login req, so that the UI can retrieve this info
+	flow, err = s.hydrateKratosLoginFlow(ctx, flow)
+	if err != nil {
+		s.logger.Warnf("Failed to fetch the hydra oauth2 request: %v", err)
+	}
 	return flow, resp.Cookies(), nil
 }
 
@@ -934,6 +946,51 @@ func (s *Service) is1FAMethod(method string) bool {
 	default:
 		return false
 	}
+}
+
+// hydrateKratosLoginFlow hydrates the kratos login flow with information about the oauth2 flow
+// that initiated it. This is usefull only if the login_challenge was not sent to kratos when
+// creating the flow.
+func (s *Service) hydrateKratosLoginFlow(ctx context.Context, flow *kClient.LoginFlow) (*kClient.LoginFlow, error) {
+	u, _ := url.Parse(flow.GetReturnTo())
+	loginChallenge := u.Query().Get("login_challenge")
+
+	// This is not a hydra request, nothing to do here
+	if loginChallenge == "" {
+		return flow, nil
+	}
+
+	// The flow already contains information about the oauth2 request
+	if flow.Oauth2LoginRequest != nil {
+		return flow, nil
+	}
+
+	b, err := flow.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	newFlow := new(kClient.LoginFlow)
+	err = newFlow.UnmarshalJSON(b)
+	if err != nil {
+		return nil, err
+	}
+
+	newFlow.Oauth2LoginChallenge = &loginChallenge
+	hydraLoginRequest, _, err := s.GetLoginRequest(ctx, loginChallenge)
+	if err != nil {
+		return newFlow, err
+	}
+
+	b, err = hydraLoginRequest.MarshalJSON()
+	if err != nil {
+		return newFlow, err
+	}
+
+	lr := kClient.NewOAuth2LoginRequest()
+	lr.UnmarshalJSON(b)
+	newFlow.Oauth2LoginRequest = lr
+	return newFlow, nil
 }
 
 func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
