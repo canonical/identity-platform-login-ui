@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -200,6 +201,11 @@ func (s *Service) CreateBrowserLoginFlow(
 		return nil, nil, err
 	}
 
+	// Populate the flow with the hydra login req, so that the UI can retrieve this info
+	if s.oidcWebAuthnSequencingEnabled {
+		s.hydrateKratosLoginFlow(ctx, flow)
+	}
+
 	return flow, resp.Cookies(), nil
 }
 
@@ -269,6 +275,10 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 		return nil, nil, err
 	}
 
+	// Populate the flow with the hydra login req, so that the UI can retrieve this info
+	if s.oidcWebAuthnSequencingEnabled {
+		s.hydrateKratosLoginFlow(ctx, flow)
+	}
 	return flow, resp.Cookies(), nil
 }
 
@@ -934,6 +944,31 @@ func (s *Service) is1FAMethod(method string) bool {
 	default:
 		return false
 	}
+}
+
+func (s *Service) hydrateKratosLoginFlow(ctx context.Context, flow *kClient.LoginFlow) error {
+	u, _ := url.Parse(flow.GetReturnTo())
+	loginChallenge := u.Query().Get("login_challenge")
+
+	if loginChallenge == "" {
+		return nil
+	}
+
+	flow.Oauth2LoginChallenge = &loginChallenge
+	hydraLoginRequest, _, err := s.GetLoginRequest(ctx, loginChallenge)
+	if err != nil {
+		return err
+	}
+
+	b, err := hydraLoginRequest.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	lr := kClient.NewOAuth2LoginRequest()
+	lr.UnmarshalJSON(b)
+	flow.Oauth2LoginRequest = lr
+	return nil
 }
 
 func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
