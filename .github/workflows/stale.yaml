@@ -1,7 +1,8 @@
 name: 'Close stale issues and PRs'
 on:
   schedule:
-    - cron: '0 7 * * 1-5' # every morning at 7 AM, only work days
+#    - cron: '0 7 * * 1-5' # every morning at 7 AM, only work days
+    - cron: '0 * * * 1-5' # temporary to allow debugging
 
 permissions:
   issues: write
@@ -18,6 +19,6 @@ jobs:
           close-issue-message: "This issue has been closed due to the lack of updates"
           stale-issue-label: 'stale'
           exempt-issue-labels: 'high-priority'
-          stale-pr-label: ''  # Don't mark PRs as stale
+          stale-pr-label: 'stale'
           exempt-pr-labels: '*'  # Exclude PRs
           start-date: '2025-02-03T00:00:00+0000' # the ISO 8601 day of the PR
