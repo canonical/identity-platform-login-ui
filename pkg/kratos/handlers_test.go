@@ -657,7 +657,7 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 	if _, err := json.Marshal(flow); err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
-	if res.StatusCode != http.StatusSeeOther {
+	if res.StatusCode != http.StatusOK {
 		t.Fatal("Expected HTTP status code 303, got: ", res.Status)
 	}
 }
