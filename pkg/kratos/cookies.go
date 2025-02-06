@@ -30,6 +30,7 @@ type AuthCookieManager struct {
 type FlowStateCookie struct {
 	LoginChallengeHash string `json:"lc,omitempty"`
 	TotpSetup          bool   `json:"t,omitempty"`
+	WebauthnSetup      bool   `json:"w,omitempty"`
 	BackupCodeUsed     bool   `json:"bc,omitempty"`
 }
 
