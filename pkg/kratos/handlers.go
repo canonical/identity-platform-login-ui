@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	client "github.com/ory/kratos-client-go"
+	kClient "github.com/ory/kratos-client-go"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
@@ -33,6 +35,8 @@ type API struct {
 }
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
+	mux.Post("/api/kratos/hook", a.hook)
+	mux.Get("/api/kratos/self-service/registration", a.register)
 	mux.Post("/api/kratos/self-service/login", a.handleUpdateFlow)
 	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
 	mux.Get("/api/kratos/self-service/login/flows", a.handleGetLoginFlow)
@@ -665,6 +669,70 @@ func kratosSessionUnsetCookie() *http.Cookie {
 		Secure:   true,
 	}
 }
+
+func (a *API) register(w http.ResponseWriter, r *http.Request) {
+	rr := struct {
+		Error string `json:"error"`
+	}{
+		Error: "problem",
+	}
+	resp, _ := json.Marshal(rr)
+	w.WriteHeader(http.StatusForbidden)
+	w.Write(resp)
+}
+
+func (a *API) hook(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	b, _ := io.ReadAll(r.Body)
+
+	a.logger.Info(fmt.Printf("%v", string(b)))
+
+	type Resp struct {
+		Ctx struct {
+			Identity *kClient.Identity `json:"identity"`
+		} `json:"ctx"`
+	}
+	var hookResponse = new(Resp)
+
+	hookResponse.Ctx.Identity = new(kClient.Identity)
+	json.Unmarshal(b, hookResponse)
+	t := hookResponse.Ctx.Identity.Traits.(map[string]interface{})
+	t["phone_number"] = "+306912345678"
+	t["name"] = "New Name"
+	hookResponse.Ctx.Identity.Traits = t
+	resp, _ := json.Marshal(hookResponse.Ctx)
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
+// func (a *API) hook(w http.ResponseWriter, r *http.Request) {
+// 	defer r.Body.Close()
+// 	b, _ := io.ReadAll(r.Body)
+
+// 	a.logger.Info(fmt.Printf("%v", string(b)))
+
+// 	type detailedMessage struct {
+// 		ID      int             `json:"id"`
+// 		Text    string          `json:"text"`
+// 		Type    string          `json:"type"`
+// 		Context json.RawMessage `json:"context,omitempty"`
+// 	}
+
+// 	type Resp struct {
+// 		InstancePtr      string            `json:"instance_ptr"`
+// 		DetailedMessages []detailedMessage `json:"messages"`
+// 	}
+// 	var hookResponse = new(Resp)
+// 	var msg = new(detailedMessage)
+
+// 	msg.Type = "error"
+// 	msg.Text = "oh no"
+
+// 	hookResponse.DetailedMessages = []detailedMessage{*msg}
+// 	resp, _ := json.Marshal(hookResponse)
+// 	w.WriteHeader(http.StatusForbidden)
+// 	w.Write(resp)
+// }
 
 func NewAPI(
 	service ServiceInterface,

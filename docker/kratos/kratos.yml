@@ -1,7 +1,7 @@
 version: v1.1.0
 
 oauth2_provider:
-    url: "http://hydra:4445"
+    url: "http://localhost:4445"
 log:
     level: debug
     format: text
@@ -50,9 +50,20 @@ selfservice:
                 webauthn:
                     default_browser_return_url: http://localhost:4455/ui/setup_passkey
         registration:
+            ui_url: http://localhost:4455/api/kratos/self-service/registration
             after:
                 oidc:
                     hooks:
+                    - hook: web_hook
+                      config:
+                        url: http://localhost:4455/api/kratos/hook
+                        body: base64://ZnVuY3Rpb24oY3R4KSB7CiAgdXNlcklkOiBjdHguaWRlbnRpdHkuaWQsCiAgY3R4OiBjdHgKfQ==
+                        method: POST
+                        can_interrupt: true
+                        emit_analytics_event: true
+                        response:
+                          ignore: false
+                          parse: true
                     - hook: session
                 webauthn:
                     hooks:
