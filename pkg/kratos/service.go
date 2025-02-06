@@ -60,12 +60,30 @@ type ErrorBrowserLocationChangeRequired struct {
 	RedirectBrowserTo *string `json:"redirect_browser_to,omitempty"`
 }
 
+func (e *ErrorBrowserLocationChangeRequired) GetRedirectTo() string {
+	if e.RedirectBrowserTo == nil {
+		return ""
+	}
+	return *e.RedirectBrowserTo
+}
+
+func (e *ErrorBrowserLocationChangeRequired) HasError() bool {
+	return e.Error != nil
+}
+
 func (e *BrowserLocationChangeRequired) HasError() bool {
 	return e.Error != nil
 }
 
 func (e *BrowserLocationChangeRequired) HasRedirectTo() bool {
 	return e.RedirectTo != nil
+}
+
+func (e *BrowserLocationChangeRequired) GetRedirectTo() string {
+	if e.RedirectTo == nil {
+		return ""
+	}
+	return *e.RedirectTo
 }
 
 type BrowserLocationChangeRequired struct {
