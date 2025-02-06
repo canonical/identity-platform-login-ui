@@ -94,7 +94,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		}
 		if shouldEnforceMfa {
 			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge)}
-			a.mfaSettingsRedirect(w, returnTo, flowCookie)
+			a.mfaSettingsRedirect(w, r, returnTo, flowCookie)
 			return
 		}
 
@@ -107,7 +107,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		}
 		if shouldEnforceWebAuthn {
 			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge)}
-			a.webAuthnSettingsRedirect(w, returnTo, flowCookie)
+			a.webAuthnSettingsRedirect(w, r, returnTo, flowCookie)
 			return
 		}
 	}
@@ -286,25 +286,18 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 
 	if shouldRegenerateBackupCodes {
-		a.lookupSecretsSettingsRedirect(w, flowId, *loginFlow.ReturnTo, flowCookie)
+		a.lookupSecretsSettingsRedirect(w, r, flowId, *loginFlow.ReturnTo, flowCookie)
 		return
 	}
 
 	if shouldEnforceMfa {
-		a.mfaSettingsRedirect(w, *loginFlow.ReturnTo, flowCookie)
+		a.mfaSettingsRedirect(w, r, *loginFlow.ReturnTo, flowCookie)
 		return
 	}
 
 	if redirectTo != nil {
 		a.cookieManager.SetStateCookie(w, flowCookie)
-		// In case of webauthn the user is redirected here and we get a FORM, instead of JSON.
-		// TODO: Remove, when the UI fixes this
-		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-			http.Redirect(w, r, *redirectTo.RedirectTo, http.StatusSeeOther)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(redirectTo)
+		a.redirectResponse(w, r, redirectTo)
 		return
 	}
 
@@ -320,14 +313,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 		a.cookieManager.ClearStateCookie(w)
 		setCookies(w, cookies)
-		// In case of webauthn the user is redirected here and we get a FORM, instead of JSON.
-		// TODO: Remove, when the UI fixes this
-		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-			http.Redirect(w, r, response.RedirectTo, http.StatusSeeOther)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(response)
+		a.redirectResponse(w, r, response)
 		return
 	}
 
@@ -340,6 +326,26 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
+}
+
+// TODO: Refactor me for IAM-1286
+func (a *API) redirectResponse(w http.ResponseWriter, r *http.Request, resp RedirectToInterface) {
+	switch r.Method {
+	case http.MethodGet:
+		w.WriteHeader(http.StatusSeeOther)
+		_ = json.NewEncoder(w).Encode(resp)
+	case http.MethodPost:
+		// In case of webauthn the user is redirected here and we get a FORM, instead of JSON.
+		// TODO: Remove, when the UI fixes this
+		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+			http.Redirect(w, r, resp.GetRedirectTo(), http.StatusSeeOther)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(resp)
+	default:
+		http.Error(w, "unexpected method", http.StatusInternalServerError)
+	}
 }
 
 func (a *API) shouldRegenerateBackupCodes(ctx context.Context, cookies []*http.Cookie) (bool, error) {
@@ -447,7 +453,7 @@ func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *cli
 	return false, nil
 }
 
-func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, returnTo string, flowStateCookie FlowStateCookie) {
+func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, r *http.Request, returnTo string, flowStateCookie FlowStateCookie) {
 	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_passkey")
 	if err != nil {
 		return
@@ -467,20 +473,17 @@ func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, returnTo string, f
 	q := redirectTo.Query()
 	q.Set("return_to", returnTo)
 	redirectTo.RawQuery = q.Encode()
-	redirectPath := redirectTo.String()
+	rt := redirectTo.String()
 
 	flowStateCookie.WebauthnSetup = true
 	a.cookieManager.SetStateCookie(w, flowStateCookie)
-	w.WriteHeader(http.StatusSeeOther)
-	_ = json.NewEncoder(w).Encode(
-		ErrorBrowserLocationChangeRequired{
-			Error:             &client.GenericError{Id: &errorId},
-			RedirectBrowserTo: &redirectPath,
-		},
-	)
+	a.redirectResponse(w, r, &ErrorBrowserLocationChangeRequired{
+		Error:             &client.GenericError{Id: &errorId},
+		RedirectBrowserTo: &rt,
+	})
 }
 
-func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string, flowStateCookie FlowStateCookie) {
+func (a *API) mfaSettingsRedirect(w http.ResponseWriter, r *http.Request, returnTo string, flowStateCookie FlowStateCookie) {
 	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_secure")
 
 	if err != nil {
@@ -504,21 +507,18 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo string, flowSt
 	q := redirectTo.Query()
 	q.Set("return_to", returnTo)
 	redirectTo.RawQuery = q.Encode()
-	r := redirectTo.String()
+	rt := redirectTo.String()
 
 	flowStateCookie.TotpSetup = true
 
 	a.cookieManager.SetStateCookie(w, flowStateCookie)
-	w.WriteHeader(http.StatusSeeOther)
-	_ = json.NewEncoder(w).Encode(
-		ErrorBrowserLocationChangeRequired{
-			Error:             &client.GenericError{Id: &errorId},
-			RedirectBrowserTo: &r,
-		},
-	)
+	a.redirectResponse(w, r, &ErrorBrowserLocationChangeRequired{
+		Error:             &client.GenericError{Id: &errorId},
+		RedirectBrowserTo: &rt,
+	})
 }
 
-func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, returnTo string, flowStateCookie FlowStateCookie) {
+func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, r *http.Request, flowId, returnTo string, flowStateCookie FlowStateCookie) {
 	redirect, err := url.JoinPath("/", a.contextPath, ui.UI, "/backup_codes_regenerate")
 	if err != nil {
 		err = fmt.Errorf("unable to build backup codes redirect path, possible misconfiguration, err: %v", err)
@@ -538,19 +538,16 @@ func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, retur
 	q.Add("return_to", returnTo)
 	q.Add("flow", flowId)
 	redirectTo.RawQuery = q.Encode()
-	r := redirectTo.String()
+	rt := redirectTo.String()
 	errorId := RegenerateBackupCodesError
 
 	flowStateCookie.BackupCodeUsed = true
 
 	a.cookieManager.SetStateCookie(w, flowStateCookie)
-	w.WriteHeader(http.StatusSeeOther)
-	_ = json.NewEncoder(w).Encode(
-		ErrorBrowserLocationChangeRequired{
-			Error:             &client.GenericError{Id: &errorId},
-			RedirectBrowserTo: &r,
-		},
-	)
+	a.redirectResponse(w, r, &ErrorBrowserLocationChangeRequired{
+		Error:             &client.GenericError{Id: &errorId},
+		RedirectBrowserTo: &rt,
+	})
 }
 
 // TODO: Validate response when server error handling is implemented

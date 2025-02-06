@@ -160,6 +160,10 @@ const Login: NextPage = () => {
             window.location.href = data.redirect_to as string;
             return;
           }
+          if ("redirect_browser_to" in data) {
+            window.location.href = data.redirect_browser_to as string;
+            return;
+          }
           if (flow?.return_to) {
             window.location.href = flow.return_to;
             return;

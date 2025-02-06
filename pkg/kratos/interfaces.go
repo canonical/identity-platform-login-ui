@@ -65,3 +65,7 @@ type EncryptInterface interface {
 	// Decrypt a hex string, returns the decrypted string or an error
 	Decrypt(string) (string, error)
 }
+
+type RedirectToInterface interface {
+	GetRedirectTo() string
+}
