@@ -367,7 +367,7 @@ const Login: NextPage = () => {
         <>
           {isWebauthn && isSequencedLogin && (
             <p className="u-text--muted">
-              Another layer of authentication before you get access to{" "}
+              Another layer of authentication before you get access{" "}
               {getTitleSuffix()}
             </p>
           )}
