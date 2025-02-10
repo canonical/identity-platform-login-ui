@@ -15,7 +15,7 @@
     "vanilla-framework": "4.21.0"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "clean": "rm -rf node_modules css static/css *.log _site/ .next/",
