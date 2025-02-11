@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -43,6 +44,8 @@ type Service struct {
 	hydra       HydraClientInterface
 	authz       AuthorizerInterface
 
+	oidcWebAuthnSequencingEnabled bool
+
 	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
@@ -57,12 +60,30 @@ type ErrorBrowserLocationChangeRequired struct {
 	RedirectBrowserTo *string `json:"redirect_browser_to,omitempty"`
 }
 
+func (e *ErrorBrowserLocationChangeRequired) GetRedirectTo() string {
+	if e.RedirectBrowserTo == nil {
+		return ""
+	}
+	return *e.RedirectBrowserTo
+}
+
+func (e *ErrorBrowserLocationChangeRequired) HasError() bool {
+	return e.Error != nil
+}
+
 func (e *BrowserLocationChangeRequired) HasError() bool {
 	return e.Error != nil
 }
 
 func (e *BrowserLocationChangeRequired) HasRedirectTo() bool {
 	return e.RedirectTo != nil
+}
+
+func (e *BrowserLocationChangeRequired) GetRedirectTo() string {
+	if e.RedirectTo == nil {
+		return ""
+	}
+	return *e.RedirectTo
 }
 
 type BrowserLocationChangeRequired struct {
@@ -105,6 +126,13 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 
 	accept := hClient.NewAcceptOAuth2LoginRequest(session.Identity.Id)
 	accept.SetRemember(true)
+	accept.Amr = []string{}
+	for _, r := range session.AuthenticationMethods {
+		accept.Amr = append(accept.Amr, r.GetMethod())
+	}
+	// TODO: Uncomment after we upgrade hydra sdk version
+	// accept.IdentityProviderSessionId = &session.Id
+
 	if session.ExpiresAt != nil {
 		expAt := time.Until(*session.ExpiresAt)
 		// Set the session to expire when the kratos session expires
@@ -153,7 +181,7 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 
 	// This is the first user login, they set up their authenticator app
 	// Or backup code was used for login, no need to re-auth
-	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed) {
+	if validateHash(hydraLoginChallenge, c.LoginChallengeHash) && (c.TotpSetup || c.BackupCodeUsed || c.WebauthnSetup) {
 		return false, nil
 	}
 
@@ -178,15 +206,23 @@ func (s *Service) CreateBrowserLoginFlow(
 		Refresh(refresh).
 		Cookie(httpHelpers.CookiesToString(cookies))
 
-	if loginChallenge != "" {
-		request = request.LoginChallenge(loginChallenge)
-	} else if loginChallenge == "" && returnTo == "" {
-		return nil, nil, fmt.Errorf("no return_to or login_challenge was provided")
+	if !s.oidcWebAuthnSequencingEnabled {
+		if loginChallenge != "" {
+			request = request.LoginChallenge(loginChallenge)
+		} else if loginChallenge == "" && returnTo == "" {
+			return nil, nil, fmt.Errorf("no return_to or login_challenge was provided")
+		}
 	}
 
 	flow, resp, err := request.Execute()
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// Populate the flow with the hydra login req, so that the UI can retrieve this info
+	flow, err = s.hydrateKratosLoginFlow(ctx, flow)
+	if err != nil {
+		s.logger.Warnf("Failed to fetch the hydra oauth2 request: %v", err)
 	}
 
 	return flow, resp.Cookies(), nil
@@ -258,6 +294,11 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 		return nil, nil, err
 	}
 
+	// Populate the flow with the hydra login req, so that the UI can retrieve this info
+	flow, err = s.hydrateKratosLoginFlow(ctx, flow)
+	if err != nil {
+		s.logger.Warnf("Failed to fetch the hydra oauth2 request: %v", err)
+	}
 	return flow, resp.Cookies(), nil
 }
 
@@ -379,11 +420,11 @@ func (s *Service) UpdateRecoveryFlow(
 
 func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
-) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+) (*BrowserLocationChangeRequired, *kClient.SuccessfulNativeLogin, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateLoginFlow")
 	defer span.End()
 
-	_, resp, err := s.kratos.FrontendApi().
+	f, resp, err := s.kratos.FrontendApi().
 		UpdateLoginFlow(ctx).
 		Flow(flow).
 		UpdateLoginFlowBody(body).
@@ -396,14 +437,14 @@ func (s *Service) UpdateLoginFlow(
 	// redirected to.
 	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
 		err := s.getUiError(resp.Body)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err = unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {
 		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	c := resp.Cookies()
@@ -418,12 +459,17 @@ func (s *Service) UpdateLoginFlow(
 		c = append(c, kratosSessionUnsetCookie())
 	}
 
-	// We trasform the kratos response to our own custom response here.
-	// The original kratos response contains an 'Error' field, which we remove
-	// because this is not a real error.
-	returnToResp := BrowserLocationChangeRequired{RedirectTo: redirectResp.RedirectBrowserTo}
-
-	return &returnToResp, c, nil
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		// We trasform the kratos response to our own custom response here.
+		// The original kratos response contains an 'Error' field, which we remove
+		// because this is not a real error.
+		returnToResp := BrowserLocationChangeRequired{RedirectTo: redirectResp.RedirectBrowserTo}
+		return &returnToResp, nil, c, nil
+	}
+	// Workaround for marshalling error
+	// TODO: Evaluate if we can get rid of that when kratos sdk 1.3 is out
+	f.ContinueWith = nil
+	return nil, f, c, nil
 }
 
 func (s *Service) UpdateSettingsFlow(
@@ -605,7 +651,8 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 	r.Body = io.NopCloser(bytes.NewReader(b))
 
 	if err := json.Unmarshal(b, methodOnly); err != nil {
-		return nil, cookies, err
+		// return nil, cookies, err
+		methodOnly.Method = "webauthn"
 	}
 
 	switch methodOnly.Method {
@@ -634,8 +681,21 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		ret.UpdateLoginFlowWithTotpMethod.Method = "totp"
 	case "webauthn":
 		body := new(kClient.UpdateLoginFlowWithWebAuthnMethod)
-
-		err := parseBody(r.Body, &body)
+		var err error
+		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+			// TODO: fix me. The UI should start sending that data in json format
+			err = r.ParseForm()
+			if err != nil {
+				return nil, cookies, err
+			}
+			csrf := r.Form.Get("csrf_token")
+			l := r.Form.Get("webauthn_login")
+			body.CsrfToken = &csrf
+			body.Identifier = r.Form.Get("identifier")
+			body.WebauthnLogin = &l
+		} else {
+			err = parseBody(r.Body, &body)
+		}
 
 		if err != nil {
 			return nil, cookies, err
@@ -897,20 +957,69 @@ func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) 
 
 func (s *Service) is1FAMethod(method string) bool {
 	switch method {
-	case "password", "webauthn", "oidc":
+	case "password", "oidc":
 		return true
+	case "webauthn":
+		return !s.oidcWebAuthnSequencingEnabled
 	default:
 		return false
 	}
 }
 
-func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+// hydrateKratosLoginFlow hydrates the kratos login flow with information about the oauth2 flow
+// that initiated it. This is usefull only if the login_challenge was not sent to kratos when
+// creating the flow.
+func (s *Service) hydrateKratosLoginFlow(ctx context.Context, flow *kClient.LoginFlow) (*kClient.LoginFlow, error) {
+	u, _ := url.Parse(flow.GetReturnTo())
+	loginChallenge := u.Query().Get("login_challenge")
+
+	// This is not a hydra request, nothing to do here
+	if loginChallenge == "" {
+		return flow, nil
+	}
+
+	// The flow already contains information about the oauth2 request
+	if flow.Oauth2LoginRequest != nil {
+		return flow, nil
+	}
+
+	b, err := flow.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	newFlow := new(kClient.LoginFlow)
+	err = newFlow.UnmarshalJSON(b)
+	if err != nil {
+		return nil, err
+	}
+
+	newFlow.Oauth2LoginChallenge = &loginChallenge
+	hydraLoginRequest, _, err := s.GetLoginRequest(ctx, loginChallenge)
+	if err != nil {
+		return newFlow, err
+	}
+
+	b, err = hydraLoginRequest.MarshalJSON()
+	if err != nil {
+		return newFlow, err
+	}
+
+	lr := kClient.NewOAuth2LoginRequest()
+	lr.UnmarshalJSON(b)
+	newFlow.Oauth2LoginRequest = lr
+	return newFlow, nil
+}
+
+func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos
 	s.kratosAdmin = kratosAdmin
 	s.hydra = hydra
 	s.authz = authzClient
+
+	s.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 
 	s.monitor = monitor
 	s.tracer = tracer

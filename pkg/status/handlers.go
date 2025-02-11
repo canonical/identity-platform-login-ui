@@ -23,10 +23,12 @@ type Health struct {
 }
 
 type DeploymentInfo struct {
-	OidcSequencingEnabled bool `json:"oidc_webauthn_sequencing_enabled"`
+	OidcSequencingEnabled bool   `json:"oidc_webauthn_sequencing_enabled"`
+	BaseURL               string `json:"base_url"`
 }
 
 type API struct {
+	BaseURL                       string
 	oidcWebAuthnSequencingEnabled bool
 	service                       ServiceInterface
 
@@ -87,14 +89,16 @@ func (a *API) appConfig(w http.ResponseWriter, r *http.Request) {
 
 	info := new(DeploymentInfo)
 	info.OidcSequencingEnabled = a.oidcWebAuthnSequencingEnabled
+	info.BaseURL = a.BaseURL
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(info)
 }
 
-func NewAPI(oidcWebAuthnSequencingEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
+func NewAPI(baseURL string, oidcWebAuthnSequencingEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
+	a.BaseURL = baseURL
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.service = service
 	a.tracer = tracer

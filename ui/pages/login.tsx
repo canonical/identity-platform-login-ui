@@ -33,16 +33,21 @@ import {
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
+  const [baseURL, setBaseURL] = useState("");
   const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
 
   useEffect(() => {
     void fetch("/api/v0/app-config")
       .then((response) => {
         const data = response.json();
-        return data as { oidc_webauthn_sequencing_enabled?: boolean };
+        return data as {
+          oidc_webauthn_sequencing_enabled?: boolean;
+          base_url?: string;
+        };
       })
       .then((data) => {
         setSequencedLogin(data.oidc_webauthn_sequencing_enabled ?? false);
+        setBaseURL(data.base_url ?? "");
       })
       .catch(console.error);
   }, []);
@@ -153,6 +158,10 @@ const Login: NextPage = () => {
         .then(({ data }) => {
           if ("redirect_to" in data) {
             window.location.href = data.redirect_to as string;
+            return;
+          }
+          if ("redirect_browser_to" in data) {
+            window.location.href = data.redirect_browser_to as string;
             return;
           }
           if (flow?.return_to) {
@@ -298,6 +307,12 @@ const Login: NextPage = () => {
       });
 
       return null;
+    } else if (isWebauthn) {
+      // TODO: Refactor me
+      const u = renderFlow.ui.action.split("/self-service/");
+      if (u.length == 2) {
+        renderFlow.ui.action = baseURL + "/api/kratos/self-service/" + u[1];
+      }
     }
   }
 
@@ -357,7 +372,7 @@ const Login: NextPage = () => {
         <>
           {isWebauthn && isSequencedLogin && (
             <p className="u-text--muted">
-              Another layer of authentication before you get access to{" "}
+              Another layer of authentication before you get access{" "}
               {getTitleSuffix()}
             </p>
           )}

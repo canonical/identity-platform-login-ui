@@ -60,16 +60,18 @@ func NewRouter(
 		device.NewService(hydraClient, tracer, monitor, logger),
 		logger,
 	).RegisterEndpoints(router)
-	kratosService := kratos.NewService(kratosClient, kratosAdminClient, hydraClient, authzClient, tracer, monitor, logger)
+	kratosService := kratos.NewService(kratosClient, kratosAdminClient, hydraClient, authzClient, oidcWebAuthnSequencingEnabled, tracer, monitor, logger)
 	kratos.NewAPI(
 		kratosService,
 		mfaEnabled,
+		oidcWebAuthnSequencingEnabled,
 		baseURL,
 		cookieManager,
 		logger,
 	).RegisterEndpoints(router)
-	extra.NewAPI(extra.NewService(hydraClient, tracer, monitor, logger), kratosService, baseURL, oidcWebAuthnSequencingEnabled, logger).RegisterEndpoints(router)
+	extra.NewAPI(extra.NewService(hydraClient, tracer, monitor, logger), kratosService, baseURL, mfaEnabled, oidcWebAuthnSequencingEnabled, logger).RegisterEndpoints(router)
 	status.NewAPI(
+		baseURL,
 		oidcWebAuthnSequencingEnabled,
 		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataApi(), tracer, monitor, logger),
 		tracer,

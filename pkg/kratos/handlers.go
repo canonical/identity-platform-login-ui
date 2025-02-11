@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	hClient "github.com/ory/hydra-client-go/v2"
 	client "github.com/ory/kratos-client-go"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
@@ -23,11 +24,12 @@ const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
 const LOGIN_UI_STATE_COOKIE = "login_ui_state"
 
 type API struct {
-	mfaEnabled    bool
-	service       ServiceInterface
-	baseURL       string
-	contextPath   string
-	cookieManager AuthCookieManagerInterface
+	mfaEnabled                    bool
+	oidcWebAuthnSequencingEnabled bool
+	service                       ServiceInterface
+	baseURL                       string
+	contextPath                   string
+	cookieManager                 AuthCookieManagerInterface
 
 	logger logging.LoggerInterface
 }
@@ -48,10 +50,11 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	var (
-		response         any
-		shouldEnforceMfa = false
-		cookies          []*http.Cookie
-		err              error
+		response              any
+		shouldEnforceMfa      = false
+		shouldEnforceWebAuthn = false
+		cookies               []*http.Cookie
+		err                   error
 	)
 
 	q := r.URL.Query()
@@ -81,7 +84,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// if the user is logged in, CreateBrowserLoginFlow call will return an empty response
 	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order to avoid this bug.
 	session, _, _ := a.service.CheckSession(r.Context(), r.Cookies())
-	if session != nil && a.mfaEnabled {
+	if session != nil {
 		shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
 
 		if err != nil {
@@ -90,7 +93,21 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if shouldEnforceMfa {
-			a.mfaSettingsRedirect(w, returnTo, loginChallenge)
+			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge)}
+			a.mfaSettingsRedirect(w, r, returnTo, flowCookie)
+			return
+		}
+
+		shouldEnforceWebAuthn, err = a.shouldEnforceWebAuthnWithSession(r.Context(), session)
+
+		if err != nil {
+			a.logger.Errorf("Failed check for WebAuthn: %v", err)
+			http.Error(w, "Failed check for WebAuthn", http.StatusInternalServerError)
+			return
+		}
+		if shouldEnforceWebAuthn {
+			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge)}
+			a.webAuthnSettingsRedirect(w, r, returnTo, flowCookie)
 			return
 		}
 	}
@@ -107,8 +124,12 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to fetch hydra flow", http.StatusInternalServerError)
 		return
 	}
+
 	if !forceLogin {
 		response, cookies, err = a.handleCreateFlowWithSession(r, session, loginChallenge)
+		if err == nil {
+			a.cookieManager.ClearStateCookie(w)
+		}
 	} else {
 		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)
 	}
@@ -147,7 +168,7 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo s
 	return flow, cookies, nil
 }
 
-func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (any, []*http.Cookie, error) {
+func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error) {
 	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session, loginChallenge)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to accept login request: %v", err)
@@ -234,12 +255,16 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, cookies)
+	redirectTo, flow, cookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, cookies)
 	if err != nil {
 		a.logger.Errorf("Error when updating login flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	u, _ := url.Parse(loginFlow.GetReturnTo())
+	lc := u.Query().Get("login_challenge")
+	flowCookie := FlowStateCookie{LoginChallengeHash: hash(lc)}
 
 	shouldEnforceMfa, err := a.shouldEnforceMFA(r.Context(), cookies)
 	if err != nil {
@@ -261,17 +286,66 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 
 	if shouldRegenerateBackupCodes {
-		a.lookupSecretsSettingsRedirect(w, flowId, *loginFlow.ReturnTo, loginFlow.GetOauth2LoginChallenge())
+		a.lookupSecretsSettingsRedirect(w, r, flowId, *loginFlow.ReturnTo, flowCookie)
 		return
 	}
 
 	if shouldEnforceMfa {
-		a.mfaSettingsRedirect(w, *loginFlow.ReturnTo, loginFlow.GetOauth2LoginChallenge())
+		a.mfaSettingsRedirect(w, r, *loginFlow.ReturnTo, flowCookie)
+		return
+	}
+
+	if redirectTo != nil {
+		a.cookieManager.SetStateCookie(w, flowCookie)
+		a.redirectResponse(w, r, redirectTo)
+		return
+	}
+
+	// This is a hydra flow
+	if lc != "" {
+		// User is authenticated, return the session
+		response, cookies, err := a.handleCreateFlowWithSession(r, &flow.Session, lc)
+		if err != nil {
+			a.logger.Errorf(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		a.cookieManager.ClearStateCookie(w)
+		setCookies(w, cookies)
+		a.redirectResponse(w, r, response)
+		return
+	}
+
+	resp, err := flow.MarshalJSON()
+	if err != nil {
+		a.logger.Errorf("Error when marshalling Json: %v\n", err)
+		http.Error(w, "Failed to parse flow error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(flow)
+	w.Write(resp)
+}
+
+// TODO: Refactor me for IAM-1286
+func (a *API) redirectResponse(w http.ResponseWriter, r *http.Request, resp RedirectToInterface) {
+	switch r.Method {
+	case http.MethodGet:
+		w.WriteHeader(http.StatusSeeOther)
+		_ = json.NewEncoder(w).Encode(resp)
+	case http.MethodPost:
+		// In case of webauthn the user is redirected here and we get a FORM, instead of JSON.
+		// TODO: Remove, when the UI fixes this
+		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+			http.Redirect(w, r, resp.GetRedirectTo(), http.StatusSeeOther)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(resp)
+	default:
+		http.Error(w, "unexpected method", http.StatusInternalServerError)
+	}
 }
 
 func (a *API) shouldRegenerateBackupCodes(ctx context.Context, cookies []*http.Cookie) (bool, error) {
@@ -361,23 +435,32 @@ func (a *API) is40xError(err error) bool {
 	return false
 }
 
-func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo, loginChallenge string) {
-	var sessionId string
+func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *client.Session) (bool, error) {
+	if !a.oidcWebAuthnSequencingEnabled {
+		return false, nil
+	}
 
-	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_secure")
+	// enforce only if one of the authentication methods was oidc
+	for _, method := range session.AuthenticationMethods {
+		if method.GetMethod() == "oidc" {
+			webAuthnAvailable, err := a.service.HasWebAuthnAvailable(ctx, session.Identity.GetId())
+			if err != nil {
+				return false, err
+			}
+			return !webAuthnAvailable, nil
+		}
+	}
+	return false, nil
+}
 
+func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, r *http.Request, returnTo string, flowStateCookie FlowStateCookie) {
+	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_passkey")
 	if err != nil {
-		err = fmt.Errorf("unable to build mfa redirect path, possible misconfiguration, err: %v", err)
-		a.logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	errorId := "session_aal2_required"
 
-	if loginChallenge != "" {
-		sessionId = hash(loginChallenge)
-	}
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
 	redirectTo, err := url.ParseRequestURI(redirect)
@@ -390,31 +473,58 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, returnTo, loginChalleng
 	q := redirectTo.Query()
 	q.Set("return_to", returnTo)
 	redirectTo.RawQuery = q.Encode()
-	r := redirectTo.String()
+	rt := redirectTo.String()
 
-	a.cookieManager.SetStateCookie(w, FlowStateCookie{LoginChallengeHash: sessionId, TotpSetup: true})
-	w.WriteHeader(http.StatusSeeOther)
-	_ = json.NewEncoder(w).Encode(
-		ErrorBrowserLocationChangeRequired{
-			Error:             &client.GenericError{Id: &errorId},
-			RedirectBrowserTo: &r,
-		},
-	)
+	flowStateCookie.WebauthnSetup = true
+	a.cookieManager.SetStateCookie(w, flowStateCookie)
+	a.redirectResponse(w, r, &ErrorBrowserLocationChangeRequired{
+		Error:             &client.GenericError{Id: &errorId},
+		RedirectBrowserTo: &rt,
+	})
 }
 
-func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, returnTo, loginChallenge string) {
-	var sessionId string
+func (a *API) mfaSettingsRedirect(w http.ResponseWriter, r *http.Request, returnTo string, flowStateCookie FlowStateCookie) {
+	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_secure")
 
+	if err != nil {
+		err = fmt.Errorf("unable to build mfa redirect path, possible misconfiguration, err: %v", err)
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	errorId := "session_aal2_required"
+
+	// Set the original login URL as return_to, to continue the flow after mfa
+	// has been set.
+	redirectTo, err := url.ParseRequestURI(redirect)
+	if err != nil {
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	q := redirectTo.Query()
+	q.Set("return_to", returnTo)
+	redirectTo.RawQuery = q.Encode()
+	rt := redirectTo.String()
+
+	flowStateCookie.TotpSetup = true
+
+	a.cookieManager.SetStateCookie(w, flowStateCookie)
+	a.redirectResponse(w, r, &ErrorBrowserLocationChangeRequired{
+		Error:             &client.GenericError{Id: &errorId},
+		RedirectBrowserTo: &rt,
+	})
+}
+
+func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, r *http.Request, flowId, returnTo string, flowStateCookie FlowStateCookie) {
 	redirect, err := url.JoinPath("/", a.contextPath, ui.UI, "/backup_codes_regenerate")
 	if err != nil {
 		err = fmt.Errorf("unable to build backup codes redirect path, possible misconfiguration, err: %v", err)
 		a.logger.Error(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	if loginChallenge != "" {
-		sessionId = hash(loginChallenge)
 	}
 
 	redirectTo, err := url.ParseRequestURI(redirect)
@@ -428,17 +538,16 @@ func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, flowId, retur
 	q.Add("return_to", returnTo)
 	q.Add("flow", flowId)
 	redirectTo.RawQuery = q.Encode()
-	r := redirectTo.String()
+	rt := redirectTo.String()
 	errorId := RegenerateBackupCodesError
 
-	a.cookieManager.SetStateCookie(w, FlowStateCookie{LoginChallengeHash: sessionId, BackupCodeUsed: true})
-	w.WriteHeader(http.StatusSeeOther)
-	_ = json.NewEncoder(w).Encode(
-		ErrorBrowserLocationChangeRequired{
-			Error:             &client.GenericError{Id: &errorId},
-			RedirectBrowserTo: &r,
-		},
-	)
+	flowStateCookie.BackupCodeUsed = true
+
+	a.cookieManager.SetStateCookie(w, flowStateCookie)
+	a.redirectResponse(w, r, &ErrorBrowserLocationChangeRequired{
+		Error:             &client.GenericError{Id: &errorId},
+		RedirectBrowserTo: &rt,
+	})
 }
 
 // TODO: Validate response when server error handling is implemented
@@ -668,13 +777,15 @@ func kratosSessionUnsetCookie() *http.Cookie {
 
 func NewAPI(
 	service ServiceInterface,
-	mfaEnabled bool,
+	mfaEnabled,
+	oidcWebAuthnSequencingEnabled bool,
 	baseURL string,
 	cookieManager AuthCookieManagerInterface,
 	logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.mfaEnabled = mfaEnabled
+	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.service = service
 	a.baseURL = baseURL
 	a.cookieManager = cookieManager
