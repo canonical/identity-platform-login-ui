@@ -130,8 +130,8 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 	for _, r := range session.AuthenticationMethods {
 		accept.Amr = append(accept.Amr, r.GetMethod())
 	}
-	// TODO: Uncomment after we upgrade hydra sdk version
-	// accept.IdentityProviderSessionId = &session.Id
+
+	accept.IdentityProviderSessionId = &session.Id
 
 	if session.ExpiresAt != nil {
 		expAt := time.Until(*session.ExpiresAt)

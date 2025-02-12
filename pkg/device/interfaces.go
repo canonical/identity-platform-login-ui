@@ -15,7 +15,7 @@ type KratosClientInterface interface {
 }
 
 type HydraClientInterface interface {
-	OAuth2Api() hydra.OAuth2Api
+	OAuth2Api() hydra.OAuth2API
 }
 
 type ServiceInterface interface {

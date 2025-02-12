@@ -16,6 +16,6 @@ type DeviceApi interface {
 }
 
 type OAuth2Api interface {
-	hClient.OAuth2Api
+	hClient.OAuth2API
 	DeviceApi
 }
