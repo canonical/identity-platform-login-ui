@@ -79,7 +79,7 @@ func TestAcceptUserCodeSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockAuth2Api := NewMockOAuth2Api(ctrl)
+	mockOAuth2API := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 
@@ -91,14 +91,14 @@ func TestAcceptUserCodeSuccess(t *testing.T) {
 	redirectTo := hClient.NewOAuth2RedirectTo("test")
 
 	req := hydra.ApiAcceptUserCodeRequestRequest{
-		ApiService: mockAuth2Api,
+		ApiService: mockOAuth2API,
 	}
 	resp := http.Response{}
 
 	mockTracer.EXPECT().Start(ctx, "device.service.AcceptUserCode").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockAuth2Api)
-	mockAuth2Api.EXPECT().AcceptUserCodeRequest(ctx).Times(1).Return(req)
-	mockAuth2Api.EXPECT().AcceptUserCodeRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockOAuth2API)
+	mockOAuth2API.EXPECT().AcceptUserCodeRequest(ctx).Times(1).Return(req)
+	mockOAuth2API.EXPECT().AcceptUserCodeRequestExecute(gomock.Any()).Times(1).DoAndReturn(
 		func(r hydra.ApiAcceptUserCodeRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
 			if _challenge := (*string)(reflect.ValueOf(r).FieldByName("deviceChallenge").UnsafePointer()); *_challenge != challenge {
 				t.Fatalf("expected challenge to be %s, got %s", challenge, *_challenge)
@@ -126,7 +126,7 @@ func TestAcceptUserCodeFailure(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockAuth2Api := NewMockOAuth2Api(ctrl)
+	mockOAuth2API := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 
@@ -137,14 +137,14 @@ func TestAcceptUserCodeFailure(t *testing.T) {
 	userCodeRequest.UserCode = &code
 
 	req := hydra.ApiAcceptUserCodeRequestRequest{
-		ApiService: mockAuth2Api,
+		ApiService: mockOAuth2API,
 	}
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
 	mockTracer.EXPECT().Start(ctx, "device.service.AcceptUserCode").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockAuth2Api)
-	mockAuth2Api.EXPECT().AcceptUserCodeRequest(ctx).Times(1).Return(req)
-	mockAuth2Api.EXPECT().AcceptUserCodeRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockOAuth2API)
+	mockOAuth2API.EXPECT().AcceptUserCodeRequest(ctx).Times(1).Return(req)
+	mockOAuth2API.EXPECT().AcceptUserCodeRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 
 	rt, err := NewService(mockHydra, mockTracer, mockMonitor, mockLogger).AcceptUserCode(ctx, challenge, userCodeRequest)
 

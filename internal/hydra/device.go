@@ -17,7 +17,7 @@ import (
 
 type DeviceApiService struct {
 	client *hClient.APIClient
-	hClient.OAuth2Api
+	hClient.OAuth2API
 }
 
 type APIError struct {
@@ -140,7 +140,7 @@ func (v *NullableAcceptDeviceUserCodeRequest) UnmarshalJSON(src []byte) error {
 
 type ApiAcceptUserCodeRequestRequest struct {
 	ctx                         context.Context
-	ApiService                  OAuth2Api
+	ApiService                  OAuth2API
 	deviceChallenge             *string
 	acceptDeviceUserCodeRequest *AcceptDeviceUserCodeRequest
 }
@@ -183,7 +183,7 @@ func (a *DeviceApiService) AcceptUserCodeRequestExecute(r ApiAcceptUserCodeReque
 		return nil, nil, err
 	}
 
-	localBasePath, err := a.client.GetConfig().ServerURLWithContext(r.ctx, "OAuth2ApiService.AcceptUserCodeRequest")
+	localBasePath, err := a.client.GetConfig().ServerURLWithContext(r.ctx, "OAuth2APIService.AcceptUserCodeRequest")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -232,6 +232,6 @@ func (a *DeviceApiService) AcceptUserCodeRequestExecute(r ApiAcceptUserCodeReque
 func newDeviceApiService(api *hClient.APIClient) *DeviceApiService {
 	a := new(DeviceApiService)
 	a.client = api
-	a.OAuth2Api = api.OAuth2Api
+	a.OAuth2API = api.OAuth2API
 	return a
 }

@@ -26,7 +26,7 @@ func (s *Service) AcceptUserCode(ctx context.Context, deviceChallenge string, re
 	ctx, span := s.tracer.Start(ctx, "device.service.AcceptUserCode")
 	defer span.End()
 
-	accept, res, err := s.hydra.OAuth2Api().AcceptUserCodeRequest(ctx).
+	accept, res, err := s.hydra.OAuth2API().AcceptUserCodeRequest(ctx).
 		DeviceChallenge(deviceChallenge).
 		AcceptDeviceUserCodeRequest(*req).
 		Execute()
