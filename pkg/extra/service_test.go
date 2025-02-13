@@ -30,19 +30,19 @@ func TestGetConsentSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOAuth2Api := NewMockOAuth2Api(ctrl)
+	mockHydraOAuth2API := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	challengeString := "test.challenge"
-	consentRequest := hClient.OAuth2ApiGetOAuth2ConsentRequestRequest{
-		ApiService: mockHydraOAuth2Api,
+	consentRequest := hClient.OAuth2APIGetOAuth2ConsentRequestRequest{
+		ApiService: mockHydraOAuth2API,
 	}
 	consent := hClient.NewOAuth2ConsentRequest(challengeString)
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.GetOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOAuth2Api)
-	mockHydraOAuth2Api.EXPECT().GetOAuth2ConsentRequest(ctx).Times(1).Return(consentRequest)
-	mockHydraOAuth2Api.EXPECT().GetOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hClient.OAuth2ApiGetOAuth2ConsentRequestRequest) (*hClient.OAuth2ConsentRequest, *http.Response, error) {
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2API.GetOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOAuth2API)
+	mockHydraOAuth2API.EXPECT().GetOAuth2ConsentRequest(ctx).Times(1).Return(consentRequest)
+	mockHydraOAuth2API.EXPECT().GetOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r hClient.OAuth2APIGetOAuth2ConsentRequestRequest) (*hClient.OAuth2ConsentRequest, *http.Response, error) {
 			// use reflect as consentChallenge is a private attribute, also is a string pointer so need to cast it multiple times
 			if challenge := (*string)(reflect.ValueOf(r).FieldByName("consentChallenge").UnsafePointer()); *challenge != challengeString {
 				t.Fatalf("expected challenge string as %s, got %s", challengeString, *challenge)
@@ -70,19 +70,19 @@ func TestGetConsentFails(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOAuth2Api := NewMockOAuth2Api(ctrl)
+	mockHydraOAuth2API := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	challengeString := "test.challenge"
-	consentRequest := hClient.OAuth2ApiGetOAuth2ConsentRequestRequest{
-		ApiService: mockHydraOAuth2Api,
+	consentRequest := hClient.OAuth2APIGetOAuth2ConsentRequestRequest{
+		ApiService: mockHydraOAuth2API,
 	}
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.GetOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOAuth2Api)
-	mockHydraOAuth2Api.EXPECT().GetOAuth2ConsentRequest(ctx).Times(1).Return(consentRequest)
-	mockHydraOAuth2Api.EXPECT().GetOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hClient.OAuth2ApiGetOAuth2ConsentRequestRequest) (*hClient.OAuth2ConsentRequest, *http.Response, error) {
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2API.GetOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOAuth2API)
+	mockHydraOAuth2API.EXPECT().GetOAuth2ConsentRequest(ctx).Times(1).Return(consentRequest)
+	mockHydraOAuth2API.EXPECT().GetOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r hClient.OAuth2APIGetOAuth2ConsentRequestRequest) (*hClient.OAuth2ConsentRequest, *http.Response, error) {
 			// use reflect as consentChallenge is a private attribute, also is a string pointer so need to cast it multiple times
 			if challenge := (*string)(reflect.ValueOf(r).FieldByName("consentChallenge").UnsafePointer()); *challenge != challengeString {
 				t.Fatalf("expected challenge string as %s, got %s", challengeString, *challenge)
@@ -111,21 +111,21 @@ func TestAcceptConsentSuccess(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOAuth2Api := NewMockOAuth2Api(ctrl)
+	mockHydraOAuth2API := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	redirect := "https://test.com/test"
-	acceptRequest := hClient.OAuth2ApiAcceptOAuth2ConsentRequestRequest{
-		ApiService: mockHydraOAuth2Api,
+	acceptRequest := hClient.OAuth2APIAcceptOAuth2ConsentRequestRequest{
+		ApiService: mockHydraOAuth2API,
 	}
 	consent := hClient.NewOAuth2ConsentRequest("test.challenge")
 	identity := kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 	accept := hClient.NewOAuth2RedirectTo(redirect)
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOAuth2Api)
-	mockHydraOAuth2Api.EXPECT().AcceptOAuth2ConsentRequest(ctx).Times(1).Return(acceptRequest)
-	mockHydraOAuth2Api.EXPECT().AcceptOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hClient.OAuth2ApiAcceptOAuth2ConsentRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2API.AcceptOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOAuth2API)
+	mockHydraOAuth2API.EXPECT().AcceptOAuth2ConsentRequest(ctx).Times(1).Return(acceptRequest)
+	mockHydraOAuth2API.EXPECT().AcceptOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r hClient.OAuth2APIAcceptOAuth2ConsentRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
 			if challenge := (*string)(reflect.ValueOf(r).FieldByName("consentChallenge").UnsafePointer()); *challenge != consent.GetChallenge() {
 				t.Fatalf("expected challenge string as %s, got %s", consent.GetChallenge(), *challenge)
 			}
@@ -164,21 +164,21 @@ func TestAcceptConsentFails(t *testing.T) {
 	mockHydra := NewMockHydraClientInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOAuth2Api := NewMockOAuth2Api(ctrl)
+	mockHydraOAuth2API := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
-	acceptRequest := hClient.OAuth2ApiAcceptOAuth2ConsentRequestRequest{
-		ApiService: mockHydraOAuth2Api,
+	acceptRequest := hClient.OAuth2APIAcceptOAuth2ConsentRequestRequest{
+		ApiService: mockHydraOAuth2API,
 	}
 	consent := hClient.NewOAuth2ConsentRequest("test.challenge")
 	identity := kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
-	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOAuth2Api)
-	mockHydraOAuth2Api.EXPECT().AcceptOAuth2ConsentRequest(ctx).Times(1).Return(acceptRequest)
-	mockHydraOAuth2Api.EXPECT().AcceptOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hClient.OAuth2ApiAcceptOAuth2ConsentRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
+	mockTracer.EXPECT().Start(ctx, "hydra.OAuth2API.AcceptOAuth2ConsentRequest").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOAuth2API)
+	mockHydraOAuth2API.EXPECT().AcceptOAuth2ConsentRequest(ctx).Times(1).Return(acceptRequest)
+	mockHydraOAuth2API.EXPECT().AcceptOAuth2ConsentRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r hClient.OAuth2APIAcceptOAuth2ConsentRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
 			if challenge := (*string)(reflect.ValueOf(r).FieldByName("consentChallenge").UnsafePointer()); *challenge != consent.GetChallenge() {
 				t.Fatalf("expected challenge string as %s, got %s", consent.GetChallenge(), *challenge)
 			}

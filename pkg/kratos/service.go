@@ -130,8 +130,8 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 	for _, r := range session.AuthenticationMethods {
 		accept.Amr = append(accept.Amr, r.GetMethod())
 	}
-	// TODO: Uncomment after we upgrade hydra sdk version
-	// accept.IdentityProviderSessionId = &session.Id
+
+	accept.IdentityProviderSessionId = &session.Id
 
 	if session.ExpiresAt != nil {
 		expAt := time.Until(*session.ExpiresAt)
@@ -139,7 +139,7 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 		accept.SetRememberFor(int64(expAt.Seconds()))
 	}
 
-	redirectTo, resp, err := s.hydra.OAuth2Api().
+	redirectTo, resp, err := s.hydra.OAuth2API().
 		AcceptOAuth2LoginRequest(ctx).
 		LoginChallenge(lc).
 		AcceptOAuth2LoginRequest(*accept).
@@ -156,7 +156,7 @@ func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetLoginRequest")
 	defer span.End()
 
-	redirectTo, resp, err := s.hydra.OAuth2Api().
+	redirectTo, resp, err := s.hydra.OAuth2API().
 		GetOAuth2LoginRequest(ctx).
 		LoginChallenge(loginChallenge).
 		Execute()

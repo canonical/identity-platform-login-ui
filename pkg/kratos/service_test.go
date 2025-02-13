@@ -139,13 +139,13 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+	mockHydraOauthApi := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	loginChallenge := "123456"
 	identityID := "id"
 	redirectTo := hClient.NewOAuth2RedirectTo("http://redirect/to/path")
-	acceptLoginRequest := hClient.OAuth2ApiAcceptOAuth2LoginRequestRequest{
+	acceptLoginRequest := hClient.OAuth2APIAcceptOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 	session := kClient.NewSession("test")
@@ -157,10 +157,10 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 	resp := new(http.Response)
 
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hClient.OAuth2ApiAcceptOAuth2LoginRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
+		func(r hClient.OAuth2APIAcceptOAuth2LoginRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
 			if lc := (*string)(reflect.ValueOf(r).FieldByName("loginChallenge").UnsafePointer()); *lc != loginChallenge {
 				t.Fatalf("expected loginChallenge to be %s, got %s", loginChallenge, *lc)
 			}
@@ -169,6 +169,9 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 			}
 			if id := (*hClient.AcceptOAuth2LoginRequest)(reflect.ValueOf(r).FieldByName("acceptOAuth2LoginRequest").UnsafePointer()); 300-id.GetRememberFor() > leeway {
 				t.Fatalf("expected RememberFor to be close to 300, got %v", id.GetRememberFor())
+			}
+			if id := (*hClient.AcceptOAuth2LoginRequest)(reflect.ValueOf(r).FieldByName("acceptOAuth2LoginRequest").UnsafePointer()); id.GetIdentityProviderSessionId() != session.GetId() {
+				t.Fatalf("expected session ID to be %s, got %s", session.GetId(), id.GetIdentityProviderSessionId())
 			}
 			return redirectTo, resp, nil
 		},
@@ -198,18 +201,18 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+	mockHydraOauthApi := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	loginChallenge := "123456"
-	acceptLoginRequest := hClient.OAuth2ApiAcceptOAuth2LoginRequestRequest{
+	acceptLoginRequest := hClient.OAuth2APIAcceptOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
 	mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 
@@ -237,11 +240,11 @@ func TestGetLoginRequestSuccess(t *testing.T) {
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+	mockHydraOauthApi := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	loginChallenge := "123456"
-	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+	getLoginRequest := hClient.OAuth2APIGetOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 	lr := hClient.NewOAuth2LoginRequestWithDefaults()
@@ -249,10 +252,10 @@ func TestGetLoginRequestSuccess(t *testing.T) {
 	resp := new(http.Response)
 
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hClient.OAuth2ApiGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
+		func(r hClient.OAuth2APIGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
 			if lc := (*string)(reflect.ValueOf(r).FieldByName("loginChallenge").UnsafePointer()); *lc != loginChallenge {
 				t.Fatalf("expected loginChallenge to be %s, got %s", loginChallenge, *lc)
 			}
@@ -284,16 +287,16 @@ func TestGetLoginRequestFails(t *testing.T) {
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+	mockHydraOauthApi := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	loginChallenge := "123456"
-	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+	getLoginRequest := hClient.OAuth2APIGetOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 
@@ -321,12 +324,12 @@ func TestMustReAuthenticateSuccess(t *testing.T) {
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+	mockHydraOauthApi := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	loginChallenge := "123456"
 	sessionId := "1234"
-	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+	getLoginRequest := hClient.OAuth2APIGetOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 	lr := hClient.NewOAuth2LoginRequestWithDefaults()
@@ -340,10 +343,10 @@ func TestMustReAuthenticateSuccess(t *testing.T) {
 	resp := new(http.Response)
 
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hClient.OAuth2ApiGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
+		func(r hClient.OAuth2APIGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
 			if lc := (*string)(reflect.ValueOf(r).FieldByName("loginChallenge").UnsafePointer()); *lc != loginChallenge {
 				t.Fatalf("expected loginChallenge to be %s, got %s", loginChallenge, *lc)
 			}
@@ -373,12 +376,12 @@ func TestMustReAuthenticateBackupCodeUsed(t *testing.T) {
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+	mockHydraOauthApi := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	loginChallenge := "123456"
 	sessionId := "1234"
-	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+	getLoginRequest := hClient.OAuth2APIGetOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 	lr := hClient.NewOAuth2LoginRequestWithDefaults()
@@ -392,10 +395,10 @@ func TestMustReAuthenticateBackupCodeUsed(t *testing.T) {
 	resp := new(http.Response)
 
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hClient.OAuth2ApiGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
+		func(r hClient.OAuth2APIGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
 			if lc := (*string)(reflect.ValueOf(r).FieldByName("loginChallenge").UnsafePointer()); *lc != loginChallenge {
 				t.Fatalf("expected loginChallenge to be %s, got %s", loginChallenge, *lc)
 			}
@@ -425,12 +428,12 @@ func TestMustReAuthenticateNoSkip(t *testing.T) {
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+	mockHydraOauthApi := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	loginChallenge := "123456"
 	sessionId := "1234"
-	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+	getLoginRequest := hClient.OAuth2APIGetOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 	lr := hClient.NewOAuth2LoginRequestWithDefaults()
@@ -444,10 +447,10 @@ func TestMustReAuthenticateNoSkip(t *testing.T) {
 	resp := new(http.Response)
 
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hClient.OAuth2ApiGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
+		func(r hClient.OAuth2APIGetOAuth2LoginRequestRequest) (*hClient.OAuth2LoginRequest, *http.Response, error) {
 			if lc := (*string)(reflect.ValueOf(r).FieldByName("loginChallenge").UnsafePointer()); *lc != loginChallenge {
 				t.Fatalf("expected loginChallenge to be %s, got %s", loginChallenge, *lc)
 			}
@@ -530,18 +533,18 @@ func TestMustReAuthenticateFails(t *testing.T) {
 	mockAuthz := NewMockAuthorizerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-	mockHydraOauthApi := NewMockOAuth2Api(ctrl)
+	mockHydraOauthApi := NewMockOAuth2API(ctrl)
 
 	ctx := context.Background()
 	loginChallenge := "123456"
-	getLoginRequest := hClient.OAuth2ApiGetOAuth2LoginRequestRequest{
+	getLoginRequest := hClient.OAuth2APIGetOAuth2LoginRequestRequest{
 		ApiService: mockHydraOauthApi,
 	}
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	mockHydra.EXPECT().OAuth2Api().Times(1).Return(mockHydraOauthApi)
+	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequestExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 

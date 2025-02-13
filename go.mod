@@ -9,7 +9,7 @@ require (
 	github.com/go-chi/cors v1.2.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/openfga/go-sdk v0.2.3
-	github.com/ory/hydra-client-go/v2 v2.1.1
+	github.com/ory/hydra-client-go/v2 v2.2.1
 	github.com/ory/kratos-client-go v1.2.1
 	github.com/prometheus/client_golang v1.20.5
 	github.com/spf13/cobra v1.8.1

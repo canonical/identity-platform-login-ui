@@ -12,12 +12,12 @@ type Client struct {
 	deviceApi *DeviceApiService
 }
 
-func (c *Client) OAuth2Api() OAuth2Api {
+func (c *Client) OAuth2API() OAuth2API {
 	return c.deviceApi
 }
 
-func (c *Client) MetadataApi() hClient.MetadataApi {
-	return c.c.MetadataApi
+func (c *Client) MetadataAPI() hClient.MetadataAPI {
+	return c.c.MetadataAPI
 }
 
 func NewClient(url string, debug bool) *Client {

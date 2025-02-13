@@ -21,10 +21,10 @@ type Service struct {
 }
 
 func (s *Service) GetConsent(ctx context.Context, challenge string) (*hClient.OAuth2ConsentRequest, error) {
-	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2Api.GetOAuth2ConsentRequest")
+	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2API.GetOAuth2ConsentRequest")
 	defer span.End()
 
-	consent, res, err := s.hydra.OAuth2Api().GetOAuth2ConsentRequest(
+	consent, res, err := s.hydra.OAuth2API().GetOAuth2ConsentRequest(
 		ctx,
 	).ConsentChallenge(challenge).Execute()
 
@@ -48,10 +48,10 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 	r.SetSession(*session)
 	r.SetRemember(true)
 
-	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2Api.AcceptOAuth2ConsentRequest")
+	ctx, span := s.tracer.Start(ctx, "hydra.OAuth2API.AcceptOAuth2ConsentRequest")
 	defer span.End()
 
-	accept, res, err := s.hydra.OAuth2Api().AcceptOAuth2ConsentRequest(
+	accept, res, err := s.hydra.OAuth2API().AcceptOAuth2ConsentRequest(
 		ctx,
 	).ConsentChallenge(
 		consent.GetChallenge(),

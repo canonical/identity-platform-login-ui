@@ -22,7 +22,7 @@ type BuildInfo struct {
 
 type Service struct {
 	kratos kClient.MetadataAPI
-	hydra  hClient.MetadataApi
+	hydra  hClient.MetadataAPI
 
 	hydraStatus  healthcheck.CheckerInterface
 	kratosStatus healthcheck.CheckerInterface
@@ -117,7 +117,7 @@ func (s *Service) gitRevision(ctx context.Context, settings []debug.BuildSetting
 	return "n/a"
 }
 
-func NewService(kratos kClient.MetadataAPI, hydra hClient.MetadataApi, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(kratos kClient.MetadataAPI, hydra hClient.MetadataAPI, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos

@@ -44,8 +44,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/openfga/go-sdk v0.2.3 h1:VPCouXbUP+vtGREbLu8BIuzFiA1kBDQ6tnunFTxtLzc=
 github.com/openfga/go-sdk v0.2.3/go.mod h1:2k8hL4VJ46GXUGbnQ1QOrcZWcP1kKATLPeqVnuLzgIE=
-github.com/ory/hydra-client-go/v2 v2.1.1 h1:3JatU9uFbw5XhF3lgPCas1l1Kok2v5Mq1p26zZwGHNg=
-github.com/ory/hydra-client-go/v2 v2.1.1/go.mod h1:IiIwChp/9wRvPoyFQblqPvg78uVishCCrV9+/M7Pl34=
+github.com/ory/hydra-client-go/v2 v2.2.1 h1:m1821pIX6ybG/3oSAn2wtrbBKNwe9q5A8fLljYuLpBk=
+github.com/ory/hydra-client-go/v2 v2.2.1/go.mod h1:K83R+iK40+5uF2uQ34yRUrf9izRvFsza9pG2Se5qMmk=
 github.com/ory/kratos-client-go v1.2.1 h1:Q3T/adfAfAkHFcV1LGLnwz4QkY6ghBdX9zde5T8uO/4=
 github.com/ory/kratos-client-go v1.2.1/go.mod h1:WiQYlrqW4Atj6Js7oDN5ArbZxo0nTO2u/e1XaDv2yMI=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

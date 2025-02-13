@@ -73,7 +73,7 @@ func NewRouter(
 	status.NewAPI(
 		baseURL,
 		oidcWebAuthnSequencingEnabled,
-		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataApi(), tracer, monitor, logger),
+		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataAPI(), tracer, monitor, logger),
 		tracer,
 		monitor,
 		logger,
