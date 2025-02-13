@@ -48,6 +48,8 @@ func NewConfig(apiScheme, apiHost, storeID, apiToken, authModelID string, debug 
 }
 
 type Client struct {
+	storeID string
+
 	c *client.OpenFgaClient
 
 	tracer  tracing.TracingInterface
@@ -103,7 +105,7 @@ func (c *Client) ListObjects(ctx context.Context, user string, relation string, 
 	ctx, span := c.tracer.Start(ctx, "openfga.Client.ListObjects")
 	defer span.End()
 
-	r := c.APIClient().OpenFgaApi.ListObjects(ctx)
+	r := c.APIClient().OpenFgaApi.ListObjects(ctx, c.storeID)
 	body := &openfga.ListObjectsRequest{
 		User:     user,
 		Relation: relation,
@@ -129,12 +131,12 @@ func (c *Client) Check(ctx context.Context, user string, relation string, object
 	ctx, span := c.tracer.Start(ctx, "openfga.Client.Check")
 	defer span.End()
 
-	r := c.APIClient().OpenFgaApi.Check(ctx)
+	r := c.APIClient().OpenFgaApi.Check(ctx, c.storeID)
 	body := openfga.NewCheckRequest(
-		openfga.TupleKey{
-			User:     openfga.PtrString(user),
-			Relation: openfga.PtrString(relation),
-			Object:   openfga.PtrString(object),
+		openfga.CheckRequestTupleKey{
+			User:     user,
+			Relation: relation,
+			Object:   object,
 		},
 	)
 	r = r.Body(*body)
@@ -190,7 +192,7 @@ func NewClient(cfg *Config) *Client {
 					ApiToken: cfg.ApiToken,
 				},
 			},
-			AuthorizationModelId: openfga.PtrString(cfg.AuthModelID),
+			AuthorizationModelId: cfg.AuthModelID,
 			Debug:                cfg.Debug,
 			HTTPClient:           &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)},
 		},
@@ -200,6 +202,7 @@ func NewClient(cfg *Config) *Client {
 	}
 
 	c.c = fga
+	c.storeID = cfg.StoreID
 	c.tracer = cfg.Tracer
 	c.monitor = cfg.Monitor
 	c.logger = cfg.Logger
