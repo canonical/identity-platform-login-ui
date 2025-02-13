@@ -2,7 +2,7 @@ module github.com/canonical/identity-platform-login-ui
 
 go 1.22.0
 
-toolchain go1.23.6
+toolchain go1.24.0
 
 require (
 	github.com/go-chi/chi/v5 v5.2.1
