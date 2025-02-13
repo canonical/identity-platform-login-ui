@@ -42,8 +42,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/openfga/go-sdk v0.2.3 h1:VPCouXbUP+vtGREbLu8BIuzFiA1kBDQ6tnunFTxtLzc=
-github.com/openfga/go-sdk v0.2.3/go.mod h1:2k8hL4VJ46GXUGbnQ1QOrcZWcP1kKATLPeqVnuLzgIE=
+github.com/openfga/go-sdk v0.6.5 h1:2bxZkoLyphOahFETo9wPvls1AQ3IqbsygIyDkzRvx1k=
+github.com/openfga/go-sdk v0.6.5/go.mod h1:zui7pHE3eLAYh2fFmEMrWg9XbxYns2WW5Xr/GEgili4=
 github.com/ory/hydra-client-go/v2 v2.2.1 h1:m1821pIX6ybG/3oSAn2wtrbBKNwe9q5A8fLljYuLpBk=
 github.com/ory/hydra-client-go/v2 v2.2.1/go.mod h1:K83R+iK40+5uF2uQ34yRUrf9izRvFsza9pG2Se5qMmk=
 github.com/ory/kratos-client-go v1.2.1 h1:Q3T/adfAfAkHFcV1LGLnwz4QkY6ghBdX9zde5T8uO/4=
