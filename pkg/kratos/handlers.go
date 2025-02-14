@@ -332,7 +332,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) redirectResponse(w http.ResponseWriter, r *http.Request, resp RedirectToInterface) {
 	switch r.Method {
 	case http.MethodGet:
-		w.WriteHeader(http.StatusSeeOther)
+		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(resp)
 	case http.MethodPost:
 		// In case of webauthn the user is redirected here and we get a FORM, instead of JSON.

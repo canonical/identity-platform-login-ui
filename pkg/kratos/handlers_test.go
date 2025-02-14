@@ -293,7 +293,7 @@ func TestHandleCreateFlowRedirectToSetupWebauthn(t *testing.T) {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 
-	if res.StatusCode != http.StatusSeeOther {
+	if res.StatusCode != http.StatusOK {
 		t.Fatalf("expected HTTP status code 303 got %v", res.StatusCode)
 	}
 	loginFlow := ErrorBrowserLocationChangeRequired{}
