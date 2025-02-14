@@ -60,23 +60,19 @@ type ErrorBrowserLocationChangeRequired struct {
 	RedirectBrowserTo *string `json:"redirect_browser_to,omitempty"`
 }
 
-func (e *ErrorBrowserLocationChangeRequired) GetRedirectTo() string {
-	if e.RedirectBrowserTo == nil {
-		return ""
-	}
-	return *e.RedirectBrowserTo
-}
-
-func (e *ErrorBrowserLocationChangeRequired) HasError() bool {
-	return e.Error != nil
-}
-
 func (e *BrowserLocationChangeRequired) HasError() bool {
 	return e.Error != nil
 }
 
 func (e *BrowserLocationChangeRequired) HasRedirectTo() bool {
 	return e.RedirectTo != nil
+}
+
+func (e *BrowserLocationChangeRequired) GetCode() int {
+	if !e.HasError() || e.Error.Code == nil {
+		return http.StatusOK
+	}
+	return int(*e.Error.Code)
 }
 
 func (e *BrowserLocationChangeRequired) GetRedirectTo() string {
@@ -120,7 +116,7 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 	return session, resp.Cookies(), nil
 }
 
-func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Session, lc string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error) {
+func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Session, lc string) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.AcceptLoginRequest")
 	defer span.End()
 
@@ -149,7 +145,7 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 		return nil, nil, err
 	}
 
-	return redirectTo, resp.Cookies(), nil
+	return &BrowserLocationChangeRequired{RedirectTo: &redirectTo.RedirectTo}, resp.Cookies(), nil
 }
 
 func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*hClient.OAuth2LoginRequest, []*http.Cookie, error) {
@@ -267,18 +263,12 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 		return flow, nil, nil
 	}
 
-	redirectResp := new(ErrorBrowserLocationChangeRequired)
-	err = unmarshalByteJson(resp.Body, redirectResp)
+	returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
 	if err != nil {
-		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
 	}
 
-	returnToResp := &BrowserLocationChangeRequired{
-		RedirectTo: redirectResp.RedirectBrowserTo,
-		Error:      redirectResp.Error,
-	}
-	return flow, returnToResp, nil
+	return flow, returnToResp, err
 }
 
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
@@ -338,17 +328,11 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 		return flow, nil, nil
 	}
 
-	redirectResp := new(ErrorBrowserLocationChangeRequired)
-	err = unmarshalByteJson(resp.Body, redirectResp)
+	returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
 	if err != nil {
-		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
 	}
 
-	returnToResp := &BrowserLocationChangeRequired{
-		RedirectTo: redirectResp.RedirectBrowserTo,
-		Error:      redirectResp.Error,
-	}
 	return flow, returnToResp, nil
 }
 
@@ -367,19 +351,8 @@ func (s *Service) UpdateRecoveryFlow(
 
 	// if the flow responds with 400, it means a session already exists
 	if err != nil && resp.StatusCode == http.StatusBadRequest {
-		redirectResp := new(ErrorBrowserLocationChangeRequired)
-		err := unmarshalByteJson(resp.Body, redirectResp)
-		if err != nil {
-			s.logger.Errorf("Failed to unmarshal JSON: %s", err)
-			return nil, nil, err
-		}
-
-		returnToResp := &BrowserLocationChangeRequired{
-			RedirectTo: redirectResp.RedirectBrowserTo,
-			Error:      redirectResp.Error,
-		}
-
-		return returnToResp, nil, nil
+		returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
+		return returnToResp, nil, err
 	}
 
 	// If the recovery code was invalid, kratos returns a 200 response
@@ -406,16 +379,12 @@ func (s *Service) UpdateRecoveryFlow(
 		}
 	}
 
-	redirectResp := new(ErrorBrowserLocationChangeRequired)
-	err = unmarshalByteJson(resp.Body, redirectResp)
+	returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
 	if err != nil {
-		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
 		return nil, nil, err
 	}
 
-	returnToResp := BrowserLocationChangeRequired{RedirectTo: redirectResp.RedirectBrowserTo}
-
-	return &returnToResp, resp.Cookies(), nil
+	return returnToResp, resp.Cookies(), nil
 }
 
 func (s *Service) UpdateLoginFlow(
@@ -440,13 +409,6 @@ func (s *Service) UpdateLoginFlow(
 		return nil, nil, nil, err
 	}
 
-	redirectResp := new(ErrorBrowserLocationChangeRequired)
-	err = unmarshalByteJson(resp.Body, redirectResp)
-	if err != nil {
-		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
-		return nil, nil, nil, err
-	}
-
 	c := resp.Cookies()
 	if body.UpdateLoginFlowWithOidcMethod != nil {
 		// If this is an oidc flow, we need to delete the session cookie
@@ -460,11 +422,12 @@ func (s *Service) UpdateLoginFlow(
 	}
 
 	if resp.StatusCode == http.StatusUnprocessableEntity {
-		// We trasform the kratos response to our own custom response here.
-		// The original kratos response contains an 'Error' field, which we remove
-		// because this is not a real error.
-		returnToResp := BrowserLocationChangeRequired{RedirectTo: redirectResp.RedirectBrowserTo}
-		return &returnToResp, nil, c, nil
+		returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		return returnToResp, nil, c, nil
 	}
 	// Workaround for marshalling error
 	// TODO: Evaluate if we can get rid of that when kratos sdk 1.3 is out
@@ -1011,6 +974,19 @@ func (s *Service) hydrateKratosLoginFlow(ctx context.Context, flow *kClient.Logi
 	return newFlow, nil
 }
 
+func (s *Service) parseKratosRedirectResponse(ctx context.Context, resp *http.Response) (*BrowserLocationChangeRequired, error) {
+	redirectResp := new(ErrorBrowserLocationChangeRequired)
+	err := unmarshalByteJson(resp.Body, redirectResp)
+	if err != nil {
+		s.logger.Errorf("Failed to unmarshal JSON: %s", err)
+		return nil, err
+	}
+
+	return &BrowserLocationChangeRequired{
+		RedirectTo: redirectResp.RedirectBrowserTo,
+		Error:      redirectResp.Error,
+	}, nil
+}
 func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 

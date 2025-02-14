@@ -151,6 +151,8 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity(identityID, "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 
+	redirectResp := BrowserLocationChangeRequired{RedirectTo: &redirectTo.RedirectTo}
+
 	session.SetExpiresAt(time.Now().Add(300 * time.Second))
 	leeway := int64(2)
 
@@ -179,8 +181,8 @@ func TestAcceptLoginRequestSuccess(t *testing.T) {
 
 	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, session, loginChallenge)
 
-	if rt != redirectTo {
-		t.Fatalf("expected redirect to be %v not  %v", redirectTo, rt)
+	if *rt != redirectResp {
+		t.Fatalf("expected redirect to be %v not  %v", redirectResp, *rt)
 	}
 	if !reflect.DeepEqual(c, resp.Cookies()) {
 		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
