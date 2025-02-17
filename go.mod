@@ -12,7 +12,7 @@ require (
 	github.com/ory/hydra-client-go/v2 v2.2.1
 	github.com/ory/kratos-client-go v1.2.1
 	github.com/prometheus/client_golang v1.20.5
-	github.com/spf13/cobra v1.9.0
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.34.0
