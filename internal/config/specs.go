@@ -10,7 +10,6 @@ type EnvSpec struct {
 
 	LogLevel string `envconfig:"log_level" default:"error"`
 	Debug    bool   `envconfig:"debug" default:"false"`
-	Dev      bool   `envconfig:"dev" default:"false"`
 
 	Port    int    `envconfig:"port" default:"8080"`
 	BaseURL string `envconfig:"base_url" default:""`

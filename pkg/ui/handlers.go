@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -17,7 +18,9 @@ const UI = "/ui"
 type API struct {
 	fileServer http.Handler
 
-	dev bool
+	baseURL         string
+	csp             string
+	kratosPublicURL string
 
 	logger logging.LoggerInterface
 }
@@ -38,7 +41,7 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 		// Sets the Content Security Policy (CSP) for the page, which helps mitigate XSS attacks and data injection attacks.
 		// The policy allows loading resources (scripts, styles, images, etc.) only from the same origin ('self'), data URLs, and all subdomains of ubuntu.com.
-		w.Header().Set("Content-Security-Policy", a.getCSP())
+		w.Header().Set("Content-Security-Policy", a.csp)
 
 		// `no-store`: This will tell any cache system not to cache the index.html file
 		// `no-cache`: This will tell any cache system to check if there is a newer version in the server
@@ -65,19 +68,25 @@ func (a *API) uiFiles(w http.ResponseWriter, r *http.Request) {
 	a.fileServer.ServeHTTP(w, r)
 }
 
-func (a *API) getCSP() string {
-	if a.dev {
-		return "default-src 'self' data: https://*.ubuntu.com; script-src 'self' localhost:*; style-src 'self' 'unsafe-inline'"
+func (a *API) getCSP(baseURL, kratosPublicURL string) string {
+	b, _ := url.Parse(baseURL)
+	k, _ := url.Parse(kratosPublicURL)
+	additionalScriptURL := ""
+	if k != nil && b != nil && k.Host != b.Host {
+		// Allowlist the kratos URL to allow the browser needs to fetch the webauthn.js script
+		additionalScriptURL = kratosPublicURL
 	}
-	return "default-src 'self' data: https://*.ubuntu.com; script-src 'self'; style-src 'self' 'unsafe-inline'"
+	return fmt.Sprintf("default-src 'self' data: https://*.ubuntu.com; script-src 'self' %v; style-src 'self' 'unsafe-inline'", additionalScriptURL)
 }
 
-func NewAPI(fileSystem fs.FS, dev bool, logger logging.LoggerInterface) *API {
+func NewAPI(fileSystem fs.FS, baseURL, kratosPublicURL string, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.fileServer = http.FileServer(http.FS(fileSystem))
 
-	a.dev = dev
+	a.baseURL = baseURL
+	a.kratosPublicURL = kratosPublicURL
+	a.csp = a.getCSP(baseURL, kratosPublicURL)
 	a.logger = logger
 
 	return a
