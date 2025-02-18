@@ -16,7 +16,10 @@ const UI = "/ui"
 
 type API struct {
 	fileServer http.Handler
-	logger     logging.LoggerInterface
+
+	dev bool
+
+	logger logging.LoggerInterface
 }
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
@@ -35,7 +38,7 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 		// Sets the Content Security Policy (CSP) for the page, which helps mitigate XSS attacks and data injection attacks.
 		// The policy allows loading resources (scripts, styles, images, etc.) only from the same origin ('self'), data URLs, and all subdomains of ubuntu.com.
-		w.Header().Set("Content-Security-Policy", "default-src 'self' data: https://*.ubuntu.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'")
+		w.Header().Set("Content-Security-Policy", a.getCSP())
 
 		// `no-store`: This will tell any cache system not to cache the index.html file
 		// `no-cache`: This will tell any cache system to check if there is a newer version in the server
@@ -62,11 +65,19 @@ func (a *API) uiFiles(w http.ResponseWriter, r *http.Request) {
 	a.fileServer.ServeHTTP(w, r)
 }
 
-func NewAPI(fileSystem fs.FS, logger logging.LoggerInterface) *API {
+func (a *API) getCSP() string {
+	if a.dev {
+		return "default-src 'self' data: https://*.ubuntu.com; script-src 'self' localhost:*; style-src 'self' 'unsafe-inline'"
+	}
+	return "default-src 'self' data: https://*.ubuntu.com; script-src 'self'; style-src 'self' 'unsafe-inline'"
+}
+
+func NewAPI(fileSystem fs.FS, dev bool, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.fileServer = http.FileServer(http.FS(fileSystem))
 
+	a.dev = dev
 	a.logger = logger
 
 	return a

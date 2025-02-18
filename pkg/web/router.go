@@ -32,6 +32,7 @@ func NewRouter(
 	mfaEnabled bool,
 	oidcWebAuthnSequencingEnabled bool,
 	baseURL string,
+	dev bool,
 	tracer tracing.TracingInterface,
 	monitor monitoring.MonitorInterface,
 	logger logging.LoggerInterface,
@@ -78,7 +79,7 @@ func NewRouter(
 		monitor,
 		logger,
 	).RegisterEndpoints(router)
-	ui.NewAPI(distFS, logger).RegisterEndpoints(router)
+	ui.NewAPI(distFS, dev, logger).RegisterEndpoints(router)
 	metrics.NewAPI(logger).RegisterEndpoints(router)
 
 	return tracing.NewMiddleware(monitor, logger).OpenTelemetry(router)
