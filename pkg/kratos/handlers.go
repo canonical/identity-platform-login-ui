@@ -18,6 +18,8 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
+const TOTP_REGISTRATION_REQUIRED = "totp_registration_required"
+const WEBAUTHN_REGISTRATION_REQUIRED = "webauthn_registration_required"
 const RegenerateBackupCodesError = "regenerate_backup_codes"
 const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
 const LOGIN_UI_STATE_COOKIE = "login_ui_state"
@@ -463,7 +465,7 @@ func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, r *http.Request, r
 		return
 	}
 
-	errorId := "session_aal2_required"
+	errorId := WEBAUTHN_REGISTRATION_REQUIRED
 
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
@@ -497,7 +499,7 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, r *http.Request, return
 		return
 	}
 
-	errorId := "session_aal2_required"
+	errorId := TOTP_REGISTRATION_REQUIRED
 
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
