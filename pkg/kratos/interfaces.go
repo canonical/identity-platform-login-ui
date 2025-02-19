@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go"
 
 	"github.com/canonical/identity-platform-login-ui/internal/hydra"
@@ -28,7 +27,7 @@ type AuthorizerInterface interface {
 
 type ServiceInterface interface {
 	CheckSession(context.Context, []*http.Cookie) (*kClient.Session, []*http.Cookie, error)
-	AcceptLoginRequest(context.Context, *kClient.Session, string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error)
+	AcceptLoginRequest(context.Context, *kClient.Session, string) (*BrowserLocationChangeRequired, []*http.Cookie, error)
 	MustReAuthenticate(context.Context, string, *kClient.Session, FlowStateCookie) (bool, error)
 	CreateBrowserLoginFlow(context.Context, string, string, string, bool, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
 	CreateBrowserRecoveryFlow(context.Context, string, []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error)
@@ -67,5 +66,6 @@ type EncryptInterface interface {
 }
 
 type RedirectToInterface interface {
+	GetCode() int
 	GetRedirectTo() string
 }

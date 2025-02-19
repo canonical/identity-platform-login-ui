@@ -293,15 +293,15 @@ func TestHandleCreateFlowRedirectToSetupWebauthn(t *testing.T) {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 
-	if res.StatusCode != http.StatusSeeOther {
-		t.Fatalf("expected HTTP status code 303 got %v", res.StatusCode)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("expected HTTP status code 200 got %v", res.StatusCode)
 	}
-	loginFlow := ErrorBrowserLocationChangeRequired{}
+	loginFlow := BrowserLocationChangeRequired{}
 	if err := json.Unmarshal(data, &loginFlow); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	if !strings.HasPrefix(*loginFlow.RedirectBrowserTo, "/ui/setup_passkey") {
-		t.Errorf("expected redirect_browser_to to start with '/ui/setup_passkey' got %v", *loginFlow.RedirectBrowserTo)
+	if !strings.HasPrefix(*loginFlow.RedirectTo, "/ui/setup_passkey") {
+		t.Errorf("expected redirect_to to start with '/ui/setup_passkey' got %v", *loginFlow.RedirectTo)
 	}
 }
 
@@ -315,7 +315,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 
 	session := kClient.NewSession("test")
 	redirect := "https://some/path/to/somewhere"
-	redirectTo := hClient.NewOAuth2RedirectTo(redirect)
+	redirectTo := BrowserLocationChangeRequired{RedirectTo: &redirect}
 
 	loginChallenge := "login_challenge_2341235123231"
 
@@ -326,7 +326,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
-	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(redirectTo, req.Cookies(), nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(&redirectTo, req.Cookies(), nil)
 	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
 	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any()).Return()
 
@@ -569,9 +569,6 @@ func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
-	redirectTo := "https://some/path/to/somewhere"
-	flow := new(ErrorBrowserLocationChangeRequired)
-	flow.RedirectBrowserTo = &redirectTo
 
 	flowBody := new(kClient.UpdateLoginFlowBody)
 	flowBody.UpdateLoginFlowWithOidcMethod = kClient.NewUpdateLoginFlowWithOidcMethod("oidc", "oidc")
@@ -658,7 +655,7 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
 	if res.StatusCode != http.StatusOK {
-		t.Fatal("Expected HTTP status code 303, got: ", res.Status)
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
 	}
 }
 
@@ -994,9 +991,6 @@ func TestHandleUpdateRecoveryFlowFailOnParseRecoveryFlowMethodBody(t *testing.T)
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 
 	flowId := "test"
-	redirectTo := "https://example.com/ui/reset_email"
-	flow := new(ErrorBrowserLocationChangeRequired)
-	flow.RedirectBrowserTo = &redirectTo
 
 	flowBody := new(kClient.UpdateRecoveryFlowBody)
 	flowBody.UpdateRecoveryFlowWithCodeMethod = kClient.NewUpdateRecoveryFlowWithCodeMethod("code")
@@ -1069,6 +1063,9 @@ func TestHandleCreateSettingsFlowWithRedirect(t *testing.T) {
 	redirectErrorBrowserTo := "https://some/path/to/somewhere"
 	redirectFlow := new(BrowserLocationChangeRequired)
 	redirectFlow.RedirectTo = &redirectErrorBrowserTo
+	redirectFlow.Error = kClient.NewGenericErrorWithDefaults()
+	redirectFlow.Error.Code = new(int64)
+	*redirectFlow.Error.Code = 403
 
 	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
@@ -1192,6 +1189,9 @@ func TestHandleGetSettingsFlowWithRedirect(t *testing.T) {
 	redirectErrorBrowserTo := "https://some/path/to/somewhere"
 	redirectFlow := new(BrowserLocationChangeRequired)
 	redirectFlow.RedirectTo = &redirectErrorBrowserTo
+	redirectFlow.Error = kClient.NewGenericErrorWithDefaults()
+	redirectFlow.Error.Code = new(int64)
+	*redirectFlow.Error.Code = 403
 
 	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, redirectFlow, nil)
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)

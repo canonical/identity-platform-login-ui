@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	hClient "github.com/ory/hydra-client-go/v2"
 	client "github.com/ory/kratos-client-go"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
+const TOTP_REGISTRATION_REQUIRED = "totp_registration_required"
+const WEBAUTHN_REGISTRATION_REQUIRED = "webauthn_registration_required"
 const RegenerateBackupCodesError = "regenerate_backup_codes"
 const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
 const LOGIN_UI_STATE_COOKIE = "login_ui_state"
@@ -168,7 +169,7 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo s
 	return flow, cookies, nil
 }
 
-func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (*hClient.OAuth2RedirectTo, []*http.Cookie, error) {
+func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session, loginChallenge)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to accept login request: %v", err)
@@ -328,11 +329,16 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-// TODO: Refactor me for IAM-1286
 func (a *API) redirectResponse(w http.ResponseWriter, r *http.Request, resp RedirectToInterface) {
+	code := http.StatusOK
+	// We differentiate between simple redirects and redirects because of an error to make it easier
+	// for the frontend
+	if resp.GetCode() == http.StatusForbidden {
+		code = http.StatusForbidden
+	}
 	switch r.Method {
 	case http.MethodGet:
-		w.WriteHeader(http.StatusSeeOther)
+		w.WriteHeader(code)
 		_ = json.NewEncoder(w).Encode(resp)
 	case http.MethodPost:
 		// In case of webauthn the user is redirected here and we get a FORM, instead of JSON.
@@ -341,7 +347,7 @@ func (a *API) redirectResponse(w http.ResponseWriter, r *http.Request, resp Redi
 			http.Redirect(w, r, resp.GetRedirectTo(), http.StatusSeeOther)
 			return
 		}
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(code)
 		_ = json.NewEncoder(w).Encode(resp)
 	default:
 		http.Error(w, "unexpected method", http.StatusInternalServerError)
@@ -459,7 +465,7 @@ func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, r *http.Request, r
 		return
 	}
 
-	errorId := "session_aal2_required"
+	errorId := WEBAUTHN_REGISTRATION_REQUIRED
 
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
@@ -477,9 +483,9 @@ func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, r *http.Request, r
 
 	flowStateCookie.WebauthnSetup = true
 	a.cookieManager.SetStateCookie(w, flowStateCookie)
-	a.redirectResponse(w, r, &ErrorBrowserLocationChangeRequired{
-		Error:             &client.GenericError{Id: &errorId},
-		RedirectBrowserTo: &rt,
+	a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+		Error:      &client.GenericError{Id: &errorId},
+		RedirectTo: &rt,
 	})
 }
 
@@ -493,7 +499,7 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, r *http.Request, return
 		return
 	}
 
-	errorId := "session_aal2_required"
+	errorId := TOTP_REGISTRATION_REQUIRED
 
 	// Set the original login URL as return_to, to continue the flow after mfa
 	// has been set.
@@ -512,9 +518,9 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, r *http.Request, return
 	flowStateCookie.TotpSetup = true
 
 	a.cookieManager.SetStateCookie(w, flowStateCookie)
-	a.redirectResponse(w, r, &ErrorBrowserLocationChangeRequired{
-		Error:             &client.GenericError{Id: &errorId},
-		RedirectBrowserTo: &rt,
+	a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+		Error:      &client.GenericError{Id: &errorId},
+		RedirectTo: &rt,
 	})
 }
 
@@ -544,9 +550,9 @@ func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, r *http.Reque
 	flowStateCookie.BackupCodeUsed = true
 
 	a.cookieManager.SetStateCookie(w, flowStateCookie)
-	a.redirectResponse(w, r, &ErrorBrowserLocationChangeRequired{
-		Error:             &client.GenericError{Id: &errorId},
-		RedirectBrowserTo: &rt,
+	a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+		Error:      &client.GenericError{Id: &errorId},
+		RedirectTo: &rt,
 	})
 }
 
@@ -620,13 +626,9 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setCookies(w, cookies)
-	// Kratos '422' response maps to 200 OK, it is expected
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(
-		BrowserLocationChangeRequired{
-			RedirectTo: flow.RedirectTo,
-		},
-	)
+	a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+		RedirectTo: flow.RedirectTo,
+	})
 }
 
 func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
@@ -673,13 +675,10 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	// If aal1, redirect to complete second factor auth
 	if response != nil && response.HasRedirectTo() {
 		a.logger.Errorf("Failed to get settings flow due to insufficient aal: %v\n", response)
-		w.WriteHeader(http.StatusForbidden)
-		_ = json.NewEncoder(w).Encode(
-			ErrorBrowserLocationChangeRequired{
-				Error:             response.Error,
-				RedirectBrowserTo: response.RedirectTo,
-			},
-		)
+		a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+			Error:      response.Error,
+			RedirectTo: response.RedirectTo,
+		})
 		return
 	}
 
@@ -735,13 +734,10 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	// If aal1, redirect to complete second factor auth
 	if response != nil && response.HasRedirectTo() {
 		a.logger.Errorf("Failed to create settings flow due to insufficient aal: %v\n", response)
-		w.WriteHeader(http.StatusForbidden)
-		_ = json.NewEncoder(w).Encode(
-			ErrorBrowserLocationChangeRequired{
-				Error:             response.Error,
-				RedirectBrowserTo: response.RedirectTo,
-			},
-		)
+		a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+			Error:      response.Error,
+			RedirectTo: response.RedirectTo,
+		})
 		return
 	}
 
