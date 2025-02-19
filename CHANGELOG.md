@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.21.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.0...v0.21.1) (2025-02-19)
+
+
+### Bug Fixes
+
+* add kratos to csp if needed ([1730db1](https://github.com/canonical/identity-platform-login-ui/commit/1730db1ccfd05ce3ddd40c987f83d20e8edb1faf))
+* add required value for config ([ad3188a](https://github.com/canonical/identity-platform-login-ui/commit/ad3188a2e5b66806e1782d33a61041f8c48bfa2d))
+* check required session aal in consent ([0759c40](https://github.com/canonical/identity-platform-login-ui/commit/0759c40da15b1d426ca75c873aedc2856e250df7))
+* **deps:** update dependency @canonical/react-components to v1.10.0 ([fa40304](https://github.com/canonical/identity-platform-login-ui/commit/fa403044d434505113ada5fb23995ec7132f3610))
+* **deps:** update dependency @canonical/react-components to v1.9.1 ([ecaa1d9](https://github.com/canonical/identity-platform-login-ui/commit/ecaa1d9d667cdb2a8f746d6aa49ef04e584b18d0))
+* **deps:** update dependency @ory/client to v1.16.7 ([868acc8](https://github.com/canonical/identity-platform-login-ui/commit/868acc8abefd3c397e4d0303080f854682cdae88))
+* **deps:** update dependency sass to v1.85.0 ([61060b4](https://github.com/canonical/identity-platform-login-ui/commit/61060b492ab9c633cb07d2153d5ce84b515d065a))
+* **deps:** update dependency vanilla-framework to v4.21.0 ([cf277a8](https://github.com/canonical/identity-platform-login-ui/commit/cf277a838d7228880f5da93624637352e2b64597))
+* **deps:** update go deps ([e7db62c](https://github.com/canonical/identity-platform-login-ui/commit/e7db62c446c17aa8ff245ff4051577084a0d5b54))
+* **deps:** update module github.com/prometheus/client_golang to v1.21.0 ([c1fc0c9](https://github.com/canonical/identity-platform-login-ui/commit/c1fc0c9108544704ab7fbe67a8ddce900d05c792))
+* **deps:** update module github.com/spf13/cobra to v1.9.0 ([c4297d0](https://github.com/canonical/identity-platform-login-ui/commit/c4297d01537cdddf49f9541d39a67e719dcc305f))
+* **deps:** update module github.com/spf13/cobra to v1.9.1 ([3f47047](https://github.com/canonical/identity-platform-login-ui/commit/3f470477f786655e8ef55ae31c32b11ea044cf99))
+* **deps:** update ui deps ([fff28d3](https://github.com/canonical/identity-platform-login-ui/commit/fff28d3d7b923baf813205839971aee517f05ce5))
+* **deps:** update ui deps ([ec0ee96](https://github.com/canonical/identity-platform-login-ui/commit/ec0ee96b97792e0f5df82784d50350795f820ebe))
+* **deps:** update ui deps ([129f71d](https://github.com/canonical/identity-platform-login-ui/commit/129f71d47b4b672dd6b616be3b4010c4737f64e7))
+* **deps:** update ui deps to v15.1.7 ([3c0a6cc](https://github.com/canonical/identity-platform-login-ui/commit/3c0a6cc6f329ee074c6c8e6a034ce76e8935dd75))
+* handle redirect_to in error ([e315de8](https://github.com/canonical/identity-platform-login-ui/commit/e315de80a5278f239fec66c7432419d69f833aef))
+* hydrate flow with hydra req ([da06826](https://github.com/canonical/identity-platform-login-ui/commit/da06826b900636589bc9238d3eeefb850cb967de))
+* implement handling webauthn submission requests ([63cea2e](https://github.com/canonical/identity-platform-login-ui/commit/63cea2e29366fa8e073ef0b3623aed00b40fdbf4))
+* introduce `DEV` flag ([e69ece1](https://github.com/canonical/identity-platform-login-ui/commit/e69ece153f0f19b31ed0cee6aa7448954b0c2ddd))
+* remove redundant 'to' ([0bf51ca](https://github.com/canonical/identity-platform-login-ui/commit/0bf51ca0dc16e3662f38e15a83eb0cde42a2f097))
+* remove unused frontend code ([1278b68](https://github.com/canonical/identity-platform-login-ui/commit/1278b68b935bcc7e9b7081b6a43d431dd51dd04f))
+* return 200 if browser needs to redirect ([7a3ee3b](https://github.com/canonical/identity-platform-login-ui/commit/7a3ee3b0637decf44a6c790c243a94c1cbdbb471))
+* uniformly handle redirect responses ([26b0085](https://github.com/canonical/identity-platform-login-ui/commit/26b0085f2c298943e1b1a2141237f49f41eaed1e))
+* update go version in rockcraft ([f49f31d](https://github.com/canonical/identity-platform-login-ui/commit/f49f31d72efbc72ee5c4792103420b1d5826de72))
+* update hydra sdk ([a7462e5](https://github.com/canonical/identity-platform-login-ui/commit/a7462e582c4a62e8083de3a70401b18dce5db915))
+* update openfga sdk ([bc04bb6](https://github.com/canonical/identity-platform-login-ui/commit/bc04bb61b38f4c1794cf9f609d4737d9c515603d))
+* use the backend to accept webauthn authn ([73afb6f](https://github.com/canonical/identity-platform-login-ui/commit/73afb6fad3d0d5bc68f54a78c8b4da2aeee64c90))
+
 ## [0.21.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.20.0...v0.21.0) (2025-01-28)
 
 
