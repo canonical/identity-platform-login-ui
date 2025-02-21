@@ -1,8 +1,7 @@
 import { getNodeLabel } from "@ory/integrations/ui";
-import { Button } from "@canonical/react-components";
+import { Button, Icon } from "@canonical/react-components";
 import React, { FC, FormEvent } from "react";
 import { NodeInputProps } from "./helpers";
-import { ORY_LABEL_ID_ADD_SECURITY_KEY } from "../util/constants";
 import { isWebauthnAutologin } from "../util/webauthnAutoLogin";
 
 const getWebAuthnPayload = (evalCode: string): unknown => {
@@ -111,8 +110,20 @@ export const NodeInputButton: FC<NodeInputProps> = ({
   };
 
   // add security key button is supposed to be positive green
-  const appearance =
-    node.meta.label?.id === ORY_LABEL_ID_ADD_SECURITY_KEY ? "positive" : "";
+  let appearance = "";
+  let additional = null;
+  let icon = null;
+  if (node.meta.label?.context) {
+    if ("appearance" in node.meta.label.context) {
+      appearance = node.meta.label.context.appearance as string;
+    }
+    if ("additional" in node.meta.label.context) {
+      additional = node.meta.label.context.additional;
+    }
+    if ("icon" in node.meta.label.context) {
+      icon = node.meta.label.context.icon as string;
+    }
+  }
 
   return (
     <>
@@ -121,9 +132,12 @@ export const NodeInputButton: FC<NodeInputProps> = ({
         onClick={handleClick}
         disabled={attributes.disabled || disabled}
         name={attributes.name}
+        hasIcon={Boolean(icon)}
       >
-        {getNodeLabel(node)}
+        {icon && <Icon name={icon} />}
+        <span>{getNodeLabel(node)}</span>
       </Button>
+      {additional}
     </>
   );
 };

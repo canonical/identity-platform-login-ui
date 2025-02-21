@@ -16,9 +16,12 @@ import { AxiosError } from "axios";
 import { Button, Icon, Spinner } from "@canonical/react-components";
 import { UpdateSettingsFlowWithWebAuthnMethod } from "@ory/client/api";
 import {
-  ORY_LABEL_ID_NAME_OF_THE_SECURITY_KEY,
-  ORY_LABEL_ID_REMOVE_SECURITY_ID,
+  isSecurityKeyAddBtn,
+  isSecurityKeyNameInput,
+  isSecurityKeyRemoveBtn,
 } from "../util/constants";
+import PasskeySequencedSignIn from "../components/PasskeySequencedSignIn";
+import PasskeySequencedTutorial from "../components/PasskeySequencedTutorial";
 
 const SetupPasskey: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
@@ -101,13 +104,16 @@ const SetupPasskey: NextPage = () => {
   const existingKeys: UiNode[] = [];
   const existingKeyNames: string[] = [];
 
+  const isSequencedFromSignInFlow =
+    flow?.return_to?.includes("/ui/login?") ?? false;
+
   const webauthnFlow = {
     ...renderFlow,
     ui: {
       ...renderFlow?.ui,
       nodes: renderFlow?.ui.nodes
         .filter((node) => {
-          if (node.meta.label?.id === ORY_LABEL_ID_REMOVE_SECURITY_ID) {
+          if (isSecurityKeyRemoveBtn(node)) {
             existingKeys.push(node);
             if (
               node.meta.label?.context &&
@@ -122,11 +128,25 @@ const SetupPasskey: NextPage = () => {
           return node.group === "webauthn" || node.group === "default";
         })
         .map((node) => {
-          if (node.meta.label?.id === ORY_LABEL_ID_NAME_OF_THE_SECURITY_KEY) {
+          if (isSecurityKeyNameInput(node)) {
             node.meta.label.text = "Security key name";
             node.meta.label.context = {
               ...node.meta.label.context,
               deduplicateValues: existingKeyNames,
+            };
+          }
+          if (isSecurityKeyAddBtn(node)) {
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              appearance: isSequencedFromSignInFlow ? "" : "positive",
+              additional: (
+                <a
+                  className="p-button--link"
+                  href="mailto:support@canonical.com"
+                >
+                  Contact support
+                </a>
+              ),
             };
           }
           return node;
@@ -135,7 +155,10 @@ const SetupPasskey: NextPage = () => {
   } as SettingsFlow;
 
   return (
-    <PageLayout title="Add a security key">
+    <PageLayout
+      title={isSequencedFromSignInFlow ? "Sign in" : "Add a security key"}
+    >
+      {isSequencedFromSignInFlow && <PasskeySequencedTutorial />}
       {webauthnFlow ? (
         <>
           <Flow onSubmit={handleSubmit} flow={webauthnFlow} />
@@ -202,6 +225,7 @@ const SetupPasskey: NextPage = () => {
               )}
             </>
           )}
+          {isSequencedFromSignInFlow && <PasskeySequencedSignIn />}
         </>
       ) : (
         <Spinner />

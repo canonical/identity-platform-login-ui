@@ -6,7 +6,12 @@ $breakpoint-navigation-threshold: 820px;
 
 // import vanilla-framework
 @import 'vanilla-framework/scss/build';
+@include vf-p-icon-lock-locked;
 @include vf-p-icon-warning-grey;
+
+body {
+  background-color: $color-paper;
+}
 
 @media screen and (max-width: $breakpoint-small) {
   .page-row {
@@ -17,7 +22,7 @@ $breakpoint-navigation-threshold: 820px;
     border: 0;
   }
 
-  body.is-paper {
+  body {
     background-color: #fff;
   }
 }

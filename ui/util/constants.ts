@@ -1,9 +1,9 @@
 import { UiNode } from "@ory/client";
 
 // see https://www.ory.sh/docs/kratos/concepts/ui-messages
-export const ORY_LABEL_ID_ADD_SECURITY_KEY = 1050012;
-export const ORY_LABEL_ID_NAME_OF_THE_SECURITY_KEY = 1050013;
-export const ORY_LABEL_ID_REMOVE_SECURITY_ID = 1050018;
+const ORY_LABEL_SECURITY_KEY_ADD = 1050012;
+const ORY_LABEL_SECURITY_KEY_NAME_INPUT = 1050013;
+const ORY_LABEL_SECURITY_KEY_REMOVE = 1050018;
 const ORY_LABEL_BACKUP_CODE_CREATE = 1050008;
 const ORY_LABEL_BACKUP_CODE_CONFIRM_TEXT = 1050010;
 const ORY_LABEL_BACKUP_CODE_CONFIRM = 1050011;
@@ -17,6 +17,15 @@ const ORY_LABEL_CONTINUE_PASSWORD_RESET = 1070009;
 const ORY_LABEL_SIGN_IN_WITH_HARDWARE_KEY = 1010008;
 
 type NodeWithLabel = UiNode & { meta: { label: object } };
+
+export const isSecurityKeyAddBtn = (node: UiNode): node is NodeWithLabel =>
+  node.meta.label?.id === ORY_LABEL_SECURITY_KEY_ADD;
+
+export const isSecurityKeyNameInput = (node: UiNode): node is NodeWithLabel =>
+  node.meta.label?.id === ORY_LABEL_SECURITY_KEY_NAME_INPUT;
+
+export const isSecurityKeyRemoveBtn = (node: UiNode): node is NodeWithLabel =>
+  node.meta.label?.id === ORY_LABEL_SECURITY_KEY_REMOVE;
 
 export const isBackupCodeCreate = (node: UiNode): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_BACKUP_CODE_CREATE;

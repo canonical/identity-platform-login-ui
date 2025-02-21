@@ -331,7 +331,11 @@ const Login: NextPage = () => {
       });
     }
     if (isSignInWithHardwareKey(node) && isSequencedLogin) {
-      node.meta.label.text = "Sign in using Passkey";
+      node.meta.label.text = "Sign in using Security key";
+      node.meta.label.context = {
+        ...node.meta.label.context,
+        icon: "lock-locked",
+      };
     }
     return node;
   });
@@ -366,8 +370,7 @@ const Login: NextPage = () => {
         <>
           {isWebauthn && isSequencedLogin && (
             <p className="u-text--muted">
-              Another layer of authentication before you get access{" "}
-              {getTitleSuffix()}
+              Additional authentication needed to get access {getTitleSuffix()}
             </p>
           )}
           {flow ? (
