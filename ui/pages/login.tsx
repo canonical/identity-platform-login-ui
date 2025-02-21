@@ -30,24 +30,22 @@ import {
   toggleWebauthnSkip,
 } from "../util/webauthnAutoLogin";
 
+type AppConfig = {
+  oidc_webauthn_sequencing_enabled?: boolean;
+};
+
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
-  const [baseURL, setBaseURL] = useState("");
   const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
 
   useEffect(() => {
-    void fetch("/api/v0/app-config")
+    void fetch("../api/v0/app-config")
       .then((response) => {
-        const data = response.json();
-        return data as {
-          oidc_webauthn_sequencing_enabled?: boolean;
-          base_url?: string;
-        };
+        return response.json() as Promise<AppConfig>;
       })
       .then((data) => {
         setSequencedLogin(data.oidc_webauthn_sequencing_enabled ?? false);
-        setBaseURL(data.base_url ?? "");
       })
       .catch(console.error);
   }, []);
@@ -304,10 +302,10 @@ const Login: NextPage = () => {
 
       return null;
     } else if (isWebauthn) {
-      // TODO: Refactor me
-      const u = renderFlow.ui.action.split("/self-service/");
-      if (u.length == 2) {
-        renderFlow.ui.action = baseURL + "/api/kratos/self-service/" + u[1];
+      // call kratos through the go server proxy
+      const kratosUrl = renderFlow.ui.action.split("/self-service/");
+      if (kratosUrl.length == 2) {
+        renderFlow.ui.action = "../api/kratos/self-service/" + kratosUrl[1];
       }
     }
   }
