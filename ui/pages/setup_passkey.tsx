@@ -13,9 +13,10 @@ import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
-import { Button, Icon, Spinner } from "@canonical/react-components";
+import { Accordion, Button, Icon, Spinner } from "@canonical/react-components";
 import { UpdateSettingsFlowWithWebAuthnMethod } from "@ory/client/api";
 import {
+  ORY_LABEL_ID_ADD_SECURITY_KEY,
   ORY_LABEL_ID_NAME_OF_THE_SECURITY_KEY,
   ORY_LABEL_ID_REMOVE_SECURITY_ID,
 } from "../util/constants";
@@ -101,6 +102,9 @@ const SetupPasskey: NextPage = () => {
   const existingKeys: UiNode[] = [];
   const existingKeyNames: string[] = [];
 
+  const isSequencedFromSignInFlow =
+    flow?.return_to?.includes("/ui/login?") ?? false;
+
   const webauthnFlow = {
     ...renderFlow,
     ui: {
@@ -129,13 +133,97 @@ const SetupPasskey: NextPage = () => {
               deduplicateValues: existingKeyNames,
             };
           }
+          if (node.meta.label?.id === ORY_LABEL_ID_ADD_SECURITY_KEY) {
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              appearance: isSequencedFromSignInFlow ? "" : "positive",
+              additional: (
+                <a
+                  className="p-button--link"
+                  href="mailto:support@canonical.com"
+                >
+                  Contact support
+                </a>
+              ),
+            };
+          }
           return node;
         }),
     },
   } as SettingsFlow;
 
+  const highlightPasskeyRequirement = () => {
+    const nameSelector = '*[name="webauthn_register_displayname"]';
+    const name = document.querySelector(nameSelector) as HTMLInputElement;
+
+    if (!name?.value) {
+      name.classList.add("is-error");
+      name.setAttribute("aria-invalid", "true");
+      name.setAttribute(
+        "aria-errormessage",
+        "You must set up a security key to sign in",
+      );
+    }
+
+    if (!name.nextElementSibling) {
+      const warning = document.createElement("p");
+      warning.className = "p-form-validation__message";
+      warning.textContent = "You must set up a security key to sign in";
+      name.after(warning);
+    }
+
+    const groupSelector = ".p-form-validation";
+    const group = document.querySelectorAll(groupSelector);
+    group.forEach((e) => e.classList.add("is-error"));
+  };
+
   return (
-    <PageLayout title="Add a security key">
+    <PageLayout
+      title={isSequencedFromSignInFlow ? "Sign in" : "Add a security key"}
+    >
+      {isSequencedFromSignInFlow && (
+        <>
+          <p className="u-text--muted u-sv-3">
+            Authentication setup needed to continue.
+          </p>
+          <h2 className="p-heading--4">Add a security key</h2>
+          <Accordion
+            sections={[
+              {
+                title: "How to add a Security key",
+                content: (
+                  <>
+                    <ol className="p-list--nested-counter">
+                      <li>
+                        Enter a name for your security key (like {'"'}iPhone
+                        {'"'} or
+                        {'"'} Work Laptop{'"'})
+                      </li>
+                      <li>
+                        Click {'"'}Add security key{'"'}
+                      </li>
+
+                      <li>
+                        When your browser prompts you, use your device{"'"}s
+                        fingerprint, face recognition, or PIN to verify
+                      </li>
+                      <li>Wait for confirmation</li>
+                    </ol>
+                    <p>
+                      That{"'"}s it! Your passkey is now set up for future
+                      sign-ins.
+                    </p>
+                    <p>
+                      (Note: Your device needs biometrics or a PIN already
+                      configured)
+                    </p>
+                  </>
+                ),
+              },
+            ]}
+          />
+        </>
+      )}
       {webauthnFlow ? (
         <>
           <Flow onSubmit={handleSubmit} flow={webauthnFlow} />
@@ -200,6 +288,21 @@ const SetupPasskey: NextPage = () => {
                   })}
                 </>
               )}
+            </>
+          )}
+          {isSequencedFromSignInFlow && (
+            <>
+              <hr />
+              <div className="u-align--right">
+                <Button
+                  appearance="positive"
+                  type="button"
+                  className="u-no-margin--bottom u-align--right"
+                  onClick={highlightPasskeyRequirement}
+                >
+                  Sign in
+                </Button>
+              </div>
             </>
           )}
         </>
