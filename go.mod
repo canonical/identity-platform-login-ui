@@ -1,8 +1,6 @@
 module github.com/canonical/identity-platform-login-ui
 
-go 1.22.0
-
-toolchain go1.24.0
+go 1.24.0
 
 require (
 	github.com/go-chi/chi/v5 v5.2.1
@@ -10,7 +8,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/openfga/go-sdk v0.6.5
 	github.com/ory/hydra-client-go/v2 v2.2.1
-	github.com/ory/kratos-client-go v1.2.1
+	github.com/ory/kratos-client-go v1.3.5
 	github.com/prometheus/client_golang v1.21.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
