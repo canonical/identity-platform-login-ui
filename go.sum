@@ -52,6 +52,8 @@ github.com/ory/kratos-client-go v1.2.1 h1:Q3T/adfAfAkHFcV1LGLnwz4QkY6ghBdX9zde5T
 github.com/ory/kratos-client-go v1.2.1/go.mod h1:WiQYlrqW4Atj6Js7oDN5ArbZxo0nTO2u/e1XaDv2yMI=
 github.com/ory/kratos-client-go v1.3.5 h1:JyuomRe9uj0DK2HqIw9gKsBXY1Vor1TwCcZJHUR7MbI=
 github.com/ory/kratos-client-go v1.3.5/go.mod h1:Dc+ANapsPxu+CfdC0yk8TxmvceCmrvNozW+ZGS/xq5o=
+github.com/ory/kratos-client-go v1.3.6 h1:hVhv6TkOuWbXPw/RoG5fgmMhOe8CZQ7tF0TcXRRtxh8=
+github.com/ory/kratos-client-go v1.3.6/go.mod h1:Dc+ANapsPxu+CfdC0yk8TxmvceCmrvNozW+ZGS/xq5o=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_golang v1.20.5 h1:cxppBPuYhUnsO6yo/aoRol4L7q7UFfdm+bR9r+8l63Y=
