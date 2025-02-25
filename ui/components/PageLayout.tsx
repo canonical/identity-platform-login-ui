@@ -1,5 +1,5 @@
 import { Card, Col, Navigation, Row, Theme } from "@canonical/react-components";
-import React, { FC, ReactNode, useLayoutEffect } from "react";
+import React, { FC, ReactNode } from "react";
 import Head from "next/head";
 
 interface Props {
@@ -8,10 +8,6 @@ interface Props {
 }
 
 const PageLayout: FC<Props> = ({ children, title }) => {
-  useLayoutEffect(() => {
-    document.querySelector("body")?.classList.add("is-paper");
-  });
-
   return (
     <>
       <Head>
