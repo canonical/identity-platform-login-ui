@@ -18,7 +18,11 @@ export const NodeInputPassword: FC<NodeInputProps> = ({
         label={
           <>
             <span>{getNodeLabel(node)}</span>
-            <a href="./reset_email" style={{ float: "right" }} tabIndex={3}>
+            <a
+              href={`./reset_email?return_to=${window.location.href}`}
+              style={{ float: "right" }}
+              tabIndex={3}
+            >
               Reset password
             </a>
           </>
