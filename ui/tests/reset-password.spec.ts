@@ -24,9 +24,7 @@ test("reset password from oidc app", async ({ context, page }) => {
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
   await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
-  // (nsklikas): Is this the expected behavior? The user came from an app, but ended up
-  // on the complete page, without being redirected again to the app
-  // await finishAuthFlow(page);
+  await finishAuthFlow(page);
 
   await startNewAuthFlow(page);
 

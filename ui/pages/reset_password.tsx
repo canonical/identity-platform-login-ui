@@ -94,8 +94,15 @@ const ResetPassword: NextPage = () => {
         })
         .then((result) => {
           const pwParam =
-            result.data.state === "success" ? "?pw_changed=success" : "";
-          window.location.href = `./setup_secure${pwParam}`;
+            result.data.state === "success" ? "pw_changed=success" : "";
+
+          if (flow?.return_to) {
+            const addendum = flow.return_to.includes("?") ? "&" : "?";
+            window.location.href = `${flow.return_to}${addendum}${pwParam}`;
+            return;
+          }
+
+          window.location.href = `./setup_secure?${pwParam}`;
         })
         .catch(handleFlowError("settings", setFlow));
     },
