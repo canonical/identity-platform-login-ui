@@ -632,10 +632,15 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
-	returnTo, err := url.JoinPath(a.baseURL, "/ui/reset_email")
-	if err != nil {
-		a.logger.Errorf("Failed to construct returnTo URL: ", err)
-		http.Error(w, "Failed to construct returnTo URL", http.StatusBadRequest)
+	returnTo := r.URL.Query().Get("return_to")
+
+	if returnTo == "" {
+		var err error
+		returnTo, err = url.JoinPath(a.baseURL, "/ui/reset_email")
+		if err != nil {
+			a.logger.Errorf("Failed to construct returnTo URL: ", err)
+			http.Error(w, "Failed to construct returnTo URL", http.StatusBadRequest)
+		}
 	}
 
 	flow, cookies, err := a.service.CreateBrowserRecoveryFlow(context.Background(), returnTo, r.Cookies())

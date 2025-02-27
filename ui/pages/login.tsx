@@ -65,6 +65,7 @@ const Login: NextPage = () => {
     use_backup_code: useBackupCode,
     email,
     invalid_method,
+    pw_changed: pwChanged,
   } = router.query;
 
   const redirectToErrorPage = () => {
@@ -98,7 +99,11 @@ const Login: NextPage = () => {
       })
       .then(({ data }: FlowResponse) => {
         if (data.redirect_to !== undefined) {
-          window.location.href = data.redirect_to;
+          const addendum = data.redirect_to.includes("?") ? "&" : "?";
+          const pwParam = pwChanged
+            ? `${addendum}pw_changed=${pwChanged as string}`
+            : "";
+          window.location.href = `${data.redirect_to}${pwParam}`;
           return;
         }
         setFlow(data);
