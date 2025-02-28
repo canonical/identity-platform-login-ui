@@ -46,3 +46,4 @@ jobs:
           ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
           project: ${{ env.REPO_NAME }}
           installTics: true
+          branchname: main
