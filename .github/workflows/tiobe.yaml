@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
 
       - name: Install dependencies
         run: |
