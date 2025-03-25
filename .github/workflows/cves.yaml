@@ -1,0 +1,38 @@
+name: CVEs checker
+
+on:
+  issues:
+    types: [opened]
+  schedule:   
+     - cron: '0 0 * * 0'
+
+jobs:
+    list-all-issues:
+        outputs:
+            issues: ${{ steps.issues.outputs.ids }}
+        runs-on: ubuntu-latest
+        if: ${{ github.event_name == 'schedule' }}
+        steps:
+          - run: echo ids=$(gh issue list --json number,author -q '.[] | select(.author.login == "ROCKsBot") | .number') >> $GITHUB_OUTPUT
+            id: list
+            env: 
+                GH_PAGER: 
+                GH_TOKEN: ${{ github.token }}
+                GH_REPO: ${{ github.repository }}
+          - run: echo ids=$(echo ${{steps.list.outputs.ids}} | jq -R 'split(" ")') >> $GITHUB_OUTPUT    
+            id: issues
+                 
+    scheduled-check:
+        if: ${{ github.event_name == 'schedule' }}
+        strategy:
+            matrix:
+                issue: ${{ fromJson(needs.list-all-issues.outputs.issues) }}
+        needs: 
+            - list-all-issues                    
+        uses: canonical/identity-team/.github/workflows/cve-check.yaml@v1.7.1
+        with: 
+            issue: ${{ matrix.issue }}
+
+    apply-labels:
+        uses: canonical/identity-team/.github/workflows/cve-check.yaml@v1.7.1
+        if: ${{ github.event.issue.id }}
