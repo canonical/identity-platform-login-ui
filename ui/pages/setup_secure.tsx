@@ -14,8 +14,17 @@ import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Notification, Spinner } from "@canonical/react-components";
 import { UiNodeInputAttributes } from "@ory/client/api";
+import {
+  getLoggedInName,
+  hasSelfServeReturn,
+  formatReturnTo,
+} from "../util/selfServeHelpers";
 
-const SetupSecure: NextPage = () => {
+interface Props {
+  forceSelfServe?: boolean;
+}
+
+const SetupSecure: NextPage<Props> = ({ forceSelfServe }: Props) => {
   const [flow, setFlow] = useState<SettingsFlow>();
 
   // Get ?flow=... from the URL
@@ -25,6 +34,9 @@ const SetupSecure: NextPage = () => {
     flow: flowId,
     pw_changed: pwChanged,
   } = router.query;
+
+  const isSelfServe = forceSelfServe || hasSelfServeReturn(flow);
+  const userName = getLoggedInName(flow);
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
@@ -45,7 +57,7 @@ const SetupSecure: NextPage = () => {
     kratos
       .createBrowserSettingsFlow({
         returnTo: returnTo
-          ? returnTo.toString()
+          ? formatReturnTo(returnTo, isSelfServe)
           : window.location.pathname.replace("setup_secure", "setup_complete"),
       })
       .then(({ data }) => {
@@ -85,7 +97,12 @@ const SetupSecure: NextPage = () => {
           },
         })
         .then(({ data }) => {
-          if (data?.return_to && !data.return_to.endsWith("/setup_complete")) {
+          if (isSelfServe) {
+            setFlow(data); // Reset the flow to trigger refresh
+          } else if (
+            data?.return_to &&
+            !data.return_to.endsWith("/setup_complete")
+          ) {
             // we do a have a valid return_to, show the completion step, and it will redirect after 3 seconds
             window.location.href = `./setup_complete?flow=${data.id}`;
           } else {
@@ -109,7 +126,11 @@ const SetupSecure: NextPage = () => {
   } as SettingsFlow;
 
   return (
-    <PageLayout title="Secure your account">
+    <PageLayout
+      title="Secure your account"
+      isSelfServe={isSelfServe}
+      user={userName}
+    >
       {pwChanged === "success" && (
         <Notification severity="positive">
           Password was changed successfully
