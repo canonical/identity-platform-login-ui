@@ -6,7 +6,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/openfga/go-sdk v0.6.5
+	github.com/openfga/go-sdk v0.7.0
 	github.com/ory/hydra-client-go/v2 v2.2.1
 	github.com/ory/kratos-client-go v1.3.8
 	github.com/prometheus/client_golang v1.21.1
@@ -49,7 +49,7 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/oauth2 v0.26.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
