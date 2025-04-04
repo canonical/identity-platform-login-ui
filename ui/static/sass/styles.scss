@@ -7,6 +7,7 @@ $breakpoint-navigation-threshold: 820px;
 // import vanilla-framework
 @import 'vanilla-framework/scss/build';
 @include vf-p-icon-lock-locked;
+@include vf-p-icon-profile;
 @include vf-p-icon-warning-grey;
 
 body {
@@ -23,7 +24,7 @@ body {
   }
 
   body {
-    background-color: #fff;
+    background-color: $color-x-light;
   }
 }
 
@@ -32,7 +33,7 @@ body {
 }
 
 .oidc-login-button {
-  background: #fff;
+  background: $color-x-light;
   border-color: $colors--theme--border-default;
   display: flex;
   justify-content: flex-start;
@@ -101,5 +102,34 @@ hr {
 }
 
 .p-card {
-  background-color: #ffffff;
+  background-color: $color-x-light;
+}
+
+.self-serve-logo {
+  display: flex;
+
+  .image {
+    height: fit-content;
+    margin-right: 0.25rem;
+    margin-top: -1rem;
+    max-width: 2rem;
+  }
+
+  .text {
+    color: $color-x-dark;
+  }
+}
+
+.self-serve-logo:hover {
+  text-decoration: none !important;
+}
+
+.self-serve-user {
+  bottom: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.l-navigation.is-collapsed:focus-within {
+  transform: translateX(-100%);
 }

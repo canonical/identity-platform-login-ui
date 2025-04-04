@@ -89,12 +89,22 @@ const Login: NextPage = () => {
       return;
     }
 
+    const getReturnTo = () => {
+      if (returnTo) {
+        return String(returnTo);
+      }
+      if (login_challenge) {
+        return undefined;
+      }
+      return window.location.pathname.replace("login", "manage_details");
+    };
+
     // Otherwise we initialize it
     kratos
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),
         aal: aal ? String(aal) : undefined,
-        returnTo: returnTo ? String(returnTo) : undefined,
+        returnTo: getReturnTo(),
         loginChallenge: login_challenge ? String(login_challenge) : undefined,
       })
       .then(({ data }: FlowResponse) => {

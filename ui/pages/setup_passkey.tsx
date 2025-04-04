@@ -22,14 +22,26 @@ import {
 } from "../util/constants";
 import PasskeySequencedSignIn from "../components/PasskeySequencedSignIn";
 import PasskeySequencedTutorial from "../components/PasskeySequencedTutorial";
+import {
+  getLoggedInName,
+  hasSelfServeReturn,
+  formatReturnTo,
+} from "../util/selfServeHelpers";
 
-const SetupPasskey: NextPage = () => {
+interface Props {
+  forceSelfServe?: boolean;
+}
+
+const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
   const [flow, setFlow] = useState<SettingsFlow>();
   const [loadingKeysFlow, setLoadingKeysFlow] = useState<SettingsFlow>();
 
   // Get ?flow=... from the URL
   const router = useRouter();
   const { return_to: returnTo, flow: flowId } = router.query;
+
+  const isSelfServe = forceSelfServe || hasSelfServeReturn(flow);
+  const userName = getLoggedInName(flow);
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
@@ -52,7 +64,7 @@ const SetupPasskey: NextPage = () => {
     // Otherwise we initialize it
     kratos
       .createBrowserSettingsFlow({
-        returnTo: returnTo ? String(returnTo) : undefined,
+        returnTo: formatReturnTo(returnTo, isSelfServe),
       })
       .then(({ data }) => {
         if (flowId !== data.id) {
@@ -154,10 +166,18 @@ const SetupPasskey: NextPage = () => {
     },
   } as SettingsFlow;
 
+  const getTitle = () => {
+    if (isSequencedFromSignInFlow) {
+      return "Sign in";
+    }
+    if (isSelfServe) {
+      return "Security keys";
+    }
+    return "Add a security key";
+  };
+
   return (
-    <PageLayout
-      title={isSequencedFromSignInFlow ? "Sign in" : "Add a security key"}
-    >
+    <PageLayout title={getTitle()} isSelfServe={isSelfServe} user={userName}>
       {isSequencedFromSignInFlow && <PasskeySequencedTutorial />}
       {webauthnFlow ? (
         <>
