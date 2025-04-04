@@ -44,19 +44,19 @@
     ]
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "15.2.0",
+    "@next/eslint-plugin-next": "15.2.4",
     "@playwright/test": "1.51.0",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.2.0",
     "@testing-library/user-event": "14.6.1",
     "@typescript-eslint/eslint-plugin": "8.26.0",
-    "autoprefixer": "10.4.20",
+    "autoprefixer": "10.4.21",
     "eslint": "9.21.0",
-    "eslint-config-prettier": "10.1.0",
-    "eslint-plugin-prettier": "5.2.3",
-    "eslint-plugin-react": "7.37.4",
+    "eslint-config-prettier": "10.0.3",
+    "eslint-plugin-prettier": "5.2.6",
+    "eslint-plugin-react": "7.37.5",
     "postcss": "8.5.3",
-    "postcss-cli": "11.0.0",
+    "postcss-cli": "11.0.1",
     "prettier": "3.5.3",
     "typescript": "5.8.2"
   }
