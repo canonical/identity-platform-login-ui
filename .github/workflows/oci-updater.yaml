@@ -1,0 +1,16 @@
+name: OCI Image updated
+
+on:
+    workflow_dispatch:
+        inputs:
+            oci-image: 
+                description: 'OCI image to use'
+                required: true
+                type: string
+
+jobs:
+    update:
+        uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@IAM-1363
+        with: 
+            oci-image: ${{ inputs.oci-image }}
+            repository: canonical/identity-platform-login-ui-operator
