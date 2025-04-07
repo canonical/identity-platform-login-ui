@@ -1,5 +1,5 @@
 import { SettingsFlow } from "@ory/client";
-import { Button, Form } from "@canonical/react-components";
+import { Button, Form, Notification } from "@canonical/react-components";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback, FormEvent } from "react";
@@ -11,15 +11,31 @@ import Password from "../components/Password";
 import { UiNodeInputAttributes } from "@ory/client/api";
 import { AxiosError } from "axios";
 import { FlowResponse } from "./consent";
+import {
+  getLoggedInName,
+  hasSelfServeReturn,
+  formatReturnTo,
+} from "../util/selfServeHelpers";
 
-const ResetPassword: NextPage = () => {
+interface Props {
+  forceSelfServe?: boolean;
+}
+
+const ResetPassword: NextPage<Props> = ({ forceSelfServe }: Props) => {
   const [password, setPassword] = React.useState("");
   const [isPassValid, setPassValid] = React.useState(false);
   const [flow, setFlow] = useState<SettingsFlow>();
 
   // Get ?flow=... from the URL
   const router = useRouter();
-  const { return_to: returnTo, flow: flowId } = router.query;
+  const {
+    return_to: returnTo,
+    flow: flowId,
+    pw_changed: pwChanged,
+  } = router.query;
+
+  const isSelfServe = forceSelfServe || hasSelfServeReturn(flow);
+  const userName = getLoggedInName(flow);
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
@@ -48,7 +64,7 @@ const ResetPassword: NextPage = () => {
     // Otherwise we initialize it
     kratos
       .createBrowserSettingsFlow({
-        returnTo: returnTo ? String(returnTo) : undefined,
+        returnTo: formatReturnTo(returnTo, isSelfServe),
       })
       .then(({ data }) => {
         if (flowId !== data.id) {
@@ -114,7 +130,16 @@ const ResetPassword: NextPage = () => {
   }
 
   return (
-    <PageLayout title="Reset password">
+    <PageLayout
+      title={isSelfServe ? "Change password" : "Reset password"}
+      isSelfServe={isSelfServe}
+      user={userName}
+    >
+      {pwChanged === "success" && (
+        <Notification severity="positive">
+          Password was changed successfully
+        </Notification>
+      )}
       <Form onSubmit={handleSubmit}>
         <Password
           checks={["lowercase", "uppercase", "number", "length"]}
@@ -130,7 +155,7 @@ const ResetPassword: NextPage = () => {
           disabled={!isPassValid}
           className="u-no-margin--bottom"
         >
-          Reset password
+          {isSelfServe ? "Change password" : "Reset password"}
         </Button>
       </Form>
     </PageLayout>

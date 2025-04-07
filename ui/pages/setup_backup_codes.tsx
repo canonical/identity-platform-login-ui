@@ -24,8 +24,17 @@ import {
 import { BackupCodeDeletionModal } from "../components/BackupCodeDeletionModal";
 import { BackupIntro } from "../components/BackupIntro";
 import { BackupCodeSavedCheckbox } from "../components/BackupCodeSavedCheckbox";
+import {
+  getLoggedInName,
+  hasSelfServeReturn,
+  formatReturnTo,
+} from "../util/selfServeHelpers";
 
-const SetupBackupCodes: NextPage = () => {
+interface Props {
+  forceSelfServe: boolean;
+}
+
+const SetupBackupCodes: NextPage<Props> = ({ forceSelfServe }: Props) => {
   const [flow, setFlow] = useState<SettingsFlow>();
   const [hasDeletionModal, setHasDeletionModal] = React.useState(false);
   const [hasSavedCodes, setSavedCodes] = React.useState(false);
@@ -33,6 +42,9 @@ const SetupBackupCodes: NextPage = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
   const { return_to: returnTo, flow: flowId } = router.query;
+
+  const isSelfServe = forceSelfServe || hasSelfServeReturn(flow);
+  const userName = getLoggedInName(flow);
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
@@ -52,7 +64,7 @@ const SetupBackupCodes: NextPage = () => {
     // Otherwise we initialize it
     kratos
       .createBrowserSettingsFlow({
-        returnTo: returnTo ? String(returnTo) : undefined,
+        returnTo: formatReturnTo(returnTo, isSelfServe),
       })
       .then(({ data }) => {
         if (flowId !== data.id) {
@@ -101,7 +113,7 @@ const SetupBackupCodes: NextPage = () => {
           },
         })
         .then(({ data }) => {
-          if (methodValues.lookup_secret_confirm) {
+          if (methodValues.lookup_secret_confirm && !isSelfServe) {
             const flowParam =
               data?.return_to && !data.return_to.endsWith("/setup_complete")
                 ? `?flow=${data.id}`
@@ -204,7 +216,7 @@ const SetupBackupCodes: NextPage = () => {
   } as SettingsFlow;
 
   return (
-    <PageLayout title="Backup codes">
+    <PageLayout title="Backup codes" isSelfServe={isSelfServe} user={userName}>
       {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
     </PageLayout>
   );
