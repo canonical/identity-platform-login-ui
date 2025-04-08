@@ -8,9 +8,15 @@ on:
                 required: true
                 type: string
 
+permissions:
+    contents: write
+    pull-requests: write
+
 jobs:
     update:
-        uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@IAM-1363
+        uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@4267eb223e3763720f96c2027dd68b82e4319c0d
         with: 
             oci-image: ${{ inputs.oci-image }}
             repository: canonical/identity-platform-login-ui-operator
+        secrets:
+            PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
