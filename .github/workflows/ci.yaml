@@ -19,18 +19,19 @@ jobs:
   e2e-test:
     uses: ./.github/workflows/e2etest.yaml
   build:
-    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@IAM-1363
+    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@v1.8.0
   gh-publish:
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@IAM-1363
+    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@v1.8.0
     with:
       rock: ${{ needs.build.outputs.rock }}
+      structure-tests-enabled: true
   oci-publish:
     # only release to oci-factory in case of release
     if: github.ref_type == 'tag'
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@IAM-1363
+    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@v1.8.0
     with:
       eol-stable-release: "6 month"
     secrets:
@@ -38,12 +39,13 @@ jobs:
   scan:
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: gh-publish
-    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@IAM-1363
+    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@v1.8.0
     with:
       image: ${{ needs.gh-publish.outputs.image }}
   oci-update-pr:
     needs: [gh-publish, scan]
-    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@IAM-1363
+    if: github.ref_type == 'tag'
+    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@v1.8.0
     with: 
         oci-image: ${{ needs.gh-publish.outputs.image }}
         repository: canonical/identity-platform-login-ui-operator
