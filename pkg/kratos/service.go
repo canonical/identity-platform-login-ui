@@ -596,114 +596,87 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 }
 
 func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, []*http.Cookie, error) {
-	// TODO: try to refactor when we bump kratos sdk to 1.x.x
-	var (
-		ret     kClient.UpdateLoginFlowBody
-		cookies = r.Cookies()
-	)
-	methodOnly := new(methodOnly)
-
 	defer r.Body.Close()
-	b, err := io.ReadAll(r.Body)
 
+	cookies := r.Cookies()
+	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, cookies, errors.New("unable to read body")
 	}
 
 	// replace the body that was consumed
-	r.Body = io.NopCloser(bytes.NewReader(b))
+	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
-	if err := json.Unmarshal(b, methodOnly); err != nil {
-		// return nil, cookies, err
-		methodOnly.Method = "webauthn"
+	var methodPayload methodOnly
+	if err := json.Unmarshal(bodyBytes, &methodPayload); err != nil {
+		// fallback where method might be missing
+		methodPayload.Method = "webauthn"
 	}
 
-	switch methodOnly.Method {
+	var ret kClient.UpdateLoginFlowBody
+	switch method := methodPayload.Method; method {
 	case "password":
-		body := new(kClient.UpdateLoginFlowWithPasswordMethod)
-
-		err := parseBody(r.Body, &body)
-
-		if err != nil {
+		var body kClient.UpdateLoginFlowWithPasswordMethod
+		if err := parseBody(r.Body, &body); err != nil {
 			return nil, cookies, err
 		}
-		ret = kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(
-			body,
-		)
+		ret = kClient.UpdateLoginFlowWithPasswordMethodAsUpdateLoginFlowBody(&body)
+
 	case "totp":
-		body := new(kClient.UpdateLoginFlowWithTotpMethod)
-
-		err := parseBody(r.Body, &body)
-
-		if err != nil {
+		var body kClient.UpdateLoginFlowWithTotpMethod
+		if err := parseBody(r.Body, &body); err != nil {
 			return nil, cookies, err
 		}
+		body.SetMethod("totp")
 		ret = kClient.UpdateLoginFlowWithTotpMethodAsUpdateLoginFlowBody(
-			body,
+			&body,
 		)
-		ret.UpdateLoginFlowWithTotpMethod.Method = "totp"
+
 	case "webauthn":
-		body := new(kClient.UpdateLoginFlowWithWebAuthnMethod)
-		var err error
+		var body kClient.UpdateLoginFlowWithWebAuthnMethod
 		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
 			// TODO: fix me. The UI should start sending that data in json format
-			err = r.ParseForm()
-			if err != nil {
+			if err := r.ParseForm(); err != nil {
 				return nil, cookies, err
 			}
 			csrf := r.Form.Get("csrf_token")
-			l := r.Form.Get("webauthn_login")
+			login := r.Form.Get("webauthn_login")
+			identifier := r.Form.Get("identifier")
 			body.CsrfToken = &csrf
-			body.Identifier = r.Form.Get("identifier")
-			body.WebauthnLogin = &l
+			body.WebauthnLogin = &login
+			body.Identifier = identifier
 		} else {
-			err = parseBody(r.Body, &body)
-		}
-
-		if err != nil {
-			return nil, cookies, err
-		}
-		ret = kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(
-			body,
-		)
-	case "lookup_secret":
-		body := new(kClient.UpdateLoginFlowWithLookupSecretMethod)
-
-		err := parseBody(r.Body, &body)
-
-		if err != nil {
-			return nil, cookies, err
-		}
-
-		ret = kClient.UpdateLoginFlowWithLookupSecretMethodAsUpdateLoginFlowBody(
-			body,
-		)
-	// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
-	default:
-		body := new(kClient.UpdateLoginFlowWithOidcMethod)
-
-		err := parseBody(r.Body, &body)
-
-		if err != nil {
-			return nil, cookies, err
-		}
-
-		ret = kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(
-			body,
-		)
-	}
-
-	if s.is1FAMethod(methodOnly.Method) {
-		for i, c := range cookies {
-			if c.Name == KRATOS_SESSION_COOKIE_NAME {
-				if i == len(cookies)-1 {
-					cookies = cookies[:i]
-				} else {
-					cookies[i] = cookies[len(cookies)-1]
-					cookies = cookies[:len(cookies)-1]
-				}
+			if err := parseBody(r.Body, &body); err != nil {
+				return nil, cookies, err
 			}
 		}
+		ret = kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(&body)
+
+	case "lookup_secret":
+		var body kClient.UpdateLoginFlowWithLookupSecretMethod
+		if err := parseBody(r.Body, &body); err != nil {
+			return nil, cookies, err
+		}
+		ret = kClient.UpdateLoginFlowWithLookupSecretMethodAsUpdateLoginFlowBody(&body)
+
+	default:
+		// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
+		var body kClient.UpdateLoginFlowWithOidcMethod
+		if err := parseBody(r.Body, &body); err != nil {
+			return nil, cookies, err
+		}
+		ret = kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(&body)
+	}
+
+	// Remove session cookie if this is a 1FA method
+	if s.is1FAMethod(methodPayload.Method) {
+		filtered := make([]*http.Cookie, 0)
+		for _, c := range cookies {
+			if c.Name != KRATOS_SESSION_COOKIE_NAME {
+				filtered = append(filtered, c)
+			}
+		}
+		cookies = filtered
 	}
 
 	return &ret, cookies, nil
@@ -727,71 +700,53 @@ func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateR
 }
 
 func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateSettingsFlowBody, error) {
-	methodOnly := new(methodOnly)
-
 	defer r.Body.Close()
-	b, err := io.ReadAll(r.Body)
 
+	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, errors.New("unable to read body")
 	}
 
 	// replace the body that was consumed
-	r.Body = io.NopCloser(bytes.NewReader(b))
+	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
-	if err := json.Unmarshal(b, methodOnly); err != nil {
+	var methodPayload methodOnly
+	if err := json.Unmarshal(bodyBytes, &methodPayload); err != nil {
 		return nil, err
 	}
 
 	var ret kClient.UpdateSettingsFlowBody
-
-	switch methodOnly.Method {
+	switch methodPayload.Method {
 	case "password":
-		body := new(kClient.UpdateSettingsFlowWithPasswordMethod)
-
-		err := parseBody(r.Body, &body)
-
-		if err != nil {
+		var body kClient.UpdateSettingsFlowWithPasswordMethod
+		if err := parseBody(r.Body, &body); err != nil {
 			return nil, err
 		}
-		ret = kClient.UpdateSettingsFlowWithPasswordMethodAsUpdateSettingsFlowBody(
-			body,
-		)
+		ret = kClient.UpdateSettingsFlowWithPasswordMethodAsUpdateSettingsFlowBody(&body)
+
 	case "totp":
-		body := new(kClient.UpdateSettingsFlowWithTotpMethod)
-
-		err := parseBody(r.Body, &body)
-
-		if err != nil {
+		var body kClient.UpdateSettingsFlowWithTotpMethod
+		if err := parseBody(r.Body, &body); err != nil {
 			return nil, err
 		}
+		ret = kClient.UpdateSettingsFlowWithTotpMethodAsUpdateSettingsFlowBody(&body)
 
-		ret = kClient.UpdateSettingsFlowWithTotpMethodAsUpdateSettingsFlowBody(
-			body,
-		)
 	case "webauthn":
-		body := new(kClient.UpdateSettingsFlowWithWebAuthnMethod)
-
-		err := parseBody(r.Body, &body)
-
-		if err != nil {
+		var body kClient.UpdateSettingsFlowWithWebAuthnMethod
+		if err := parseBody(r.Body, &body); err != nil {
 			return nil, err
 		}
-		ret = kClient.UpdateSettingsFlowWithWebAuthnMethodAsUpdateSettingsFlowBody(
-			body,
-		)
+		ret = kClient.UpdateSettingsFlowWithWebAuthnMethodAsUpdateSettingsFlowBody(&body)
+
 	case "lookup_secret":
-		body := new(kClient.UpdateSettingsFlowWithLookupMethod)
-
-		err := parseBody(r.Body, &body)
-
-		if err != nil {
+		var body kClient.UpdateSettingsFlowWithLookupMethod
+		if err := parseBody(r.Body, &body); err != nil {
 			return nil, err
 		}
+		ret = kClient.UpdateSettingsFlowWithLookupMethodAsUpdateSettingsFlowBody(&body)
 
-		ret = kClient.UpdateSettingsFlowWithLookupMethodAsUpdateSettingsFlowBody(
-			body,
-		)
+	default:
+		return nil, fmt.Errorf("upsupported method: %s", methodPayload.Method)
 	}
 
 	return &ret, nil
