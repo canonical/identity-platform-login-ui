@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.1...v0.21.2) (2025-04-15)
+
+
+### Bug Fixes
+
+* clean the request body parsing in login & settings flow ([9d8eb87](https://github.com/canonical/identity-platform-login-ui/commit/9d8eb873fdc7b920d9a0c31aa8ed1b357ddec8ad))
+* clean the request body parsing in login & settings flow ([ffe0305](https://github.com/canonical/identity-platform-login-ui/commit/ffe0305200bf46f37449ce1eb9dc30d0ee0563ca))
+
 ## [0.21.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.0...v0.21.1) (2025-04-08)
 
 
