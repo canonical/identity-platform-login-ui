@@ -29,10 +29,10 @@ jobs:
                 issue: ${{ fromJson(needs.list-all-issues.outputs.issues) }}
         needs: 
             - list-all-issues                    
-        uses: canonical/identity-team/.github/workflows/cve-check.yaml@74923c8fd716e55207cf19359621902c45b24b52 # v1.8.2
+        uses: canonical/identity-team/.github/workflows/cve-check.yaml@15ae2e6fe85c1ed3ba8f301eecd68440b7cafdb1 # v1.8.3
         with: 
             issue: ${{ matrix.issue }}
 
     apply-labels:
-        uses: canonical/identity-team/.github/workflows/cve-check.yaml@74923c8fd716e55207cf19359621902c45b24b52 # v1.8.2
+        uses: canonical/identity-team/.github/workflows/cve-check.yaml@15ae2e6fe85c1ed3ba8f301eecd68440b7cafdb1 # v1.8.3
         if: ${{ github.event.issue.id }}

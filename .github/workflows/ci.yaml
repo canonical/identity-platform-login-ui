@@ -19,11 +19,11 @@ jobs:
   e2e-test:
     uses: ./.github/workflows/e2etest.yaml
   build:
-    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@74923c8fd716e55207cf19359621902c45b24b52 # v1.8.2
+    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@15ae2e6fe85c1ed3ba8f301eecd68440b7cafdb1 # v1.8.3
   gh-publish:
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@74923c8fd716e55207cf19359621902c45b24b52 # v1.8.2
+    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@15ae2e6fe85c1ed3ba8f301eecd68440b7cafdb1 # v1.8.3
     with:
       rock: ${{ needs.build.outputs.rock }}
       structure-tests-enabled: true
@@ -31,7 +31,7 @@ jobs:
     # only release to oci-factory in case of release
     if: github.ref_type == 'tag'
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@74923c8fd716e55207cf19359621902c45b24b52 # v1.8.2
+    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@15ae2e6fe85c1ed3ba8f301eecd68440b7cafdb1 # v1.8.3
     with:
       eol-stable-release: "6 month"
     secrets:
@@ -39,13 +39,13 @@ jobs:
   scan:
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: gh-publish
-    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@74923c8fd716e55207cf19359621902c45b24b52 # v1.8.2
+    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@15ae2e6fe85c1ed3ba8f301eecd68440b7cafdb1 # v1.8.3
     with:
       image: ${{ needs.gh-publish.outputs.image }}
   oci-update-pr:
     needs: [gh-publish, scan]
     if: github.ref_type == 'tag'
-    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@74923c8fd716e55207cf19359621902c45b24b52 # v1.8.2
+    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@15ae2e6fe85c1ed3ba8f301eecd68440b7cafdb1 # v1.8.3
     with: 
         oci-image: ${{ needs.gh-publish.outputs.image }}
         repository: canonical/identity-platform-login-ui-operator
