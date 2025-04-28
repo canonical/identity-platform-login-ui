@@ -144,3 +144,8 @@ hydra perform authorization-code \
   --client-secret  `echo "$code_client" | yq .client_secret` \
   --scope openid,profile,email,offline_access
 ```
+
+## Security
+
+Please see [SECURITY.md](https://github.com/canonical/identity-platform-login-ui/blob/main/SECURITY.md)
+for guidelines on reporting security issues.
