@@ -1,11 +1,19 @@
-# Security 
+# Security
 
+## Reporting a vulnerability
 
+To report a security issue, file a [Private Security Report](https://github.com/canonical/identity-platform-login-ui/security/advisories/new)
+with a description of the issue, the steps you took to create the issue, affected
+versions, and, if known, mitigations for the issue.
+
+The [Ubuntu Security disclosure and embargo policy](https://ubuntu.com/security/disclosure-policy)
+contains more information
+about what you can expect when you contact us and what we expect from you.
 
 ## CVE patching for OCI factory artifacts
 
-When a CVE is reported we are bound to patch the existing OCI artifacts if within the EOL 
-maintenance window  
+When a CVE is reported we are bound to patch the existing OCI artifacts if within the EOL
+maintenance window
 
 
 based on when the artifact was published there are 2 different methods to operate
@@ -32,7 +40,7 @@ git tag -f v1.19.0
 git push -f --tags origin v1.19.0
 ```
 
-* let the machinery do its job 
+* let the machinery do its job
 
 
 
@@ -47,7 +55,7 @@ Two cases are possible now:
 #### latest release
 
 If tag is the latest, making `fix` commits to patch the issue and then use the `release-please` flow as usual
-That will trigger the usual release PR with a patch version change, OCI tag won't be affected and OCI cli will push 
+That will trigger the usual release PR with a patch version change, OCI tag won't be affected and OCI cli will push
 the `<major>.<minor>` with the following
 
 ```yaml
@@ -91,7 +99,7 @@ index 31968d8..f2aa3e2 100644
 -          $OCI_FACTORY upload -y --release track=$IMAGE_VERSION_STABLE-22.04,risks=stable,eol=$EOL_STABLE
            $OCI_FACTORY upload -y --release track=$IMAGE_VERSION_CANDIDATE-22.04,risks=candidate,edge,eol=$EOL_CANDIDATE
          env:
-           GITHUB_TOKEN: ${{ secrets.token }} 
+           GITHUB_TOKEN: ${{ secrets.token }}
 ```
 
 
@@ -103,4 +111,4 @@ git tag -f v1.19.0
 git push -f --tags origin v1.19.0
 ```
 
-* let the machinery do its job 
+* let the machinery do its job
