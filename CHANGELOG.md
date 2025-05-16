@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.21.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.1...v0.21.2) (2025-05-16)
+
+
+### Bug Fixes
+
+* clean the request body parsing in login & settings flow ([9d8eb87](https://github.com/canonical/identity-platform-login-ui/commit/9d8eb873fdc7b920d9a0c31aa8ed1b357ddec8ad))
+* clean the request body parsing in login & settings flow ([ffe0305](https://github.com/canonical/identity-platform-login-ui/commit/ffe0305200bf46f37449ce1eb9dc30d0ee0563ca))
+* **deps:** update module go.uber.org/mock to v0.5.2 ([882d47e](https://github.com/canonical/identity-platform-login-ui/commit/882d47e68d8cdd3bf33311674cef16af727c8715))
+* **deps:** update module go.uber.org/mock to v0.5.2 ([2ae3f5d](https://github.com/canonical/identity-platform-login-ui/commit/2ae3f5db989e78d6b667457eb5d0777aa30a5079))
+* **deps:** update ui deps ([56487c6](https://github.com/canonical/identity-platform-login-ui/commit/56487c60a92eb28a11890764979104b718ccf2f6))
+* **deps:** update ui deps (minor) ([c01e06d](https://github.com/canonical/identity-platform-login-ui/commit/c01e06d6a29204ff33d75c1b3847e737c7fa60bb))
+
 ## [0.21.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.0...v0.21.1) (2025-04-08)
 
 
