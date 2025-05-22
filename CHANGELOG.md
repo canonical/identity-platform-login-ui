@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.21.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.1...v0.21.2) (2025-05-22)
+
+
+### Bug Fixes
+
+* clean the request body parsing in login & settings flow ([9d8eb87](https://github.com/canonical/identity-platform-login-ui/commit/9d8eb873fdc7b920d9a0c31aa8ed1b357ddec8ad))
+* clean the request body parsing in login & settings flow ([ffe0305](https://github.com/canonical/identity-platform-login-ui/commit/ffe0305200bf46f37449ce1eb9dc30d0ee0563ca))
+* **deps:** update go deps to v1.36.0 ([7f804d1](https://github.com/canonical/identity-platform-login-ui/commit/7f804d128f3c2efa7da751698cacccb9f8452601))
+* **deps:** update go deps to v1.36.0 (minor) ([957c3d2](https://github.com/canonical/identity-platform-login-ui/commit/957c3d2be459e21825982fe1e4d2406d2b40fbae))
+* **deps:** update module go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp to v0.61.0 ([d6f7ede](https://github.com/canonical/identity-platform-login-ui/commit/d6f7ede055150599430e74fba62d4eb16853b46c))
+* **deps:** update module go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp to v0.61.0 ([25ad808](https://github.com/canonical/identity-platform-login-ui/commit/25ad8086526b049c6bbe342bc7773667cbd7867e))
+* **deps:** update module go.opentelemetry.io/contrib/propagators/jaeger to v1.36.0 ([b379d9f](https://github.com/canonical/identity-platform-login-ui/commit/b379d9fff893490678f1259e48cfd2b9c54494ff))
+* **deps:** update module go.opentelemetry.io/contrib/propagators/jaeger to v1.36.0 ([ed345bb](https://github.com/canonical/identity-platform-login-ui/commit/ed345bb66194350b07e9b840cafdc2230162b313))
+* **deps:** update module go.uber.org/mock to v0.5.2 ([882d47e](https://github.com/canonical/identity-platform-login-ui/commit/882d47e68d8cdd3bf33311674cef16af727c8715))
+* **deps:** update module go.uber.org/mock to v0.5.2 ([2ae3f5d](https://github.com/canonical/identity-platform-login-ui/commit/2ae3f5db989e78d6b667457eb5d0777aa30a5079))
+* **deps:** update ui deps ([56487c6](https://github.com/canonical/identity-platform-login-ui/commit/56487c60a92eb28a11890764979104b718ccf2f6))
+* **deps:** update ui deps (minor) ([c01e06d](https://github.com/canonical/identity-platform-login-ui/commit/c01e06d6a29204ff33d75c1b3847e737c7fa60bb))
+
 ## [0.21.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.0...v0.21.1) (2025-04-08)
 
 
