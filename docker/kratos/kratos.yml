@@ -26,30 +26,36 @@ session:
 
 selfservice:
     allowed_return_urls:
-      - http://localhost:4455/ui/
+      - http://localhost:4455/
     default_browser_return_url:
-        http://localhost:4455/ui/
+        http://localhost:4455/
     flows:
         error:
-            ui_url: http://localhost:4455/ui/error
+            ui_url: http://localhost:4455/error
         login:
-            ui_url: http://localhost:4455/ui/login
+            ui_url: http://localhost:4455/login
         recovery:
-            enabled: True
-            ui_url: http://localhost:4455/ui/reset_email
+            enabled: true
+            ui_url: http://localhost:4455/recovery
             use: code
             after:
-                default_browser_return_url: http://localhost:4455/ui
+#                default_browser_return_url: http://localhost:4455/ui
                 hooks:
                     - hook: revoke_active_sessions
         settings:
             # TODO: Replace with self-service settings page when implemented
-            ui_url: http://localhost:4455/ui/reset_password
+            ui_url: http://localhost:4455/settings
             required_aal: highest_available
-            after:
-                webauthn:
-                    default_browser_return_url: http://localhost:4455/ui/setup_passkey
+#            after:
+#                webauthn:
+#                    default_browser_return_url: http://localhost:4455/ui/setup_passkey
+        verification:
+          enabled: true
+          ui_url: http://localhost:4455/verification
         registration:
+            enabled: true
+            login_hints: false
+            ui_url: http://localhost:4455/registration
             after:
                 oidc:
                     hooks:
@@ -58,6 +64,8 @@ selfservice:
                     hooks:
                     - hook: session
     methods:
+        profile:
+          enabled: true
         totp:
             enabled: true
             config:
@@ -90,6 +98,11 @@ selfservice:
                   mapper_url: "file:///etc/config/kratos/schema.jsonnet"
                   scope: ["user:email"]
                   label: Github
+                - id: "google_canonical"
+                  provider: "google"
+                  mapper_url: "file:///etc/config/kratos/schema.jsonnet"
+                  scope: ["email"]
+                  label: Google
 courier:
     smtp:
         connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true

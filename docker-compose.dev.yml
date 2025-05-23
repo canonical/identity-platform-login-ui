@@ -30,6 +30,8 @@ services:
       - LOG_LEVEL=trace
       - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_ID=${CLIENT_ID}
       - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_SECRET=${CLIENT_SECRET}
+      - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_CLIENT_ID=${CLIENT_ID_GOOGLE}
+      - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_CLIENT_SECRET=${CLIENT_SECRET_GOOGLE}
     command: exec kratos serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
     volumes:
       - type: volume
@@ -112,42 +114,58 @@ services:
       retries: 5
     networks:
       - intranet
-  migrateopenfga:
-    image: openfga/openfga:v1.8.4
-    container_name: migrateopenfga
-    command: migrate --datastore-engine postgres --datastore-uri 'postgresql://openfga:openfga@postgres/openfga?sslmode=disable'
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - intranet
-  insert-hardcoded-store:
-    image: governmentpaas/psql
-    container_name: insert-hardcoded-store
-    command: psql -Atx postgresql://openfga:openfga@postgres/openfga?sslmode=disable -c "INSERT INTO store (id,name,created_at,updated_at) VALUES ('01GP1254CHWJC1MNGVB0WDG1T0','login-ui',NOW(),NOW()) ON CONFLICT DO NOTHING;"
-    depends_on:
-      migrateopenfga:
-        condition: service_completed_successfully
-    networks:
-      - intranet
-  openfga:
-    image: openfga/openfga:v1.8.4
+  selfservice-ui-node:
+    image: oryd/kratos-selfservice-ui-node:v0.14.1
     environment:
-      OPENFGA_DATASTORE_ENGINE: "postgres"
-      OPENFGA_DATASTORE_URI: "postgresql://openfga:openfga@postgres/openfga?sslmode=disable"
-      OPENFGA_AUTHN_PRESHARED_KEYS: "42"
-    command: run
+      - KRATOS_PUBLIC_URL=http://kratos:4433/
+      - KRATOS_BROWSER_URL=http://localhost:4433/
+      - HYDRA_ADMIN_URL=http://hydra:4445/
+      - PORT=4455
+      - CSRF_COOKIE_NAME=ax-csrf-cookie
+      - COOKIE_SECRET=I_AM_VERY_SECRET
+      - CSRF_COOKIE_SECRET=I_AM_VERY_SECRET_TOO
+      - DANGEROUSLY_DISABLE_SECURE_CSRF_COOKIES=true
     ports:
-      - 8080:8080
-      - 8081:8081
-      - 3000:3000
-    depends_on:
-      migrateopenfga:
-        condition: service_completed_successfully
-      insert-hardcoded-store:
-        condition: service_completed_successfully
+      - "4455:4455"
     networks:
       - intranet
+    restart: on-failure
+#  migrateopenfga:
+#    image: openfga/openfga:v1.8.4
+#    container_name: migrateopenfga
+#    command: migrate --datastore-engine postgres --datastore-uri 'postgresql://openfga:openfga@postgres/openfga?sslmode=disable'
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    networks:
+#      - intranet
+#  insert-hardcoded-store:
+#    image: governmentpaas/psql
+#    container_name: insert-hardcoded-store
+#    command: psql -Atx postgresql://openfga:openfga@postgres/openfga?sslmode=disable -c "INSERT INTO store (id,name,created_at,updated_at) VALUES ('01GP1254CHWJC1MNGVB0WDG1T0','login-ui',NOW(),NOW()) ON CONFLICT DO NOTHING;"
+#    depends_on:
+#      migrateopenfga:
+#        condition: service_completed_successfully
+#    networks:
+#      - intranet
+#  openfga:
+#    image: openfga/openfga:v1.8.4
+#    environment:
+#      OPENFGA_DATASTORE_ENGINE: "postgres"
+#      OPENFGA_DATASTORE_URI: "postgresql://openfga:openfga@postgres/openfga?sslmode=disable"
+#      OPENFGA_AUTHN_PRESHARED_KEYS: "42"
+#    command: run
+#    ports:
+#      - 8080:8080
+#      - 8081:8081
+#      - 3000:3000
+#    depends_on:
+#      migrateopenfga:
+#        condition: service_completed_successfully
+#      insert-hardcoded-store:
+#        condition: service_completed_successfully
+#    networks:
+#      - intranet
 networks:
   intranet:
 volumes:
