@@ -11,7 +11,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-toastify": "11.0.5",
-    "sass": "1.87.0",
+    "sass": "1.89.0",
     "vanilla-framework": "4.24.0"
   },
   "engines": {
@@ -49,11 +49,11 @@
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.3.0",
     "@testing-library/user-event": "14.6.1",
-    "@typescript-eslint/eslint-plugin": "8.31.1",
+    "@typescript-eslint/eslint-plugin": "8.32.1",
     "autoprefixer": "10.4.21",
-    "eslint": "9.25.1",
+    "eslint": "9.27.0",
     "eslint-config-prettier": "10.1.5",
-    "eslint-plugin-prettier": "5.2.6",
+    "eslint-plugin-prettier": "5.4.0",
     "eslint-plugin-react": "7.37.5",
     "postcss": "8.5.3",
     "postcss-cli": "11.0.1",
