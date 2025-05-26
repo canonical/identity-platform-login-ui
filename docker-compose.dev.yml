@@ -113,7 +113,7 @@ services:
     networks:
       - intranet
   migrateopenfga:
-    image: openfga/openfga:v1.8.4
+    image: openfga/openfga:v1.8.13
     container_name: migrateopenfga
     command: migrate --datastore-engine postgres --datastore-uri 'postgresql://openfga:openfga@postgres/openfga?sslmode=disable'
     depends_on:
@@ -131,7 +131,7 @@ services:
     networks:
       - intranet
   openfga:
-    image: openfga/openfga:v1.8.4
+    image: openfga/openfga:v1.8.13
     environment:
       OPENFGA_DATASTORE_ENGINE: "postgres"
       OPENFGA_DATASTORE_URI: "postgresql://openfga:openfga@postgres/openfga?sslmode=disable"
