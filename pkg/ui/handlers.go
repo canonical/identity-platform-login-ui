@@ -76,7 +76,7 @@ func (a *API) getCSP(baseURL, kratosPublicURL string) string {
 		// Allowlist the kratos URL to allow the browser needs to fetch the webauthn.js script
 		additionalScriptURL = kratosPublicURL
 	}
-	return fmt.Sprintf("default-src 'self' data: https://*.ubuntu.com; script-src 'self' %v; style-src 'self' 'unsafe-inline'", additionalScriptURL)
+	return fmt.Sprintf("default-src 'self' data: https://assets.ubuntu.com; script-src 'self' %v; style-src 'self'", additionalScriptURL)
 }
 
 func NewAPI(fileSystem fs.FS, baseURL, kratosPublicURL string, logger logging.LoggerInterface) *API {
