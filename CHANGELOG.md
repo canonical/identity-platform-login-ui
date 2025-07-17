@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.21.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.2...v0.21.3) (2025-07-17)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @canonical/react-components to v2.8.0 ([31acbf3](https://github.com/canonical/identity-platform-login-ui/commit/31acbf3983169e67b24b3f82be64fc058e21e3c5))
+* **deps:** update dependency @canonical/react-components to v2.8.0 ([8955471](https://github.com/canonical/identity-platform-login-ui/commit/8955471f8d2b26b99864a981b9edd2b777d416bb))
+* **deps:** update dependency vanilla-framework to v4.26.0 ([ffc100c](https://github.com/canonical/identity-platform-login-ui/commit/ffc100c53464aab3711b974a49b5aa402ee4f23f))
+* **deps:** update dependency vanilla-framework to v4.26.0 ([809ca86](https://github.com/canonical/identity-platform-login-ui/commit/809ca867f1a1092a850f07a38212bf60d9fb5075))
+* **deps:** update ui deps to v15.4.1 ([054b99f](https://github.com/canonical/identity-platform-login-ui/commit/054b99f60d91076f7b24cd65843f3c97bf0a21cd))
+* **deps:** update ui deps to v15.4.1 (minor) ([778edcc](https://github.com/canonical/identity-platform-login-ui/commit/778edccf955b7796e4e90f3f19868f15d6f4b812))
+
 ## [0.21.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.1...v0.21.2) (2025-07-10)
 
 
