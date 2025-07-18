@@ -34,6 +34,7 @@ parts:
       opt/identity-platform-login-ui/bin/app: usr/bin/identity-platform-login-ui
     stage-packages:
       - base-files_var
+      - base-files_chisel
   deb-security-manifest:
     plugin: make
     source: https://github.com/canonical/rocks-security-manifest
