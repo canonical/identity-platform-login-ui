@@ -23,7 +23,7 @@ func (c *Client) MetadataApi() client.MetadataAPI {
 	return c.c.MetadataAPI
 }
 
-func NewClient(url string, debug bool) *Client {
+func NewClient(url string, debug bool, proxy InterceptorFactory) *Client {
 	c := new(Client)
 
 	configuration := client.NewConfiguration()
@@ -34,7 +34,13 @@ func NewClient(url string, debug bool) *Client {
 		},
 	}
 
-	configuration.HTTPClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	var transport http.RoundTripper = otelhttp.NewTransport(http.DefaultTransport)
+
+	if proxy != nil {
+		transport = proxy(transport)
+	}
+
+	configuration.HTTPClient = &http.Client{Transport: transport}
 
 	c.c = client.NewAPIClient(configuration)
 

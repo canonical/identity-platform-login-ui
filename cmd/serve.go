@@ -68,8 +68,8 @@ func serve() {
 		logger.Fatalf("issue with js distribution files %s", err)
 	}
 
-	kClient := ik.NewClient(specs.KratosPublicURL, specs.Debug)
-	kAdminClient := ik.NewClient(specs.KratosAdminURL, specs.Debug)
+	kClient := ik.NewClient(specs.KratosPublicURL, specs.Debug, ik.NewHTTPInterceptor)
+	kAdminClient := ik.NewClient(specs.KratosAdminURL, specs.Debug, nil)
 	hClient := ih.NewClient(specs.HydraAdminURL, specs.Debug)
 
 	encrypt := kratos.NewEncrypt([]byte(specs.CookiesEncryptionKey), logger, tracer)
