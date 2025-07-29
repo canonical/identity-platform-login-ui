@@ -32,9 +32,14 @@ interface Props {
   forceSelfServe?: boolean;
 }
 
+type AppConfig = {
+  support_email?: string;
+};
+
 const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
   const [flow, setFlow] = useState<SettingsFlow>();
   const [loadingKeysFlow, setLoadingKeysFlow] = useState<SettingsFlow>();
+  const [supportEmail, setSupportEmail] = useState("");
 
   // Get ?flow=... from the URL
   const router = useRouter();
@@ -42,6 +47,17 @@ const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
 
   const isSelfServe = forceSelfServe || hasSelfServeReturn(flow);
   const userName = getLoggedInName(flow);
+
+  useEffect(() => {
+    void fetch("../api/v0/app-config")
+      .then((response) => {
+        return response.json() as Promise<AppConfig>;
+      })
+      .then((data) => {
+        setSupportEmail(data.support_email ?? "");
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
@@ -152,10 +168,7 @@ const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
               ...node.meta.label.context,
               appearance: isSequencedFromSignInFlow ? "" : "positive",
               additional: (
-                <a
-                  className="p-button--link"
-                  href="mailto:support@canonical.com"
-                >
+                <a className="p-button--link" href={"mailto:" + supportEmail}>
                   Contact support
                 </a>
               ),
