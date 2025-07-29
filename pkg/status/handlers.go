@@ -25,10 +25,12 @@ type Health struct {
 type DeploymentInfo struct {
 	OidcSequencingEnabled bool   `json:"oidc_webauthn_sequencing_enabled"`
 	BaseURL               string `json:"base_url"`
+	SupportEmail          string `json:"support_email"`
 }
 
 type API struct {
 	BaseURL                       string
+	supportEmail                  string
 	oidcWebAuthnSequencingEnabled bool
 	service                       ServiceInterface
 
@@ -90,15 +92,17 @@ func (a *API) appConfig(w http.ResponseWriter, r *http.Request) {
 	info := new(DeploymentInfo)
 	info.OidcSequencingEnabled = a.oidcWebAuthnSequencingEnabled
 	info.BaseURL = a.BaseURL
+	info.SupportEmail = a.supportEmail
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(info)
 }
 
-func NewAPI(baseURL string, oidcWebAuthnSequencingEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
+func NewAPI(baseURL, supportEmail string, oidcWebAuthnSequencingEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.BaseURL = baseURL
+	a.supportEmail = supportEmail
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.service = service
 	a.tracer = tracer
