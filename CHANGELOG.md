@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.21.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.2...v0.21.3) (2025-07-29)
+
+
+### Bug Fixes
+
+* add support email config ([d1d97c3](https://github.com/canonical/identity-platform-login-ui/commit/d1d97c34c0fe52c252b6fd4034ab7a4b4e9ddd2f))
+* **deps:** update dependency @canonical/react-components to v2.8.0 ([31acbf3](https://github.com/canonical/identity-platform-login-ui/commit/31acbf3983169e67b24b3f82be64fc058e21e3c5))
+* **deps:** update dependency @canonical/react-components to v2.8.0 ([8955471](https://github.com/canonical/identity-platform-login-ui/commit/8955471f8d2b26b99864a981b9edd2b777d416bb))
+* **deps:** update dependency @canonical/react-components to v2.9.0 ([0f66678](https://github.com/canonical/identity-platform-login-ui/commit/0f66678f05ce63ba475234abeff272a8152d2974))
+* **deps:** update dependency @canonical/react-components to v2.9.0 ([4b53559](https://github.com/canonical/identity-platform-login-ui/commit/4b53559d18b5e807de67d0f97b0f8516bc3f02c2))
+* **deps:** update dependency @ory/client to v1.20.23 ([b8dc49c](https://github.com/canonical/identity-platform-login-ui/commit/b8dc49c8c111199aab6ca7252b631577551abb7e))
+* **deps:** update dependency @ory/client to v1.20.23 ([10f9aad](https://github.com/canonical/identity-platform-login-ui/commit/10f9aadef7018de92071f2798e92c995468055ea))
+* **deps:** update dependency vanilla-framework to v4.26.0 ([ffc100c](https://github.com/canonical/identity-platform-login-ui/commit/ffc100c53464aab3711b974a49b5aa402ee4f23f))
+* **deps:** update dependency vanilla-framework to v4.26.0 ([809ca86](https://github.com/canonical/identity-platform-login-ui/commit/809ca867f1a1092a850f07a38212bf60d9fb5075))
+* **deps:** update internal ui dependencies ([7fd4d48](https://github.com/canonical/identity-platform-login-ui/commit/7fd4d48f75ec27c15161ca163c490d570a4f3362))
+* **deps:** update internal ui dependencies (patch) ([a1c2b2b](https://github.com/canonical/identity-platform-login-ui/commit/a1c2b2bcfbbb336ecb5619cd292cb1213f7961f9))
+* **deps:** update ui deps ([b7c1094](https://github.com/canonical/identity-platform-login-ui/commit/b7c1094364caee3f2e04ce89ce746813d5c477ab))
+* **deps:** update ui deps (patch) ([65648a3](https://github.com/canonical/identity-platform-login-ui/commit/65648a3be5b4bc22856d4002ef127a8315b10029))
+* **deps:** update ui deps to v15.4.1 ([054b99f](https://github.com/canonical/identity-platform-login-ui/commit/054b99f60d91076f7b24cd65843f3c97bf0a21cd))
+* **deps:** update ui deps to v15.4.1 (minor) ([778edcc](https://github.com/canonical/identity-platform-login-ui/commit/778edccf955b7796e4e90f3f19868f15d6f4b812))
+* **deps:** update ui deps to v15.4.3 ([fcce0f1](https://github.com/canonical/identity-platform-login-ui/commit/fcce0f1c8a10d0d0c964d2f2437c88236c625578))
+* **deps:** update ui deps to v15.4.3 (patch) ([88d20e1](https://github.com/canonical/identity-platform-login-ui/commit/88d20e15114e05152fbb3582ba3c69e0dd195331))
+* **ui:** make support email configurable ([ecb0686](https://github.com/canonical/identity-platform-login-ui/commit/ecb0686489e71b496e9f7848a3b70d935ab18e0d))
+
 ## [0.21.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.1...v0.21.2) (2025-07-10)
 
 
