@@ -30,6 +30,8 @@ type EnvSpec struct {
 
 	MFAEnabled                    bool `envconfig:"mfa_enabled" default:"true"`
 	OIDCWebAuthnSequencingEnabled bool `envconfig:"oidc_webauthn_sequencing_enabled" default:"false"`
+
+	SupportEmail string `envconfig:"support_email" default:""`
 }
 
 type Flags struct {
