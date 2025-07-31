@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.4](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.3...v0.21.4) (2025-07-31)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/prometheus/client_golang to v1.23.0 ([a5cdfcf](https://github.com/canonical/identity-platform-login-ui/commit/a5cdfcff397359da298b32abca3ad2cd737a7564))
+* **deps:** update module github.com/prometheus/client_golang to v1.23.0 ([03f3d2f](https://github.com/canonical/identity-platform-login-ui/commit/03f3d2ff5a3722397799cfa30a55092b90d32c0a))
+
 ## [0.21.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.2...v0.21.3) (2025-07-29)
 
 
