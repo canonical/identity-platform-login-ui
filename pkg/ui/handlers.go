@@ -76,7 +76,7 @@ func (a *API) getCSP(baseURL, kratosPublicURL string) string {
 	// 	additionalScriptURL = kratosPublicURL
 	// }
 	additionalScriptURL = baseURL
-	return fmt.Sprintf("default-src 'self' data: https://assets.ubuntu.com; script-src 'self' %v; style-src 'self'", additionalScriptURL)
+	return fmt.Sprintf("default-src 'self' data: https://assets.ubuntu.com; script-src 'self' %v/.well-known/ory/webauthn.js; style-src 'self'", additionalScriptURL)
 }
 
 func NewAPI(fileSystem fs.FS, baseURL, kratosPublicURL string, logger logging.LoggerInterface) *API {
