@@ -31,6 +31,7 @@ func NewRouter(
 	distFS fs.FS,
 	mfaEnabled bool,
 	oidcWebAuthnSequencingEnabled bool,
+	identifierFirstEnabled bool,
 	baseURL string,
 	supportEmail string,
 	KratosPublicURL string,
@@ -62,7 +63,7 @@ func NewRouter(
 		device.NewService(hydraClient, tracer, monitor, logger),
 		logger,
 	).RegisterEndpoints(router)
-	kratosService := kratos.NewService(kratosClient, kratosAdminClient, hydraClient, authzClient, oidcWebAuthnSequencingEnabled, tracer, monitor, logger)
+	kratosService := kratos.NewService(kratosClient, kratosAdminClient, hydraClient, authzClient, KratosPublicURL, oidcWebAuthnSequencingEnabled, tracer, monitor, logger)
 	kratos.NewAPI(
 		kratosService,
 		mfaEnabled,
@@ -76,6 +77,7 @@ func NewRouter(
 		baseURL,
 		supportEmail,
 		oidcWebAuthnSequencingEnabled,
+		identifierFirstEnabled,
 		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataAPI(), tracer, monitor, logger),
 		tracer,
 		monitor,

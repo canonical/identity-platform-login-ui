@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -24,6 +25,7 @@ const (
 	NotEnoughCharacters          = 4000003
 	TooManyCharacters            = 4000017
 	IncorrectCredentials         = 4000006
+	IncorrectAccountIdentifier   = 4000037
 	InactiveAccount              = 4000010
 	InvalidRecoveryCode          = 4060006
 	RecoveryCodeSent             = 1060003
@@ -43,6 +45,8 @@ type Service struct {
 	kratosAdmin KratosAdminClientInterface
 	hydra       HydraClientInterface
 	authz       AuthorizerInterface
+
+	kratosPublicURL string
 
 	oidcWebAuthnSequencingEnabled bool
 
@@ -387,6 +391,74 @@ func (s *Service) UpdateRecoveryFlow(
 	return returnToResp, resp.Cookies(), nil
 }
 
+func (s *Service) UpdateIdentifierFirstLoginFlow(
+	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
+) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateIdentifierFirstLoginFlow")
+	defer span.End()
+
+	csrfToken, ok := body.UpdateLoginFlowWithIdentifierFirstMethod.GetCsrfTokenOk()
+	if !ok {
+		return nil, nil, fmt.Errorf("missing csrf token")
+	}
+
+	identifier, ok := body.UpdateLoginFlowWithIdentifierFirstMethod.GetIdentifierOk()
+	if !ok {
+		return nil, nil, fmt.Errorf("missing identifier")
+	}
+
+	form := url.Values{}
+	form.Set("csrf_token", *csrfToken)
+	form.Set("identifier", *identifier)
+	form.Set("method", "identifier_first")
+
+	u, err := url.Parse(s.kratosPublicURL + "/self-service/login")
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid kratos URL: %w", err)
+	}
+	q := u.Query()
+	q.Set("flow", flow)
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), strings.NewReader(form.Encode()))
+	if err != nil {
+		s.logger.Errorf("failed to create http request: %s", err)
+		return nil, nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// Kratos returns 303 for identifier first flows. We disable these automatic redirects
+			// in order to let the handler process the BrowserLocationChangeRequired and change to 200
+			return http.ErrUseLastResponse
+		},
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		s.logger.Errorf("kratos request failed: %s", err)
+		return nil, nil, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusSeeOther {
+		location := resp.Header.Get("Location")
+		return &BrowserLocationChangeRequired{RedirectTo: &location}, resp.Cookies(), nil
+	}
+
+	if resp.StatusCode == http.StatusBadRequest {
+		err = s.getUiError(resp.Body)
+		return nil, nil, err
+	}
+
+	return nil, nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+}
+
 func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
 ) (*BrowserLocationChangeRequired, *kClient.SuccessfulNativeLogin, []*http.Cookie, error) {
@@ -491,6 +563,8 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 	switch errorCode := errorCodes[0].Id; errorCode {
 	case IncorrectCredentials:
 		err = fmt.Errorf("incorrect username or password")
+	case IncorrectAccountIdentifier:
+		err = fmt.Errorf("account does not exist or has no login method configured")
 	case InactiveAccount:
 		err = fmt.Errorf("inactive account")
 	case InvalidProperty:
@@ -658,6 +732,13 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 			return nil, cookies, err
 		}
 		ret = kClient.UpdateLoginFlowWithLookupSecretMethodAsUpdateLoginFlowBody(&body)
+
+	case "identifier_first":
+		var body kClient.UpdateLoginFlowWithIdentifierFirstMethod
+		if err := parseBody(r.Body, &body); err != nil {
+			return nil, cookies, err
+		}
+		ret = kClient.UpdateLoginFlowWithIdentifierFirstMethodAsUpdateLoginFlowBody(&body)
 
 	default:
 		// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
@@ -875,7 +956,8 @@ func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) 
 
 func (s *Service) is1FAMethod(method string) bool {
 	switch method {
-	case "password", "oidc":
+	// consider identifier_first as 1FA
+	case "password", "oidc", "identifier_first":
 		return true
 	case "webauthn":
 		return !s.oidcWebAuthnSequencingEnabled
@@ -942,13 +1024,15 @@ func (s *Service) parseKratosRedirectResponse(ctx context.Context, resp *http.Re
 		Error:      redirectResp.Error,
 	}, nil
 }
-func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, KratosPublicURL string, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos
 	s.kratosAdmin = kratosAdmin
 	s.hydra = hydra
 	s.authz = authzClient
+
+	s.kratosPublicURL = KratosPublicURL
 
 	s.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 
