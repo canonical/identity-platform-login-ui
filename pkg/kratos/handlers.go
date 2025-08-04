@@ -37,6 +37,7 @@ type API struct {
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Post("/api/kratos/self-service/login", a.handleUpdateFlow)
+	mux.Post("/api/kratos/self-service/login/id-first", a.handleUpdateIdentifierFirstFlow)
 	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
 	mux.Get("/api/kratos/self-service/login/flows", a.handleGetLoginFlow)
 	mux.Get("/api/kratos/self-service/errors", a.handleKratosError)
@@ -223,6 +224,34 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(flow)
+}
+
+func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	flowId := q.Get("flow")
+
+	body, cookies, err := a.service.ParseIdentifierFirstLoginFlowMethodBody(r)
+	if err != nil {
+		err = fmt.Errorf("error when parsing request body: %w\n", err)
+		a.logger.Errorf(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	redirectTo, cookies, err := a.service.UpdateIdentifierFirstLoginFlow(r.Context(), flowId, *body, cookies)
+	if err != nil {
+		err = fmt.Errorf("error when updating identifier first login flow: %w\n", err)
+		a.logger.Errorf(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	setCookies(w, cookies)
+
+	if redirectTo != nil {
+		a.redirectResponse(w, r, redirectTo)
+		return
+	}
 }
 
 // TODO: Validate response when server error handling is implemented
