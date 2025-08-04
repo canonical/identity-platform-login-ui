@@ -430,14 +430,12 @@ func (s *Service) UpdateIdentifierFirstLoginFlow(
 		req.AddCookie(c)
 	}
 
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Kratos returns 303 for identifier first flows. We disable these automatic redirects
-			// in order to let the handler process the BrowserLocationChangeRequired and change to 200
-			return http.ErrUseLastResponse
-		},
+	client := *s.kratos.HTTPClient()
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// Kratos returns 303 for identifier first flows. We disable these automatic redirects
+		// in order to let the handler process the BrowserLocationChangeRequired and change to 200
+		return http.ErrUseLastResponse
 	}
-
 	resp, err := client.Do(req)
 	if err != nil {
 		s.logger.Errorf("kratos request failed: %s", err)

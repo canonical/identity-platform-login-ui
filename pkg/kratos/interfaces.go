@@ -11,6 +11,7 @@ import (
 
 type KratosClientInterface interface {
 	FrontendApi() kClient.FrontendAPI
+	HTTPClient() *http.Client
 }
 
 type KratosAdminClientInterface interface {

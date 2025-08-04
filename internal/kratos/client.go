@@ -8,7 +8,12 @@ import (
 )
 
 type Client struct {
-	c *client.APIClient
+	c          *client.APIClient
+	httpClient *http.Client
+}
+
+func (c *Client) HTTPClient() *http.Client {
+	return c.httpClient
 }
 
 func (c *Client) FrontendApi() client.FrontendAPI {
@@ -24,8 +29,6 @@ func (c *Client) MetadataApi() client.MetadataAPI {
 }
 
 func NewClient(url string, debug bool) *Client {
-	c := new(Client)
-
 	configuration := client.NewConfiguration()
 	configuration.Debug = debug
 	configuration.Servers = []client.ServerConfiguration{
@@ -34,9 +37,11 @@ func NewClient(url string, debug bool) *Client {
 		},
 	}
 
-	configuration.HTTPClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	httpClient := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	configuration.HTTPClient = httpClient
 
-	c.c = client.NewAPIClient(configuration)
-
-	return c
+	return &Client{
+		c:          client.NewAPIClient(configuration),
+		httpClient: httpClient,
+	}
 }
