@@ -316,12 +316,6 @@ const Login: NextPage = () => {
       });
 
       return null;
-    } else if (isWebauthn) {
-      // call kratos through the go server proxy
-      const kratosUrl = renderFlow.ui.action.split("/self-service/");
-      if (kratosUrl.length == 2) {
-        renderFlow.ui.action = "../self-service/" + kratosUrl[1];
-      }
     }
   }
 
