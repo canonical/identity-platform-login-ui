@@ -501,6 +501,7 @@ func TestHandleUpdateIdentifierFirstFlow(t *testing.T) {
 	mux.ServeHTTP(w, req)
 
 	res := w.Result()
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
