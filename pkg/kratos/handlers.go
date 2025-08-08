@@ -232,14 +232,16 @@ func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Req
 
 	body, cookies, err := a.service.ParseLoginFlowMethodBody(r)
 	if err != nil {
-		a.logger.Errorf("Error when parsing request body: %v\n", err)
+		err = fmt.Errorf("error when parsing request body: %w\n", err)
+		a.logger.Errorf(err.Error())
 		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
 		return
 	}
 
 	redirectTo, cookies, err := a.service.UpdateIdentifierFirstLoginFlow(r.Context(), flowId, *body, cookies)
 	if err != nil {
-		a.logger.Errorf("Error when updating identifier first login flow: %v\n", err)
+		err = fmt.Errorf("error when updating identifier first login flow: %w\n", err)
+		a.logger.Errorf(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

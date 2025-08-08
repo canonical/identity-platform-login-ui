@@ -47,6 +47,8 @@ type Service struct {
 	authz       AuthorizerInterface
 
 	kratosPublicURL string
+	httpClient      *http.Client
+	loginURL        *url.URL
 
 	oidcWebAuthnSequencingEnabled bool
 
@@ -391,6 +393,41 @@ func (s *Service) UpdateRecoveryFlow(
 	return returnToResp, resp.Cookies(), nil
 }
 
+func (s *Service) executeIdentifierFirstUpdateLoginRequest(
+	ctx context.Context, flow string, csrfToken, identifier string, cookies []*http.Cookie,
+) (*http.Response, error) {
+	form := url.Values{}
+	form.Set("csrf_token", csrfToken)
+	form.Set("identifier", identifier)
+	form.Set("method", "identifier_first")
+
+	if s.loginURL == nil {
+		return nil, fmt.Errorf("missing kratos login url")
+	}
+	u := *s.loginURL
+	q := u.Query()
+	q.Set("flow", flow)
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), strings.NewReader(form.Encode()))
+	if err != nil {
+		s.logger.Errorf("failed to create http request: %s", err)
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+
+	client := *s.httpClient
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// Kratos returns 303 for identifier first flows. We disable these automatic redirects
+		// in order to let the handler process the BrowserLocationChangeRequired and change to 200
+		return http.ErrUseLastResponse
+	}
+	return client.Do(req)
+}
+
 func (s *Service) UpdateIdentifierFirstLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
 ) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
@@ -407,36 +444,7 @@ func (s *Service) UpdateIdentifierFirstLoginFlow(
 		return nil, nil, fmt.Errorf("missing identifier")
 	}
 
-	form := url.Values{}
-	form.Set("csrf_token", *csrfToken)
-	form.Set("identifier", *identifier)
-	form.Set("method", "identifier_first")
-
-	u, err := url.Parse(s.kratosPublicURL + "/self-service/login")
-	if err != nil {
-		return nil, nil, fmt.Errorf("invalid kratos URL: %w", err)
-	}
-	q := u.Query()
-	q.Set("flow", flow)
-	u.RawQuery = q.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), strings.NewReader(form.Encode()))
-	if err != nil {
-		s.logger.Errorf("failed to create http request: %s", err)
-		return nil, nil, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	for _, c := range cookies {
-		req.AddCookie(c)
-	}
-
-	client := *s.kratos.HTTPClient()
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		// Kratos returns 303 for identifier first flows. We disable these automatic redirects
-		// in order to let the handler process the BrowserLocationChangeRequired and change to 200
-		return http.ErrUseLastResponse
-	}
-	resp, err := client.Do(req)
+	resp, err := s.executeIdentifierFirstUpdateLoginRequest(ctx, flow, *csrfToken, *identifier, cookies)
 	if err != nil {
 		s.logger.Errorf("kratos request failed: %s", err)
 		return nil, nil, err
@@ -1022,7 +1030,8 @@ func (s *Service) parseKratosRedirectResponse(ctx context.Context, resp *http.Re
 		Error:      redirectResp.Error,
 	}, nil
 }
-func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, KratosPublicURL string, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+
+func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, kratosPublicURL string, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos
@@ -1030,7 +1039,14 @@ func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInter
 	s.hydra = hydra
 	s.authz = authzClient
 
-	s.kratosPublicURL = KratosPublicURL
+	s.kratosPublicURL = kratosPublicURL
+	s.httpClient = kratos.HTTPClient()
+	loginURL, err := url.Parse(s.kratosPublicURL + "/self-service/login")
+	if err != nil {
+		s.loginURL = nil
+	} else {
+		s.loginURL = loginURL
+	}
 
 	s.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 
