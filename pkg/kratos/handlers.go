@@ -142,6 +142,23 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setCookies(w, cookies)
+
+	var redirect string
+
+	switch i := response.(type) {
+	case *BrowserLocationChangeRequired:
+		redirect = i.GetRedirectTo()
+	case *client.LoginFlow:
+		redirect = i.GetReturnTo()
+	default:
+		redirect = ""
+	}
+
+	if redirect != "" {
+		a.redirectResponse(w, r, &BrowserLocationChangeRequired{RedirectTo: &redirect})
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
 }
