@@ -143,6 +143,13 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 	setCookies(w, cookies)
 
+	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(response)
+
+		return
+	}
+
 	var redirect string
 
 	switch i := response.(type) {
@@ -159,20 +166,27 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(response)
+	// WIP make it fail here
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
 func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo string, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
 	// redirect user to this endpoint with the login_challenge after login
 	// see https://github.com/ory/kratos/issues/3052
+
+	cookies := r.Cookies()
+
+	if aal == "aal2" {
+		cookies = filterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
+	}
+
 	flow, cookies, err := a.service.CreateBrowserLoginFlow(
 		r.Context(),
 		aal,
 		returnTo,
 		loginChallenge,
 		refresh,
-		filterCookies(r.Cookies(), KRATOS_SESSION_COOKIE_NAME),
+		cookies,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create login flow, err: %v", err)
