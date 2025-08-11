@@ -9,7 +9,7 @@ log:
 dsn: memory
 serve:
   public:
-    base_url: http://localhost:4433/
+    base_url: http://localhost:4455/api/kratos/
     cors:
       enabled: True
   admin:
@@ -73,7 +73,7 @@ selfservice:
         webauthn:
             enabled: True
             config:
-                passwordless: True
+                passwordless: False
                 rp:
                     # Set 'id' to the top-level domain.
                     id: localhost
@@ -90,6 +90,7 @@ selfservice:
                   mapper_url: "file:///etc/config/kratos/schema.jsonnet"
                   scope: ["user:email"]
                   label: Github
+
 courier:
     smtp:
         connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true

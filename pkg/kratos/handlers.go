@@ -60,6 +60,13 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query()
 
+	if q.Get("aal") == "aal2" && r.Header.Get("Accept") != "application/json, text/plain, */*" {
+		u, _ := url.JoinPath(a.baseURL, "/ui/login")
+		u = u + "?" + r.URL.RawQuery
+		http.Redirect(w, r, u, http.StatusSeeOther)
+		return
+	}
+
 	loginChallenge := q.Get("login_challenge")
 	returnTo := q.Get("return_to")
 	aal := q.Get("aal")
@@ -143,31 +150,8 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 	setCookies(w, cookies)
 
-	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(response)
-
-		return
-	}
-
-	var redirect string
-
-	switch i := response.(type) {
-	case *BrowserLocationChangeRequired:
-		redirect = i.GetRedirectTo()
-	case *client.LoginFlow:
-		redirect = i.GetReturnTo()
-	default:
-		redirect = ""
-	}
-
-	if redirect != "" {
-		a.redirectResponse(w, r, &BrowserLocationChangeRequired{RedirectTo: &redirect})
-		return
-	}
-
-	// WIP make it fail here
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo string, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
@@ -175,11 +159,9 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo s
 	// see https://github.com/ory/kratos/issues/3052
 
 	cookies := r.Cookies()
-
-	if aal == "aal2" {
+	if aal != "aal2" {
 		cookies = filterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
 	}
-
 	flow, cookies, err := a.service.CreateBrowserLoginFlow(
 		r.Context(),
 		aal,
