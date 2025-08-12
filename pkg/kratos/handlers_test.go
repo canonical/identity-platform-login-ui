@@ -1616,6 +1616,50 @@ func TestHandleUpdateSettingsFlowWithRedirect(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateSettingsFlowWithReturnTo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+
+	returnTo := "https://example.com/ui/login?login_challenge=test"
+	flowId := "test"
+	flow := kClient.NewSettingsFlowWithDefaults()
+	flow.Id = flowId
+	flow.State = "show_form"
+	flow.Identity.SetTraits(map[string]string{"name": "name"})
+	flow.ReturnTo = &returnTo
+
+	flowBody := new(kClient.UpdateSettingsFlowBody)
+	flowBody.UpdateSettingsFlowWithPasswordMethod = kClient.NewUpdateSettingsFlowWithPasswordMethod("password", "password")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	mockService.EXPECT().ParseSettingsFlowMethodBody(gomock.Any()).Return(flowBody, nil)
+	mockService.EXPECT().UpdateSettingsFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(flow, nil, req.Cookies(), nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatal("Expected HTTP status code 303, got: ", res.Status)
+	}
+
+	if res.Header.Get("Location") != returnTo {
+		t.Fatalf("Invalid location, expected: %s, got: %s", returnTo, res.Header.Get("Location"))
+	}
+}
 func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
