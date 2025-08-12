@@ -64,7 +64,7 @@ func TestHandleCreateFlowWithoutParams(t *testing.T) {
 	}
 }
 
-func TestHandleCreateFlowWithoutSession(t *testing.T) {
+func TestHandleCreateFlowWithoutSessionAcceptJSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -84,7 +84,7 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 	values := req.URL.Query()
 	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
-
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
 	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
@@ -114,6 +114,53 @@ func TestHandleCreateFlowWithoutSession(t *testing.T) {
 
 	if loginFlow.Id != flow.Id {
 		t.Fatalf("Invalid flow id, expected: %s, got: %s", flow.Id, loginFlow.Id)
+	}
+}
+
+func TestHandleCreateFlowWithoutSessionNotAcceptJSON(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = "test"
+	flow.State = "passed_challenge"
+
+	loginChallenge := "login_challenge_2341235123231"
+	returnTo, _ := url.JoinPath(BASE_URL, "ui/login")
+	returnTo = returnTo + "?login_challenge=" + loginChallenge
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/x-www-form-urlencoded")
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
+	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
+	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected HTTP status code 303 got %v", res.StatusCode)
+	}
+
+	location, _ := url.JoinPath(BASE_URL, "ui/login")
+	location = fmt.Sprintf("%s?flow=%s", location, flow.Id)
+
+	if res.Header.Get("Location") != location {
+		t.Fatalf("Invalid location, expected: %s, got: %s", location, res.Header.Get("Location"))
 	}
 }
 
@@ -198,7 +245,7 @@ func TestHandleCreateFlowWithoutSessionFailOnFilterProviders(t *testing.T) {
 	}
 }
 
-func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed(t *testing.T) {
+func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowedAcceptJSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -218,6 +265,7 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed(t *testing.T) {
 	values := req.URL.Query()
 	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
 	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
@@ -248,6 +296,54 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowed(t *testing.T) {
 
 	if loginFlow.Id != flow.Id {
 		t.Fatalf("Invalid flow id, expected: %s, got: %s", flow.Id, loginFlow.Id)
+	}
+}
+
+func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowedNotAcceptJSON(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = "test"
+	flow.State = "passed_challenge"
+
+	loginChallenge := "login_challenge_2341235123231"
+	returnTo, _ := url.JoinPath(BASE_URL, "ui/login")
+	returnTo = returnTo + "?login_challenge=" + loginChallenge
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/x-www-form-urlencoded")
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
+	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
+	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected HTTP status code 303 got %v", res.StatusCode)
+	}
+
+	location, _ := url.JoinPath(BASE_URL, "ui/login")
+	location = fmt.Sprintf("%s?flow=%s", location, flow.Id)
+
+	if res.Header.Get("Location") != location {
+		t.Fatalf("Invalid location, expected: %s, got: %s", location, res.Header.Get("Location"))
 	}
 }
 
@@ -306,7 +402,7 @@ func TestHandleCreateFlowRedirectToSetupWebauthn(t *testing.T) {
 	}
 }
 
-func TestHandleCreateFlowWithSession(t *testing.T) {
+func TestHandleCreateFlowWithSessionAcceptJSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -324,6 +420,7 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 	values := req.URL.Query()
 	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
@@ -339,7 +436,57 @@ func TestHandleCreateFlowWithSession(t *testing.T) {
 
 	res := w.Result()
 
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	redirectResp := hClient.NewOAuth2RedirectToWithDefaults()
+	if err := json.Unmarshal(data, redirectResp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+	if redirectResp.RedirectTo != redirect {
+		t.Fatalf("Expected redirect to %s, got: %s", redirect, res.Header["Location"][0])
+	}
+}
+
+func TestHandleCreateFlowWithSessionNotAcceptJSON(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+
+	session := kClient.NewSession("test")
+	redirect := "https://some/path/to/somewhere"
+	redirectTo := BrowserLocationChangeRequired{RedirectTo: &redirect}
+
+	loginChallenge := "login_challenge_2341235123231"
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/x-www-form-urlencoded")
+
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(&redirectTo, req.Cookies(), nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any()).Return()
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
