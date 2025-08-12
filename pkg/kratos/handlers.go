@@ -128,8 +128,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !forceLogin {
-		response, cookies, err = a.handleCreateFlowWithSession(r, session, loginChallenge)
-		if err == nil {
+		if response, cookies, err = a.handleCreateFlowWithSession(r, session, loginChallenge); err == nil {
 			a.cookieManager.ClearStateCookie(w)
 		}
 	} else {
@@ -143,11 +142,26 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setCookies(w, cookies)
+
+	// this case applies only to when there is a new session, for any other case we proceed with a 200
+	switch res := response.(type) {
+	case *client.LoginFlow:
+		// If the browser was redirected here, we can't return a json object
+		// so we redirect the user to the login page with the flow id appended in
+		// the query params
+		if r.Header.Get("Accept") != "application/json, text/plain, */*" {
+			u, _ := url.JoinPath(a.baseURL, "/ui/login")
+			u = u + "?flow=" + res.Id
+			http.Redirect(w, r, u, http.StatusSeeOther)
+			return
+		}
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo string, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
+func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
 	// redirect user to this endpoint with the login_challenge after login
 	// see https://github.com/ory/kratos/issues/3052
 	flow, cookies, err := a.service.CreateBrowserLoginFlow(
@@ -164,7 +178,7 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo s
 
 	flow, err = a.service.FilterFlowProviderList(r.Context(), flow)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Error when filtering providers: %v\n", err)
+		return nil, nil, fmt.Errorf("error when filtering providers: %v\n", err)
 	}
 
 	return flow, cookies, nil
