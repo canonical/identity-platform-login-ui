@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"net/url"
 	"path"
 	"strings"
 
@@ -68,15 +67,8 @@ func (a *API) uiFiles(w http.ResponseWriter, r *http.Request) {
 	a.fileServer.ServeHTTP(w, r)
 }
 
-func (a *API) getCSP(baseURL, kratosPublicURL string) string {
-	b, _ := url.Parse(baseURL)
-	k, _ := url.Parse(kratosPublicURL)
-	additionalScriptURL := ""
-	if k != nil && b != nil && k.Host != b.Host {
-		// Allowlist the kratos URL to allow the browser needs to fetch the webauthn.js script
-		additionalScriptURL = kratosPublicURL
-	}
-	return fmt.Sprintf("default-src 'self' data: https://assets.ubuntu.com; script-src 'self' %v; style-src 'self'", additionalScriptURL)
+func (a *API) getCSP(baseURL string) string {
+	return fmt.Sprintf("default-src 'self' data: https://assets.ubuntu.com; script-src 'self' %v/.well-known/webauthn.js; style-src 'self'", baseURL)
 }
 
 func NewAPI(fileSystem fs.FS, baseURL, kratosPublicURL string, logger logging.LoggerInterface) *API {
@@ -86,7 +78,7 @@ func NewAPI(fileSystem fs.FS, baseURL, kratosPublicURL string, logger logging.Lo
 
 	a.baseURL = baseURL
 	a.kratosPublicURL = kratosPublicURL
-	a.csp = a.getCSP(baseURL, kratosPublicURL)
+	a.csp = a.getCSP(baseURL)
 	a.logger = logger
 
 	return a
