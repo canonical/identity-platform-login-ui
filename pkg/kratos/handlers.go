@@ -60,6 +60,13 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query()
 
+	if q.Get("aal") == "aal2" && r.Header.Get("Accept") != "application/json, text/plain, */*" {
+		u, _ := url.JoinPath(a.baseURL, "/ui/login")
+		u = u + "?" + r.URL.RawQuery
+		http.Redirect(w, r, u, http.StatusSeeOther)
+		return
+	}
+
 	loginChallenge := q.Get("login_challenge")
 	returnTo := q.Get("return_to")
 	aal := q.Get("aal")
