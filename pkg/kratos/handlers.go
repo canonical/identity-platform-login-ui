@@ -731,15 +731,14 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := json.Marshal(flow)
-	if err != nil {
-		a.logger.Errorf("Error when marshalling json: %v\n", err)
-		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
+	// maintain previous kratos behaviour
+	setCookies(w, cookies)
+	if returnTo, ok := flow.GetReturnToOk(); ok {
+		a.redirectResponse(w, r, &BrowserLocationChangeRequired{RedirectTo: returnTo})
 		return
 	}
-	setCookies(w, cookies)
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+
+	http.Error(w, "unexpected error", http.StatusInternalServerError)
 }
 
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
