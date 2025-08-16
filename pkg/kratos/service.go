@@ -712,7 +712,8 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 
 	var methodPayload methodOnly
 	if err := json.Unmarshal(bodyBytes, &methodPayload); err != nil {
-		return nil, err
+		// fallback where method might be missing
+		methodPayload.Method = "webauthn"
 	}
 
 	var ret kClient.UpdateSettingsFlowBody
@@ -733,7 +734,23 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 
 	case "webauthn":
 		var body kClient.UpdateSettingsFlowWithWebAuthnMethod
-		if err := parseBody(r.Body, &body); err != nil {
+		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+			// TODO: fix me. The UI should start sending that data in json format
+			if err := r.ParseForm(); err != nil {
+				return nil, err
+			}
+
+			csrf := r.Form.Get("csrf_token")
+			name := r.Form.Get("webauthn_register_displayname")
+			register := r.Form.Get("webauthn_register")
+			remove := r.Form.Get("webauthn_remove")
+
+			body.CsrfToken = &csrf
+			body.WebauthnRegister = &register
+			body.WebauthnRegisterDisplayname = &name
+			body.WebauthnRemove = &remove
+
+		} else if err := parseBody(r.Body, &body); err != nil {
 			return nil, err
 		}
 		ret = kClient.UpdateSettingsFlowWithWebAuthnMethodAsUpdateSettingsFlowBody(&body)

@@ -60,6 +60,13 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query()
 
+	if q.Get("aal") == "aal2" && r.Header.Get("Accept") != "application/json, text/plain, */*" {
+		u, _ := url.JoinPath(a.baseURL, "/ui/login")
+		u = u + "?" + r.URL.RawQuery
+		http.Redirect(w, r, u, http.StatusSeeOther)
+		return
+	}
+
 	loginChallenge := q.Get("login_challenge")
 	returnTo := q.Get("return_to")
 	aal := q.Get("aal")
@@ -142,6 +149,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setCookies(w, cookies)
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
 }
@@ -149,13 +157,21 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo string, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
 	// redirect user to this endpoint with the login_challenge after login
 	// see https://github.com/ory/kratos/issues/3052
+
+	cookies := r.Cookies()
+
+	// if not aal2 or both mfa and webauthn disabled clear cookies
+	if aal != "aal2" || !(a.mfaEnabled || a.oidcWebAuthnSequencingEnabled) {
+		cookies = filterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
+	}
+
 	flow, cookies, err := a.service.CreateBrowserLoginFlow(
 		r.Context(),
 		aal,
 		returnTo,
 		loginChallenge,
 		refresh,
-		filterCookies(r.Cookies(), KRATOS_SESSION_COOKIE_NAME),
+		cookies,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create login flow, err: %v", err)
@@ -715,15 +731,14 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := json.Marshal(flow)
-	if err != nil {
-		a.logger.Errorf("Error when marshalling json: %v\n", err)
-		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
+	// maintain previous kratos behaviour
+	setCookies(w, cookies)
+	if returnTo, ok := flow.GetReturnToOk(); ok {
+		a.redirectResponse(w, r, &BrowserLocationChangeRequired{RedirectTo: returnTo})
 		return
 	}
-	setCookies(w, cookies)
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+
+	http.Error(w, "unexpected error", http.StatusInternalServerError)
 }
 
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
