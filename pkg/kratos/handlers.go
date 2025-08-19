@@ -737,10 +737,19 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, cookies, err := a.service.UpdateSettingsFlow(context.Background(), flowId, *body, r.Cookies())
+	flow, redirectInfo, cookies, err := a.service.UpdateSettingsFlow(context.Background(), flowId, *body, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when updating settings flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	setCookies(w, cookies)
+
+	if redirectInfo != nil {
+		a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+			RedirectTo: redirectInfo.RedirectTo,
+		})
 		return
 	}
 
@@ -750,7 +759,6 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
 		return
 	}
-	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }

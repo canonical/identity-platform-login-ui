@@ -39,7 +39,7 @@ type ServiceInterface interface {
 	UpdateLoginFlow(context.Context, string, kClient.UpdateLoginFlowBody, []*http.Cookie) (*BrowserLocationChangeRequired, *kClient.SuccessfulNativeLogin, []*http.Cookie, error)
 	UpdateIdentifierFirstLoginFlow(context.Context, string, kClient.UpdateLoginFlowWithIdentifierFirstMethod, []*http.Cookie) (*BrowserLocationChangeRequired, []*http.Cookie, error)
 	UpdateRecoveryFlow(context.Context, string, kClient.UpdateRecoveryFlowBody, []*http.Cookie) (*BrowserLocationChangeRequired, []*http.Cookie, error)
-	UpdateSettingsFlow(context.Context, string, kClient.UpdateSettingsFlowBody, []*http.Cookie) (*kClient.SettingsFlow, []*http.Cookie, error)
+	UpdateSettingsFlow(context.Context, string, kClient.UpdateSettingsFlowBody, []*http.Cookie) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, []*http.Cookie, error)
 	GetFlowError(context.Context, string) (*kClient.FlowError, []*http.Cookie, error)
 	CheckAllowedProvider(context.Context, *kClient.LoginFlow, *kClient.UpdateLoginFlowBody) (bool, error)
 	FilterFlowProviderList(context.Context, *kClient.LoginFlow) (*kClient.LoginFlow, error)
