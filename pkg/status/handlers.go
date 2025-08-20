@@ -23,15 +23,17 @@ type Health struct {
 }
 
 type DeploymentInfo struct {
-	OidcSequencingEnabled bool   `json:"oidc_webauthn_sequencing_enabled"`
-	BaseURL               string `json:"base_url"`
-	SupportEmail          string `json:"support_email"`
+	OidcSequencingEnabled  bool   `json:"oidc_webauthn_sequencing_enabled"`
+	BaseURL                string `json:"base_url"`
+	IdentifierFirstEnabled bool   `json:"identifier_first_enabled"`
+	SupportEmail           string `json:"support_email"`
 }
 
 type API struct {
 	BaseURL                       string
 	supportEmail                  string
 	oidcWebAuthnSequencingEnabled bool
+	identifierFirstEnabled        bool
 	service                       ServiceInterface
 
 	tracer tracing.TracingInterface
@@ -91,6 +93,7 @@ func (a *API) appConfig(w http.ResponseWriter, r *http.Request) {
 
 	info := new(DeploymentInfo)
 	info.OidcSequencingEnabled = a.oidcWebAuthnSequencingEnabled
+	info.IdentifierFirstEnabled = a.identifierFirstEnabled
 	info.BaseURL = a.BaseURL
 	info.SupportEmail = a.supportEmail
 
@@ -98,12 +101,13 @@ func (a *API) appConfig(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
-func NewAPI(baseURL, supportEmail string, oidcWebAuthnSequencingEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
+func NewAPI(baseURL, supportEmail string, oidcWebAuthnSequencingEnabled, identifierFirstEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.BaseURL = baseURL
 	a.supportEmail = supportEmail
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
+	a.identifierFirstEnabled = identifierFirstEnabled
 	a.service = service
 	a.tracer = tracer
 	a.monitor = monitor

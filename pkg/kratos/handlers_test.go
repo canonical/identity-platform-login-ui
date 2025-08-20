@@ -20,17 +20,18 @@ import (
 )
 
 const (
-	BASE_URL                        = "https://example.com"
-	HANDLE_CREATE_FLOW_URL          = BASE_URL + "/api/kratos/self-service/login/browser"
-	HANDLE_UPDATE_LOGIN_FLOW_URL    = BASE_URL + "/api/kratos/self-service/login"
-	HANDLE_GET_LOGIN_FLOW_URL       = BASE_URL + "/api/kratos/self-service/login/flows"
-	HANDLE_ERROR_URL                = BASE_URL + "/api/kratos/self-service/errors"
-	HANDLE_CREATE_RECOVERY_FLOW_URL = BASE_URL + "/api/kratos/self-service/recovery/browser"
-	HANDLE_UPDATE_RECOVERY_FLOW_URL = BASE_URL + "/api/kratos/self-service/recovery"
-	HANDLE_GET_RECOVERY_FLOW_URL    = BASE_URL + "/api/kratos/self-service/recovery/flows"
-	HANDLE_CREATE_SETTINGS_FLOW_URL = BASE_URL + "/api/kratos/self-service/settings/browser"
-	HANDLE_UPDATE_SETTINGS_FLOW_URL = BASE_URL + "/api/kratos/self-service/settings"
-	HANDLE_GET_SETTINGS_FLOW_URL    = BASE_URL + "/api/kratos/self-service/settings/flows"
+	BASE_URL                                      = "https://example.com"
+	HANDLE_CREATE_FLOW_URL                        = BASE_URL + "/api/kratos/self-service/login/browser"
+	HANDLE_UPDATE_LOGIN_FLOW_URL                  = BASE_URL + "/api/kratos/self-service/login"
+	HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL = BASE_URL + "/api/kratos/self-service/login/id-first"
+	HANDLE_GET_LOGIN_FLOW_URL                     = BASE_URL + "/api/kratos/self-service/login/flows"
+	HANDLE_ERROR_URL                              = BASE_URL + "/api/kratos/self-service/errors"
+	HANDLE_CREATE_RECOVERY_FLOW_URL               = BASE_URL + "/api/kratos/self-service/recovery/browser"
+	HANDLE_UPDATE_RECOVERY_FLOW_URL               = BASE_URL + "/api/kratos/self-service/recovery"
+	HANDLE_GET_RECOVERY_FLOW_URL                  = BASE_URL + "/api/kratos/self-service/recovery/flows"
+	HANDLE_CREATE_SETTINGS_FLOW_URL               = BASE_URL + "/api/kratos/self-service/settings/browser"
+	HANDLE_UPDATE_SETTINGS_FLOW_URL               = BASE_URL + "/api/kratos/self-service/settings"
+	HANDLE_GET_SETTINGS_FLOW_URL                  = BASE_URL + "/api/kratos/self-service/settings/flows"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
@@ -453,6 +454,127 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleUpdateIdentifierFirstFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+
+	flowId := "test"
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = flowId
+	redirectTo := "https://some/path/to/somewhere"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowWithIdentifierFirstMethod)
+	flowBody.SetIdentifier("test@example.com")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	flowResponse := new(BrowserLocationChangeRequired)
+	if err := json.Unmarshal(data, flowResponse); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if *flowResponse.RedirectTo != redirectTo {
+		t.Fatalf("Expected redirectTo to be %v not %v", redirectTo, flowResponse.RedirectTo)
+	}
+}
+
+func TestHandleUpdateIdentifierFirstFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+
+	flowId := "test"
+	flowBody := new(kClient.UpdateLoginFlowWithIdentifierFirstMethod)
+	flowBody.SetIdentifier("test@example.com")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil, fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+func TestHandleUpdateIdentifierFirstFlowFailOnUpdateIdLoginFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+
+	flowId := "test"
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = flowId
+
+	flowBody := new(kClient.UpdateLoginFlowWithIdentifierFirstMethod)
+	flowBody.SetIdentifier("test@example.com")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	w := httptest.NewRecorder()

@@ -17,6 +17,8 @@ services:
       - OPENFGA_API_SCHEME=http
       - OPENFGA_API_HOST=openfga:8080
       - OPENFGA_STORE_ID=01GP1254CHWJC1MNGVB0WDG1T0
+      # TODO: Switch to true when implemented in FE
+      - IDENTIFIER_FIRST_ENABLED=false
     ports:
       - "4455:4455"
     networks:

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	reflect "reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -939,6 +940,185 @@ func TestGetLoginFlowFail(t *testing.T) {
 	}
 	if err == nil {
 		t.Fatalf("expected error not nil")
+	}
+}
+
+func TestUpdateIdentifierFirstLoginFlowSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	redirectTo := "https://redirect/to/path"
+
+	csrfToken := "csrf_token_1234"
+	identifier := "test@example.com"
+	body := kClient.UpdateLoginFlowWithIdentifierFirstMethod{
+		CsrfToken:  &csrfToken,
+		Identifier: identifier,
+	}
+
+	resp := &http.Response{
+		StatusCode: http.StatusSeeOther,
+		Header: http.Header{
+			"Location":   []string{redirectTo},
+			"Set-Cookie": []string{cookie.String()},
+		},
+		Body: io.NopCloser(strings.NewReader("")),
+	}
+
+	mockKratos.EXPECT().
+		ExecuteIdentifierFirstUpdateLoginRequest(ctx, flowId, csrfToken, identifier, cookies).
+		Return(resp, nil).
+		Times(1)
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateIdentifierFirstLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+
+	r, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).UpdateIdentifierFirstLoginFlow(ctx, flowId, body, cookies)
+
+	if *r.RedirectTo != redirectTo {
+		t.Fatalf("expected redirect URL %s, got %s", redirectTo, *r.RedirectTo)
+	}
+	if len(c) != len(cookies) {
+		t.Fatalf("expected %d cookies, got %d", len(cookies), len(c))
+	}
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestUpdateIdentifierFirstLoginFlowFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	identifier := "test@example.com"
+	body := kClient.UpdateLoginFlowWithIdentifierFirstMethod{
+		Identifier: identifier,
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateIdentifierFirstLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+
+	_, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).UpdateIdentifierFirstLoginFlow(ctx, flowId, body, cookies)
+
+	expectedErr := "missing csrf token"
+	if err == nil || !strings.Contains(err.Error(), expectedErr) {
+		t.Fatalf("expected %s error, got %v", expectedErr, err)
+	}
+}
+
+func TestUpdateIdentifierFirstLoginFlowFailStatusBadRequest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	csrfToken := "csrf_token_1234"
+	identifier := "test@example.com"
+	body := kClient.UpdateLoginFlowWithIdentifierFirstMethod{
+		CsrfToken:  &csrfToken,
+		Identifier: identifier,
+	}
+
+	resp := &http.Response{
+		StatusCode: http.StatusBadRequest,
+		Body:       io.NopCloser(strings.NewReader("")),
+	}
+
+	mockKratos.EXPECT().
+		ExecuteIdentifierFirstUpdateLoginRequest(ctx, flowId, csrfToken, identifier, cookies).
+		Return(resp, nil).
+		Times(1)
+
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateIdentifierFirstLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	_, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).UpdateIdentifierFirstLoginFlow(ctx, flowId, body, cookies)
+
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+}
+
+func TestUpdateIdentifierFirstLoginFlowFailUnexpectedStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	csrfToken := "csrf_token_1234"
+	identifier := "test@example.com"
+	body := kClient.UpdateLoginFlowWithIdentifierFirstMethod{
+		CsrfToken:  &csrfToken,
+		Identifier: identifier,
+	}
+
+	resp := &http.Response{
+		StatusCode: http.StatusGone,
+		Body:       io.NopCloser(strings.NewReader("")),
+	}
+
+	mockKratos.EXPECT().
+		ExecuteIdentifierFirstUpdateLoginRequest(ctx, flowId, csrfToken, identifier, cookies).
+		Return(resp, nil).
+		Times(1)
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateIdentifierFirstLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	_, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).UpdateIdentifierFirstLoginFlow(ctx, flowId, body, cookies)
+
+	expectedErr := "unexpected status: 410"
+	if err == nil || !strings.Contains(err.Error(), expectedErr) {
+		t.Fatalf("expected %s error, got %v", expectedErr, err)
 	}
 }
 
@@ -2648,6 +2828,7 @@ func TestHasNotEnoughLookupSecretsLeftSuccess(t *testing.T) {
 	}
 
 	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
+
 	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)
 	mockKratosIdentityApi.EXPECT().GetIdentityExecute(gomock.Any()).Times(1).DoAndReturn(
 		func(r kClient.IdentityAPIGetIdentityRequest) (*kClient.Identity, *http.Response, error) {
@@ -2689,6 +2870,7 @@ func TestHasNotEnoughLookupSecretsLeftFailonGetIdentityExecute(t *testing.T) {
 	}
 
 	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
+
 	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)
 	mockKratosIdentityApi.EXPECT().GetIdentityExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 

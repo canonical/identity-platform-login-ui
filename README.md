@@ -63,6 +63,7 @@ At the moment the application is sourcing the following from the environment:
 - `OPENFGA_MODEL_ID` - the OpenFGA model ID to use. If not specified, a new
   model will be created
 - `MFA_ENABLED` - whether MFA is enabled and enforced, defaults to true
+- `IDENTIFIER_FIRST_ENABLED` - whether login flow follows the identifier-first pattern, defaults to true
 
 ### Container
 

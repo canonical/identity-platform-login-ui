@@ -24,6 +24,7 @@ const (
 	NotEnoughCharacters          = 4000003
 	TooManyCharacters            = 4000017
 	IncorrectCredentials         = 4000006
+	IncorrectAccountIdentifier   = 4000037
 	InactiveAccount              = 4000010
 	InvalidRecoveryCode          = 4060006
 	RecoveryCodeSent             = 1060003
@@ -387,6 +388,43 @@ func (s *Service) UpdateRecoveryFlow(
 	return returnToResp, resp.Cookies(), nil
 }
 
+func (s *Service) UpdateIdentifierFirstLoginFlow(
+	ctx context.Context, flow string, body kClient.UpdateLoginFlowWithIdentifierFirstMethod, cookies []*http.Cookie,
+) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateIdentifierFirstLoginFlow")
+	defer span.End()
+
+	csrfToken, ok := body.GetCsrfTokenOk()
+	if !ok {
+		return nil, nil, fmt.Errorf("missing csrf token")
+	}
+
+	identifier, ok := body.GetIdentifierOk()
+	if !ok {
+		return nil, nil, fmt.Errorf("missing identifier")
+	}
+
+	resp, err := s.kratos.ExecuteIdentifierFirstUpdateLoginRequest(ctx, flow, *csrfToken, *identifier, cookies)
+	if err != nil {
+		s.logger.Errorf("kratos request failed: %s", err)
+		return nil, nil, err
+	}
+
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusSeeOther:
+		location := resp.Header.Get("Location")
+		return &BrowserLocationChangeRequired{RedirectTo: &location}, resp.Cookies(), nil
+	case http.StatusBadRequest:
+		err = s.getUiError(resp.Body)
+		return nil, nil, err
+	default:
+		s.logger.Errorf("updating identifier first flow %s failed: got unexpected response status %d from kratos", flow, resp.StatusCode)
+		return nil, nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+}
+
 func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
 ) (*BrowserLocationChangeRequired, *kClient.SuccessfulNativeLogin, []*http.Cookie, error) {
@@ -491,6 +529,8 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 	switch errorCode := errorCodes[0].Id; errorCode {
 	case IncorrectCredentials:
 		err = fmt.Errorf("incorrect username or password")
+	case IncorrectAccountIdentifier:
+		err = fmt.Errorf("account does not exist or has no login method configured")
 	case InactiveAccount:
 		err = fmt.Errorf("inactive account")
 	case InvalidProperty:
@@ -593,6 +633,17 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 
 	flow.Ui.Nodes = nodes
 	return flow, nil
+}
+
+func (s *Service) ParseIdentifierFirstLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowWithIdentifierFirstMethod, []*http.Cookie, error) {
+	defer r.Body.Close()
+
+	cookies := r.Cookies()
+	var body kClient.UpdateLoginFlowWithIdentifierFirstMethod
+	if err := parseBody(r.Body, &body); err != nil {
+		return nil, cookies, err
+	}
+	return &body, cookies, nil
 }
 
 func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, []*http.Cookie, error) {
@@ -942,6 +993,7 @@ func (s *Service) parseKratosRedirectResponse(ctx context.Context, resp *http.Re
 		Error:      redirectResp.Error,
 	}, nil
 }
+
 func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
