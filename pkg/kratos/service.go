@@ -475,7 +475,7 @@ func (s *Service) UpdateLoginFlow(
 
 func (s *Service) UpdateSettingsFlow(
 	ctx context.Context, flow string, body kClient.UpdateSettingsFlowBody, cookies []*http.Cookie,
-) (*kClient.SettingsFlow, []*http.Cookie, error) {
+) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateSettingsFlow")
 	defer span.End()
 
@@ -486,17 +486,31 @@ func (s *Service) UpdateSettingsFlow(
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 
+	// Handle 422 response
+	if err != nil && resp.StatusCode == http.StatusUnprocessableEntity {
+		returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to parse redirect response: %w", err)
+		}
+
+		if returnToResp.RedirectTo == nil {
+			return nil, nil, nil, fmt.Errorf("failed to get redirect url")
+		}
+
+		return nil, returnToResp, resp.Cookies(), nil
+	}
+
 	if err != nil && resp.StatusCode != http.StatusOK {
 		err := s.getUiError(resp.Body)
 
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Workaround for marshalling error
 	// TODO: Evaluate if we can get rid of that when kratos sdk 1.3 is out
 	settingsFlow.ContinueWith = nil
 
-	return settingsFlow, resp.Cookies(), nil
+	return settingsFlow, nil, resp.Cookies(), nil
 }
 
 func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
@@ -774,6 +788,13 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 			return nil, err
 		}
 		ret = kClient.UpdateSettingsFlowWithPasswordMethodAsUpdateSettingsFlowBody(&body)
+
+	case "oidc":
+		var body kClient.UpdateSettingsFlowWithOidcMethod
+		if err := parseBody(r.Body, &body); err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateSettingsFlowWithOidcMethodAsUpdateSettingsFlowBody(&body)
 
 	case "totp":
 		var body kClient.UpdateSettingsFlowWithTotpMethod

@@ -2404,6 +2404,40 @@ func TestParseSettingsFlowPasswordMethodBody(t *testing.T) {
 	}
 }
 
+func TestParseSettingsFlowOidcMethodBody(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateSettingsFlowWithOidcMethodWithDefaults()
+	flow.SetMethod("oidc")
+
+	body := kClient.UpdateSettingsFlowWithOidcMethodAsUpdateSettingsFlowBody(flow)
+
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	b, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseSettingsFlowMethodBody(req)
+
+	actual, _ := b.MarshalJSON()
+	expected, _ := body.MarshalJSON()
+
+	if !reflect.DeepEqual(string(actual), string(expected)) {
+		t.Fatalf("expected flow to be %s not %s", string(expected), string(actual))
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
 func TestParseSettingsFlowTotpMethodBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -2742,7 +2776,7 @@ func TestUpdateSettingsFlowSuccess(t *testing.T) {
 		},
 	)
 
-	_, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).UpdateSettingsFlow(ctx, flowId, *body, cookies)
+	_, _, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).UpdateSettingsFlow(ctx, flowId, *body, cookies)
 
 	if !reflect.DeepEqual(c, resp.Cookies()) {
 		t.Fatalf("expected cookies to be %v not  %v", resp.Cookies(), c)
@@ -2789,10 +2823,13 @@ func TestUpdateSettingsFlowFailOnUpdateSettingsFlowExecute(t *testing.T) {
 	mockKratosFrontendApi.EXPECT().UpdateSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
-	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).UpdateSettingsFlow(ctx, flowId, *body, cookies)
+	f, r, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).UpdateSettingsFlow(ctx, flowId, *body, cookies)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not %+v", nil, f)
+	}
+	if r != nil {
+		t.Fatalf("expected redirect info to be %v not %+v", nil, f)
 	}
 	if c != nil {
 		t.Fatalf("expected header to be %v not %v", nil, c)
