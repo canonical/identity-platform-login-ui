@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.22.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.3...v0.22.0) (2025-08-22)
+
+
+### Features
+
+* handle identifier first login pattern ([aa18745](https://github.com/canonical/identity-platform-login-ui/commit/aa18745c60395b4e5fc1876e2c123a6e4d18af1d))
+* support oidc settings flow ([cb0407e](https://github.com/canonical/identity-platform-login-ui/commit/cb0407e82b97192f5af4f9fa35035430065d39b0))
+
+
+### Bug Fixes
+
+* **deps:** update dependency @canonical/react-components to v2.15.0 ([831c63f](https://github.com/canonical/identity-platform-login-ui/commit/831c63f299c03fbd4c8c4b52b2cf723c31cf8995))
+* **deps:** update dependency @canonical/react-components to v2.15.0 ([73aa6ff](https://github.com/canonical/identity-platform-login-ui/commit/73aa6ffb45f513c7d0e20d8cbd65d11fe083fb38))
+* **deps:** update dependency @canonical/react-components to v2.15.1 ([8b61406](https://github.com/canonical/identity-platform-login-ui/commit/8b614062edbc8ce5045889319081ff6e7cc3056d))
+* **deps:** update dependency @canonical/react-components to v2.15.1 ([0df4126](https://github.com/canonical/identity-platform-login-ui/commit/0df412629610c327fb7541544da4fcaf4adaf375))
+* **deps:** update dependency @canonical/react-components to v2.16.1 ([383fee1](https://github.com/canonical/identity-platform-login-ui/commit/383fee1c7d3b56c87342cc139614323cfd16ca2b))
+* **deps:** update dependency @canonical/react-components to v2.16.1 ([f7b7097](https://github.com/canonical/identity-platform-login-ui/commit/f7b7097c616e2f5556a81af8f4035f4e26dc4fc1))
+* **deps:** update dependency @ory/client to v1.21.3 ([106dadd](https://github.com/canonical/identity-platform-login-ui/commit/106daddfe34193c588e7b5ca4c3f4343d467d594))
+* **deps:** update dependency @ory/client to v1.21.3 ([e77d7f9](https://github.com/canonical/identity-platform-login-ui/commit/e77d7f92799cb49d4e837d98972aabe01c467bb9))
+* **deps:** update dependency @ory/client to v1.21.4 ([3c46c02](https://github.com/canonical/identity-platform-login-ui/commit/3c46c02e0cef8416b4c686abf665de2732c1218a))
+* **deps:** update dependency @ory/client to v1.21.4 ([cffc24b](https://github.com/canonical/identity-platform-login-ui/commit/cffc24ba9f6a61e4639e77f046cf4859aff32392))
+* **deps:** update dependency vanilla-framework to v4.28.0 ([273e18a](https://github.com/canonical/identity-platform-login-ui/commit/273e18acad8d4871a04cc3da71aa9b71caa6c167))
+* **deps:** update dependency vanilla-framework to v4.28.0 ([ed35bbe](https://github.com/canonical/identity-platform-login-ui/commit/ed35bbeda19e42a62083d2c284a3f031a9b50b2d))
+* **deps:** update dependency vanilla-framework to v4.30.0 ([317f9c6](https://github.com/canonical/identity-platform-login-ui/commit/317f9c668fed23970421caa145e40f824d29f808))
+* **deps:** update dependency vanilla-framework to v4.30.0 ([8b2c3c8](https://github.com/canonical/identity-platform-login-ui/commit/8b2c3c8cacfe1dfb951afc2c75ab3377742d5bd1))
+* **deps:** update internal ui dependencies ([4319254](https://github.com/canonical/identity-platform-login-ui/commit/43192545eb5ea3b3405733efee65ea57da8227b6))
+* **deps:** update internal ui dependencies ([6060183](https://github.com/canonical/identity-platform-login-ui/commit/6060183d922c34e564aaab540ef79833ff20f24f))
+* **deps:** update internal ui dependencies (minor) ([d516b93](https://github.com/canonical/identity-platform-login-ui/commit/d516b9312023c910b460026cd37347410fbf2f3c))
+* **deps:** update internal ui dependencies (minor) ([0cc32e6](https://github.com/canonical/identity-platform-login-ui/commit/0cc32e60b604f5624bb633d75644133eb64822ae))
+* **deps:** update module github.com/prometheus/client_golang to v1.23.0 ([a5cdfcf](https://github.com/canonical/identity-platform-login-ui/commit/a5cdfcff397359da298b32abca3ad2cd737a7564))
+* **deps:** update module github.com/prometheus/client_golang to v1.23.0 ([03f3d2f](https://github.com/canonical/identity-platform-login-ui/commit/03f3d2ff5a3722397799cfa30a55092b90d32c0a))
+* **deps:** update module go.uber.org/mock to v0.6.0 ([7606c2b](https://github.com/canonical/identity-platform-login-ui/commit/7606c2b7742274daafe885b6bc3bd24854f60c9c))
+* **deps:** update module go.uber.org/mock to v0.6.0 ([93bf2c9](https://github.com/canonical/identity-platform-login-ui/commit/93bf2c9ba38356ee6a39d0526762dc8e23730ed6))
+* **deps:** update ui deps ([7ee230a](https://github.com/canonical/identity-platform-login-ui/commit/7ee230a2e492704eeba6758e25740c8424b3ba45))
+* **deps:** update ui deps ([1059f45](https://github.com/canonical/identity-platform-login-ui/commit/1059f4544171fa12e6026948f458845e4ab51ac3))
+* **deps:** update ui deps ([6f2d8fe](https://github.com/canonical/identity-platform-login-ui/commit/6f2d8fee3e93417ea2b871ca80f42bcdf836e45a))
+* **deps:** update ui deps (minor) ([81882d9](https://github.com/canonical/identity-platform-login-ui/commit/81882d9222809ab0e1d5858506bea7167fff849c))
+* **deps:** update ui deps (minor) ([c855378](https://github.com/canonical/identity-platform-login-ui/commit/c8553787b580a2b9498d8f45043f0a41e19ebd06))
+* **deps:** update ui deps (patch) ([2d53c3a](https://github.com/canonical/identity-platform-login-ui/commit/2d53c3a2c4955a5220d0cbdeb6d6a855cdb6e759))
+* **deps:** update ui deps to v15.4.6 ([5a56a05](https://github.com/canonical/identity-platform-login-ui/commit/5a56a05863b8ab715e54b536132a4dabe1778cc3))
+* **deps:** update ui deps to v15.4.6 (patch) ([362796b](https://github.com/canonical/identity-platform-login-ui/commit/362796bc15329e430100e83a0599c0dcb187d467))
+
 ## [0.21.3](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.2...v0.21.3) (2025-07-29)
 
 
