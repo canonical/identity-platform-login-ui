@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -99,7 +98,7 @@ func TestHandleCreateFlowWithoutSessionAcceptJSON(t *testing.T) {
 
 	res := w.Result()
 	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
@@ -281,7 +280,7 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowedAcceptJSON(t *testi
 
 	res := w.Result()
 	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
@@ -385,7 +384,7 @@ func TestHandleCreateFlowRedirectToSetupWebauthn(t *testing.T) {
 
 	res := w.Result()
 	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
@@ -570,7 +569,7 @@ func TestHandleGetLoginFlow(t *testing.T) {
 		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
 	}
 
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
@@ -779,7 +778,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
 	}
 
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
 	}
