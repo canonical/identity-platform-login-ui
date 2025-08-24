@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.22.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.22.0...v0.22.1) (2025-08-24)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @ory/client to v1.21.5 ([d106f2b](https://github.com/canonical/identity-platform-login-ui/commit/d106f2b3b47ec7190bab96a783d8d4e7aad87e5c))
+* **deps:** update dependency @ory/client to v1.21.5 ([9f13096](https://github.com/canonical/identity-platform-login-ui/commit/9f130961b1b4702fdedb92091d37d53ea04bf63d))
+* **deps:** update module github.com/stretchr/testify to v1.11.0 ([f555465](https://github.com/canonical/identity-platform-login-ui/commit/f555465af6bdb800759afe467b89e3789469f1bb))
+* **deps:** update module github.com/stretchr/testify to v1.11.0 ([a391ef5](https://github.com/canonical/identity-platform-login-ui/commit/a391ef5899a61c00cef738a0130463b305ed89c3))
+* **deps:** update ui deps ([29e8cba](https://github.com/canonical/identity-platform-login-ui/commit/29e8cba3f03b4cf22ddb047133468e5af7fab45d))
+* **deps:** update ui deps (minor) ([4443a07](https://github.com/canonical/identity-platform-login-ui/commit/4443a0794002982664383e10a2c071863b66077f))
+
 ## [0.22.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.3...v0.22.0) (2025-08-22)
 
 
