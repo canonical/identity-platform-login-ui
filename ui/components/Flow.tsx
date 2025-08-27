@@ -25,6 +25,7 @@ export type Methods =
   | "oidc"
   | "password"
   | "code"
+  | "profile"
   | "totp"
   | "webauthn"
   | "lookup_secret";
