@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -225,6 +226,21 @@ func (s *Service) CreateBrowserLoginFlow(
 	return flow, resp.Cookies(), nil
 }
 
+func (s *Service) CreateBrowserRegistrationFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.RegistrationFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserRegistrationFlow")
+	defer span.End()
+
+	flow, resp, err := s.kratos.FrontendApi().
+		CreateBrowserRegistrationFlow(ctx).
+		ReturnTo(returnTo).
+		Execute()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return flow, resp.Cookies(), nil
+}
+
 func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserRecoveryFlow")
 	defer span.End()
@@ -290,6 +306,22 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 	if err != nil {
 		s.logger.Warnf("Failed to fetch the hydra oauth2 request: %v", err)
 	}
+	return flow, resp.Cookies(), nil
+}
+
+func (s *Service) GetRegistrationFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.RegistrationFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetRegistrationFlow")
+	defer span.End()
+
+	flow, resp, err := s.kratos.FrontendApi().
+		GetRegistrationFlow(ctx).
+		Id(id).
+		Cookie(httpHelpers.CookiesToString(cookies)).
+		Execute()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return flow, resp.Cookies(), nil
 }
 
@@ -471,6 +503,27 @@ func (s *Service) UpdateLoginFlow(
 	// TODO: Evaluate if we can get rid of that when kratos sdk 1.3 is out
 	f.ContinueWith = nil
 	return nil, f, c, nil
+}
+
+func (s *Service) UpdateRegistrationFlow(
+	ctx context.Context, flow string, body kClient.UpdateRegistrationFlowBody, cookies []*http.Cookie,
+) (*kClient.SuccessfulNativeRegistration, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateRegistrationFlow")
+	defer span.End()
+
+	registration, resp, err := s.kratos.FrontendApi().
+		UpdateRegistrationFlow(ctx).
+		Flow(flow).
+		UpdateRegistrationFlowBody(body).
+		Cookie(httpHelpers.CookiesToString(cookies)).
+		Execute()
+
+	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
+		err := s.getUiError(resp.Body)
+		return nil, nil, err
+	}
+
+	return registration, resp.Cookies(), nil
 }
 
 func (s *Service) UpdateSettingsFlow(
@@ -745,6 +798,100 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 	}
 
 	return &ret, cookies, nil
+}
+
+func (s *Service) ParseRegistrationFlowMethodBody(r *http.Request) (*kClient.UpdateRegistrationFlowBody, error) {
+	defer r.Body.Close()
+
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, errors.New("unable to read body")
+	}
+
+	// replace the body that was consumed
+	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+	var methodPayload methodOnly
+	if err := json.Unmarshal(bodyBytes, &methodPayload); err != nil {
+		// fallback where method might be missing
+		methodPayload.Method = "webauthn"
+	}
+
+	var ret kClient.UpdateRegistrationFlowBody
+	switch method := methodPayload.Method; method {
+	case "password":
+		var body kClient.UpdateRegistrationFlowWithPasswordMethod
+		if err := parseBody(r.Body, &body); err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateRegistrationFlowWithPasswordMethodAsUpdateRegistrationFlowBody(&body)
+
+	case "profile":
+		body, err := parseProfileBody(r.Body)
+		if err != nil {
+			// body.SetTraits(traits)
+			return nil, err
+		}
+		ret = kClient.UpdateRegistrationFlowWithProfileMethodAsUpdateRegistrationFlowBody(body)
+
+	// case "webauthn":
+	// 	var body kClient.UpdateRegistrationFlowWithWebAuthnMethod
+	// 	if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+	// 		// TODO: fix me. The UI should start sending that data in json format
+	// 		if err := r.ParseForm(); err != nil {
+	// 			return nil, err
+	// 		}
+	// 		csrf := r.Form.Get("csrf_token")
+	// 		// TODO: This might be uncorrect, do we allow for webauthn registration?
+	// 		login := r.Form.Get("webauthn_register")
+	// 		body.CsrfToken = &csrf
+	// 		body.WebauthnRegister = &login
+	// 	} else {
+	// 		if err := parseBody(r.Body, &body); err != nil {
+	// 			return nil, err
+	// 		}
+	// 	}
+	// 	ret = kClient.UpdateRegistrationFlowWithWebAuthnMethodAsUpdateRegistrationFlowBody(&body)
+
+	default:
+		// method field is empty for oidc: https://github.com/ory/kratos/pull/3564
+		var body kClient.UpdateRegistrationFlowWithOidcMethod
+		if err := parseBody(r.Body, &body); err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateRegistrationFlowWithOidcMethodAsUpdateRegistrationFlowBody(&body)
+	}
+
+	return &ret, nil
+}
+
+func parseProfileBody(body io.ReadCloser) (*kClient.UpdateRegistrationFlowWithProfileMethod, error) {
+	var raw map[string]interface{}
+	if err := json.NewDecoder(body).Decode(&raw); err != nil {
+		return nil, err
+	}
+
+	traits := make(map[string]interface{})
+	for k, v := range raw {
+		if strings.HasPrefix(k, "traits.") {
+			key := strings.TrimPrefix(k, "traits.")
+			traits[key] = v
+			delete(raw, k)
+		}
+	}
+
+	profileBody := kClient.UpdateRegistrationFlowWithProfileMethod{
+		// TODO: method should be set by ParseRegistrationFlowMethodBody, can be "profile" or "password"
+		// traits must be sent for password method as well
+		Method: "profile",
+		Traits: traits,
+	}
+
+	if csrf, ok := raw["csrf_token"].(string); ok {
+		profileBody.CsrfToken = &csrf
+	}
+
+	return &profileBody, nil
 }
 
 func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateRecoveryFlowBody, error) {
