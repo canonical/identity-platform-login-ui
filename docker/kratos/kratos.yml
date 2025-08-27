@@ -52,6 +52,8 @@ selfservice:
                 webauthn:
                     default_browser_return_url: http://localhost:4455/ui/setup_passkey
         registration:
+            enabled: true
+            ui_url: http://localhost:4455/ui/register
             after:
                 oidc:
                     hooks:
@@ -71,6 +73,8 @@ selfservice:
             config:
                 haveibeenpwned_enabled: false
         code:
+            enabled: True
+        profile:
             enabled: True
         webauthn:
             enabled: True
