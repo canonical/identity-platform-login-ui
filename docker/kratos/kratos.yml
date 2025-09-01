@@ -8,12 +8,12 @@ log:
     leak_sensitive_values: true
 dsn: memory
 serve:
-  public:
-    base_url: http://localhost:4433/
-    cors:
-      enabled: True
-  admin:
-    base_url: http://kratos:4434/
+    public:
+        base_url: http://localhost:4433/
+        cors:
+            enabled: true
+    admin:
+        base_url: http://kratos:4434/
 
 identity:
     default_schema_id: default
@@ -21,12 +21,12 @@ identity:
         - id: default
           url: file:///etc/config/kratos/identity.schema.json
 session:
-  whoami:
-    required_aal: highest_available
+    whoami:
+        required_aal: highest_available
 
 selfservice:
     allowed_return_urls:
-      - http://localhost:4455/ui/
+        - http://localhost:4455/ui/
     default_browser_return_url:
         http://localhost:4455/ui/
     flows:
@@ -37,13 +37,13 @@ selfservice:
             # TODO: Uncomment when the pattern is implemented in FE
             # style: identifier_first
         recovery:
-            enabled: True
+            enabled: true
             ui_url: http://localhost:4455/ui/reset_email
             use: code
             after:
                 default_browser_return_url: http://localhost:4455/ui
                 hooks:
-                    - hook: revoke_active_sessions
+                    -   hook: revoke_active_sessions
         settings:
             # TODO: Replace with self-service settings page when implemented
             ui_url: http://localhost:4455/ui/reset_password
@@ -54,13 +54,15 @@ selfservice:
                 webauthn:
                     default_browser_return_url: http://localhost:4455/ui/setup_passkey
         registration:
+            enabled: true
+            ui_url: http://localhost:4455/ui/register
             after:
                 oidc:
                     hooks:
-                    - hook: session
+                        - hook: session
                 webauthn:
                     hooks:
-                    - hook: session
+                        - hook: session
     methods:
         totp:
             enabled: true
@@ -69,15 +71,17 @@ selfservice:
         lookup_secret:
             enabled: true
         password:
-            enabled: True
+            enabled: true
             config:
                 haveibeenpwned_enabled: false
         code:
-            enabled: True
+            enabled: true
+        profile:
+            enabled: true
         webauthn:
-            enabled: True
+            enabled: true
             config:
-                passwordless: True
+                passwordless: true
                 rp:
                     # Set 'id' to the top-level domain.
                     id: localhost
@@ -86,14 +90,14 @@ selfservice:
                         - http://localhost:4455
                     display_name: Canonical
         oidc:
-            enabled: True
+            enabled: true
             config:
                 providers:
-                - id: "github"
-                  provider: "github"
-                  mapper_url: "file:///etc/config/kratos/schema.jsonnet"
-                  scope: ["user:email"]
-                  label: Github
+                    -   id: "github"
+                        provider: "github"
+                        mapper_url: "file:///etc/config/kratos/schema.jsonnet"
+                        scope: [ "user:email" ]
+                        label: Github
 courier:
     smtp:
         connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
