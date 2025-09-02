@@ -97,6 +97,7 @@ const SelfServeNavigation: FC<Props> = ({ user }) => {
                   {navItem("manage_passkey", "Security key")}
                   {navItem("manage_backup_codes", "Backup codes")}
                   {navItem("manage_secure", "Authenticator")}
+                  {navItem("manage_connected_accounts", "Connected accounts")}
                 </ul>
                 {user && (
                   <ul className="p-side-navigation__list self-serve-user">

@@ -49,6 +49,8 @@ selfservice:
             ui_url: http://localhost:4455/ui/reset_password
             required_aal: highest_available
             after:
+                oidc:
+                    default_browser_return_url: http://localhost:4455/ui/manage_connected_accounts
                 webauthn:
                     default_browser_return_url: http://localhost:4455/ui/setup_passkey
         registration:
