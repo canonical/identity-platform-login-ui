@@ -81,6 +81,30 @@ const ManageConnectedAccounts: NextPage = () => {
   const providers = useMemo(() => buildOidcProviderStates(flow), [flow]);
 
   useEffect(() => {
+    if (!router.isReady || providers.length === 0) return;
+
+    const pendingProvider = window.sessionStorage.getItem(
+      "pending_provider_link",
+    );
+    if (!pendingProvider) return;
+
+    const isLinked = providers.some(
+      (provider) =>
+        provider.id === pendingProvider && provider.name === "unlink",
+    );
+
+    if (isLinked) {
+      toastNotify.success(
+        `Your ${pendingProvider} account is now connected and can be used to sign in.`,
+        undefined,
+        "Account connected successfully",
+      );
+    }
+
+    window.sessionStorage.removeItem("pending_provider_link");
+  }, [router.isReady, providers]);
+
+  useEffect(() => {
     if (!router.isReady || flow) {
       return;
     }
@@ -133,12 +157,11 @@ const ManageConnectedAccounts: NextPage = () => {
         .then((result) => {
           const data = result.data as SettingsFlowWithRedirect;
           if (data.redirect_to) {
+            const providerId = methodValues.link ?? methodValues.unlink ?? "";
+            if (providerId) {
+              sessionStorage.setItem("pending_provider_link", providerId);
+            }
             window.location.href = data.redirect_to;
-            toastNotify.success(
-              `Your ${methodValues.link} account is now connected and can be used to sign in.`,
-              undefined,
-              "Account connected successfully",
-            );
             return;
           }
           setFlow(data);
