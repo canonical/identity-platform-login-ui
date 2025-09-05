@@ -2568,12 +2568,12 @@ func TestGetSettingsFlowSuccess(t *testing.T) {
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r kClient.FrontendAPIGetSettingsFlowRequest) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error) {
+		func(r kClient.FrontendAPIGetSettingsFlowRequest) (*kClient.SettingsFlow, *http.Response, error) {
 			if _id := (*string)(reflect.ValueOf(r).FieldByName("id").UnsafePointer()); *_id != id {
 				t.Fatalf("expected id to be %s, got %s", id, *_id)
 			}
 
-			return flow, nil, nil
+			return flow, &http.Response{StatusCode: http.StatusOK}, nil
 		},
 	)
 
@@ -2587,6 +2587,69 @@ func TestGetSettingsFlowSuccess(t *testing.T) {
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestGetSettingsFlowDuplicateIdentifier(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	id := "id"
+
+	duplicateIdentifierMsg := kClient.UiText{
+		Id:   4000007,
+		Text: "duplicate identifier",
+		Type: "error",
+	}
+
+	flow := kClient.NewSettingsFlowWithDefaults()
+	flow.Ui = kClient.UiContainer{
+		Messages: []kClient.UiText{duplicateIdentifierMsg},
+	}
+
+	request := kClient.FrontendAPIGetSettingsFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).DoAndReturn(
+		func(r kClient.FrontendAPIGetSettingsFlowRequest) (*kClient.SettingsFlow, *http.Response, error) {
+			if _id := (*string)(reflect.ValueOf(r).FieldByName("id").UnsafePointer()); *_id != id {
+				t.Fatalf("expected id to be %s, got %s", id, *_id)
+			}
+
+			return flow, &http.Response{StatusCode: http.StatusOK}, nil
+		},
+	)
+
+	s, r, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, id, cookies)
+
+	if err == nil {
+		t.Fatal("expected error but got nil")
+	}
+	if !strings.Contains(err.Error(), "an account with the same identifier already exists, contact support") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if s != nil {
+		t.Fatalf("expected flow to be %v not  %v", nil, s)
+	}
+	if r != nil {
+		t.Fatalf("expected response to be %v not  %v", nil, r)
 	}
 }
 
