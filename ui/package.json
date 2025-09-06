@@ -9,7 +9,7 @@
     "next": "15.5.2",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "sass": "1.92.0",
+    "sass": "1.92.1",
     "vanilla-framework": "4.32.1"
   },
   "engines": {
