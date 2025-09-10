@@ -29,6 +29,7 @@ const (
 	InvalidRecoveryCode          = 4060006
 	RecoveryCodeSent             = 1060003
 	InvalidProperty              = 4000002
+	DuplicateIdentifier          = 4000007
 	InvalidAuthCode              = 4000008
 	MissingSecurityKeySetup      = 4000015
 	BackupCodeAlreadyUsed        = 4000012
@@ -323,6 +324,18 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 	// in order to access settings
 	if err != nil && resp.StatusCode != http.StatusForbidden {
 		return nil, nil, err
+	}
+
+	// If a duplicate identifier was detected, kratos returns a 200 response
+	// with a 4000007 error in the rendered ui messages
+	if resp.StatusCode == http.StatusOK {
+		uiMsg := flow.GetUi()
+
+		for _, message := range uiMsg.GetMessages() {
+			if message.GetId() == DuplicateIdentifier {
+				return nil, nil, fmt.Errorf("an account with the same identifier already exists, contact support")
+			}
+		}
 	}
 
 	if err == nil {

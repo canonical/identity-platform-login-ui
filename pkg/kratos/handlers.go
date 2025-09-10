@@ -702,7 +702,7 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	flow, response, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting settings flow: %v\n", err)
-		http.Error(w, "Failed to get settings flow", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
