@@ -2,7 +2,7 @@ import type { NextPage } from "next";
 import React, { useEffect, useState } from "react";
 import PageLayout from "../components/PageLayout";
 import { useRouter } from "next/router";
-import { Input } from "@canonical/react-components";
+import { Input, useToastNotification } from "@canonical/react-components";
 import { kratos } from "../api/kratos";
 import { handleFlowError } from "../util/handleFlowError";
 import { SettingsFlow } from "@ory/client";
@@ -18,6 +18,7 @@ const ManageDetails: NextPage = () => {
 
   // Get ?flow=... from the URL
   const router = useRouter();
+  const toastNotify = useToastNotification();
   const { return_to: returnTo, flow: flowId } = router.query;
 
   useEffect(() => {
@@ -33,7 +34,23 @@ const ManageDetails: NextPage = () => {
         .then((res) => {
           setFlow(res.data);
         })
-        .catch(handleFlowError("settings", setFlow));
+        .catch((err: AxiosError) => {
+          const status = err.response?.status;
+          const errorMessage =
+            typeof err.response?.data === "string" ? err.response.data : "";
+          if (
+            status === 500 &&
+            errorMessage.includes("identifier already exists")
+          ) {
+            toastNotify.failure(
+              "Failed to connect account",
+              undefined,
+              "An account with the same identifier already exists.",
+            );
+            return;
+          }
+          handleFlowError("settings", setFlow);
+        });
       return;
     }
 

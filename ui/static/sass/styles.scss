@@ -14,6 +14,7 @@ $breakpoint-navigation-threshold: 820px;
 
 body {
   background-color: $color-paper;
+  overflow: hidden;
 }
 
 @media screen and (max-width: $breakpoint-small) {
