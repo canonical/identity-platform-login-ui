@@ -2,6 +2,7 @@ import { getNodeLabel } from "@ory/integrations/ui";
 import { Button } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
 import React, { Component, FC } from "react";
+import { getProviderImage } from "../util/logos";
 
 export const NodeInputSubmit: FC<NodeInputProps> = ({
   node,
@@ -10,25 +11,6 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   disabled,
   dispatchSubmit,
 }) => {
-  const getProviderImage = (value: string) => {
-    if (value.toLowerCase().startsWith("auth0")) {
-      return "logos/Auth0.svg";
-    }
-    if (value.toLowerCase().startsWith("github")) {
-      return "logos/Github.svg";
-    }
-    if (value.toLowerCase().startsWith("google")) {
-      return "logos/Google.svg";
-    }
-    if (value.toLowerCase().startsWith("microsoft")) {
-      return "logos/Microsoft.svg";
-    }
-    if (value.toLowerCase().startsWith("ping")) {
-      return "logos/Ping.svg";
-    }
-    return "logos/Fallback.svg";
-  };
-
   const label = getNodeLabel(node);
   const isProvider = attributes.name === "provider";
   const provider = attributes.value as string;

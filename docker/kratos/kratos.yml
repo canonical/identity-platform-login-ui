@@ -45,10 +45,11 @@ selfservice:
                 hooks:
                     - hook: revoke_active_sessions
         settings:
-            # TODO: Replace with self-service settings page when implemented
-            ui_url: http://localhost:4455/ui/reset_password
+            ui_url: http://localhost:4455/ui/manage_details
             required_aal: highest_available
             after:
+                oidc:
+                    default_browser_return_url: http://localhost:4455/ui/manage_connected_accounts
                 webauthn:
                     default_browser_return_url: http://localhost:4455/ui/setup_passkey
         registration:
