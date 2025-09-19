@@ -8,8 +8,10 @@ $breakpoint-navigation-threshold: 820px;
 @import 'vanilla-framework/scss/build';
 @include vf-p-icon-delete;
 @include vf-p-icon-get-link;
+@include vf-p-icon-hide;
 @include vf-p-icon-lock-locked;
 @include vf-p-icon-profile;
+@include vf-p-icon-show;
 @include vf-p-icon-warning-grey;
 
 body {
@@ -164,5 +166,50 @@ hr {
     .p-icon--delete {
       @include vf-icon-delete($color-x-light);
     }
+  }
+}
+
+.registration-cta {
+  display: inline;
+}
+
+.password-input-wrapper {
+  position: relative;
+
+  .password-visibility {
+    position: absolute;
+    top: 46%;
+    right: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  &:has(.p-form-validation__message),
+  &:has(.p-form-help-text) {
+    .password-visibility {
+      top: 41%;
+    }
+  }
+}
+
+
+.is-success .p-form-validation__input,
+.is-success .p-form-validation__input:hover,
+.is-success .p-form-validation__input:focus {
+    background-color: inherit;
+    border-bottom-color: inherit;
+    outline-color: var(--vf-focus-outline-color);
+}
+
+.password-checks {
+  .is-neutral {
+    display: flex;
+    align-items: center;
+    padding-left: 0px;
+    gap: 0.5rem;
+  }
+
+  .p-form-validation__message {
+    margin-top: -.2rem;
   }
 }

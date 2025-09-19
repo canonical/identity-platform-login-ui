@@ -8,6 +8,7 @@ import {
   isVerificationCodeInput,
 } from "../util/constants";
 import { UiNodeInputAttributes } from "@ory/client/api";
+import { ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD } from "../util/constants";
 
 export const NodeInputText: FC<NodeInputProps> = ({
   attributes,
@@ -27,6 +28,9 @@ export const NodeInputText: FC<NodeInputProps> = ({
   const flow = React.useContext(FlowContext);
   const urlParams = new URLSearchParams(window.location.search);
   const isWebauthn = urlParams.get("webauthn") === "true";
+  const isIdentifierFirstGroup = node.group === "identifier_first";
+  const isEmailInput = node.meta?.label?.text?.toLowerCase?.() === "email";
+
   const ucFirst = (s?: string) =>
     s ? String(s[0]).toUpperCase() + String(s).slice(1) : s;
 
@@ -85,11 +89,42 @@ export const NodeInputText: FC<NodeInputProps> = ({
   }, [message, setInputValue]);
 
   const getError = useMemo(() => {
+    const currentValue = (typeof value === "string" && value) || "";
+    if (
+      isIdentifierFirstGroup &&
+      isEmailInput &&
+      attributes.value === currentValue
+    ) {
+      const serverErrorNode = node.messages.find((m) => m.type === "error");
+
+      if (!serverErrorNode) return undefined;
+
+      const serverErrorId = serverErrorNode?.id;
+      const serverErrorText = serverErrorNode?.text ?? "";
+
+      if (currentValue.length === 0) {
+        return "Please enter your email address.";
+      }
+
+      if (!/^\S+@\S+\.\S+$/.test(currentValue)) {
+        return "Enter a valid email address.";
+      }
+
+      if (serverErrorId === ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD) {
+        return "No account found for this email. Verify or create a new account.";
+      }
+
+      if (serverErrorText) {
+        return serverErrorText;
+      }
+    }
+
     if (node && isVerificationCodeInput(node)) {
       if (isDirty) {
         return;
       }
     }
+
     if (message.startsWith("Invalid login method")) {
       return "Invalid login method";
     }
@@ -125,6 +160,13 @@ export const NodeInputText: FC<NodeInputProps> = ({
     error,
     isDirty,
   ]);
+
+  const getPlaceholderText = () => {
+    if (isIdentifierFirstGroup && isEmailInput) {
+      return "Your Email";
+    }
+    return "";
+  };
 
   const getLabel = useMemo(() => {
     if (isVerificationCodeInput(node)) {
@@ -164,7 +206,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
         e.preventDefault();
         e.stopPropagation();
         setIsDirty(false);
-        void dispatchSubmit(e, "password");
+        void dispatchSubmit(e, isIdentifierFirstGroup ? "identifier_first" : "password");
       }
     },
     [dispatchSubmit],
@@ -192,6 +234,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
         label={getLabel}
         labelClassName="password-label"
         disabled={disabled}
+        placeholder={getPlaceholderText()}
         value={inputValue}
         error={getError}
         onChange={handleChange}
