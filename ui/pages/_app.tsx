@@ -1,13 +1,12 @@
 import "../static/sass/styles.scss";
 import type { AppProps } from "next/app";
-import React, { FC } from "react";
+import React from "react";
+import ClientToastProvider from "../components/ClientToastProvider";
 
-const App: FC<AppProps> = ({ Component, pageProps }) => {
+export default function App({ Component, pageProps }: AppProps) {
   return (
-    <>
+    <ClientToastProvider>
       <Component {...pageProps} />
-    </>
+    </ClientToastProvider>
   );
-};
-
-export default App;
+}
