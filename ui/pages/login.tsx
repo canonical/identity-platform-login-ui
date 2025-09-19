@@ -34,10 +34,20 @@ type AppConfig = {
   oidc_webauthn_sequencing_enabled?: boolean;
 };
 
+type IdentifierFirstResponse = { redirect_to: string } | LoginFlow;
+
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
   const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
+
+  const isIdentifierFirst =
+    flow?.ui.nodes.some(
+      (node) =>
+        node.attributes.node_type === "input" &&
+        (node.attributes as UiNodeInputAttributes).name === "method" &&
+        (node.attributes as UiNodeInputAttributes).value === "identifier_first",
+    ) ?? false;
 
   useEffect(() => {
     void fetch("../api/v0/app-config")
@@ -133,6 +143,9 @@ const Login: NextPage = () => {
   const handleSubmit = useCallback(
     (values: UpdateLoginFlowBody) => {
       const getMethod = () => {
+        if (values.method === "identifier_first") {
+          return "identifier_first";
+        }
         if ((values as UpdateLoginFlowWithOidcMethod).provider) {
           return "oidc";
         }
@@ -160,6 +173,42 @@ const Login: NextPage = () => {
         setEmptyPassword();
       }
 
+      if (method === "identifier_first") {
+        const flowId = String(flow?.id);
+        return fetch(
+          `/api/kratos/self-service/login/id-first?flow=${encodeURIComponent(flowId)}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ...values,
+              method,
+              flow: String(flow?.id),
+            }),
+          },
+        )
+          .then(async (res) => {
+            if (!res.ok) {
+              throw new Error(await res.text());
+            }
+            return (await res.json()) as IdentifierFirstResponse;
+          })
+          .then((data) => {
+            if ("redirect_to" in data) {
+              window.location.href = data.redirect_to;
+              return;
+            }
+            if (flow?.return_to) {
+              window.location.href = flow.return_to;
+              return;
+            }
+            setFlow(data);
+          })
+          .catch(redirectToErrorPage);
+      }
+
       return kratos
         .updateLoginFlow({
           flow: String(flow?.id),
@@ -169,6 +218,10 @@ const Login: NextPage = () => {
           } as UpdateLoginFlowBody,
         })
         .then(({ data }) => {
+          if ("state" in data && data.state === "choose_method") {
+            setFlow(data as unknown as LoginFlow);
+            return;
+          }
           if ("redirect_to" in data) {
             window.location.href = data.redirect_to as string;
             return;
@@ -209,6 +262,7 @@ const Login: NextPage = () => {
   const reqDomain = flow?.oauth2_login_request?.client?.client_uri
     ? new URL(flow.oauth2_login_request.client.client_uri).hostname
     : "";
+
   const getTitleSuffix = () => {
     if (reqName && reqDomain) {
       return ` to ${reqName} on ${reqDomain}`;
@@ -221,9 +275,12 @@ const Login: NextPage = () => {
     }
     return "";
   };
-  const title = isAuthCode
-    ? "Verify your identity"
-    : `Sign in${getTitleSuffix()}`;
+
+  const title = isIdentifierFirst
+    ? "Sign in"
+    : isAuthCode
+      ? "Verify your identity"
+      : `Sign in${getTitleSuffix()}`;
 
   const filterFlow = (flow: LoginFlow | undefined): LoginFlow => {
     if (!flow) {
@@ -245,7 +302,33 @@ const Login: NextPage = () => {
   const supportsWebauthn = flow?.ui.nodes.some(
     (node) => node.group === "webauthn",
   );
-  const renderFlow = isAuthCode ? filterFlow(replaceAuthLabel(flow)) : flow;
+
+  const renderFlow: LoginFlow | undefined = flow
+    ? isIdentifierFirst
+      ? {
+          ...flow,
+          ui: {
+            ...flow.ui,
+            nodes: flow.ui.nodes.filter((n: UiNode) => {
+              if (
+                n.attributes.node_type === "input" &&
+                typeof (n.attributes as UiNodeInputAttributes).name === "string"
+              ) {
+                const name = (n.attributes as UiNodeInputAttributes).name;
+                return (
+                  name === "identifier" ||
+                  name === "csrf_token" ||
+                  name === "method"
+                );
+              }
+              return false;
+            }),
+          },
+        }
+      : isAuthCode
+        ? filterFlow(replaceAuthLabel(flow))
+        : flow
+    : undefined;
 
   if (renderFlow?.ui) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -316,7 +399,7 @@ const Login: NextPage = () => {
       });
 
       return null;
-    } else if (isWebauthn) {
+    } else if (isWebauthn && renderFlow?.ui?.action) {
       // call kratos through the go server proxy
       const kratosUrl = renderFlow.ui.action.split("/self-service/");
       if (kratosUrl.length == 2) {
