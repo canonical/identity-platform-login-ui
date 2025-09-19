@@ -2,6 +2,7 @@ import { getNodeLabel } from "@ory/integrations/ui";
 import { Input } from "@canonical/react-components";
 import React, { FC } from "react";
 import { NodeInputProps } from "./helpers";
+import { ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD } from "../util/constants";
 
 export const NodeInputText: FC<NodeInputProps> = ({
   attributes,
@@ -14,6 +15,9 @@ export const NodeInputText: FC<NodeInputProps> = ({
 }) => {
   const urlParams = new URLSearchParams(window.location.search);
   const isWebauthn = urlParams.get("webauthn") === "true";
+  const isIdentifierFirstGroup = node.group === "identifier_first";
+  const isEmailInput = node.meta?.label?.text?.toLowerCase?.() === "email";
+
   const ucFirst = (s?: string) =>
     s ? String(s[0]).toUpperCase() + String(s).slice(1) : s;
 
@@ -26,11 +30,42 @@ export const NodeInputText: FC<NodeInputProps> = ({
   const isDuplicate = deduplicateValues.includes(value as string);
 
   const message = node.messages.map(({ text }) => text).join(" ");
-  const defaultValue = message.includes("Invalid login method")
-    ? (value as string)
-    : message;
+  const defaultValue =
+    message.includes("Invalid login method") || isIdentifierFirstGroup
+      ? (value as string)
+      : message;
 
   const getError = () => {
+    const currentValue = (typeof value === "string" && value) || "";
+    if (
+      isIdentifierFirstGroup &&
+      isEmailInput &&
+      attributes.value === currentValue
+    ) {
+      const serverErrorNode = node.messages.find((m) => m.type === "error");
+
+      if (!serverErrorNode) return undefined;
+
+      const serverErrorId = serverErrorNode?.id;
+      const serverErrorText = serverErrorNode?.text ?? "";
+
+      if (currentValue.length === 0) {
+        return "Please enter your email address.";
+      }
+
+      if (!/^\S+@\S+\.\S+$/.test(currentValue)) {
+        return "Enter a valid email address.";
+      }
+
+      if (serverErrorId === ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD) {
+        return "No account found for this email. Verify or create a new account.";
+      }
+
+      if (serverErrorText) {
+        return serverErrorText;
+      }
+    }
+
     if (message.startsWith("Invalid login method")) {
       return "Invalid login method";
     }
@@ -52,6 +87,13 @@ export const NodeInputText: FC<NodeInputProps> = ({
     return undefined;
   };
 
+  const getPlaceholderText = () => {
+    if (isIdentifierFirstGroup && isEmailInput) {
+      return "Your Email";
+    }
+    return "";
+  };
+
   return (
     <Input
       type="text"
@@ -60,6 +102,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
       name={attributes.name}
       label={getNodeLabel(node)}
       disabled={disabled}
+      placeholder={getPlaceholderText()}
       defaultValue={defaultValue}
       error={getError()}
       onChange={(e) => void setValue(e.target.value)}
@@ -67,7 +110,10 @@ export const NodeInputText: FC<NodeInputProps> = ({
         if (e.key === "Enter") {
           e.preventDefault();
           e.stopPropagation();
-          void dispatchSubmit(e, "password");
+          void dispatchSubmit(
+            e,
+            isIdentifierFirstGroup ? "identifier_first" : "password",
+          );
         }
       }}
     />
