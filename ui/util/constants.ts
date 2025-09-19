@@ -17,6 +17,7 @@ const ORY_LABEL_CONTINUE_PASSWORD_RESET = 1070009;
 const ORY_LABEL_SIGN_IN_WITH_HARDWARE_KEY = 1010008;
 const ORY_LABEL_RESEND_VERIFICATION_CODE = 1070008;
 const ORY_LABEL_VERIFICATION_CODE_INPUT = 1070011;
+export const ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN = 1070009;
 
 type NodeWithLabel = UiNode & { meta: { label: object } };
 
@@ -73,3 +74,5 @@ export const isVerificationCodeInput = (
   node: UiNode,
 ): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_VERIFICATION_CODE_INPUT;
+
+export const ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD = 4000037;
