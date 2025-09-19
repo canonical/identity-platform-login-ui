@@ -1,6 +1,6 @@
-import React, { FC } from "react";
-import { Input } from "@canonical/react-components";
+import React, { FC, useEffect, useState } from "react";
 import PasswordCheck from "./PasswordCheck";
+import PasswordToggle from "./PasswordToggle";
 
 export type PasswordCheckType = "lowercase" | "uppercase" | "number" | "length";
 
@@ -13,6 +13,17 @@ type Props = {
   label?: string;
 };
 
+const DEBOUNCE_DURATION = 500;
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(debounceTimer);
+  }, [value, delay]);
+  return debounced;
+}
+
 const Password: FC<Props> = ({
   checks,
   password,
@@ -21,67 +32,90 @@ const Password: FC<Props> = ({
   setValid,
   label = "Password",
 }) => {
-  const [confirmation, setConfirmation] = React.useState("");
-  const [hasPassBlur, setPasswordBlurred] = React.useState(false);
-  const [hasConfirmBlur, setConfirmationBlurred] = React.useState(false);
+  const [confirmation, setConfirmation] = useState("");
+  const [hasTouched, setHasTouched] = useState(false);
+  const [hasBlurred, setHasBlurred] = useState(false);
 
-  const getStatus = (check: PasswordCheckType) => {
-    if (!hasPassBlur) {
-      return "neutral";
-    }
+  const debouncedPassword = useDebounce(password, DEBOUNCE_DURATION);
+  const debouncedConfirmation = useDebounce(confirmation, DEBOUNCE_DURATION);
 
+  const validateCheck = (check: PasswordCheckType, value: string): boolean => {
     switch (check) {
       case "lowercase":
-        return /[a-z]/.test(password) ? "success" : "error";
+        return /[a-z]/.test(value);
       case "uppercase":
-        return /[A-Z]/.test(password) ? "success" : "error";
+        return /[A-Z]/.test(value);
       case "number":
-        return /[0-9]/.test(password) ? "success" : "error";
+        return /\d/.test(value);
       case "length":
-        return password.length >= 8 ? "success" : "error";
+        return value.length >= 8;
     }
   };
 
-  const isCheckFailed = checks.some((check) => getStatus(check) === "error");
-  const isMismatch = hasConfirmBlur && password !== confirmation;
+  const getStatus = (check: PasswordCheckType) => {
+    if (!hasTouched || !debouncedPassword) return "neutral";
+    if (validateCheck(check, debouncedPassword)) return "success";
+    return hasBlurred ? "error" : "neutral";
+  };
 
-  const localValid = hasPassBlur && !isCheckFailed && password === confirmation;
-  if (isValid !== localValid) {
-    setValid(localValid);
-  }
+  const isCheckFailed = checks.some((check) => getStatus(check) === "error");
+  const isMismatch =
+    debouncedConfirmation.length > 0 &&
+    debouncedPassword !== debouncedConfirmation;
+  const computedValid =
+    hasTouched && !isCheckFailed && debouncedPassword === debouncedConfirmation;
+
+  useEffect(() => {
+    if (isValid !== computedValid) {
+      setValid(computedValid);
+    }
+  }, [computedValid, setValid]);
 
   return (
     <>
-      <Input
+      <PasswordToggle
         id="password"
         name="password"
-        type="password"
         label={label}
         placeholder="Your password"
-        onBlur={() => setPasswordBlurred(true)}
-        onChange={(e) => setPassword(e.target.value)}
+        onBlur={() => setHasBlurred(true)}
+        onChange={(e) => {
+          if (!hasTouched) setHasTouched(true);
+          setPassword(e.target.value);
+        }}
         value={password}
         help={checks.length > 0 && "Password must contain"}
       />
-      {checks.map((check) => {
-        return (
-          <PasswordCheck key={check} check={check} status={getStatus(check)} />
-        );
-      })}
-      <Input
+      <div className="password-checks">
+        {checks.map((check) => {
+          return (
+            <PasswordCheck
+              key={check}
+              check={check}
+              status={getStatus(check)}
+            />
+          );
+        })}
+      </div>
+      <PasswordToggle
         id="passwordConfirm"
         name="passwordConfirm"
-        type="password"
         label={`Confirm ${label}`}
         placeholder="Your password"
-        onBlur={() => setConfirmationBlurred(true)}
         onChange={(e) => setConfirmation(e.target.value)}
         error={
-          isCheckFailed
-            ? "Password does not match requirements"
-            : isMismatch
-              ? "Passwords do not match"
-              : undefined
+          debouncedConfirmation.length > 0
+            ? isCheckFailed
+              ? "Password does not match requirements."
+              : isMismatch
+                ? "Passwords do not match."
+                : undefined
+            : undefined
+        }
+        success={
+          debouncedConfirmation.length > 0 && !isMismatch && !isCheckFailed
+            ? "Passwords match."
+            : undefined
         }
       />
     </>
