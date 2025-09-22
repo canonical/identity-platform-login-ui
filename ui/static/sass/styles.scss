@@ -6,12 +6,18 @@ $breakpoint-navigation-threshold: 820px;
 
 // import vanilla-framework
 @import 'vanilla-framework/scss/build';
+@include vf-p-icon-delete;
+@include vf-p-icon-get-link;
 @include vf-p-icon-lock-locked;
 @include vf-p-icon-profile;
 @include vf-p-icon-warning-grey;
 
 body {
   background-color: $color-paper;
+
+  &:has(.toast-animate) {
+    overflow: clip;
+  }
 }
 
 @media screen and (max-width: $breakpoint-small) {
@@ -132,4 +138,31 @@ hr {
 
 .l-navigation.is-collapsed:focus-within {
   transform: translateX(-100%);
+}
+
+.provider {
+  display: flex;
+  align-items: center;
+
+  .provider-logo {
+    margin-right: 1.5rem;
+  }
+
+  .link-provider-btn {
+    margin-bottom: 0px;
+    margin-left: auto;
+
+    .p-icon--get-link {
+      @include vf-icon-get-link($color-x-light);
+    }
+  }
+
+  .unlink-provider-btn {
+    margin-bottom: 0px;
+    margin-left: auto;
+
+    .p-icon--delete {
+      @include vf-icon-delete($color-x-light);
+    }
+  }
 }
