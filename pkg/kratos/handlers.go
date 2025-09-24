@@ -149,7 +149,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		// If the browser was redirected here, we can't return a json object
 		// so we redirect the user to the login page with the flow id appended in
 		// the query params
-		if r.Header.Get("Accept") != "application/json, text/plain, */*" {
+		if a.isHTMLRequest(r) {
 			u, _ := url.JoinPath(a.baseURL, "/ui/login")
 			u = u + "?flow=" + res.Id
 			http.Redirect(w, r, u, http.StatusSeeOther)
@@ -366,6 +366,20 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		a.cookieManager.ClearStateCookie(w)
 		setCookies(w, cookies)
 		a.redirectResponse(w, r, response)
+		return
+	}
+
+	if a.isHTMLRequest(r) {
+		// redirect to returnTo url instead of returning a json response
+		if returnTo, ok := loginFlow.GetReturnToOk(); ok {
+			a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+				RedirectTo: returnTo,
+			})
+			return
+		}
+		// fall back to return a server error when there is no returnTo
+		a.logger.Error("Failed to get returnTo")
+		http.Error(w, "Failed to get returnTo", http.StatusInternalServerError)
 		return
 	}
 
@@ -775,11 +789,28 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// maintain previous kratos behaviour
-	if returnTo, ok := flow.GetReturnToOk(); ok {
-		a.redirectResponse(w, r, &BrowserLocationChangeRequired{
-			RedirectTo: returnTo,
-		})
+	if a.isHTMLRequest(r) {
+		var returnTo *string
+
+		if flowReturnTo, ok := flow.GetReturnToOk(); ok {
+			returnTo = flowReturnTo
+		} else if continueWith, ok := flow.GetContinueWithOk(); ok {
+			returnTo = getReturnToFromContinueWith(continueWith)
+		}
+
+		// redirect to returnTo url instead of returning a json response
+		// this maintains previous kratos behaviour on webauthn registration
+		if returnTo != nil {
+			a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+				RedirectTo: returnTo,
+			})
+			return
+		}
+
+		// fall back to return a server error when there is no returnTo
+		// this should never happen as SettingsFlow has at least ContinueWithRedirectBrowserTo
+		a.logger.Error("Failed to get returnTo")
+		http.Error(w, "Failed to get returnTo", http.StatusInternalServerError)
 		return
 	}
 
@@ -823,6 +854,11 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+func (a *API) isHTMLRequest(r *http.Request) bool {
+	// Treat requests that don't explicitly accept json as form submissions
+	return r.Header.Get("Accept") != "application/json, text/plain, */*"
+}
+
 func (a *API) deleteKratosSession(w http.ResponseWriter) {
 	// To delete the session we delete the kratos session cookie.
 	// This is hacky as it does not call the Kratos API and is likely to break on
@@ -830,6 +866,15 @@ func (a *API) deleteKratosSession(w http.ResponseWriter) {
 	// from the Kratos API
 	c := kratosSessionUnsetCookie()
 	http.SetCookie(w, c)
+}
+
+func getReturnToFromContinueWith(continueWith []client.ContinueWith) *string {
+	for _, c := range continueWith {
+		if r := c.ContinueWithRedirectBrowserTo; r != nil {
+			return &r.RedirectBrowserTo
+		}
+	}
+	return nil
 }
 
 func kratosSessionUnsetCookie() *http.Cookie {
