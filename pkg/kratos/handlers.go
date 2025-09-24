@@ -775,12 +775,28 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// maintain previous kratos behaviour
-	if returnTo, ok := flow.GetReturnToOk(); ok {
-		a.redirectResponse(w, r, &BrowserLocationChangeRequired{
-			RedirectTo: returnTo,
-		})
-		return
+	// populate returnTo url if not set
+	if flow.ReturnTo == nil {
+		if continueWith, ok := flow.GetContinueWithOk(); ok {
+			for _, c := range continueWith {
+				if continueRedirect := c.ContinueWithRedirectBrowserTo; continueRedirect != nil {
+					flow.SetReturnTo(continueRedirect.RedirectBrowserTo)
+					break
+				}
+			}
+		}
+	}
+
+	// force redirection after successful webauthn registration
+	if _, ok := body.GetActualInstance().(*client.UpdateSettingsFlowWithWebAuthnMethod); ok {
+		if state, ok := flow.State.(string); ok && state == "success" {
+			if returnTo, ok := flow.GetReturnToOk(); ok {
+				a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+					RedirectTo: returnTo,
+				})
+				return
+			}
+		}
 	}
 
 	resp, err := json.Marshal(flow)
