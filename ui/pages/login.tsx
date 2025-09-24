@@ -88,8 +88,12 @@ const Login: NextPage = () => {
   };
 
   useEffect(() => {
-    // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    // If the router is not ready yet, do nothing.
+    if (!router.isReady) {
+      return;
+    }
+
+    if (flowId && flow) {
       return;
     }
 
@@ -121,7 +125,7 @@ const Login: NextPage = () => {
         returnTo: getReturnTo(),
         loginChallenge: login_challenge ? String(login_challenge) : undefined,
       })
-      .then(({ data }: FlowResponse) => {
+      .then(async ({ data }: FlowResponse) => {
         if (data.redirect_to !== undefined) {
           const addendum = data.redirect_to.includes("?") ? "&" : "?";
           const pwParam = pwChanged
@@ -130,6 +134,10 @@ const Login: NextPage = () => {
           window.location.href = `${data.redirect_to}${pwParam}`;
           return;
         }
+
+        await router.replace(`/ui/login?flow=${data.id}`, undefined, {
+          shallow: true,
+        });
         setFlow(data);
       })
       .catch(handleFlowError("login", setFlow))
@@ -144,6 +152,7 @@ const Login: NextPage = () => {
     flow,
     login_challenge,
   ]);
+
   const handleSubmit = useCallback(
     (values: UpdateLoginFlowBody) => {
       const getMethod = () => {
@@ -179,6 +188,7 @@ const Login: NextPage = () => {
 
       if (method === "identifier_first") {
         const flowId = String(flow?.id);
+
         return fetch(
           `/api/kratos/self-service/login/id-first?flow=${encodeURIComponent(flowId)}`,
           {
