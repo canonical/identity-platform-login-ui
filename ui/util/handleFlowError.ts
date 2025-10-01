@@ -33,7 +33,7 @@ export const handleFlowError =
         return;
       case "session_already_available":
         // User is already signed in, let's redirect them to settings
-        window.location.href = "./reset_password";
+        window.location.href = "./manage_details";
         return;
       case "session_refresh_required":
         // We need to re-authenticate to perform this action
