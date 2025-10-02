@@ -1,5 +1,5 @@
 import { getNodeLabel } from "@ory/integrations/ui";
-import React, { FC, useState } from "react";
+import React, { FC, useState, ChangeEvent, KeyboardEvent } from "react";
 import { NodeInputProps } from "./helpers";
 import PasswordToggle from "./PasswordToggle";
 
@@ -30,6 +30,19 @@ export const NodeInputPassword: FC<NodeInputProps> = ({
     }
   };
 
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    void setValue(e.target.value);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      void dispatchSubmit(e, "password");
+    }
+  };
+
   return (
     <PasswordToggle
       tabIndex={2}
@@ -50,17 +63,8 @@ export const NodeInputPassword: FC<NodeInputProps> = ({
       disabled={disabled}
       placeholder="Your Password"
       error={getError()}
-      onChange={(e) => {
-        setPassword(e.target.value);
-        void setValue(e.target.value);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.stopPropagation();
-          void dispatchSubmit(e, "password");
-        }
-      }}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
     />
   );
 };
