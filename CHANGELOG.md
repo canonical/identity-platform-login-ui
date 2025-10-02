@@ -1,5 +1,66 @@
 # Changelog
 
+## [0.23.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.22.0...v0.23.0) (2025-10-02)
+
+
+### Features
+
+* add social accounts linking and unlinking flows ([aeb30d2](https://github.com/canonical/identity-platform-login-ui/commit/aeb30d2e3027199e099406998fcb120b8c5bacd6))
+* add social accounts linking and unlinking flows ([8a75fda](https://github.com/canonical/identity-platform-login-ui/commit/8a75fda18f07756ae31fe4992fdc79708ca96034))
+* handle duplicate identifier error in settings flow ([6299c7c](https://github.com/canonical/identity-platform-login-ui/commit/6299c7c23eddcfb1ae2af41292881d42002bd0bf))
+* handle duplicate identifier error in settings flow ([2a4dacc](https://github.com/canonical/identity-platform-login-ui/commit/2a4dacc70dd4ea2038c244f973c18562839d8d54))
+* show linking success notification after redirection ([bc73db5](https://github.com/canonical/identity-platform-login-ui/commit/bc73db5c3241738078fee426689768d163b489c9))
+
+
+### Bug Fixes
+
+* **deps:** update dependency @canonical/react-components to v3 ([227fc44](https://github.com/canonical/identity-platform-login-ui/commit/227fc4444d44b33cf216ee8c14a540396877015a))
+* **deps:** update dependency @canonical/react-components to v3 ([5969cce](https://github.com/canonical/identity-platform-login-ui/commit/5969cce16935cc5b4dd4a8939e3745ab174cfcd1))
+* **deps:** update dependency @canonical/react-components to v3.0.1 ([d7bfeb5](https://github.com/canonical/identity-platform-login-ui/commit/d7bfeb509f8a42853a39aa5943631acf863a1aa5))
+* **deps:** update dependency @canonical/react-components to v3.0.1 ([014d309](https://github.com/canonical/identity-platform-login-ui/commit/014d3092f085d2d24047faa61731b14296ef287b))
+* **deps:** update dependency @canonical/react-components to v3.1.0 ([60d4c0d](https://github.com/canonical/identity-platform-login-ui/commit/60d4c0de0c676bb9e65b9735c3cf4f59cedc8684))
+* **deps:** update dependency @canonical/react-components to v3.1.0 ([8251d86](https://github.com/canonical/identity-platform-login-ui/commit/8251d8631ae52fefcb8fa8c5dd0d2d96e22c57ef))
+* **deps:** update dependency @canonical/react-components to v3.1.1 ([47444c8](https://github.com/canonical/identity-platform-login-ui/commit/47444c8cb6d7aacdcda1244a07825a16f2c2a292))
+* **deps:** update dependency @canonical/react-components to v3.1.1 ([1095da3](https://github.com/canonical/identity-platform-login-ui/commit/1095da3b546f853e5cdf33145738b45e31afce08))
+* **deps:** update dependency @canonical/react-components to v3.2.0 ([5455cc7](https://github.com/canonical/identity-platform-login-ui/commit/5455cc70676b5c0c2d5b0c83bcf6a71b79670577))
+* **deps:** update dependency @canonical/react-components to v3.2.0 ([d071f9d](https://github.com/canonical/identity-platform-login-ui/commit/d071f9d19eb7c9c0fd0b03d1f664db867737b3dc))
+* **deps:** update dependency @ory/client to v1.21.5 ([d106f2b](https://github.com/canonical/identity-platform-login-ui/commit/d106f2b3b47ec7190bab96a783d8d4e7aad87e5c))
+* **deps:** update dependency @ory/client to v1.21.5 ([9f13096](https://github.com/canonical/identity-platform-login-ui/commit/9f130961b1b4702fdedb92091d37d53ea04bf63d))
+* **deps:** update dependency @ory/client to v1.22.1 ([4c2b4ef](https://github.com/canonical/identity-platform-login-ui/commit/4c2b4ef9b2d4f23fed9abe144d402157aeea9420))
+* **deps:** update dependency @ory/client to v1.22.1 ([a63a727](https://github.com/canonical/identity-platform-login-ui/commit/a63a72765cc1652ed114abdbb9faabfefac7f969))
+* **deps:** update dependency sass to v1.92.1 ([f52c777](https://github.com/canonical/identity-platform-login-ui/commit/f52c777fe0ec85b12e2362151b86409ea9c9455f))
+* **deps:** update dependency sass to v1.92.1 ([250045e](https://github.com/canonical/identity-platform-login-ui/commit/250045e2547fe20a8d540fac84c9623b8b92b53a))
+* **deps:** update dependency sass to v1.93.1 ([d9baef6](https://github.com/canonical/identity-platform-login-ui/commit/d9baef6348fcc5b768b17a8aacbab80e5df058a8))
+* **deps:** update dependency sass to v1.93.1 ([7648512](https://github.com/canonical/identity-platform-login-ui/commit/764851256565bc541d5fbe3a4ae0a1043a3ddc0f))
+* **deps:** update dependency vanilla-framework to v4.32.1 ([38fa0c2](https://github.com/canonical/identity-platform-login-ui/commit/38fa0c233af08c5c2f626b91c9939ee6b5db742c))
+* **deps:** update dependency vanilla-framework to v4.32.1 ([76d52c8](https://github.com/canonical/identity-platform-login-ui/commit/76d52c854ce95ef1b5fc2073934aab395e57cb37))
+* **deps:** update dependency vanilla-framework to v4.33.0 ([8a16e0b](https://github.com/canonical/identity-platform-login-ui/commit/8a16e0bf0a46a1eb8722b5f279b0440717da79b8))
+* **deps:** update dependency vanilla-framework to v4.33.0 ([d26928b](https://github.com/canonical/identity-platform-login-ui/commit/d26928b9b21ba8c9e691ca0574b1a1b964bbf83d))
+* **deps:** update dependency vanilla-framework to v4.34.0 ([f4fda8c](https://github.com/canonical/identity-platform-login-ui/commit/f4fda8c96fd4ee9b358f75fb536a0a41982649ba))
+* **deps:** update dependency vanilla-framework to v4.34.0 ([9a82d89](https://github.com/canonical/identity-platform-login-ui/commit/9a82d895c1ae11e206a6850a6fbbe53dbaf512ff))
+* **deps:** update dependency vanilla-framework to v4.34.1 ([4a7f7f3](https://github.com/canonical/identity-platform-login-ui/commit/4a7f7f347620843f79f6b5255edfcf7b8769d5d0))
+* **deps:** update dependency vanilla-framework to v4.34.1 ([da632bb](https://github.com/canonical/identity-platform-login-ui/commit/da632bbbc25fc00eca6ef9871336f9e576bd7d3a))
+* **deps:** update go deps ([0e01ac8](https://github.com/canonical/identity-platform-login-ui/commit/0e01ac8f52a4fc9468d24d9a534b51730361de5e))
+* **deps:** update go deps (minor) ([00454f7](https://github.com/canonical/identity-platform-login-ui/commit/00454f765b47817e2d7a4184f27537399993be4e))
+* **deps:** update module github.com/go-chi/chi/v5 to v5.2.3 ([7d2d58e](https://github.com/canonical/identity-platform-login-ui/commit/7d2d58e94558faabd271416ba8adc819cc18d8a4))
+* **deps:** update module github.com/go-chi/chi/v5 to v5.2.3 ([ecb8a66](https://github.com/canonical/identity-platform-login-ui/commit/ecb8a66a592e739a1ebac121e850a43788b228bc))
+* **deps:** update module github.com/prometheus/client_golang to v1.23.1 ([a871b59](https://github.com/canonical/identity-platform-login-ui/commit/a871b592552d7d40d6fe1a6f4ab03f6acce3375c))
+* **deps:** update module github.com/prometheus/client_golang to v1.23.1 ([7706050](https://github.com/canonical/identity-platform-login-ui/commit/77060506ef353e89292f7747c4ee8c718d808b4a))
+* **deps:** update module github.com/prometheus/client_golang to v1.23.2 ([a6897a7](https://github.com/canonical/identity-platform-login-ui/commit/a6897a7dc8d97a01ba851d9dea5f01406b27ce4f))
+* **deps:** update module github.com/prometheus/client_golang to v1.23.2 ([37ae14d](https://github.com/canonical/identity-platform-login-ui/commit/37ae14d58e9baed9041a922e251d29512b524969))
+* **deps:** update module github.com/spf13/cobra to v1.10.1 ([1d1d1f6](https://github.com/canonical/identity-platform-login-ui/commit/1d1d1f631d244f0c7fdff53956782e7386d27610))
+* **deps:** update module github.com/spf13/cobra to v1.10.1 ([917631a](https://github.com/canonical/identity-platform-login-ui/commit/917631a2f2596a6884cc900bd3f1edec016355b4))
+* **deps:** update module github.com/stretchr/testify to v1.11.0 ([f555465](https://github.com/canonical/identity-platform-login-ui/commit/f555465af6bdb800759afe467b89e3789469f1bb))
+* **deps:** update module github.com/stretchr/testify to v1.11.0 ([a391ef5](https://github.com/canonical/identity-platform-login-ui/commit/a391ef5899a61c00cef738a0130463b305ed89c3))
+* **deps:** update module github.com/stretchr/testify to v1.11.1 ([e60b36a](https://github.com/canonical/identity-platform-login-ui/commit/e60b36a617fef10af73e947d9076e924ce4ce72a))
+* **deps:** update module github.com/stretchr/testify to v1.11.1 ([471c752](https://github.com/canonical/identity-platform-login-ui/commit/471c752930582c29374f2754a2294208adf67a26))
+* **deps:** update ui deps ([88b5d1e](https://github.com/canonical/identity-platform-login-ui/commit/88b5d1e8d362b5f63f2adeab3c177d853981d3f1))
+* **deps:** update ui deps ([29e8cba](https://github.com/canonical/identity-platform-login-ui/commit/29e8cba3f03b4cf22ddb047133468e5af7fab45d))
+* **deps:** update ui deps (minor) ([5eb5bf3](https://github.com/canonical/identity-platform-login-ui/commit/5eb5bf393b9eb2ab95076eeb230ae4818f56e1e4))
+* **deps:** update ui deps (minor) ([4443a07](https://github.com/canonical/identity-platform-login-ui/commit/4443a0794002982664383e10a2c071863b66077f))
+* **deps:** update ui deps to v15.5.2 ([01026a7](https://github.com/canonical/identity-platform-login-ui/commit/01026a70c02ed36276dc36a3b27b59bb4679d7d5))
+* **deps:** update ui deps to v15.5.2 (patch) ([676a1e0](https://github.com/canonical/identity-platform-login-ui/commit/676a1e0385fabd8bd1d7cfdbcf70f155174d11a7))
+
 ## [0.22.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.21.3...v0.22.0) (2025-08-22)
 
 
