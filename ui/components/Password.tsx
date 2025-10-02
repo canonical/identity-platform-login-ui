@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from "react";
+import React, { FC, useEffect, useState, useCallback } from "react";
 import PasswordCheck from "./PasswordCheck";
 import PasswordToggle from "./PasswordToggle";
 
@@ -24,6 +24,19 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
+const validateCheck = (check: PasswordCheckType, value: string): boolean => {
+  switch (check) {
+    case "lowercase":
+      return /[a-z]/.test(value);
+    case "uppercase":
+      return /[A-Z]/.test(value);
+    case "number":
+      return /\d/.test(value);
+    case "length":
+      return value.length >= 8;
+  }
+};
+
 const Password: FC<Props> = ({
   checks,
   password,
@@ -38,19 +51,6 @@ const Password: FC<Props> = ({
 
   const debouncedPassword = useDebounce(password, DEBOUNCE_DURATION);
   const debouncedConfirmation = useDebounce(confirmation, DEBOUNCE_DURATION);
-
-  const validateCheck = (check: PasswordCheckType, value: string): boolean => {
-    switch (check) {
-      case "lowercase":
-        return /[a-z]/.test(value);
-      case "uppercase":
-        return /[A-Z]/.test(value);
-      case "number":
-        return /\d/.test(value);
-      case "length":
-        return value.length >= 8;
-    }
-  };
 
   const getStatus = (check: PasswordCheckType) => {
     if (!hasTouched || !debouncedPassword) return "neutral";
@@ -71,6 +71,14 @@ const Password: FC<Props> = ({
     }
   }, [computedValid, setValid]);
 
+  const handlePasswordChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!hasTouched) setHasTouched(true);
+      setPassword(e.target.value);
+    },
+    [hasTouched, setPassword],
+  );
+
   return (
     <>
       <PasswordToggle
@@ -79,12 +87,10 @@ const Password: FC<Props> = ({
         label={label}
         placeholder="Your password"
         onBlur={() => setHasBlurred(true)}
-        onChange={(e) => {
-          if (!hasTouched) setHasTouched(true);
-          setPassword(e.target.value);
-        }}
+        onChange={handlePasswordChange}
         value={password}
         help={checks.length > 0 && "Password must contain"}
+        className={isCheckFailed ? "password-error" : ""}
       />
       <div className="password-checks">
         {checks.map((check) => {
