@@ -190,8 +190,20 @@ hr {
       top: 41%;
     }
   }
-}
 
+  .password-error {
+    background-color: var(--vf-color-background-negative-active);
+    border-bottom-color: var(--vf-color-border-negative);
+
+    &:hover {
+      background-color: var(--vf-color-background-negative-hover);
+    }
+
+    &:focus {
+      outline-color: #c7162b;
+    }
+  }
+}
 
 .is-success .p-form-validation__input,
 .is-success .p-form-validation__input:hover,

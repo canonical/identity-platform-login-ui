@@ -12,7 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
-import { kratos } from "../api/kratos";
+import { kratos, loginIdentifierFirst } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
@@ -35,7 +35,34 @@ type AppConfig = {
   oidc_webauthn_sequencing_enabled?: boolean;
 };
 
-type IdentifierFirstResponse = { redirect_to: string } | LoginFlow;
+const getTitleSuffix = (reqName: string, reqDomain: string) => {
+  if (reqName && reqDomain) {
+    return ` to ${reqName} on ${reqDomain}`;
+  }
+  if (reqName) {
+    return ` to ${reqName}`;
+  }
+  if (reqDomain) {
+    return ` to ${reqDomain}`;
+  }
+  return "";
+};
+
+const resolveLoginTitle = (
+  isIdentifierFirst: boolean,
+  isAuthCode: UiNode | undefined,
+  titleSuffix: string,
+) => {
+  if (isIdentifierFirst) {
+    return "Sign in";
+  }
+
+  if (isAuthCode) {
+    return "Verify your identity";
+  }
+
+  return `Sign in${titleSuffix}`;
+};
 
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
@@ -114,7 +141,7 @@ const Login: NextPage = () => {
       if (login_challenge) {
         return undefined;
       }
-      return window.location.pathname.replace("login", "manage_details");
+      return window.location.pathname;
     };
 
     // Otherwise we initialize it
@@ -135,9 +162,18 @@ const Login: NextPage = () => {
           return;
         }
 
-        await router.replace(`/ui/login?flow=${data.id}`, undefined, {
-          shallow: true,
-        });
+        await router.replace(
+          {
+            pathname: "/ui/login",
+            query: {
+              ...router.query,
+              flow: data.id,
+            },
+          },
+          undefined,
+          { shallow: true },
+        );
+
         setFlow(data);
       })
       .catch(handleFlowError("login", setFlow))
@@ -189,26 +225,7 @@ const Login: NextPage = () => {
       if (method === "identifier_first") {
         const flowId = String(flow?.id);
 
-        return fetch(
-          `/api/kratos/self-service/login/id-first?flow=${encodeURIComponent(flowId)}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              ...values,
-              method,
-              flow: String(flow?.id),
-            }),
-          },
-        )
-          .then(async (res) => {
-            if (!res.ok) {
-              throw new Error(await res.text());
-            }
-            return (await res.json()) as IdentifierFirstResponse;
-          })
+        loginIdentifierFirst(flowId, values, method, flow)
           .then((data) => {
             if ("redirect_to" in data) {
               window.location.href = data.redirect_to;
@@ -272,29 +289,12 @@ const Login: NextPage = () => {
     },
     [flow, router],
   );
-  const reqName = flow?.oauth2_login_request?.client?.client_name;
+  const reqName = flow?.oauth2_login_request?.client?.client_name ?? "";
   const reqDomain = flow?.oauth2_login_request?.client?.client_uri
     ? new URL(flow.oauth2_login_request.client.client_uri).hostname
     : "";
-
-  const getTitleSuffix = () => {
-    if (reqName && reqDomain) {
-      return ` to ${reqName} on ${reqDomain}`;
-    }
-    if (reqName) {
-      return ` to ${reqName}`;
-    }
-    if (reqDomain) {
-      return ` to ${reqDomain}`;
-    }
-    return "";
-  };
-
-  const title = isIdentifierFirst
-    ? "Sign in"
-    : isAuthCode
-      ? "Verify your identity"
-      : `Sign in${getTitleSuffix()}`;
+  const titleSuffix = getTitleSuffix(reqName, reqDomain);
+  const title = resolveLoginTitle(isIdentifierFirst, isAuthCode, titleSuffix);
 
   const filterFlow = (flow: LoginFlow | undefined): LoginFlow => {
     if (!flow) {
@@ -472,7 +472,8 @@ const Login: NextPage = () => {
         <>
           {isWebauthn && isSequencedLogin && (
             <p className="u-text--muted">
-              Additional authentication needed to get access {getTitleSuffix()}
+              Additional authentication needed to get access{" "}
+              {getTitleSuffix(reqName, reqDomain)}
             </p>
           )}
           {flow ? (
