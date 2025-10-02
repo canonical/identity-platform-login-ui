@@ -8,6 +8,8 @@ type Props = {
   status: "success" | "error" | "neutral";
 };
 
+const STATUSES_WITH_INFO_ICON = ["error", "neutral"];
+
 const PasswordCheck: FC<Props> = ({ check, status }) => {
   const getMessage = () => {
     switch (check) {
@@ -26,15 +28,16 @@ const PasswordCheck: FC<Props> = ({ check, status }) => {
     <div
       className={classNames({
         "is-success": status === "success",
-        "is-error": status === "error",
       })}
     >
       <p
         className={classNames("p-form-validation__message", {
-          "is-neutral u-text--muted": status === "neutral",
+          "is-neutral u-text--muted": STATUSES_WITH_INFO_ICON.includes(status),
         })}
       >
-        {status === "neutral" && <Icon name="information" />}
+        {STATUSES_WITH_INFO_ICON.includes(status) && (
+          <Icon name="information" />
+        )}
         {getMessage()}
       </p>
     </div>
