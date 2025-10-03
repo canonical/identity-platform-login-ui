@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.23.0...v0.23.1) (2025-10-03)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/openfga/go-sdk to v0.7.2 ([cdc98a4](https://github.com/canonical/identity-platform-login-ui/commit/cdc98a4f70fa1763ef3346b588b6e179b275105f))
+* **deps:** update module github.com/openfga/go-sdk to v0.7.2 ([0269b7a](https://github.com/canonical/identity-platform-login-ui/commit/0269b7a046f45fbf9e5b8f06208d9a322d982fc6))
+
 ## [0.23.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.22.0...v0.23.0) (2025-10-02)
 
 
