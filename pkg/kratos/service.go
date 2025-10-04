@@ -746,17 +746,6 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		ret = kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(&body)
 	}
 
-	// Remove session cookie if this is a 1FA method
-	if s.is1FAMethod(methodPayload.Method) {
-		filtered := make([]*http.Cookie, 0)
-		for _, c := range cookies {
-			if c.Name != KRATOS_SESSION_COOKIE_NAME {
-				filtered = append(filtered, c)
-			}
-		}
-		cookies = filtered
-	}
-
 	return &ret, cookies, nil
 }
 
@@ -956,17 +945,6 @@ func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) 
 	s.logger.Debugf("Only %d backup codes are left, redirect the user to generate a new set", unusedCodes)
 
 	return true, nil
-}
-
-func (s *Service) is1FAMethod(method string) bool {
-	switch method {
-	case "password", "oidc":
-		return true
-	case "webauthn":
-		return !s.oidcWebAuthnSequencingEnabled
-	default:
-		return false
-	}
 }
 
 // hydrateKratosLoginFlow hydrates the kratos login flow with information about the oauth2 flow

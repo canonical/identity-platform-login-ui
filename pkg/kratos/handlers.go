@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -33,6 +34,12 @@ type API struct {
 	cookieManager                 AuthCookieManagerInterface
 
 	logger logging.LoggerInterface
+}
+
+type KratosErrorResponse struct {
+	Error             *client.GenericError `json:"error,omitempty"`
+	RedirectBrowserTo string               `json:"redirect_browser_to,omitempty"`
+	RedirectTo        string               `json:"redirect_to,omitempty"`
 }
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
@@ -137,6 +144,13 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
+		// Propagate the KratosErrorResponse so frontend can handle it
+		if kratosError, ok := parseGenericError(err); ok {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(kratosError)
+			return
+		}
+
 		a.logger.Errorf(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -145,6 +159,20 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+func parseGenericError(err error) (*KratosErrorResponse, bool) {
+	var apiErr *client.GenericOpenAPIError
+	if !errors.As(err, &apiErr) {
+		return nil, false
+	}
+
+	var resp KratosErrorResponse
+	if err := json.Unmarshal(apiErr.Body(), &resp); err != nil {
+		return nil, false
+	}
+
+	return &resp, true
 }
 
 func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo string, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
@@ -156,10 +184,10 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo s
 		returnTo,
 		loginChallenge,
 		refresh,
-		filterCookies(r.Cookies(), KRATOS_SESSION_COOKIE_NAME),
+		r.Cookies(),
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create login flow, err: %v", err)
+		return nil, nil, fmt.Errorf("failed to create login flow, err: %w", err)
 	}
 
 	flow, err = a.service.FilterFlowProviderList(r.Context(), flow)
@@ -173,7 +201,7 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal string, returnTo s
 func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session, loginChallenge)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to accept login request: %v", err)
+		return nil, nil, fmt.Errorf("failed to accept login request: %w", err)
 	}
 
 	return response, cookies, nil
