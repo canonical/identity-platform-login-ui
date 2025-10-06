@@ -1,12 +1,27 @@
+// Copyright 2024 Canonical Ltd
+// SPDX-License-Identifier: AGPL
+
 package logging
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
+)
+
+const (
+	UserAgentKey     = "useragent"
+	SourceIpKey      = "source_ip"
+	HostnameKey      = "hostname"
+	ProtocolKey      = "protocol"
+	PortKey          = "port"
+	RequestUriKey    = "request_uri"
+	RequestMethodKey = "request_method"
 )
 
 // brain-picked from DefaultLogFormatter https://raw.githubusercontent.com/go-chi/chi/v5.0.8/middleware/logger.go
@@ -66,4 +81,24 @@ func NewLogFormatter(logger LoggerInterface) *LogFormatter {
 	l.Logger = logger
 
 	return l
+}
+
+func LogContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		ctx = context.WithValue(ctx, UserAgentKey, r.UserAgent())
+		ctx = context.WithValue(ctx, SourceIpKey, r.RemoteAddr)
+		ctx = context.WithValue(ctx, ProtocolKey, r.Proto)
+		ctx = context.WithValue(ctx, RequestUriKey, r.RequestURI)
+		ctx = context.WithValue(ctx, RequestMethodKey, r.Method)
+
+		h := strings.Split(r.Host, ":")
+		ctx = context.WithValue(ctx, HostnameKey, h[0])
+		if len(h) > 1 {
+			ctx = context.WithValue(ctx, PortKey, h[1])
+		}
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

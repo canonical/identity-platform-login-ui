@@ -1,8 +1,6 @@
 package logging
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 
@@ -10,51 +8,54 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// NewLogger creates a new default logger
-// it will need to be closed with
-// ```
-// defer logger.Desugar().Sync()
-// ```
-// to make sure all has been piped out before terminating
-func NewLogger(l string) *zap.SugaredLogger {
-	var lvl string
+type Logger struct {
+	*zap.SugaredLogger
+	security *SecurityLogger
+}
 
-	val := strings.ToLower(l)
+func (l *Logger) Security() SecurityLoggerInterface {
+	return l.security
+}
 
-	switch val {
-	case "debug", "error", "warn", "info":
-		lvl = val
+func (l *Logger) Sync() {
+	l.security.Sync()
+	l.SugaredLogger.Desugar().Sync()
+}
+
+func NewLogger(l string) *Logger {
+	logger := new(Logger)
+	logger.SugaredLogger = NewServiceLogger(l)
+	logger.security = NewSecurityLogger(l)
+	return logger
+}
+
+func NewServiceLogger(l string) *zap.SugaredLogger {
+	var lvl zapcore.Level
+
+	switch strings.ToLower(l) {
+	case "debug":
+		lvl = zap.DebugLevel
+	case "info":
+		lvl = zap.InfoLevel
 	case "warning":
-		lvl = "warn"
-	default:
-		lvl = "error"
+		lvl = zap.WarnLevel
+	case "error":
+		lvl = zap.ErrorLevel
+	case "critical":
+		lvl = zap.DPanicLevel
 	}
 
-	rawJSON := []byte(
-		fmt.Sprintf(
-			`{
-				"level": "%s",
-				"encoding": "json",
-				"outputPaths": ["stdout"],
-				"errorOutputPaths": ["stdout","stderr"],
-				"encoderConfig": {
-					"messageKey": "message",
-					"levelKey": "severity",
-					"levelEncoder": "lowercase",
-					"timeKey": "@timestamp",
-					"timeEncoder": "rfc3339nano"
-				}
-			}`,
-			lvl),
-	)
-
-	var cfg zap.Config
-	if err := json.Unmarshal(rawJSON, &cfg); err != nil {
-		panic(err)
+	c := zapcore.EncoderConfig{
+		MessageKey:  "description",
+		LevelKey:    "level",
+		EncodeLevel: zapcore.CapitalLevelEncoder,
+		TimeKey:     "datetime",
+		EncodeTime:  zapcore.RFC3339NanoTimeEncoder,
 	}
 
-	core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.AddSync(os.Stdout), cfg.Level)
+	encoder := zapcore.NewJSONEncoder(c)
+	encoder.AddString("type", "service")
+	core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), lvl)
 
 	return zap.New(core).Sugar()
-
 }

@@ -4,6 +4,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewNoopLogger() *zap.SugaredLogger {
-	return zap.NewNop().Sugar()
+func NewNoopLogger() *Logger {
+	return &Logger{
+		SugaredLogger: zap.NewNop().Sugar(),
+		security:      &SecurityLogger{l: zap.NewNop()},
+	}
 }
