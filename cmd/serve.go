@@ -48,7 +48,7 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 }
 
-func serve() int {
+func serve() error {
 
 	specs := new(config.EnvSpec)
 
@@ -107,33 +107,35 @@ func serve() int {
 		Handler:      router,
 	}
 
-	go func() {
-		logger.Security().SystemStartup()
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatal(err)
-		}
-	}()
-
+	var serverError error
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	// Block until we receive our signal.
+	go func() {
+		logger.Security().SystemStartup()
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverError = fmt.Errorf("server error: %w", err)
+			c <- os.Interrupt
+		}
+	}()
+
 	<-c
 
 	// Create a deadline to wait for.
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	// Doesn't block if no connections, but will otherwise wait
-	// until the timeout deadline.
-	srv.Shutdown(ctx)
-	logger.Security().SystemShutdown()
 
-	// Optionally, you could run srv.Shutdown in a goroutine and block on
-	// <-ctx.Done() if your application should wait for other services
-	// to finalize based on context cancellation.
-	return 0
+	logger.Security().SystemShutdown()
+	if err := srv.Shutdown(ctx); err != nil {
+		serverError = fmt.Errorf("server shutdown error: %w", err)
+	}
+
+	return serverError
 }
 
 func main() {
-	os.Exit(serve())
+	if err := serve(); err != nil {
+		fmt.Fprintf(os.Stderr, "Fatal error: %v\n", err)
+		os.Exit(1)
+	}
 }
