@@ -1534,6 +1534,7 @@ func TestHandleUpdateSettingsFlow(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
 	values.Add("flow", flowId)
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseSettingsFlowMethodBody(gomock.Any()).Return(flowBody, nil)
@@ -1615,7 +1616,7 @@ func TestHandleUpdateSettingsFlowWithRedirect(t *testing.T) {
 	}
 }
 
-func TestHandleUpdateSettingsFlowWithReturnTo(t *testing.T) {
+func TestHandleUpdateWebAuthnSettingsFlowWithReturnTo(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -1627,12 +1628,12 @@ func TestHandleUpdateSettingsFlowWithReturnTo(t *testing.T) {
 	flowId := "test"
 	flow := kClient.NewSettingsFlowWithDefaults()
 	flow.Id = flowId
-	flow.State = "show_form"
+	flow.State = "success"
 	flow.Identity.SetTraits(map[string]string{"name": "name"})
 	flow.ReturnTo = &returnTo
 
 	flowBody := new(kClient.UpdateSettingsFlowBody)
-	flowBody.UpdateSettingsFlowWithPasswordMethod = kClient.NewUpdateSettingsFlowWithPasswordMethod("password", "password")
+	flowBody.UpdateSettingsFlowWithWebAuthnMethod = kClient.NewUpdateSettingsFlowWithWebAuthnMethod("webauthn")
 
 	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
@@ -1659,6 +1660,61 @@ func TestHandleUpdateSettingsFlowWithReturnTo(t *testing.T) {
 		t.Fatalf("Invalid location, expected: %s, got: %s", returnTo, res.Header.Get("Location"))
 	}
 }
+
+func TestHandleUpdateWebAuthnSettingsFlowWithoutReturnTo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+
+	returnTo := "https://example.com/setup_passkey"
+	flowId := "test"
+	flow := kClient.NewSettingsFlowWithDefaults()
+	flow.Id = flowId
+	flow.State = "success"
+	flow.Identity.SetTraits(map[string]string{"name": "name"})
+
+	continueRedirect := &kClient.ContinueWithRedirectBrowserTo{
+		Action:            "redirect_browser_to",
+		RedirectBrowserTo: returnTo,
+	}
+	flow.ContinueWith = []kClient.ContinueWith{
+		{
+			ContinueWithRedirectBrowserTo: continueRedirect,
+		},
+	}
+
+	flowBody := new(kClient.UpdateSettingsFlowBody)
+	flowBody.UpdateSettingsFlowWithWebAuthnMethod = kClient.NewUpdateSettingsFlowWithWebAuthnMethod("webauthn")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	mockService.EXPECT().ParseSettingsFlowMethodBody(gomock.Any()).Return(flowBody, nil)
+	mockService.EXPECT().UpdateSettingsFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(flow, nil, req.Cookies(), nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, BASE_URL, mockCookieManager, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatal("Expected HTTP status code 303, got: ", res.Status)
+	}
+
+	if res.Header.Get("Location") != returnTo {
+		t.Fatalf("Invalid location, expected: %s, got: %s", returnTo, res.Header.Get("Location"))
+	}
+}
+
 func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1675,6 +1731,7 @@ func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T)
 	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_SETTINGS_FLOW_URL, nil)
 	values := req.URL.Query()
 	values.Add("flow", flowId)
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseSettingsFlowMethodBody(gomock.Any()).Return(flowBody, fmt.Errorf("error"))
