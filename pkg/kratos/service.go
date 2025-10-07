@@ -519,10 +519,6 @@ func (s *Service) UpdateSettingsFlow(
 		return nil, nil, nil, err
 	}
 
-	// Workaround for marshalling error
-	// TODO: Evaluate if we can get rid of that when kratos sdk 1.3 is out
-	settingsFlow.ContinueWith = nil
-
 	return settingsFlow, nil, resp.Cookies(), nil
 }
 
