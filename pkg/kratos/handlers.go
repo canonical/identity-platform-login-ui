@@ -788,6 +788,7 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// force redirection after successful webauthn registration
+	// this maintains previous kratos behaviour as frontend does not handle returnTo
 	if _, ok := body.GetActualInstance().(*client.UpdateSettingsFlowWithWebAuthnMethod); ok {
 		if state, ok := flow.State.(string); ok && state == "success" {
 			if returnTo, ok := flow.GetReturnToOk(); ok {

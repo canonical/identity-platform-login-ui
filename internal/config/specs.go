@@ -20,6 +20,7 @@ type EnvSpec struct {
 	KratosPublicURL string `envconfig:"kratos_public_url"`
 	KratosAdminURL  string `envconfig:"kratos_admin_url"`
 	HydraAdminURL   string `envconfig:"hydra_admin_url"`
+	KratosBasePath  string `envconfig:"kratos_base_path" default:".."`
 
 	ApiScheme            string `envconfig:"openfga_api_scheme" default:""`
 	ApiHost              string `envconfig:"openfga_api_host"`
