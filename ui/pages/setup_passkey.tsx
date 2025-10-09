@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Button, Icon, Spinner } from "@canonical/react-components";
@@ -37,6 +37,7 @@ type AppConfig = {
 };
 
 const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
+  const { kratos, kratosReady } = useKratos();
   const [flow, setFlow] = useState<SettingsFlow>();
   const [loadingKeysFlow, setLoadingKeysFlow] = useState<SettingsFlow>();
   const [supportEmail, setSupportEmail] = useState("");
@@ -61,7 +62,7 @@ const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (!router.isReady || flow || !kratosReady) {
       return;
     }
 
@@ -102,7 +103,7 @@ const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
 
         return Promise.reject(err);
       });
-  }, [flowId, router, router.isReady, returnTo, flow]);
+  }, [flowId, router, router.isReady, returnTo, flow, kratosReady]);
 
   const handleSubmit = (values: UpdateSettingsFlowBody) => {
     // adding a new key is handled by NodeInputButton that triggers the webauthn script

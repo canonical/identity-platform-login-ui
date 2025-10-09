@@ -3,11 +3,12 @@ import React, { useEffect, useState } from "react";
 import PageLayout from "../components/PageLayout";
 import { useRouter } from "next/router";
 import { Spinner } from "@canonical/react-components";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import { handleFlowError } from "../util/handleFlowError";
 import { SettingsFlow } from "@ory/client";
 
 const SetupComplete: NextPage = () => {
+  const { kratos, kratosReady } = useKratos();
   const [flow, setFlow] = useState<SettingsFlow>();
 
   const router = useRouter();
@@ -15,7 +16,7 @@ const SetupComplete: NextPage = () => {
 
   useEffect(() => {
     // If the router is not ready yet, or we have no flowId, do nothing.
-    if (!router.isReady || !flowId) {
+    if (!router.isReady || !flowId || !kratosReady) {
       return;
     }
 
@@ -35,7 +36,7 @@ const SetupComplete: NextPage = () => {
       .getSettingsFlow({ id: String(flowId) })
       .then((res) => setFlow(res.data))
       .catch(handleFlowError("settings", setFlow));
-  }, [flowId, router, flow]);
+  }, [flowId, router, flow, kratosReady]);
 
   return (
     <PageLayout title="Account setup complete">

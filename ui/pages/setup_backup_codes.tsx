@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Spinner } from "@canonical/react-components";
@@ -35,6 +35,7 @@ interface Props {
 }
 
 const SetupBackupCodes: NextPage<Props> = ({ forceSelfServe }: Props) => {
+  const { kratos, kratosReady } = useKratos();
   const [flow, setFlow] = useState<SettingsFlow>();
   const [hasDeletionModal, setHasDeletionModal] = React.useState(false);
   const [hasSavedCodes, setSavedCodes] = React.useState(false);
@@ -48,7 +49,7 @@ const SetupBackupCodes: NextPage<Props> = ({ forceSelfServe }: Props) => {
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (!router.isReady || flow || !kratosReady) {
       return;
     }
 
@@ -86,7 +87,7 @@ const SetupBackupCodes: NextPage<Props> = ({ forceSelfServe }: Props) => {
 
         return Promise.reject(err);
       });
-  }, [flowId, router, router.isReady, returnTo, flow]);
+  }, [flowId, router, router.isReady, returnTo, flow, kratosReady]);
 
   const handleSubmit = useCallback(
     (values: UpdateSettingsFlowBody) => {
@@ -125,7 +126,7 @@ const SetupBackupCodes: NextPage<Props> = ({ forceSelfServe }: Props) => {
         })
         .catch(handleFlowError("settings", setFlow));
     },
-    [flow, router],
+    [flow, router, kratosReady],
   );
 
   let hasDisableCodes = false;

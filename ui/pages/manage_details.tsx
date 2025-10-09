@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import PageLayout from "../components/PageLayout";
 import { useRouter } from "next/router";
 import { Input } from "@canonical/react-components";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import { handleFlowError } from "../util/handleFlowError";
 import { SettingsFlow } from "@ory/client";
 import { AxiosError } from "axios";
@@ -14,6 +14,7 @@ import {
 } from "../util/selfServeHelpers";
 
 const ManageDetails: NextPage = () => {
+  const { kratos, kratosReady } = useKratos();
   const [flow, setFlow] = useState<SettingsFlow>();
 
   // Get ?flow=... from the URL
@@ -22,7 +23,7 @@ const ManageDetails: NextPage = () => {
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (!router.isReady || flow || !kratosReady) {
       return;
     }
 
@@ -62,7 +63,7 @@ const ManageDetails: NextPage = () => {
 
         return Promise.reject(err);
       });
-  }, [flowId, router, router.isReady, returnTo, flow]);
+  }, [flowId, router, router.isReady, returnTo, flow, kratosReady]);
 
   const userName = getLoggedInName(flow);
   const fullName = getFullName(flow);
