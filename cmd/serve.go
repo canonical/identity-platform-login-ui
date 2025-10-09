@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -39,7 +40,7 @@ var serveCmd = &cobra.Command{
 	Short: "serve starts the web server",
 	Long:  `Launch the web application, list of environment variables is available in the readme`,
 	Run: func(cmd *cobra.Command, args []string) {
-		serve()
+		main()
 	},
 }
 
@@ -47,7 +48,7 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 }
 
-func serve() {
+func serve() error {
 
 	specs := new(config.EnvSpec)
 
@@ -56,6 +57,7 @@ func serve() {
 	}
 
 	logger := logging.NewLogger(specs.LogLevel)
+	defer logger.Sync()
 
 	logger.Debugf("env vars: %v", specs)
 
@@ -105,31 +107,35 @@ func serve() {
 		Handler:      router,
 	}
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			logger.Fatal(err)
-		}
-	}()
-
+	var serverError error
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	// Block until we receive our signal.
+	go func() {
+		logger.Security().SystemStartup()
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverError = fmt.Errorf("server error: %w", err)
+			c <- os.Interrupt
+		}
+	}()
+
 	<-c
 
 	// Create a deadline to wait for.
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	// Doesn't block if no connections, but will otherwise wait
-	// until the timeout deadline.
-	srv.Shutdown(ctx)
 
-	logger.Desugar().Sync()
+	logger.Security().SystemShutdown()
+	if err := srv.Shutdown(ctx); err != nil {
+		serverError = fmt.Errorf("server shutdown error: %w", err)
+	}
 
-	// Optionally, you could run srv.Shutdown in a goroutine and block on
-	// <-ctx.Done() if your application should wait for other services
-	// to finalize based on context cancellation.
-	logger.Info("Shutting down")
-	os.Exit(0)
+	return serverError
+}
 
+func main() {
+	if err := serve(); err != nil {
+		fmt.Fprintf(os.Stderr, "Fatal error: %v\n", err)
+		os.Exit(1)
+	}
 }
