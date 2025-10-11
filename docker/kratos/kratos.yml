@@ -35,7 +35,7 @@ selfservice:
         login:
             ui_url: http://localhost:4455/ui/login
             # TODO: Uncomment when the pattern is implemented in FE
-            # style: identifier_first
+            style: identifier_first
         recovery:
             enabled: True
             ui_url: http://localhost:4455/ui/reset_email

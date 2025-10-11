@@ -1,8 +1,9 @@
 import { getNodeLabel } from "@ory/integrations/ui";
-import { Button } from "@canonical/react-components";
+import { Button, Link } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
 import React, { Component, FC } from "react";
 import { getProviderImage } from "../util/logos";
+import { ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN } from "../util/constants";
 
 export const NodeInputSubmit: FC<NodeInputProps> = ({
   node,
@@ -24,6 +25,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     }
     return node.group === "password" ||
       node.group === "code" ||
+      node.group === "identifier_first" ||
       node.group === "totp" ||
       node.group === "webauthn" ||
       node.group === "lookup_secret"
@@ -36,6 +38,22 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
       onClick: () => void;
     }
   )?.onClick;
+
+  const renderRegistrationCta = () => {
+    const isIdentifierFirstSubmit =
+      node.group === "identifier_first" &&
+      attributes.type === "submit" &&
+      node.meta.label?.id === ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN;
+
+    if (!isIdentifierFirstSubmit) return null;
+
+    return (
+      <p className="registration-cta">
+        Don&apos;t have an account?{" "}
+        <Link href="/ui/register_email">Register</Link>
+      </p>
+    );
+  };
 
   const beforeComponent = (
     node.meta.label?.context as {
@@ -85,6 +103,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
         )}
       </Button>
       {afterComponent}
+      {renderRegistrationCta()}
     </>
   );
 };
