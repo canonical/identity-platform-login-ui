@@ -7,6 +7,7 @@ services:
     environment:
       - KRATOS_PUBLIC_URL=http://kratos:4433
       - KRATOS_ADMIN_URL=http://kratos:4434
+      - KRATOS_BASE_PATH=../api/kratos
       - HYDRA_ADMIN_URL=http://hydra:4445
       - BASE_URL=http://localhost:4455
       - COOKIES_ENCRYPTION_KEY=WrfOcYmVBwyduEbKYTUhO4X7XVaOQ1wF

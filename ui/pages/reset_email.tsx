@@ -4,13 +4,14 @@ import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import PageLayout from "../components/PageLayout";
 import { Spinner } from "@canonical/react-components";
 import { BackButton } from "../components/BackButton";
 import { isContinueWithPasswordReset } from "../util/constants";
 
 const ResetEmail: NextPage = () => {
+  const { kratos, kratosReady } = useKratos();
   const [flow, setFlow] = useState<RecoveryFlow>();
 
   // Get ?flow=... from the URL
@@ -19,7 +20,7 @@ const ResetEmail: NextPage = () => {
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (!router.isReady || flow || !kratosReady) {
       return;
     }
 
@@ -49,7 +50,7 @@ const ResetEmail: NextPage = () => {
         setFlow(data);
       })
       .catch(handleFlowError("recovery", setFlow));
-  }, [flowId, router, router.isReady, returnTo, flow]);
+  }, [flowId, router, router.isReady, returnTo, flow, kratosReady]);
 
   const handleSubmit = useCallback(
     (values: UpdateRecoveryFlowBody) => {
@@ -75,7 +76,7 @@ const ResetEmail: NextPage = () => {
         })
         .catch(handleFlowError("recovery", setFlow));
     },
-    [flow, router],
+    [flow, router, kratosReady],
   );
 
   const wasEmailSent = flow?.state === "sent_email";

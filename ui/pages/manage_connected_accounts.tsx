@@ -8,7 +8,7 @@ import {
 } from "@canonical/react-components";
 import { SettingsFlow, UiNodeInputAttributes } from "@ory/client";
 import PageLayout from "../components/PageLayout";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import { handleFlowError } from "../util/handleFlowError";
 import { AxiosError } from "axios";
 import { getLoggedInName } from "../util/selfServeHelpers";
@@ -75,6 +75,7 @@ const buildOidcProviderStates = (flow?: SettingsFlow): ProviderState[] => {
 };
 
 const ManageConnectedAccounts: NextPage = () => {
+  const { kratos, kratosReady } = useKratos();
   const [flow, setFlow] = useState<SettingsFlow>();
 
   const router = useRouter();
@@ -107,7 +108,7 @@ const ManageConnectedAccounts: NextPage = () => {
   }, [router.isReady, providers]);
 
   useEffect(() => {
-    if (!router.isReady || flow) {
+    if (!router.isReady || flow || !kratosReady) {
       return;
     }
 
@@ -126,7 +127,7 @@ const ManageConnectedAccounts: NextPage = () => {
 
         return Promise.reject(err);
       });
-  }, [router, router.isReady, returnTo, flow]);
+  }, [router, router.isReady, returnTo, flow, kratosReady]);
 
   const handleSubmit = useCallback(
     (action: ProviderConnectionAction, providerId: string) => {
@@ -167,7 +168,7 @@ const ManageConnectedAccounts: NextPage = () => {
           handleFlowError("settings", setFlow);
         });
     },
-    [flow, router],
+    [flow, router, kratosReady],
   );
 
   const connectionState = useMemo<ConnectionState>(() => {

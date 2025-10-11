@@ -33,6 +33,7 @@ func NewRouter(
 	oidcWebAuthnSequencingEnabled bool,
 	identifierFirstEnabled bool,
 	baseURL string,
+	kratosBasePath string,
 	supportEmail string,
 	KratosPublicURL string,
 	tracer tracing.TracingInterface,
@@ -75,6 +76,7 @@ func NewRouter(
 	extra.NewAPI(extra.NewService(hydraClient, tracer, monitor, logger), kratosService, baseURL, mfaEnabled, oidcWebAuthnSequencingEnabled, logger).RegisterEndpoints(router)
 	status.NewAPI(
 		baseURL,
+		kratosBasePath,
 		supportEmail,
 		oidcWebAuthnSequencingEnabled,
 		identifierFirstEnabled,

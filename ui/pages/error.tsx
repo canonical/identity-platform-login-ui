@@ -5,11 +5,12 @@ import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import React from "react";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import { GenericError } from "@ory/client/api";
 import PageLayout from "../components/PageLayout";
 
 const Error: NextPage = () => {
+  const { kratos, kratosReady } = useKratos();
   const [error, setError] = useState<FlowError>();
 
   // Get ?id=... from the URL
@@ -18,7 +19,7 @@ const Error: NextPage = () => {
 
   useEffect(() => {
     // If the router is not ready yet, or we already have an error, do nothing.
-    if (!router.isReady || error) {
+    if (!router.isReady || error || !kratosReady) {
       return;
     }
 
@@ -43,7 +44,7 @@ const Error: NextPage = () => {
 
         return Promise.reject(err);
       });
-  }, [id, router, router.isReady, error]);
+  }, [id, router, router.isReady, error, kratosReady]);
 
   return (
     <PageLayout title="Sign in failed">

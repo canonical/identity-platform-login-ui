@@ -3,11 +3,12 @@ import React, { useEffect, useState } from "react";
 import PageLayout from "../components/PageLayout";
 import { Button } from "@canonical/react-components";
 import { useRouter } from "next/router";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import { handleFlowError } from "../util/handleFlowError";
 import { LoginFlow } from "@ory/client";
 
 const BackupCodesRegenerate: NextPage = () => {
+  const { kratos, kratosReady } = useKratos();
   const [flow, setFlow] = useState<LoginFlow>();
 
   const router = useRouter();
@@ -15,7 +16,7 @@ const BackupCodesRegenerate: NextPage = () => {
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (!router.isReady || flow || !kratosReady) {
       return;
     }
 
@@ -26,7 +27,7 @@ const BackupCodesRegenerate: NextPage = () => {
         .catch(handleFlowError("login", setFlow));
       return;
     }
-  }, [flowId, router, router.isReady, flow]);
+  }, [flowId, router, router.isReady, flow, kratosReady]);
 
   const signInUrl = flow?.return_to ?? "./login";
 

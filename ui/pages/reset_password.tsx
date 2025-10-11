@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState, useCallback, FormEvent } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import PageLayout from "../components/PageLayout";
 import Password from "../components/Password";
 import { UiNodeInputAttributes } from "@ory/client/api";
@@ -22,6 +22,7 @@ interface Props {
 }
 
 const ResetPassword: NextPage<Props> = ({ forceSelfServe }: Props) => {
+  const { kratos, kratosReady } = useKratos();
   const [password, setPassword] = React.useState("");
   const [isPassValid, setPassValid] = React.useState(false);
   const [flow, setFlow] = useState<SettingsFlow>();
@@ -39,7 +40,7 @@ const ResetPassword: NextPage<Props> = ({ forceSelfServe }: Props) => {
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (!router.isReady || flow || !kratosReady) {
       return;
     }
 
@@ -92,7 +93,7 @@ const ResetPassword: NextPage<Props> = ({ forceSelfServe }: Props) => {
 
         return Promise.reject(err);
       });
-  }, [flowId, router, router.isReady, returnTo, flow]);
+  }, [flowId, router, router.isReady, returnTo, flow, kratosReady]);
 
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -122,7 +123,7 @@ const ResetPassword: NextPage<Props> = ({ forceSelfServe }: Props) => {
         })
         .catch(handleFlowError("settings", setFlow));
     },
-    [flow, router, password],
+    [flow, router, password, kratosReady],
   );
 
   if (!flow) {

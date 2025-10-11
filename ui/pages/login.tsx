@@ -12,7 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
-import { kratos } from "../api/kratos";
+import { useKratos } from "../api/kratosProvider";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
@@ -35,6 +35,7 @@ type AppConfig = {
 };
 
 const Login: NextPage = () => {
+  const { kratos, kratosReady } = useKratos();
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
   const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
@@ -75,7 +76,7 @@ const Login: NextPage = () => {
 
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    if (!router.isReady || flow || !kratosReady) {
       return;
     }
 
@@ -129,6 +130,7 @@ const Login: NextPage = () => {
     returnTo,
     flow,
     login_challenge,
+    kratosReady,
   ]);
   const handleSubmit = useCallback(
     (values: UpdateLoginFlowBody) => {
@@ -203,7 +205,7 @@ const Login: NextPage = () => {
           return Promise.reject(err);
         });
     },
-    [flow, router],
+    [flow, router, kratosReady],
   );
   const reqName = flow?.oauth2_login_request?.client?.client_name;
   const reqDomain = flow?.oauth2_login_request?.client?.client_uri
@@ -316,12 +318,6 @@ const Login: NextPage = () => {
       });
 
       return null;
-    } else if (isWebauthn) {
-      // call kratos through the go server proxy
-      const kratosUrl = renderFlow.ui.action.split("/self-service/");
-      if (kratosUrl.length == 2) {
-        renderFlow.ui.action = "../api/kratos/self-service/" + kratosUrl[1];
-      }
     }
   }
 

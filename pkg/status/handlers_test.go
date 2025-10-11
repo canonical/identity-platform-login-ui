@@ -31,7 +31,7 @@ func TestAliveOK(t *testing.T) {
 	mockService.EXPECT().BuildInfo(gomock.Any()).Times(1).Return(&BuildInfo{Version: "xyz", Name: "application"})
 
 	mux := chi.NewMux()
-	NewAPI("", "support@email.com", false, true, mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
+	NewAPI("", "", "support@email.com", false, true, mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 	res := w.Result()
@@ -66,7 +66,7 @@ func TestHealthSuccess(t *testing.T) {
 	mockService.EXPECT().HydraStatus(gomock.Any()).Times(1).Return(true)
 
 	mux := chi.NewMux()
-	NewAPI("", "support@email.com", false, true, mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
+	NewAPI("", "", "support@email.com", false, true, mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 	res := w.Result()
@@ -102,7 +102,7 @@ func TestHealthFailure(t *testing.T) {
 	mockService.EXPECT().KratosStatus(gomock.Any()).Times(1).Return(false)
 	mockService.EXPECT().HydraStatus(gomock.Any()).Times(1).Return(false)
 	mux := chi.NewMux()
-	NewAPI("", "support@email.com", false, true, mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
+	NewAPI("", "", "support@email.com", false, true, mockService, mockTracer, mockMonitor, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 	res := w.Result()
@@ -133,7 +133,8 @@ func TestGetDeploymentInfo(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 
 	supportEmail := "support@email.com"
-	a := NewAPI("", supportEmail, false, true, mockService, mockTracer, mockMonitor, mockLogger)
+	kratosBasePath := ""
+	a := NewAPI("", "", supportEmail, false, true, mockService, mockTracer, mockMonitor, mockLogger)
 
 	req, _ := http.NewRequest(http.MethodGet, "/api/v0/app-config", nil)
 	w := httptest.NewRecorder()
@@ -148,6 +149,9 @@ func TestGetDeploymentInfo(t *testing.T) {
 	receivedInfo := new(DeploymentInfo)
 	if err := json.Unmarshal(data, receivedInfo); err != nil {
 		t.Fatalf("expected error to be nil got %v", err)
+	}
+	if receivedInfo.KratosBasePath != kratosBasePath {
+		t.Fatalf("expected kratos base path to be %s not %s", kratosBasePath, receivedInfo.KratosBasePath)
 	}
 	if receivedInfo.OidcSequencingEnabled {
 		t.Fatalf("expected sequencing flag to be false not %v", receivedInfo.OidcSequencingEnabled)

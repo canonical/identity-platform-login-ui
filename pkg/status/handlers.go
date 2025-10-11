@@ -25,12 +25,14 @@ type Health struct {
 type DeploymentInfo struct {
 	OidcSequencingEnabled  bool   `json:"oidc_webauthn_sequencing_enabled"`
 	BaseURL                string `json:"base_url"`
+	KratosBasePath         string `json:"kratos_base_path"`
 	IdentifierFirstEnabled bool   `json:"identifier_first_enabled"`
 	SupportEmail           string `json:"support_email"`
 }
 
 type API struct {
 	BaseURL                       string
+	KratosBasePath                string
 	supportEmail                  string
 	oidcWebAuthnSequencingEnabled bool
 	identifierFirstEnabled        bool
@@ -95,16 +97,18 @@ func (a *API) appConfig(w http.ResponseWriter, r *http.Request) {
 	info.OidcSequencingEnabled = a.oidcWebAuthnSequencingEnabled
 	info.IdentifierFirstEnabled = a.identifierFirstEnabled
 	info.BaseURL = a.BaseURL
+	info.KratosBasePath = a.KratosBasePath
 	info.SupportEmail = a.supportEmail
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(info)
 }
 
-func NewAPI(baseURL, supportEmail string, oidcWebAuthnSequencingEnabled, identifierFirstEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
+func NewAPI(baseURL, kratosBasePath, supportEmail string, oidcWebAuthnSequencingEnabled, identifierFirstEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.BaseURL = baseURL
+	a.KratosBasePath = kratosBasePath
 	a.supportEmail = supportEmail
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.identifierFirstEnabled = identifierFirstEnabled
