@@ -1,4 +1,3 @@
-version: '3.7'
 services:
   kratos-migrate:
     image: ghcr.io/canonical/kratos:1.3.1
