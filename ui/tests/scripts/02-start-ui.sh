@@ -12,7 +12,7 @@ make npm-build build
 export KRATOS_PUBLIC_URL="http://localhost:4433"
 export KRATOS_ADMIN_URL="http://localhost:4434"
 export HYDRA_ADMIN_URL="http://localhost:4445"
-export BASE_URL="http://localhost:4455"
+export BASE_URL="http://localhost"
 export PORT="4455"
 export TRACING_ENABLED="false"
 export LOG_LEVEL="debug"

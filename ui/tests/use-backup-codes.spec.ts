@@ -12,7 +12,7 @@ test("backup recovery code setup and usage", async ({ context, page }) => {
   await setupTotp(page);
   await finishAuthFlow(page);
 
-  await page.goto("http://localhost:4455/ui/setup_backup_codes");
+  await page.goto("http://localhost/ui/setup_backup_codes");
   await clickButton(page, "Create backup codes");
 
   const backupCode = await page.locator(".p-list__item").first().textContent();
