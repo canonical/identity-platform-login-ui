@@ -1,0 +1,55 @@
+http:
+  middlewares:
+    sidecar-replace-path-regex-login-ui:
+      replacePathRegex:
+        regex: "^/self-service/(.*)"
+        replacement: "/api/kratos/self-service/$1"
+
+  routers:
+    # Self-service with path rewrite
+    login-ui-public-api-router-self-service:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/self-service`)"
+      middlewares:
+        - sidecar-replace-path-regex-login-ui
+      service: login-ui-public-api-service
+
+    # /api/device
+    login-ui-public-api-router-api-device:
+      entryPoints:
+        - web
+        - websecure
+      rule: "Path(`/api/device`)"
+      service: login-ui-public-api-service
+
+    # /api/consent
+    login-ui-public-api-router-api-consent:
+      entryPoints:
+        - web
+        - websecure
+      rule: "Path(`/api/consent`)"
+      service: login-ui-public-api-service
+
+    # /api/v0/app-config
+    login-ui-public-api-router-api-config:
+      entryPoints:
+        - web
+        - websecure
+      rule: "Path(`/api/v0/app-config`)"
+      service: login-ui-public-api-service
+
+    # /ui (e.g., /ui/login)
+    login-ui-public-api-router-ui:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/ui`)"
+      service: login-ui-public-api-service
+
+  services:
+    login-ui-public-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:4455"

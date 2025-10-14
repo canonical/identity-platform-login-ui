@@ -1,5 +1,23 @@
 version: '3.7'
 services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.file.filename=/etc/traefik/login-ui-routes.yml"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker/traefik:/etc/traefik
+    networks:
+      - intranet
   kratos-migrate:
     image: ghcr.io/canonical/kratos:1.3.1
     environment:
@@ -16,6 +34,8 @@ services:
     restart: on-failure
     networks:
       - intranet
+    labels:
+      - "traefik.enable=false"
   kratos:
     depends_on:
       - kratos-migrate
@@ -41,6 +61,42 @@ services:
         target: /etc/config/kratos
     networks:
       - intranet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.kratos-public.loadbalancer.server.port=4433"
+      - "traefik.http.services.kratos-admin.loadbalancer.server.port=4434"
+
+      # Middleware to rewrite the webauthn.js path
+      - "traefik.http.middlewares.replace-webauthn-path.replacePath.path=/.well-known/ory/webauthn.js"
+      
+      # Route: Serve /.well-known/webauthn.js
+      - "traefik.http.routers.kratos-well-known.rule=Path(`/.well-known/webauthn.js`)"
+      - "traefik.http.routers.kratos-well-known.entryPoints=web"
+      - "traefik.http.routers.kratos-well-known.middlewares=replace-webauthn-path"
+      - "traefik.http.routers.kratos-well-known.service=kratos-public"
+
+      # Public routes
+      - "traefik.http.routers.kratos-oidc-callback.rule=PathPrefix(`/self-service/methods/oidc/callback`)"
+      - "traefik.http.routers.kratos-oidc-callback.entryPoints=web"
+      - "traefik.http.routers.kratos-oidc-callback.service=kratos-public"
+
+      - "traefik.http.routers.kratos-schemas.rule=PathPrefix(`/schemas`)"
+      - "traefik.http.routers.kratos-schemas.entryPoints=web"
+      - "traefik.http.routers.kratos-schemas.service=kratos-public"
+
+      # Admin routes
+      - "traefik.http.routers.kratos-admin-identities.rule=PathPrefix(`/admin/identities`)"
+      - "traefik.http.routers.kratos-admin-identities.entryPoints=web"
+      - "traefik.http.routers.kratos-admin-identities.service=kratos-admin"
+
+      - "traefik.http.routers.kratos-admin-recovery.rule=PathPrefix(`/admin/recovery`)"
+      - "traefik.http.routers.kratos-admin-recovery.entryPoints=web"
+      - "traefik.http.routers.kratos-admin-recovery.service=kratos-admin"
+
+      - "traefik.http.routers.kratos-admin-sessions.rule=PathPrefix(`/admin/sessions`)"
+      - "traefik.http.routers.kratos-admin-sessions.entryPoints=web"
+      - "traefik.http.routers.kratos-admin-sessions.service=kratos-admin"
+
   kratos-setup:
     image: ghcr.io/canonical/kratos:1.3.1
     depends_on:
@@ -57,6 +113,8 @@ services:
     command: exec kratos import identities /etc/config/kratos/identity.json --endpoint http://kratos:4434
     networks:
       - intranet
+    labels:
+      - "traefik.enable=false"
   hydra:
     image: ghcr.io/canonical/hydra:2.3.0-canonical
     ports:
@@ -75,6 +133,45 @@ services:
       - hydra-migrate
     networks:
       - intranet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.hydra-public.loadbalancer.server.port=4444"
+      - "traefik.http.services.hydra-admin.loadbalancer.server.port=4445"
+
+      # Public API routes
+      - "traefik.http.routers.hydra-public-oauth2.rule=PathPrefix(`/oauth2`)"
+      - "traefik.http.routers.hydra-public-oauth2.entryPoints=web"
+      - "traefik.http.routers.hydra-public-oauth2.service=hydra-public"
+
+      - "traefik.http.routers.hydra-public-well-known-jwks.rule=Path(`/.well-known/jwks.json`)"
+      - "traefik.http.routers.hydra-public-well-known-jwks.entryPoints=web"
+      - "traefik.http.routers.hydra-public-well-known-jwks.service=hydra-public"
+
+      - "traefik.http.routers.hydra-public-well-known-openid.rule=Path(`/.well-known/openid-configuration`)"
+      - "traefik.http.routers.hydra-public-well-known-openid.entryPoints=web"
+      - "traefik.http.routers.hydra-public-well-known-openid.service=hydra-public"
+
+      - "traefik.http.routers.hydra-public-userinfo.rule=Path(`/userinfo`)"
+      - "traefik.http.routers.hydra-public-userinfo.entryPoints=web"
+      - "traefik.http.routers.hydra-public-userinfo.service=hydra-public"
+
+      # Admin API routes
+      - "traefik.http.routers.hydra-admin-oauth2.rule=PathPrefix(`/admin/oauth2`)"
+      - "traefik.http.routers.hydra-admin-oauth2.entryPoints=web"
+      - "traefik.http.routers.hydra-admin-oauth2.service=hydra-admin"
+
+      - "traefik.http.routers.hydra-admin-clients.rule=PathPrefix(`/admin/clients`)"
+      - "traefik.http.routers.hydra-admin-clients.entryPoints=web"
+      - "traefik.http.routers.hydra-admin-clients.service=hydra-admin"
+
+      - "traefik.http.routers.hydra-admin-trust.rule=PathPrefix(`/admin/trust`)"
+      - "traefik.http.routers.hydra-admin-trust.entryPoints=web"
+      - "traefik.http.routers.hydra-admin-trust.service=hydra-admin"
+
+      - "traefik.http.routers.hydra-admin-keys.rule=PathPrefix(`/admin/keys`)"
+      - "traefik.http.routers.hydra-admin-keys.entryPoints=web"
+      - "traefik.http.routers.hydra-admin-keys.service=hydra-admin"
+
   hydra-migrate:
     image: ghcr.io/canonical/hydra:2.3.0-canonical
     environment:
@@ -87,6 +184,8 @@ services:
     restart: on-failure
     networks:
       - intranet
+    labels:
+      - "traefik.enable=false"
   mailslurper:
     image: oryd/mailslurper:latest-smtps
     ports:
@@ -94,6 +193,8 @@ services:
       - '4437:4437'
     networks:
       - intranet
+    labels:
+      - "traefik.enable=false"
   postgres:
     image: postgres
     container_name: postgres
@@ -112,6 +213,8 @@ services:
       retries: 5
     networks:
       - intranet
+    labels:
+      - "traefik.enable=false"
   migrateopenfga:
     image: openfga/openfga:v1.9.0
     container_name: migrateopenfga
@@ -121,6 +224,8 @@ services:
         condition: service_healthy
     networks:
       - intranet
+    labels:
+      - "traefik.enable=false"
   insert-hardcoded-store:
     image: governmentpaas/psql
     container_name: insert-hardcoded-store
@@ -130,6 +235,8 @@ services:
         condition: service_completed_successfully
     networks:
       - intranet
+    labels:
+      - "traefik.enable=false"
   openfga:
     image: openfga/openfga:v1.9.0
     environment:
@@ -148,6 +255,8 @@ services:
         condition: service_completed_successfully
     networks:
       - intranet
+    labels:
+      - "traefik.enable=false"
 networks:
   intranet:
 volumes:
