@@ -43,6 +43,9 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Post("/api/kratos/self-service/login/id-first", a.handleUpdateIdentifierFirstFlow)
 	mux.Get("/api/kratos/self-service/login/browser", a.handleCreateFlow)
 	mux.Get("/api/kratos/self-service/login/flows", a.handleGetLoginFlow)
+	mux.Post("/api/kratos/self-service/registration", a.handleUpdateRegistrationFlow)
+	mux.Get("/api/kratos/self-service/registration/browser", a.handleCreateRegistrationFlow)
+	mux.Get("/api/kratos/self-service/registration/flows", a.handleGetRegistrationFlow)
 	mux.Get("/api/kratos/self-service/errors", a.handleKratosError)
 	mux.Post("/api/kratos/self-service/recovery", a.handleUpdateRecoveryFlow)
 	mux.Get("/api/kratos/self-service/recovery/browser", a.handleCreateRecoveryFlow)
@@ -249,6 +252,77 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(flow)
+}
+
+func (a *API) handleCreateRegistrationFlow(w http.ResponseWriter, r *http.Request) {
+	returnTo := r.URL.Query().Get("return_to")
+
+	flow, cookies, err := a.service.CreateBrowserRegistrationFlow(r.Context(), returnTo)
+	if err != nil {
+		a.logger.Errorf("Failed to create registration flow: %v", err)
+		http.Error(w, "Failed to create registration flow", http.StatusInternalServerError)
+		return
+	}
+
+	setCookies(w, cookies)
+	w.WriteHeader(http.StatusOK)
+
+	toMap, _ := flow.ToMap()
+	_ = json.NewEncoder(w).Encode(toMap)
+}
+
+func (a *API) handleGetRegistrationFlow(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	flowId := q.Get("id")
+	if flowId == "" {
+		a.logger.Errorf("ID parameter not present")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode("ID parameter not present")
+		return
+	}
+
+	flow, cookies, err := a.service.GetRegistrationFlow(r.Context(), flowId, r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Error when getting registration flow: %v\n", err)
+		http.Error(w, "Failed to get registration flow", http.StatusInternalServerError)
+		return
+	}
+
+	setCookies(w, cookies)
+	w.WriteHeader(http.StatusOK)
+	toMap, _ := flow.ToMap()
+	_ = json.NewEncoder(w).Encode(toMap)
+}
+
+func (a *API) handleUpdateRegistrationFlow(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	flowId := q.Get("flow")
+    if flowId == "" {
+        a.logger.Errorf("ID parameter not present")
+        w.WriteHeader(http.StatusBadRequest)
+        _ = json.NewEncoder(w).Encode("ID parameter not present")
+        return
+    }
+
+	body, err := a.service.ParseRegistrationFlowMethodBody(r)
+	if err != nil {
+		a.logger.Errorf("Error when parsing request body: %v\n", err)
+		http.Error(w, "Failed to parse registration flow", http.StatusInternalServerError)
+		return
+	}
+
+	registration, cookies, err := a.service.UpdateRegistrationFlow(r.Context(), flowId, *body, r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Error when updating registration flow: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	setCookies(w, cookies)
+	toEncode, status := registration.GetFlowAndStatus()
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(toEncode)
 }
 
 func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Request) {
@@ -723,7 +797,7 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	flow, cookies, err := a.service.CreateBrowserRecoveryFlow(context.Background(), returnTo, r.Cookies())
+	flow, cookies, err := a.service.CreateBrowserRecoveryFlow(context.Background(), returnTo)
 	if err != nil {
 		a.logger.Errorf("Failed to create recovery flow: %v\n", err)
 		http.Error(w, "Failed to create recovery flow", http.StatusInternalServerError)
