@@ -23,6 +23,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
       return appearance;
     }
     return node.group === "password" ||
+      node.group === "profile" ||
       node.group === "code" ||
       node.group === "totp" ||
       node.group === "webauthn" ||
