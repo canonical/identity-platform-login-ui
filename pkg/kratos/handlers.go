@@ -232,11 +232,11 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleCreateRegistrationFlow(w http.ResponseWriter, r *http.Request) {
 	returnTo := r.URL.Query().Get("return_to")
 	if returnTo == "" {
-		returnTo = "/ui/manage_details"
+		//returnTo = "/ui/manage_details"
 	}
 
 	// if already logged in, redirect to return_to url or manage_details
-	session, _, err := a.service.CheckSession(r.Context(), r.Cookies())
+	/*session, _, err := a.service.CheckSession(r.Context(), r.Cookies())
 	if session != nil {
 		errorId := "browser_location_change_required"
 		a.redirectResponse(w, r, &BrowserLocationChangeRequired{
@@ -244,7 +244,7 @@ func (a *API) handleCreateRegistrationFlow(w http.ResponseWriter, r *http.Reques
 			RedirectTo: &returnTo,
 		})
 		return
-	}
+	}*/
 
 	flow, cookies, err := a.service.CreateBrowserRegistrationFlow(r.Context(), returnTo)
 	if err != nil {

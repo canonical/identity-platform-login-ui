@@ -101,7 +101,7 @@ const Registration: NextPage = () => {
           window.location.href = data.redirect_to as string;
           return;
         }
-
+        window.location.href = `./register?flow=${data.id}`;
         setFlow(data);
       })
       .catch(handleFlowError("registration", setFlow))

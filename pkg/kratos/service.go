@@ -250,10 +250,132 @@ func (s *Service) CreateBrowserRegistrationFlow(ctx context.Context, returnTo st
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserRegistrationFlow")
 	defer span.End()
 
-	flow, resp, err := s.kratos.FrontendApi().
+	request := s.kratos.FrontendApi().
 		CreateBrowserRegistrationFlow(ctx).
-		ReturnTo(returnTo).
-		Execute()
+		ReturnTo(returnTo)
+
+	flow, resp, err := s.kratos.FrontendApi().CreateBrowserRegistrationFlowExecute(request)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return flow, resp.Cookies(), nil
+}
+
+func (s *Service) UpdateRegistrationFlow(ctx context.Context, flowId string, body kClient.UpdateRegistrationFlowBody, cookies []*http.Cookie) (*RegistrationFlowResponse, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateRegistrationFlow")
+	defer span.End()
+
+	request := s.kratos.FrontendApi().
+		UpdateRegistrationFlow(ctx).
+		Flow(flowId).
+		UpdateRegistrationFlowBody(body).
+		Cookie(httpHelpers.CookiesToString(cookies))
+
+	_, resp, err := s.kratos.FrontendApi().UpdateRegistrationFlowExecute(request)
+
+	var registration *RegistrationFlowResponse = nil
+
+	if err != nil && resp != nil && slices.Contains([]int{http.StatusUnprocessableEntity, http.StatusBadRequest}, resp.StatusCode) {
+		cookies = resp.Cookies()
+		registration, err = s.tryProcessingRegistration(resp.StatusCode, err)
+		//registration, err = s.tryProcessingRegistration2(resp)
+	}
+
+	if err != nil && resp != nil && resp.Body != nil {
+		err = errors.Join(err, s.getUiError(resp.Body))
+	}
+
+	return registration, cookies, err
+}
+
+func (s *Service) tryProcessingRegistration2(resp *http.Response) (*RegistrationFlowResponse, error) {
+	decoder := json.NewDecoder(resp.Body)
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusBadRequest:
+		var registrationFlow kClient.RegistrationFlow
+		// in this case the error has a body with the actual flow to return
+		if err := decoder.Decode(&registrationFlow); err != nil {
+			return nil, fmt.Errorf("unexpected error: %w", err)
+		}
+
+		if state, ok := registrationFlow.State.(string); ok && state == "choose_method" {
+			return &RegistrationFlowResponse{flow: &registrationFlow}, nil
+		}
+
+	case http.StatusUnprocessableEntity:
+		var locationChangeRequired ErrorBrowserLocationChangeRequired
+		// in this case the complex error has a body with the location change required
+		if err := decoder.Decode(&locationChangeRequired); err != nil {
+			return nil, fmt.Errorf("unexpected error unmarshalling response body")
+		}
+
+		if locationChangeRequired.Error != nil && locationChangeRequired.Error.GetId() == "browser_location_change_required" {
+			return &RegistrationFlowResponse{
+				changeRequired: &BrowserLocationChangeRequired{
+					Error:      locationChangeRequired.Error,
+					RedirectTo: locationChangeRequired.RedirectBrowserTo,
+				},
+			}, nil
+		}
+
+	}
+
+	return nil, fmt.Errorf("unexpected error processing registration response: %v", resp)
+}
+
+func (s *Service) tryProcessingRegistration(httpStatus int, err error) (*RegistrationFlowResponse, error) {
+	var (
+		genericOpenAPIResponse *kClient.GenericOpenAPIError
+		registrationFlow       kClient.RegistrationFlow
+		locationChangeRequired ErrorBrowserLocationChangeRequired
+		ok                     bool
+	)
+
+	if genericOpenAPIResponse, ok = err.(*kClient.GenericOpenAPIError); !ok {
+		return nil, fmt.Errorf("unexpected error: %w", err)
+	}
+
+	switch httpStatus {
+	case http.StatusBadRequest:
+		// in this case the error has a body with the actual flow to return
+		if registrationFlow, ok = genericOpenAPIResponse.Model().(kClient.RegistrationFlow); ok {
+			if state, ok := registrationFlow.State.(string); ok && state == "choose_method" {
+				return &RegistrationFlowResponse{flow: &registrationFlow}, nil
+			}
+		}
+	case http.StatusUnprocessableEntity:
+		// in this case the complex error has a body with the location change required
+		err = json.Unmarshal(genericOpenAPIResponse.Body(), &locationChangeRequired)
+		if err != nil {
+			return nil, fmt.Errorf("unexpected error: %s %s", locationChangeRequired.Error.GetId(), locationChangeRequired.Error.GetMessage())
+		}
+
+		if locationChangeRequired.Error != nil && locationChangeRequired.Error.GetId() == "browser_location_change_required" {
+			changeRequired := BrowserLocationChangeRequired{
+				Error:      locationChangeRequired.Error,
+				RedirectTo: locationChangeRequired.RedirectBrowserTo,
+			}
+			return &RegistrationFlowResponse{changeRequired: &changeRequired}, nil
+		}
+	}
+
+	return nil, err
+}
+
+func (s *Service) GetRegistrationFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.RegistrationFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetRegistrationFlow")
+	defer span.End()
+
+	request := s.kratos.FrontendApi().
+		GetRegistrationFlow(ctx).
+		Id(id).
+		Cookie(httpHelpers.CookiesToString(cookies))
+
+	flow, resp, err := s.kratos.FrontendApi().GetRegistrationFlowExecute(request)
 
 	if err != nil {
 		return nil, nil, err
@@ -327,23 +449,6 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 	if err != nil {
 		s.logger.Warnf("Failed to fetch the hydra oauth2 request: %v", err)
 	}
-	return flow, resp.Cookies(), nil
-}
-
-func (s *Service) GetRegistrationFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.RegistrationFlow, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetRegistrationFlow")
-	defer span.End()
-
-	flow, resp, err := s.kratos.FrontendApi().
-		GetRegistrationFlow(ctx).
-		Id(id).
-		Cookie(httpHelpers.CookiesToString(cookies)).
-		Execute()
-
-	if err != nil {
-		return nil, nil, err
-	}
-
 	return flow, resp.Cookies(), nil
 }
 
@@ -538,71 +643,6 @@ func (s *Service) UpdateLoginFlow(
 	f.ContinueWith = nil
 	return nil, f, c, nil
 }
-
-func (s *Service) UpdateRegistrationFlow(ctx context.Context, flowId string, body kClient.UpdateRegistrationFlowBody, cookies []*http.Cookie) (*RegistrationFlowResponse, []*http.Cookie, error) {
-	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateRegistrationFlow")
-	defer span.End()
-
-	_, resp, err := s.kratos.FrontendApi().
-		UpdateRegistrationFlow(ctx).
-		Flow(flowId).
-		UpdateRegistrationFlowBody(body).
-		Cookie(httpHelpers.CookiesToString(cookies)).
-		Execute()
-
-	var registration *RegistrationFlowResponse = nil
-
-	if err != nil && resp != nil && slices.Contains([]int{http.StatusUnprocessableEntity, http.StatusBadRequest}, resp.StatusCode) {
-		cookies = resp.Cookies()
-		registration, err = s.tryProcessingRegistration(resp.StatusCode, err)
-	}
-
-	if err != nil && resp != nil && resp.Body != nil {
-		err = errors.Join(err, s.getUiError(resp.Body))
-	}
-
-	return registration, cookies, err
-}
-
-func (s *Service) tryProcessingRegistration(httpStatus int, err error) (*RegistrationFlowResponse, error) {
-	var (
-		genericOpenAPIResponse *kClient.GenericOpenAPIError
-		registrationFlow       kClient.RegistrationFlow
-		locationChangeRequired ErrorBrowserLocationChangeRequired
-		ok                     bool
-	)
-
-	if genericOpenAPIResponse, ok = err.(*kClient.GenericOpenAPIError); !ok {
-		return nil, fmt.Errorf("unexpected error: %w", err)
-	}
-
-	switch httpStatus {
-	case http.StatusBadRequest:
-		// in this case the error has a body with the actual flow to return
-		if registrationFlow, ok = genericOpenAPIResponse.Model().(kClient.RegistrationFlow); ok {
-			if state, ok := registrationFlow.State.(string); ok && state == "choose_method" {
-				return &RegistrationFlowResponse{flow: &registrationFlow}, nil
-			}
-		}
-	case http.StatusUnprocessableEntity:
-		// in this case the complex error has a body with the location change required
-		err = json.Unmarshal(genericOpenAPIResponse.Body(), &locationChangeRequired)
-		if err != nil {
-			return nil, fmt.Errorf("unexpected error: %s %s", locationChangeRequired.Error.GetId(), locationChangeRequired.Error.GetMessage())
-		}
-
-		if locationChangeRequired.Error != nil && locationChangeRequired.Error.GetId() == "browser_location_change_required" {
-			changeRequired := BrowserLocationChangeRequired{
-				Error:      locationChangeRequired.Error,
-				RedirectTo: locationChangeRequired.RedirectBrowserTo,
-			}
-			return &RegistrationFlowResponse{changeRequired: &changeRequired}, nil
-		}
-	}
-
-	return nil, err
-}
-
 func (s *Service) UpdateSettingsFlow(
 	ctx context.Context, flow string, body kClient.UpdateSettingsFlowBody, cookies []*http.Cookie,
 ) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, []*http.Cookie, error) {
