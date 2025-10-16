@@ -167,8 +167,8 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginCh
 
 	cookies := r.Cookies()
 
-	// if not aal2 or both mfa and webauthn disabled clear cookies
-	if aal != "aal2" || !(a.mfaEnabled || a.oidcWebAuthnSequencingEnabled) {
+	// clear cookies if not aal2
+	if aal != "aal2" {
 		cookies = filterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
 	}
 
