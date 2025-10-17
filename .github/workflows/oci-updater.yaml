@@ -14,7 +14,7 @@ permissions:
 
 jobs:
     update:
-        uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@e377d9a16f47e5ad194694eff70fbba1d5ad413e
+        uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@323ca1517074a2d053ebfbb6a2cf7ba70a425c20
         with: 
             oci-image: ${{ inputs.oci-image }}
             repository: canonical/identity-platform-login-ui-operator
