@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.23.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.23.0...v0.23.1) (2025-10-17)
+
+
+### Bug Fixes
+
+* add security logger ([e3953ec](https://github.com/canonical/identity-platform-login-ui/commit/e3953ec36bf9c62dfdcebae504c1f67cf245496c))
+* deal with settings flow while setting up the passkeys, accept form data and redirect like kratos does ([70b4599](https://github.com/canonical/identity-platform-login-ui/commit/70b45997bca992c9aed1183ce6bd372edbb0611c))
+* **deps:** update module github.com/openfga/go-sdk to v0.7.2 ([cdc98a4](https://github.com/canonical/identity-platform-login-ui/commit/cdc98a4f70fa1763ef3346b588b6e179b275105f))
+* **deps:** update module github.com/openfga/go-sdk to v0.7.2 ([0269b7a](https://github.com/canonical/identity-platform-login-ui/commit/0269b7a046f45fbf9e5b8f06208d9a322d982fc6))
+* **deps:** update module github.com/openfga/go-sdk to v0.7.3 ([e829a77](https://github.com/canonical/identity-platform-login-ui/commit/e829a77ed7912b0855febab1cd8cd86a4c50d0b7))
+* **deps:** update module github.com/openfga/go-sdk to v0.7.3 ([6afb7d8](https://github.com/canonical/identity-platform-login-ui/commit/6afb7d8d565b6b958c1b05aab0c0a941ca1049d1))
+* dont clear cookies if we are not in an aal2 state or if totp or webauthn are disabled ([443e2d2](https://github.com/canonical/identity-platform-login-ui/commit/443e2d2ba32f181ff5a9e16ebbe0a26f9dca788f))
+* handle requests that expect html response ([8614cf2](https://github.com/canonical/identity-platform-login-ui/commit/8614cf25242ada0268ec5705e7ae52964113edaa))
+* if request expects a non json response, then redirect to ui ([da2bdc6](https://github.com/canonical/identity-platform-login-ui/commit/da2bdc68164d14c702caa95d538d94515b715b8f))
+* improve startup/shutdown logic ([bd0aa21](https://github.com/canonical/identity-platform-login-ui/commit/bd0aa21dfe46bc1c35af273b10ed5bd8a11bcd0c))
+* switch to basic loading of webauthn script ([a1f6732](https://github.com/canonical/identity-platform-login-ui/commit/a1f67328e2692c6dacd7707466b27a53ec98662a))
+* switch to io.ReadAll ([6a65868](https://github.com/canonical/identity-platform-login-ui/commit/6a65868d70394464b1a9b75460839c15b0f6eb6c))
+* ui can only talk to login svc backend ([fd301e0](https://github.com/canonical/identity-platform-login-ui/commit/fd301e00e62504e64e79d04ba1e38cba2a2ceb1d))
+
 ## [0.23.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.22.0...v0.23.0) (2025-10-02)
 
 
