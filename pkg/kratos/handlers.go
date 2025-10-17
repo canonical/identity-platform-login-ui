@@ -139,6 +139,10 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			a.cookieManager.ClearStateCookie(w)
 		}
 	} else {
+		// aal is not always a query param, propagate it from session if aal2
+		if isSessionAAL2(session) {
+			aal = "aal2"
+		}
 		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)
 	}
 
@@ -213,6 +217,14 @@ func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Sessi
 	}
 
 	return response, cookies, nil
+}
+
+func isSessionAAL2(session *client.Session) bool {
+	if session == nil || session.AuthenticatorAssuranceLevel == nil {
+		return false
+	}
+
+	return *session.AuthenticatorAssuranceLevel == client.AUTHENTICATORASSURANCELEVEL_AAL2
 }
 
 func parseGenericError(err error) (*KratosErrorResponse, bool) {
