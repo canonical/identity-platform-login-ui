@@ -27,6 +27,7 @@ const PageLayout: FC<Props> = ({ children, title, user, isSelfServe }) => {
           href="https://assets.ubuntu.com/v1/16c27f81-COF%20favicon-16x16.png"
         />
         <title>{title}</title>
+        <script src="../.well-known/webauthn.js" />
       </Head>
       {isSelfServe ? (
         <div className="l-application" role="presentation">

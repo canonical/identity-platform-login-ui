@@ -9,7 +9,7 @@ log:
 dsn: memory
 serve:
   public:
-    base_url: http://localhost:4433/
+    base_url: http://localhost/
     cors:
       enabled: True
   admin:
@@ -26,33 +26,33 @@ session:
 
 selfservice:
     allowed_return_urls:
-      - http://localhost:4455/ui/
+      - http://localhost/ui/
     default_browser_return_url:
-        http://localhost:4455/ui/
+        http://localhost/ui/
     flows:
         error:
-            ui_url: http://localhost:4455/ui/error
+            ui_url: http://localhost/ui/error
         login:
-            ui_url: http://localhost:4455/ui/login
+            ui_url: http://localhost/ui/login
             # TODO: Uncomment when the pattern is implemented in FE
             # style: identifier_first
         recovery:
             enabled: True
-            ui_url: http://localhost:4455/ui/reset_email
+            ui_url: http://localhost/ui/reset_email
             use: code
             after:
-                default_browser_return_url: http://localhost:4455/ui
+                default_browser_return_url: http://localhost/ui
                 hooks:
                     - hook: revoke_active_sessions
         settings:
             # TODO: Replace with self-service settings page when implemented
-            ui_url: http://localhost:4455/ui/reset_password
+            ui_url: http://localhost/ui/reset_password
             required_aal: highest_available
             after:
                 oidc:
-                    default_browser_return_url: http://localhost:4455/ui/manage_connected_accounts
+                    default_browser_return_url: http://localhost/ui/manage_connected_accounts
                 webauthn:
-                    default_browser_return_url: http://localhost:4455/ui/setup_passkey
+                    default_browser_return_url: http://localhost/ui/setup_passkey
         registration:
             after:
                 oidc:
@@ -83,7 +83,7 @@ selfservice:
                     id: localhost
                     # Set 'origin' to the exact URL of the page that prompts the user to use WebAuthn. You must include the scheme, host, and port.
                     origins:
-                        - http://localhost:4455
+                        - http://localhost
                     display_name: Canonical
         oidc:
             enabled: True

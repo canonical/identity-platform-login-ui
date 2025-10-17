@@ -3,13 +3,11 @@ import {
   isUiNodeAnchorAttributes,
   isUiNodeImageAttributes,
   isUiNodeInputAttributes,
-  isUiNodeScriptAttributes,
   isUiNodeTextAttributes,
 } from "@ory/integrations/ui";
 import { NodeAnchor } from "./NodeAnchor";
 import { NodeImage } from "./NodeImage";
 import { NodeInput } from "./NodeInput";
-import { NodeScript } from "./NodeScript";
 import { NodeText } from "./NodeText";
 import { NodeInputProps } from "./helpers";
 import { FC } from "react";
@@ -24,10 +22,6 @@ export const Node: FC<Omit<NodeInputProps, "attributes">> = ({
 }) => {
   if (isUiNodeImageAttributes(node.attributes)) {
     return <NodeImage node={node} attributes={node.attributes} />;
-  }
-
-  if (isUiNodeScriptAttributes(node.attributes)) {
-    return <NodeScript node={node} attributes={node.attributes} />;
   }
 
   if (isUiNodeTextAttributes(node.attributes)) {

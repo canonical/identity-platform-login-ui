@@ -18,8 +18,6 @@ selfservice:
         passwordless: false
 ```
 
-This is currently not supported in the Kratos Charmed Operator.
-
 ### Testing
 
 In order to test this feature:
