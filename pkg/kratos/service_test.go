@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	reflect "reflect"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -981,6 +982,352 @@ func TestCreateBrowserLoginFlowFail(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error not nil")
 	}
+}
+
+func TestService_CreateBrowserRegistrationFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockFrontendApi := NewMockFrontendAPI(ctrl)
+
+	service := &Service{
+		tracer: mockTracer,
+		kratos: mockKratos,
+	}
+
+	ctx := context.Background()
+
+	t.Run("CreateBrowserRegistrationFlow returns error", func(t *testing.T) {
+		mockSpan := trace.SpanFromContext(ctx)
+		mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserRegistrationFlow").Return(ctx, mockSpan)
+
+		mockKratos.EXPECT().FrontendApi().Return(mockFrontendApi).Times(2)
+
+		req := kClient.FrontendAPICreateBrowserRegistrationFlowRequest{ApiService: mockFrontendApi}
+		mockFrontendApi.EXPECT().CreateBrowserRegistrationFlow(ctx).Times(1).Return(req)
+
+		mockFrontendApi.EXPECT().
+			CreateBrowserRegistrationFlowExecute(gomock.Any()).
+			Return(nil, nil, errors.New("registration failure"))
+
+		flow, cookies, err := service.CreateBrowserRegistrationFlow(ctx, "/fail")
+
+		if flow != nil {
+			t.Fatalf("expected flow to be nil")
+		}
+		if cookies != nil {
+			t.Fatalf("expected cookies to be nil")
+		}
+		if err == nil || err.Error() != "registration failure" {
+			t.Fatalf("expected error 'registration failure', got %v", err)
+		}
+	})
+
+	t.Run("CreateBrowserRegistrationFlow success", func(t *testing.T) {
+		mockSpan := trace.SpanFromContext(ctx)
+		mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserRegistrationFlow").Return(ctx, mockSpan)
+
+		mockKratos.EXPECT().FrontendApi().Return(mockFrontendApi).Times(2)
+
+		req := kClient.FrontendAPICreateBrowserRegistrationFlowRequest{ApiService: mockFrontendApi}
+		mockFrontendApi.EXPECT().CreateBrowserRegistrationFlow(ctx).Times(1).Return(req)
+
+		expectedFlow := &kClient.RegistrationFlow{Id: "e2c802141dc51a06676974687562"}
+		resp := &http.Response{
+			Header: http.Header{"Set-Cookie": []string{"foo=bar"}},
+		}
+
+		mockFrontendApi.EXPECT().
+			CreateBrowserRegistrationFlowExecute(gomock.Any()).
+			Return(expectedFlow, resp, nil)
+
+		flow, cookies, err := service.CreateBrowserRegistrationFlow(ctx, "/success")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if flow == nil || flow.Id != "e2c802141dc51a06676974687562" {
+			t.Fatalf("expected valid flow with correct ID, got %+v", flow)
+		}
+		if len(cookies) != 1 {
+			t.Fatalf("expected 1 cookie, got %d", len(cookies))
+		}
+		if cookies[0].Name != "foo" || cookies[0].Value != "bar" {
+			t.Fatalf("expected cookie foo=bar, got %v", cookies)
+		}
+	})
+}
+
+func TestService_UpdateRegistrationFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockFrontendApi := NewMockFrontendAPI(ctrl)
+
+	service := &Service{
+		kratos: mockKratos,
+		tracer: mockTracer,
+		logger: mockLogger,
+	}
+
+	ctx := context.Background()
+	flowID := "e2c802141dc51a06676974687562"
+	body := kClient.UpdateRegistrationFlowBody{}
+	cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
+	mockRequest := kClient.FrontendAPIUpdateRegistrationFlowRequest{ApiService: mockFrontendApi}
+
+	t.Run("UpdateRegistrationFlow returns error with 422", func(t *testing.T) {
+		mockSpan := trace.SpanFromContext(ctx)
+		mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateRegistrationFlow").Return(ctx, mockSpan)
+		mockKratos.EXPECT().FrontendApi().Return(mockFrontendApi).Times(2)
+		mockFrontendApi.EXPECT().UpdateRegistrationFlow(ctx).Return(mockRequest)
+
+		mockFrontendApi.EXPECT().
+			UpdateRegistrationFlowExecute(gomock.Any()).
+			Return(nil, nil, errors.New("unprocessable entity"))
+
+		reg, _, err := service.UpdateRegistrationFlow(ctx, flowID, body, cookies)
+
+		if reg != nil {
+			t.Fatalf("expected registration to be nil, got %+v", reg)
+		}
+		if err == nil || !strings.Contains(err.Error(), "unprocessable entity") {
+			t.Fatalf("expected error containing 'unprocessable entity', got %v", err)
+		}
+	})
+
+	t.Run("UpdateRegistrationFlow returns error with body", func(t *testing.T) {
+		mockSpan := trace.SpanFromContext(ctx)
+		mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateRegistrationFlow").Return(ctx, mockSpan)
+
+		mockKratos.EXPECT().FrontendApi().Return(mockFrontendApi).Times(2)
+		mockFrontendApi.EXPECT().UpdateRegistrationFlow(ctx).Return(mockRequest)
+
+		resp := &http.Response{
+			StatusCode: http.StatusInternalServerError,
+			Body:       io.NopCloser(strings.NewReader("ui error")),
+		}
+		mockFrontendApi.EXPECT().
+			UpdateRegistrationFlowExecute(gomock.Any()).
+			Return(nil, resp, errors.New("server error"))
+
+		reg, _, err := service.UpdateRegistrationFlow(ctx, flowID, body, cookies)
+
+		if reg != nil {
+			t.Fatalf("expected registration to be nil, got %+v", reg)
+		}
+		if err == nil || !strings.Contains(err.Error(), "server error") {
+			t.Fatalf("expected error containing 'server error', got %v", err)
+		}
+	})
+
+	t.Run("UpdateRegistrationFlow success", func(t *testing.T) {
+		mockSpan := trace.SpanFromContext(ctx)
+		mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateRegistrationFlow").Return(ctx, mockSpan)
+		mockKratos.EXPECT().FrontendApi().Return(mockFrontendApi).Times(2)
+		mockFrontendApi.EXPECT().UpdateRegistrationFlow(ctx).Return(mockRequest)
+
+		flow := kClient.NewRegistrationFlow(time.Now(), "flow-123", time.Now(), "mock-url", "choose_method", "registration", kClient.UiContainer{})
+
+		flowJson, _ := json.Marshal(flow)
+		resp := &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Body:       io.NopCloser(bytes.NewBuffer(flowJson)),
+		}
+
+		updateFlowError := &kClient.GenericOpenAPIError{}
+
+		mockFrontendApi.EXPECT().
+			UpdateRegistrationFlowExecute(gomock.Any()).
+			Return(nil, resp, updateFlowError)
+
+		reg, _, err := service.UpdateRegistrationFlow(ctx, flowID, body, cookies)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if reg == nil {
+			t.Fatalf("expected registration result to be non-nil, got nil")
+		}
+	})
+}
+
+func TestService_GetRegistrationFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockFrontendApi := NewMockFrontendAPI(ctrl)
+
+	service := &Service{
+		tracer: mockTracer,
+		kratos: mockKratos,
+	}
+
+	ctx := context.Background()
+	id := "e2c802141dc51a06676974687562"
+	cookies := []*http.Cookie{{Name: "session", Value: "xyz"}}
+
+	t.Run("GetRegistrationFlow returns error", func(t *testing.T) {
+		mockSpan := trace.SpanFromContext(ctx)
+		mockTracer.EXPECT().Start(ctx, "kratos.Service.GetRegistrationFlow").Return(ctx, mockSpan)
+
+		mockKratos.EXPECT().FrontendApi().Return(mockFrontendApi).Times(2)
+
+		req := kClient.FrontendAPIGetRegistrationFlowRequest{ApiService: mockFrontendApi}
+		mockFrontendApi.EXPECT().GetRegistrationFlow(ctx).Return(req)
+
+		mockFrontendApi.EXPECT().
+			GetRegistrationFlowExecute(gomock.Any()).
+			Return(nil, nil, errors.New("get flow failure"))
+
+		flow, updatedCookies, err := service.GetRegistrationFlow(ctx, id, cookies)
+
+		if flow != nil {
+			t.Fatalf("expected flow to be nil, got %+v", flow)
+		}
+		if updatedCookies != nil {
+			t.Fatalf("expected cookies to be nil, got %+v", updatedCookies)
+		}
+		if err == nil || !strings.Contains(err.Error(), "get flow failure") {
+			t.Fatalf("expected error containing 'get flow failure', got %v", err)
+		}
+	})
+
+	t.Run("GetRegistrationFlow success", func(t *testing.T) {
+		mockSpan := trace.SpanFromContext(ctx)
+		mockTracer.EXPECT().Start(ctx, "kratos.Service.GetRegistrationFlow").Return(ctx, mockSpan)
+
+		mockKratos.EXPECT().FrontendApi().Return(mockFrontendApi).Times(2)
+
+		req := kClient.FrontendAPIGetRegistrationFlowRequest{ApiService: mockFrontendApi}
+		mockFrontendApi.EXPECT().GetRegistrationFlow(ctx).Return(req)
+
+		expectedFlow := &kClient.RegistrationFlow{Id: id}
+		resp := &http.Response{
+			Header: http.Header{"Set-Cookie": []string{"foo=bar"}},
+		}
+
+		mockFrontendApi.EXPECT().
+			GetRegistrationFlowExecute(gomock.Any()).
+			Return(expectedFlow, resp, nil)
+
+		flow, updatedCookies, err := service.GetRegistrationFlow(ctx, id, cookies)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if flow == nil || flow.Id != id {
+			t.Fatalf("expected flow with ID %s, got %+v", id, flow)
+		}
+		if len(updatedCookies) != 1 || updatedCookies[0].Name != "foo" || updatedCookies[0].Value != "bar" {
+			t.Fatalf("expected cookie foo=bar, got %+v", updatedCookies)
+		}
+	})
+}
+
+func TestService_tryProcessingRegistration(t *testing.T) {
+	service := &Service{}
+
+	t.Run("Status 400 - choose_method state", func(t *testing.T) {
+		flow := kClient.NewRegistrationFlow(time.Now(), "id", time.Now(), "url", "choose_method", "type", kClient.UiContainer{})
+		data, _ := json.Marshal(flow)
+		resp := &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Body:       io.NopCloser(bytes.NewReader(data)),
+		}
+
+		reg, err := service.tryProcessingRegistration(resp)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if reg == nil || reg.inProgressFlow == nil {
+			t.Fatalf("expected inProgressFlow, got nil")
+		}
+	})
+
+	t.Run("Status 400 - duplicate identifier error", func(t *testing.T) {
+		msg := kClient.UiText{Id: DuplicateIdentifier}
+		ui := kClient.UiContainer{Messages: []kClient.UiText{msg}}
+		flow := kClient.RegistrationFlow{Ui: ui, State: "choose_method"}
+		data, _ := json.Marshal(flow)
+		resp := &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Body:       io.NopCloser(bytes.NewReader(data)),
+		}
+
+		_, err := service.tryProcessingRegistration(resp)
+		if err == nil || !strings.Contains(err.Error(), "same identifier") {
+			t.Fatalf("expected duplicate identifier error, got %v", err)
+		}
+	})
+
+	t.Run("Status 400 - session already available", func(t *testing.T) {
+		errBody := kClient.GenericError{}
+		errBody.SetId("session_already_available")
+		data, _ := json.Marshal(errBody)
+		resp := &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Body:       io.NopCloser(bytes.NewReader(data)),
+		}
+
+		_, err := service.tryProcessingRegistration(resp)
+		if err == nil || !strings.Contains(err.Error(), "session was detected") {
+			t.Fatalf("expected session available error, got %v", err)
+		}
+	})
+
+	t.Run("Status 422 - browser location change required", func(t *testing.T) {
+		errObj := kClient.GenericError{}
+		errObj.SetId("browser_location_change_required")
+		to := "https://example.com"
+		body := ErrorBrowserLocationChangeRequired{
+			Error:             &errObj,
+			RedirectBrowserTo: &to,
+		}
+		data, _ := json.Marshal(body)
+		resp := &http.Response{
+			StatusCode: http.StatusUnprocessableEntity,
+			Body:       io.NopCloser(bytes.NewReader(data)),
+		}
+
+		reg, err := service.tryProcessingRegistration(resp)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if reg == nil || reg.changeRequired == nil {
+			t.Fatalf("expected changeRequired, got nil")
+		}
+	})
+
+	t.Run("Status 422 - invalid JSON", func(t *testing.T) {
+		resp := &http.Response{
+			StatusCode: http.StatusUnprocessableEntity,
+			Body:       io.NopCloser(strings.NewReader("{invalid-json")),
+		}
+
+		_, err := service.tryProcessingRegistration(resp)
+		if err == nil || !strings.Contains(err.Error(), "unexpected error unmarshalling") {
+			t.Fatalf("expected unmarshalling error, got %v", err)
+		}
+	})
+
+	t.Run("Unknown status code", func(t *testing.T) {
+		resp := &http.Response{
+			StatusCode: http.StatusTeapot,
+			Body:       io.NopCloser(strings.NewReader("{}")),
+		}
+		_, err := service.tryProcessingRegistration(resp)
+		if err == nil || !strings.Contains(err.Error(), "error processing registration") {
+			t.Fatalf("expected generic error, got %v", err)
+		}
+	})
 }
 
 func TestGetLoginFlowSuccess(t *testing.T) {
@@ -2394,7 +2741,7 @@ func TestCreateBrowserRecoveryFlowSuccess(t *testing.T) {
 		},
 	)
 
-	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo)
 
 	if f != flow {
 		t.Fatalf("expected flow to be %v not  %v", flow, f)
@@ -2434,7 +2781,7 @@ func TestCreateBrowserRecoveryFlowFail(t *testing.T) {
 	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserRecoveryFlowExecute(gomock.Any()).Times(1).Return(nil, nil, fmt.Errorf("error"))
 
-	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo, cookies)
+	f, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).CreateBrowserRecoveryFlow(ctx, returnTo)
 
 	if f != nil {
 		t.Fatalf("expected flow to be %v not  %v", nil, f)
