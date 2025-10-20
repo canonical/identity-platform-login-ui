@@ -3,9 +3,11 @@ services:
     image: traefik:v2.10
     container_name: traefik
     restart: unless-stopped
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:8282:80"
+      - "127.0.0.1:443:443"
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
