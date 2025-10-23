@@ -19,7 +19,7 @@ export async function loginIdentifierFirst(
   flow?: { id?: string; return_to?: string }
 ) {
   const res = await fetch(
-    `/api/kratos/self-service/login/id-first?flow=${encodeURIComponent(flowId)}`,
+    `/self-service/login/id-first?flow=${encodeURIComponent(flowId)}`,
     {
       method: "POST",
       headers: {
