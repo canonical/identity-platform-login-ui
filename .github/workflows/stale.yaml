@@ -1,8 +1,7 @@
 name: 'Close stale issues and PRs'
 on:
   schedule:
-#    - cron: '0 7 * * 1-5' # every morning at 7 AM, only work days
-    - cron: '0 * * * 1-5' # temporary to allow debugging
+    - cron: '0 7 * * 1-5' # every morning at 7 AM, only work days
 
 permissions:
   issues: write
@@ -13,12 +12,12 @@ jobs:
     steps:
       - uses: actions/stale@5f858e3efba33a5ca4407a664cc011ad407f2008 # v10
         with:
-          days-before-stale: 60
-          stale-issue-message: "This issue has been marked as stale due to the lack of updates in the last 60 days"
-          days-before-close: 7
+          days-before-stale: 90
+          stale-issue-message: "This issue has been marked as stale due to the lack of updates in the last 90 days"
+          days-before-close: 14
           close-issue-message: "This issue has been closed due to the lack of updates"
           stale-issue-label: 'stale'
-          exempt-issue-labels: 'high-priority'
+          exempt-issue-labels: 'high-priority,needed'
           stale-pr-label: 'stale'
           exempt-pr-labels: '*'  # Exclude PRs
           start-date: '2025-02-03T00:00:00+0000' # the ISO 8601 day of the PR
