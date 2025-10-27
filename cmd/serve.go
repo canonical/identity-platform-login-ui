@@ -127,14 +127,14 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) ht
 }
 
 func handleServeAndShutdown(srv *http.Server, securityLogger logging.SecurityLoggerInterface) error {
-	var serverError error
+	var listenAndServeError, shutdownError error
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		securityLogger.SystemStartup()
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			serverError = fmt.Errorf("server error: %w", err)
+            listenAndServeError = fmt.Errorf("server error: %w", err)
 			c <- os.Interrupt
 		}
 	}()
@@ -147,10 +147,10 @@ func handleServeAndShutdown(srv *http.Server, securityLogger logging.SecurityLog
 
 	securityLogger.SystemShutdown()
 	if err := srv.Shutdown(ctx); err != nil {
-		serverError = fmt.Errorf("server shutdown error: %w", err)
+		shutdownError = fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	return serverError
+	return errors.Join(listenAndServeError, shutdownError)
 }
 
 func main() {
