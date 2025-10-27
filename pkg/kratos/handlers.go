@@ -26,6 +26,7 @@ const RegenerateBackupCodesError = "regenerate_backup_codes"
 const SESSION_REFRESH_REQUIRED = "session_refresh_required"
 const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
 const LOGIN_UI_STATE_COOKIE = "login_ui_state"
+const SECURITY_CSRF_VIOLATION_ERROR = "security_csrf_violation"
 
 type API struct {
 	mfaEnabled                    bool
@@ -284,6 +285,15 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 
 	flow, cookies, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
+		if kratosError, ok := parseGenericError(err); ok {
+			if kratosError.Error.GetId() == SECURITY_CSRF_VIOLATION_ERROR {
+				a.deleteKratosSession(w)
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(kratosError)
+			return
+		}
+
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
 		return
