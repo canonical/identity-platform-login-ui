@@ -51,7 +51,6 @@ func init() {
 func serve() error {
 
 	specs := new(config.EnvSpec)
-
 	if err := envconfig.Process("", specs); err != nil {
 		panic(fmt.Errorf("issues with environment sourcing: %s", err))
 	}
@@ -61,14 +60,28 @@ func serve() error {
 
 	logger.Debugf("env vars: %v", specs)
 
-	monitor := prometheus.NewMonitor("identity-login-ui", logger)
-	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.OtelGRPCEndpoint, specs.OtelHTTPEndpoint, logger))
-
 	distFS, err := fs.Sub(jsFS, "ui/dist")
-
 	if err != nil {
 		logger.Fatalf("issue with js distribution files %s", err)
 	}
+
+	router := buildRouter(specs, distFS, logger)
+
+	logger.Infof("Starting server on port %v", specs.Port)
+	srv := &http.Server{
+		Addr:         fmt.Sprintf("0.0.0.0:%v", specs.Port),
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		Handler:      router,
+	}
+
+	return handleServeAndShutdown(srv, logger.Security())
+}
+
+func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) http.Handler {
+	monitor := prometheus.NewMonitor("identity-login-ui", logger)
+	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.OtelGRPCEndpoint, specs.OtelHTTPEndpoint, logger))
 
 	kClient := ik.NewClient(specs.KratosPublicURL, specs.Debug)
 	kAdminClient := ik.NewClient(specs.KratosAdminURL, specs.Debug)
@@ -90,31 +103,38 @@ func serve() error {
 		logger.Info("Authorization is disabled, using noop authorizer")
 		authzClient = fga.NewNoopClient(tracer, monitor, logger)
 	}
+
 	authorizer := authz.NewAuthorizer(authzClient, tracer, monitor, logger)
 	if authorizer.ValidateModel(context.Background()) != nil {
 		panic("Invalid authorization model provided")
 	}
 
-	router := web.NewRouter(kClient, kAdminClient, hClient, authorizer, cookieManager, distFS, specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.IdentifierFirstEnabled, specs.BaseURL, specs.SupportEmail, specs.KratosPublicURL, tracer, monitor, logger)
+	router := web.NewRouter(
+		web.WithKratosClients(kClient, kAdminClient),
+		web.WithHydraClient(hClient),
+		web.WithAuthzClient(authorizer),
+		web.WithCookieManager(cookieManager),
+		web.WithFS(distFS),
+		web.WithFlags(specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.IdentifierFirstEnabled),
+		web.WithBaseURL(specs.BaseURL),
+		web.WithSupportEmail(specs.SupportEmail),
+		web.WithKratosPublicURL(specs.KratosPublicURL),
+		web.WithTracing(tracer),
+		web.WithMonitoring(monitor),
+		web.WithLogger(logger),
+	)
+	return router
+}
 
-	logger.Infof("Starting server on port %v", specs.Port)
-
-	srv := &http.Server{
-		Addr:         fmt.Sprintf("0.0.0.0:%v", specs.Port),
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler:      router,
-	}
-
-	var serverError error
+func handleServeAndShutdown(srv *http.Server, securityLogger logging.SecurityLoggerInterface) error {
+	var listenAndServeError, shutdownError error
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		logger.Security().SystemStartup()
+		securityLogger.SystemStartup()
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			serverError = fmt.Errorf("server error: %w", err)
+            listenAndServeError = fmt.Errorf("server error: %w", err)
 			c <- os.Interrupt
 		}
 	}()
@@ -125,12 +145,12 @@ func serve() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	logger.Security().SystemShutdown()
+	securityLogger.SystemShutdown()
 	if err := srv.Shutdown(ctx); err != nil {
-		serverError = fmt.Errorf("server shutdown error: %w", err)
+		shutdownError = fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	return serverError
+	return errors.Join(listenAndServeError, shutdownError)
 }
 
 func main() {

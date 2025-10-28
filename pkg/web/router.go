@@ -22,69 +22,178 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
-func NewRouter(
-	kratosClient *ik.Client,
-	kratosAdminClient *ik.Client,
-	hydraClient *ih.Client,
-	authzClient authz.AuthorizerInterface,
-	cookieManager *kratos.AuthCookieManager,
-	distFS fs.FS,
-	mfaEnabled bool,
-	oidcWebAuthnSequencingEnabled bool,
-	identifierFirstEnabled bool,
-	baseURL string,
-	supportEmail string,
-	KratosPublicURL string,
-	tracer tracing.TracingInterface,
-	monitor monitoring.MonitorInterface,
-	logger logging.LoggerInterface,
-) http.Handler {
-	router := chi.NewMux()
+type Option func(config *routerConfig)
 
+func WithKratosClients(public, admin *ik.Client) Option {
+	return func(r *routerConfig) {
+		r.kratosClient = public
+		r.kratosAdminClient = admin
+	}
+}
+
+func WithHydraClient(c *ih.Client) Option {
+	return func(r *routerConfig) {
+		r.hydraClient = c
+	}
+}
+
+func WithAuthzClient(a authz.AuthorizerInterface) Option {
+	return func(r *routerConfig) {
+		r.authzClient = a
+	}
+}
+
+func WithCookieManager(cm *kratos.AuthCookieManager) Option {
+	return func(r *routerConfig) {
+		r.cookieManager = cm
+	}
+}
+
+func WithFS(fsys fs.FS) Option {
+	return func(r *routerConfig) {
+		r.distFS = fsys
+	}
+}
+
+func WithFlags(mfa, oidcSeq, identifierFirst bool) Option {
+	return func(r *routerConfig) {
+		r.mfaEnabled = mfa
+		r.oidcWebAuthnSequencingEnabled = oidcSeq
+		r.identifierFirstEnabled = identifierFirst
+	}
+}
+
+func WithBaseURL(url string) Option {
+	return func(r *routerConfig) {
+		r.baseURL = url
+	}
+}
+
+func WithSupportEmail(email string) Option {
+	return func(r *routerConfig) {
+		r.supportEmail = email
+	}
+}
+
+func WithKratosPublicURL(url string) Option {
+	return func(r *routerConfig) {
+		r.kratosPublicURL = url
+	}
+}
+
+func WithTracing(t tracing.TracingInterface) Option {
+	return func(r *routerConfig) {
+		r.tracer = t
+	}
+}
+
+func WithMonitoring(m monitoring.MonitorInterface) Option {
+	return func(r *routerConfig) {
+		r.monitor = m
+	}
+}
+
+func WithLogger(l logging.LoggerInterface) Option {
+	return func(r *routerConfig) {
+		r.logger = l
+	}
+}
+
+type routerConfig struct {
+	kratosClient                  *ik.Client
+	kratosAdminClient             *ik.Client
+	hydraClient                   *ih.Client
+	authzClient                   authz.AuthorizerInterface
+	cookieManager                 *kratos.AuthCookieManager
+	distFS                        fs.FS
+	mfaEnabled                    bool
+	oidcWebAuthnSequencingEnabled bool
+	identifierFirstEnabled        bool
+	baseURL                       string
+	supportEmail                  string
+	kratosPublicURL               string
+	tracer                        tracing.TracingInterface
+	monitor                       monitoring.MonitorInterface
+	logger                        logging.LoggerInterface
+}
+
+func NewRouter(opts ...Option) http.Handler {
+
+	config := &routerConfig{}
+	for _, opt := range opts {
+		opt(config)
+	}
+
+	router := chi.NewMux()
+	router.Use(buildMiddlewares(config)...)
+
+	registerAPIs(config, router)
+
+	wrappedRouter := tracing.NewMiddleware(config.monitor, config.logger).OpenTelemetry(router)
+	return wrappedRouter
+}
+
+func buildMiddlewares(config *routerConfig) chi.Middlewares {
 	middlewares := make(chi.Middlewares, 0)
 	middlewares = append(
 		middlewares,
 		middleware.RequestID,
-		monitoring.NewMiddleware(monitor, logger).ResponseTime(),
+		monitoring.NewMiddleware(config.monitor, config.logger).ResponseTime(),
 		middlewareCORS([]string{"*"}),
 	)
 
-	// TODO @shipperizer add a proper configuration to enable http logger middleware as it's expensive
-	if true {
+	if config.logger != nil {
 		middlewares = append(
 			middlewares,
-			middleware.RequestLogger(logging.NewLogFormatter(logger)), // LogFormatter will only work if logger is set to DEBUG level
+			middleware.RequestLogger(logging.NewLogFormatter(config.logger)), // LogFormatter will only work if logger is set to DEBUG level
 		)
 	}
 
-	router.Use(middlewares...)
+	return middlewares
+}
 
+func registerAPIs(config *routerConfig, router *chi.Mux) {
 	device.NewAPI(
-		device.NewService(hydraClient, tracer, monitor, logger),
-		logger,
+		device.NewService(config.hydraClient, config.tracer, config.monitor, config.logger),
+		config.logger,
 	).RegisterEndpoints(router)
-	kratosService := kratos.NewService(kratosClient, kratosAdminClient, hydraClient, authzClient, oidcWebAuthnSequencingEnabled, tracer, monitor, logger)
+
+	kratosService := kratos.NewService(config.kratosClient, config.kratosAdminClient, config.hydraClient, config.authzClient, config.oidcWebAuthnSequencingEnabled, config.tracer, config.monitor, config.logger)
 	kratos.NewAPI(
 		kratosService,
-		mfaEnabled,
-		oidcWebAuthnSequencingEnabled,
-		baseURL,
-		cookieManager,
-		logger,
+		config.mfaEnabled,
+		config.oidcWebAuthnSequencingEnabled,
+		config.baseURL,
+		config.cookieManager,
+		config.logger,
 	).RegisterEndpoints(router)
-	extra.NewAPI(extra.NewService(hydraClient, tracer, monitor, logger), kratosService, baseURL, mfaEnabled, oidcWebAuthnSequencingEnabled, logger).RegisterEndpoints(router)
-	status.NewAPI(
-		baseURL,
-		supportEmail,
-		oidcWebAuthnSequencingEnabled,
-		identifierFirstEnabled,
-		status.NewService(kratosClient.MetadataApi(), hydraClient.MetadataAPI(), tracer, monitor, logger),
-		tracer,
-		monitor,
-		logger,
-	).RegisterEndpoints(router)
-	ui.NewAPI(distFS, baseURL, KratosPublicURL, logger).RegisterEndpoints(router)
-	metrics.NewAPI(logger).RegisterEndpoints(router)
 
-	return tracing.NewMiddleware(monitor, logger).OpenTelemetry(router)
+	extra.NewAPI(
+		extra.NewService(config.hydraClient, config.tracer, config.monitor, config.logger),
+		kratosService,
+		config.baseURL,
+		config.mfaEnabled,
+		config.oidcWebAuthnSequencingEnabled,
+		config.logger,
+	).RegisterEndpoints(router)
+
+	status.NewAPI(
+		config.baseURL,
+		config.supportEmail,
+		config.oidcWebAuthnSequencingEnabled,
+		config.identifierFirstEnabled,
+		status.NewService(config.kratosClient.MetadataApi(), config.hydraClient.MetadataAPI(), config.tracer, config.monitor, config.logger),
+		config.tracer,
+		config.monitor,
+		config.logger,
+	).RegisterEndpoints(router)
+
+	ui.NewAPI(
+		config.distFS,
+		config.baseURL,
+		config.kratosPublicURL,
+		config.logger,
+	).RegisterEndpoints(router)
+
+	metrics.NewAPI(config.logger).RegisterEndpoints(router)
 }
