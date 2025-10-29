@@ -75,6 +75,12 @@ func WithSupportEmail(email string) Option {
 	}
 }
 
+func WithFeatureFlags(flags []string) Option {
+	return func(r *routerConfig) {
+		r.featureFlags = flags
+	}
+}
+
 func WithKratosPublicURL(url string) Option {
 	return func(r *routerConfig) {
 		r.kratosPublicURL = url
@@ -111,6 +117,7 @@ type routerConfig struct {
 	identifierFirstEnabled        bool
 	baseURL                       string
 	supportEmail                  string
+	featureFlags                  []string
 	kratosPublicURL               string
 	tracer                        tracing.TracingInterface
 	monitor                       monitoring.MonitorInterface
@@ -182,6 +189,7 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		config.supportEmail,
 		config.oidcWebAuthnSequencingEnabled,
 		config.identifierFirstEnabled,
+		config.featureFlags,
 		status.NewService(config.kratosClient.MetadataApi(), config.hydraClient.MetadataAPI(), config.tracer, config.monitor, config.logger),
 		config.tracer,
 		config.monitor,

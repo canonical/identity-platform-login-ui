@@ -124,6 +124,7 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) ht
 		web.WithFlags(specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.IdentifierFirstEnabled),
 		web.WithBaseURL(specs.BaseURL),
 		web.WithSupportEmail(specs.SupportEmail),
+		web.WithFeatureFlags(specs.FeatureFlags),
 		web.WithKratosPublicURL(specs.KratosPublicURL),
 		web.WithTracing(tracer),
 		web.WithMonitoring(monitor),
