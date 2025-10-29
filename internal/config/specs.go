@@ -28,9 +28,10 @@ type EnvSpec struct {
 	AuthorizationModelId string `envconfig:"openfga_authorization_model_id" default:""`
 	AuthorizationEnabled bool   `envconfig:"authorization_enabled" default:"false"`
 
-	MFAEnabled                    bool `envconfig:"mfa_enabled" default:"true"`
-	OIDCWebAuthnSequencingEnabled bool `envconfig:"oidc_webauthn_sequencing_enabled" default:"false"`
-	IdentifierFirstEnabled        bool `envconfig:"identifier_first_enabled" default:"true"`
+	MFAEnabled                    bool     `envconfig:"mfa_enabled" default:"true"`
+	OIDCWebAuthnSequencingEnabled bool     `envconfig:"oidc_webauthn_sequencing_enabled" default:"false"`
+	IdentifierFirstEnabled        bool     `envconfig:"identifier_first_enabled" default:"true"`
+	KratosFlags                   []string `envconfig:"kratos_flags" default:"password,backup_codes" validate:"dive,oneof=mfa account_linking totp webauthn password backup_codes oidc"`
 
 	SupportEmail string `envconfig:"support_email" default:""`
 }
