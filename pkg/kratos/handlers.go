@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/go-chi/chi/v5"
 	client "github.com/ory/kratos-client-go"
 
@@ -140,8 +141,8 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			a.cookieManager.ClearStateCookie(w)
 		}
 	} else {
-		// aal is not always a query param, propagate it from session if aal2
-		if isSessionAAL2(session) {
+		// aal is not always a query param, for kratos flows propagate aal2 from session
+		if isSessionAAL2(session) && loginChallenge == "" {
 			aal = "aal2"
 		}
 		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)
@@ -188,7 +189,7 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginCh
 
 	// clear cookies if not aal2
 	if aal != "aal2" {
-		cookies = filterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
+		cookies = httpHelpers.FilterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
 	}
 
 	flow, cookies, err := a.service.CreateBrowserLoginFlow(
@@ -967,23 +968,9 @@ func NewAPI(
 }
 
 func setCookies(w http.ResponseWriter, cookies []*http.Cookie, exclude ...string) {
-	for _, c := range filterCookies(cookies, exclude...) {
+	for _, c := range httpHelpers.FilterCookies(cookies, exclude...) {
 		http.SetCookie(w, c)
 	}
-}
-
-func filterCookies(cookies []*http.Cookie, exclude ...string) []*http.Cookie {
-	ret := []*http.Cookie{}
-l1:
-	for _, c := range cookies {
-		for _, n := range exclude {
-			if c.Name == n {
-				continue l1
-			}
-		}
-		ret = append(ret, c)
-	}
-	return ret
 }
 
 func hash(plain string) string {
