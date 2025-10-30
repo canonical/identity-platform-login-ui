@@ -38,6 +38,9 @@ const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
   const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
+  const is2FaWebauthn =
+    flow?.requested_aal === "aal2" &&
+    flow?.ui.nodes.find((node) => node.group === "webauthn") !== undefined;
 
   useEffect(() => {
     void fetch("../api/v0/app-config")
@@ -235,7 +238,9 @@ const Login: NextPage = () => {
       ui: {
         ...flow.ui,
         nodes: flow.ui.nodes.filter(({ group }) => {
-          return useBackupCode ? group !== "totp" : group !== "lookup_secret";
+          return useBackupCode
+            ? group !== "totp" && group !== "webauthn"
+            : group !== "lookup_secret";
         }),
       },
     };
@@ -245,7 +250,8 @@ const Login: NextPage = () => {
   const supportsWebauthn = flow?.ui.nodes.some(
     (node) => node.group === "webauthn",
   );
-  const renderFlow = isAuthCode ? filterFlow(replaceAuthLabel(flow)) : flow;
+  const renderFlow =
+    isAuthCode || is2FaWebauthn ? filterFlow(replaceAuthLabel(flow)) : flow;
 
   if (renderFlow?.ui) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -256,7 +262,9 @@ const Login: NextPage = () => {
       ).length === 0;
 
     isWebauthn =
-      (hasWebauthnInUrlParam || hasOnlyWebauthnNodes) && !invalid_method;
+      (hasWebauthnInUrlParam || hasOnlyWebauthnNodes || is2FaWebauthn) &&
+      !invalid_method &&
+      !useBackupCode;
 
     renderFlow.ui.nodes = renderFlow?.ui.nodes.filter((node) => {
       // show webauthn elements in dedicated step after it is selected
@@ -268,7 +276,7 @@ const Login: NextPage = () => {
     });
 
     // add security key option that looks like an oidc input
-    if (!isWebauthn && !isAuthCode && supportsWebauthn) {
+    if (!isWebauthn && !isAuthCode && !useBackupCode && supportsWebauthn) {
       renderFlow.ui.nodes.push({
         attributes: {
           type: "url",
