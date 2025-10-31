@@ -2,6 +2,7 @@ import React, { FC, useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { Button, Icon } from "@canonical/react-components";
 import classnames from "classnames";
+import { FeatureEnabled } from "../util/featureFlags";
 
 interface Props {
   user?: string;
@@ -93,11 +94,26 @@ const SelfServeNavigation: FC<Props> = ({ user }) => {
               <nav className="p-side-navigation--icons" aria-label="Main">
                 <ul className="p-side-navigation__list">
                   {navItem("manage_details", "Personal details")}
-                  {navItem("manage_password", "Password")}
-                  {navItem("manage_passkey", "Security key")}
-                  {navItem("manage_backup_codes", "Backup codes")}
-                  {navItem("manage_secure", "Authenticator")}
-                  {navItem("manage_connected_accounts", "Connected accounts")}
+
+                  <FeatureEnabled flags={"password"}>
+                    {navItem("manage_password", "Password")}
+                  </FeatureEnabled>
+
+                  <FeatureEnabled flags={"webauthn"}>
+                    {navItem("manage_passkey", "Security key")}
+                  </FeatureEnabled>
+
+                  <FeatureEnabled flags={"backup_codes"}>
+                    {navItem("manage_backup_codes", "Backup codes")}
+                  </FeatureEnabled>
+
+                  <FeatureEnabled flags={"totp"}>
+                    {navItem("manage_secure", "Authenticator")}
+                  </FeatureEnabled>
+
+                  <FeatureEnabled flags={"account_linking"}>
+                    {navItem("manage_connected_accounts", "Connected accounts")}
+                  </FeatureEnabled>
                 </ul>
                 {user && (
                   <ul className="p-side-navigation__list self-serve-user">
