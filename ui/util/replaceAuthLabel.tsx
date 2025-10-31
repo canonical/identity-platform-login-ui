@@ -1,8 +1,8 @@
 import React from "react";
 import { LoginFlow } from "@ory/client";
 import { UseBackupCodeButton } from "../components/UseBackupCodeButton";
-import { UseTotpButton } from "../components/UseTotpButton";
-import { isUseAuthenticator, isUseBackupCode } from "./constants";
+import { UseOtherButton } from "../components/UseOtherButton";
+import { isSignInWithHardwareKey, isUseAuthenticator, isUseBackupCode } from "./constants";
 
 export const replaceAuthLabel = (
   flow: LoginFlow | undefined,
@@ -16,6 +16,7 @@ export const replaceAuthLabel = (
   );
 
   const hasConfiguredTotp = flow.ui.nodes.some((node) => node.group === "totp");
+  const hasConfiguredWebauth = flow.ui.nodes.some((node) => node.group === "webauthn");
 
   return {
     ...flow,
@@ -51,7 +52,26 @@ export const replaceAuthLabel = (
                 context: {
                   ...node.meta.label.context,
                   afterComponent: hasConfiguredTotp ? (
-                    <UseTotpButton />
+                    <UseOtherButton method="authentication code" />
+                  ) : hasConfiguredWebauth ? (
+                    <UseOtherButton method="security key" />
+                  ): undefined,
+                },
+              },
+            },
+          };
+        }
+        if (isSignInWithHardwareKey(node)) {
+          return {
+            ...node,
+            meta: {
+              ...node.meta,
+              label: {
+                ...node.meta.label,
+                context: {
+                  ...node.meta.label.context,
+                  additional: hasConfiguredBackupCodes ? (
+                    <UseBackupCodeButton />
                   ) : undefined,
                 },
               },
