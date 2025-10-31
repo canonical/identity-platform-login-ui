@@ -22,6 +22,20 @@ func CookiesToString(cookies []*http.Cookie) string {
 	return strings.Join(ret, "; ")
 }
 
+func FilterCookies(cookies []*http.Cookie, exclude ...string) []*http.Cookie {
+	ret := []*http.Cookie{}
+l1:
+	for _, c := range cookies {
+		for _, n := range exclude {
+			if c.Name == n {
+				continue l1
+			}
+		}
+		ret = append(ret, c)
+	}
+	return ret
+}
+
 func GetUserClaims(i kratos_client.Identity, cr hydra_client.OAuth2ConsentRequest) map[string]interface{} {
 	ret := make(map[string]interface{})
 	// Export the user claims and filter them based on the requested scopes
