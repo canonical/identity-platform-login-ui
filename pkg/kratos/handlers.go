@@ -147,11 +147,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			a.cookieManager.ClearStateCookie(w)
 		}
 	} else {
-		// aal is not always a query param, for kratos flows propagate aal2 from session
-		if isSessionAAL2(session) && loginChallenge == "" {
-			aal = "aal2"
-		}
-		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)
+		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh, session)
 	}
 
 	if err != nil {
@@ -187,15 +183,17 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
+func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginChallenge string, refresh bool, session *client.Session) (*client.LoginFlow, []*http.Cookie, error) {
 	// redirect user to this endpoint with the login_challenge after login
 	// see https://github.com/ory/kratos/issues/3052
 
 	cookies := r.Cookies()
 
-	// clear cookies if not aal2 and not a refresh request
-	if !refresh && aal != "aal2" {
-		cookies = filterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
+	// clear cookies if not a refresh request, not aal2, and either:
+	// - it's a hydra login (with loginChallenge)
+	// - it's a kratos local login without a session
+	if !refresh && aal != "aal2" && (session == nil || loginChallenge != "") {
+		cookies = httpHelpers.FilterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
 	}
 
 	flow, cookies, err := a.service.CreateBrowserLoginFlow(
@@ -225,14 +223,6 @@ func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Sessi
 	}
 
 	return response, cookies, nil
-}
-
-func isSessionAAL2(session *client.Session) bool {
-	if session == nil || session.AuthenticatorAssuranceLevel == nil {
-		return false
-	}
-
-	return *session.AuthenticatorAssuranceLevel == client.AUTHENTICATORASSURANCELEVEL_AAL2
 }
 
 func parseGenericError(err error) (*KratosErrorResponse, bool) {
