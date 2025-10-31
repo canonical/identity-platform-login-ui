@@ -39,7 +39,7 @@ jobs:
       - name: Get repo name
         run: echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)" >> $GITHUB_ENV
       - name: TICS GitHub Action
-        uses: tiobe/tics-github-action@009979693978bfefad2ad15c1020066694968dc7 # v3
+        uses: tiobe/tics-github-action@ea1d6e614bda3f5cf0d0d7d3ed01ee872a170d8d # v3
         with:
           mode: qserver
           viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=GoProjects
