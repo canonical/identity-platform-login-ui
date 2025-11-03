@@ -45,12 +45,21 @@ Build and run the Login UI:
 make build
 
 export KRATOS_PUBLIC_URL=http://localhost:4433
+export KRATOS_ADMIN_URL=http://localhost:4434
 export HYDRA_ADMIN_URL=http://localhost:4445
 export BASE_URL=http://localhost
 export PORT=4455
 export TRACING_ENABLED=false
 export LOG_LEVEL=debug
 export AUTHORIZATION_ENABLED=false
+export COOKIES_ENCRYPTION_KEY=abcdef01GP1254CHWJC1MNGVB0WDG1T0
+export OPENFGA_API_HOST=localhost:8080
+export OPENFGA_API_SCHEME=http
+export OPENFGA_API_TOKEN=42
+export OPENFGA_AUTHORIZATION_MODEL_ID=01HGG9ZQ9PP3P6QHW93QBM55KM # use your authz model ID
+export OPENFGA_STORE_ID=01GP1254CHWJC1MNGVB0WDG1T0 # use your store ID
+export FEATURE_FLAGS=password,webauthn,backup_codes,totp,account_linking
+
 ./app serve
 ```
 
