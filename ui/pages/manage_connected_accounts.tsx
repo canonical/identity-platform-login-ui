@@ -14,6 +14,8 @@ import { AxiosError } from "axios";
 import { getLoggedInName } from "../util/selfServeHelpers";
 import { List, Icon, useToastNotification } from "@canonical/react-components";
 import { getProviderImage } from "../util/logos";
+import { hasFeatureFlag, useAppConfig } from "../config/useAppConfig";
+import { notFound } from "next/navigation";
 
 type ProviderConnectionAction = "link" | "unlink";
 type ConnectionState = "none" | "allDisconnected" | "someConnected";
@@ -75,6 +77,11 @@ const buildOidcProviderStates = (flow?: SettingsFlow): ProviderState[] => {
 };
 
 const ManageConnectedAccounts: NextPage = () => {
+  const appConfig = useAppConfig();
+  if (!hasFeatureFlag("account_linking", appConfig)) {
+    notFound()
+  }
+
   const [flow, setFlow] = useState<SettingsFlow>();
 
   const router = useRouter();
