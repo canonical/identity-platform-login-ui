@@ -2,7 +2,7 @@ import { Button } from "@canonical/react-components";
 import React, { FC } from "react";
 import { useRouter } from "next/router";
 
-export const UseTotpButton: FC = () => {
+export const UseOtherButton: FC<{ method: string }> = ({ method }) => {
   const router = useRouter();
 
   return (
@@ -23,7 +23,7 @@ export const UseTotpButton: FC = () => {
         );
       }}
     >
-      Use authentication code instead
+      Use {method} instead
     </Button>
   );
 };
