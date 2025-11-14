@@ -64,6 +64,7 @@ At the moment the application is sourcing the following from the environment:
   model will be created
 - `MFA_ENABLED` - whether MFA is enabled and enforced, defaults to true
 - `IDENTIFIER_FIRST_ENABLED` - whether login flow follows the identifier-first pattern, defaults to true
+- `FEATURE_FLAGS` - comma separated list (no spaces) of feature flags allowing to activate "self service" pages (values allowed: password,webauthn,backup_codes,totp,account_linking)
 
 ### Container
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/kelseyhightower/envconfig"
 
 	authz "github.com/canonical/identity-platform-login-ui/internal/authorization"
@@ -53,6 +54,11 @@ func serve() error {
 	specs := new(config.EnvSpec)
 	if err := envconfig.Process("", specs); err != nil {
 		panic(fmt.Errorf("issues with environment sourcing: %s", err))
+	}
+
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	if err := validate.Struct(specs); err != nil {
+		return fmt.Errorf("issues with environment variables validation: %s", err)
 	}
 
 	logger := logging.NewLogger(specs.LogLevel)
@@ -118,6 +124,7 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) ht
 		web.WithFlags(specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.IdentifierFirstEnabled),
 		web.WithBaseURL(specs.BaseURL),
 		web.WithSupportEmail(specs.SupportEmail),
+		web.WithFeatureFlags(specs.FeatureFlags),
 		web.WithKratosPublicURL(specs.KratosPublicURL),
 		web.WithTracing(tracer),
 		web.WithMonitoring(monitor),
@@ -134,7 +141,7 @@ func handleServeAndShutdown(srv *http.Server, securityLogger logging.SecurityLog
 	go func() {
 		securityLogger.SystemStartup()
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-            listenAndServeError = fmt.Errorf("server error: %w", err)
+			listenAndServeError = fmt.Errorf("server error: %w", err)
 			c <- os.Interrupt
 		}
 	}()

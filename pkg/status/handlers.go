@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
-	"github.com/go-chi/chi/v5"
 )
 
 const okValue = "ok"
@@ -23,10 +24,11 @@ type Health struct {
 }
 
 type DeploymentInfo struct {
-	OidcSequencingEnabled  bool   `json:"oidc_webauthn_sequencing_enabled"`
-	BaseURL                string `json:"base_url"`
-	IdentifierFirstEnabled bool   `json:"identifier_first_enabled"`
-	SupportEmail           string `json:"support_email"`
+	OidcSequencingEnabled  bool     `json:"oidc_webauthn_sequencing_enabled"`
+	BaseURL                string   `json:"base_url"`
+	IdentifierFirstEnabled bool     `json:"identifier_first_enabled"`
+	SupportEmail           string   `json:"support_email"`
+	Flags                  []string `json:"flags"`
 }
 
 type API struct {
@@ -34,10 +36,10 @@ type API struct {
 	supportEmail                  string
 	oidcWebAuthnSequencingEnabled bool
 	identifierFirstEnabled        bool
+	flags                         []string
 	service                       ServiceInterface
 
-	tracer tracing.TracingInterface
-
+	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
 }
@@ -96,18 +98,20 @@ func (a *API) appConfig(w http.ResponseWriter, r *http.Request) {
 	info.IdentifierFirstEnabled = a.identifierFirstEnabled
 	info.BaseURL = a.BaseURL
 	info.SupportEmail = a.supportEmail
+	info.Flags = a.flags
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(info)
 }
 
-func NewAPI(baseURL, supportEmail string, oidcWebAuthnSequencingEnabled, identifierFirstEnabled bool, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
+func NewAPI(baseURL, supportEmail string, oidcWebAuthnSequencingEnabled, identifierFirstEnabled bool, flags []string, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.BaseURL = baseURL
 	a.supportEmail = supportEmail
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.identifierFirstEnabled = identifierFirstEnabled
+    a.flags = flags
 	a.service = service
 	a.tracer = tracer
 	a.monitor = monitor
