@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.24.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.23.1...v0.24.0) (2025-11-14)
+
+
+### Features
+
+* add kratos features flags to app-config response ([a84a596](https://github.com/canonical/identity-platform-login-ui/commit/a84a596258b65fe32277219ebe5054012501fa8c))
+* add real validation of env var with validator library ([e403631](https://github.com/canonical/identity-platform-login-ui/commit/e40363141c19e69accde613e14f004f1781da80b))
+* adopt new component wrapper "FeatureEnabled" ([1982c65](https://github.com/canonical/identity-platform-login-ui/commit/1982c655d986a1ee22db926edc44ebd5b062cf9a))
+* implement AppConfigProvider and hook ([14e408a](https://github.com/canonical/identity-platform-login-ui/commit/14e408a2f639b1f4c4c986104629c609b2be2c48))
+
+
+### Bug Fixes
+
+* allow webauthn users to use backup codes ([4464795](https://github.com/canonical/identity-platform-login-ui/commit/4464795202b0b5d6e067546b31d2ccafce16fe20))
+
 ## [0.23.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.23.0...v0.23.1) (2025-10-17)
 
 
