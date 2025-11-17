@@ -9,7 +9,7 @@ log:
 dsn: memory
 serve:
   public:
-    base_url: http://localhost/
+    base_url: http://localhost:8282/
     cors:
       enabled: True
   admin:
@@ -21,39 +21,41 @@ identity:
         - id: default
           url: file:///etc/config/kratos/identity.schema.json
 session:
-  whoami:
-    required_aal: highest_available
+    whoami:
+        required_aal: highest_available
 
 selfservice:
     allowed_return_urls:
-      - http://localhost/ui/
+      - http://localhost:8282/ui/
     default_browser_return_url:
-        http://localhost/ui/
+        http://localhost:8282/ui/
     flows:
         error:
-            ui_url: http://localhost/ui/error
+            ui_url: http://localhost:8282/ui/error
         login:
-            ui_url: http://localhost/ui/login
+            ui_url: http://localhost:8282/ui/login
             # TODO: Uncomment when the pattern is implemented in FE
             # style: identifier_first
         recovery:
             enabled: True
-            ui_url: http://localhost/ui/reset_email
+            ui_url: http://localhost:8282/ui/reset_email
             use: code
             after:
-                default_browser_return_url: http://localhost/ui
+                default_browser_return_url: http://localhost:8282/ui
                 hooks:
                     - hook: revoke_active_sessions
         settings:
             # TODO: Replace with self-service settings page when implemented
-            ui_url: http://localhost/ui/reset_password
+            ui_url: http://localhost:8282/ui/reset_password
             required_aal: highest_available
             after:
                 oidc:
-                    default_browser_return_url: http://localhost/ui/manage_connected_accounts
+                    default_browser_return_url: http://localhost:8282/ui/manage_connected_accounts
                 webauthn:
-                    default_browser_return_url: http://localhost/ui/setup_passkey
+                    default_browser_return_url: http://localhost:8282/ui/setup_passkey
         registration:
+            enabled: true
+            ui_url: http://localhost:8282/ui/register
             after:
                 oidc:
                     hooks:
@@ -69,31 +71,33 @@ selfservice:
         lookup_secret:
             enabled: true
         password:
-            enabled: True
+            enabled: true
             config:
                 haveibeenpwned_enabled: false
         code:
-            enabled: True
+            enabled: true
+        profile:
+            enabled: true
         webauthn:
-            enabled: True
+            enabled: true
             config:
-                passwordless: True
+                passwordless: true
                 rp:
                     # Set 'id' to the top-level domain.
                     id: localhost
                     # Set 'origin' to the exact URL of the page that prompts the user to use WebAuthn. You must include the scheme, host, and port.
                     origins:
-                        - http://localhost
+                        - http://localhost:8282
                     display_name: Canonical
         oidc:
-            enabled: True
+            enabled: true
             config:
                 providers:
-                - id: "github"
-                  provider: "github"
-                  mapper_url: "file:///etc/config/kratos/schema.jsonnet"
-                  scope: ["user:email"]
-                  label: Github
+                    -   id: "github"
+                        provider: "github"
+                        mapper_url: "file:///etc/config/kratos/schema.jsonnet"
+                        scope: [ "user:email" ]
+                        label: Github
 courier:
     smtp:
         connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true

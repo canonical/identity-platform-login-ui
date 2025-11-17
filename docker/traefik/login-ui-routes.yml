@@ -52,4 +52,4 @@ http:
     login-ui-public-api-service:
       loadBalancer:
         servers:
-          - url: "http://172.17.0.1:4455"
+          - url: "http://host.docker.internal:4455"
