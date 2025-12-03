@@ -21,23 +21,24 @@ import (
 )
 
 const (
-	NotEnoughCharacters          = 4000003
-	TooManyCharacters            = 4000017
-	IncorrectCredentials         = 4000006
-	IncorrectAccountIdentifier   = 4000037
-	InactiveAccount              = 4000010
-	InvalidRecoveryCode          = 4060006
+	MinimumBackupCodesAmount     = 3
 	RecoveryCodeSent             = 1060003
 	InvalidProperty              = 4000002
+	NotEnoughCharacters          = 4000003
+	IncorrectCredentials         = 4000006
 	DuplicateIdentifier          = 4000007
 	InvalidAuthCode              = 4000008
-	MissingSecurityKeySetup      = 4000015
+	InactiveAccount              = 4000010
 	BackupCodeAlreadyUsed        = 4000012
-	InvalidBackupCode            = 4000016
 	MissingBackupCodesSetup      = 4000014
+	MissingSecurityKeySetup      = 4000015
+	InvalidBackupCode            = 4000016
+	TooManyCharacters            = 4000017
 	PasswordIdentifierSimilarity = 4000031
 	PasswordTooLong              = 4000033
-	MinimumBackupCodesAmount     = 3
+	IncorrectAccountIdentifier   = 4000037
+	NewPasswordPolicyViolation   = 4000039
+	InvalidRecoveryCode          = 4060006
 )
 
 type Service struct {
@@ -574,6 +575,8 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		err = fmt.Errorf("login with backup codes unavailable")
 	case PasswordIdentifierSimilarity:
 		err = fmt.Errorf("password can not be similar to the email")
+	case NewPasswordPolicyViolation:
+		err = fmt.Errorf("new password does not meet the password policy requirements: %s", errorCodes[0].Text)
 	default:
 		s.logger.Errorf("Unknown kratos error code: %v", errorCode)
 		err = fmt.Errorf("server error")
