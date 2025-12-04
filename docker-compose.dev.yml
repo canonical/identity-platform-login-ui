@@ -116,7 +116,7 @@ services:
     labels:
       - "traefik.enable=false"
   hydra:
-    image: ghcr.io/canonical/hydra:2.3.0-canonical
+    image: ghcr.io/canonical/hydra:25.4.0
     ports:
       - "4444:4444" # Public port
       - "4445:4445" # Admin port
@@ -173,7 +173,7 @@ services:
       - "traefik.http.routers.hydra-admin-keys.service=hydra-admin"
 
   hydra-migrate:
-    image: ghcr.io/canonical/hydra:2.3.0-canonical
+    image: ghcr.io/canonical/hydra:25.4.0
     environment:
       - DSN=postgres://hydra:hydra@postgres/hydra?sslmode=disable
     command: exec hydra migrate -c /etc/config/hydra/hydra.yml sql -e --yes

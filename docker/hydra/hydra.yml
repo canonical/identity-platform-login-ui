@@ -35,8 +35,9 @@ urls:
   consent: http://localhost/ui/consent
   login: http://localhost/ui/login
   error: http://localhost/ui/oidc_error
-  device_verification: http://localhost/ui/device_code
-  post_device_done: http://localhost/ui/device_complete
+  device:
+    verification: http://localhost/ui/device_code
+    success: http://localhost/ui/device_complete
 
 secrets:
   system:
