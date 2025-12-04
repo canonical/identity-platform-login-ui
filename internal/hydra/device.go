@@ -197,7 +197,7 @@ func (a *DeviceApiService) AcceptUserCodeRequestExecute(r ApiAcceptUserCodeReque
 	req.Header.Set("Content-Type", "application/json")
 
 	query := req.URL.Query()
-	query.Add("challenge", *r.deviceChallenge)
+	query.Add("device_challenge", *r.deviceChallenge)
 	req.URL.RawQuery = query.Encode()
 
 	client := a.client.GetConfig().HTTPClient
