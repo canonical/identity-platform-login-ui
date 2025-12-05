@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.24.0...v0.24.1) (2025-12-04)
+
+
+### Bug Fixes
+
+* specify device_challenge query param ([4fc1e34](https://github.com/canonical/identity-platform-login-ui/commit/4fc1e343d89f43c3b8ea9a06d43bbdca539879f0))
+
 ## [0.24.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.23.1...v0.24.0) (2025-11-14)
 
 
