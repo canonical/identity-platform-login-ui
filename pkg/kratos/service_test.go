@@ -1295,6 +1295,121 @@ func TestUpdateLoginFlowErrorWhenBackupCodesNotSet(t *testing.T) {
 	}
 }
 
+func TestGetUiError(t *testing.T) {
+	tests := []struct {
+		name      string
+		messages  []kClient.UiText
+		expectErr string
+		expectLog bool
+	}{
+		{
+			name:      "incorrect credentials",
+			messages:  []kClient.UiText{{Id: IncorrectCredentials}},
+			expectErr: "incorrect username or password",
+		},
+		{
+			name:      "incorrect account identifier",
+			messages:  []kClient.UiText{{Id: IncorrectAccountIdentifier}},
+			expectErr: "account does not exist or has no login method configured",
+		},
+		{
+			name:      "inactive account",
+			messages:  []kClient.UiText{{Id: InactiveAccount}},
+			expectErr: "inactive account",
+		},
+		{
+			name:      "invalid property",
+			messages:  []kClient.UiText{{Id: InvalidProperty, Context: map[string]interface{}{"property": "email"}}},
+			expectErr: "invalid email",
+		},
+		{
+			name:      "password policy violation",
+			messages:  []kClient.UiText{{Id: NewPasswordPolicyViolation, Text: "password must contain uppercase and numbers"}},
+			expectErr: "new password does not meet the password policy requirements: password must contain uppercase and numbers",
+		},
+		{
+			name:      "not enough characters",
+			messages:  []kClient.UiText{{Id: NotEnoughCharacters, Context: map[string]interface{}{"min_length": 8}}},
+			expectErr: "at least 8 characters required",
+		},
+		{
+			name:      "too many characters",
+			messages:  []kClient.UiText{{Id: TooManyCharacters, Context: map[string]interface{}{"max_length": 64}}},
+			expectErr: "maximum 64 characters allowed",
+		},
+		{
+			name:      "password too long",
+			messages:  []kClient.UiText{{Id: PasswordTooLong, Context: map[string]interface{}{"max_length": 64}}},
+			expectErr: "maximum 64 characters allowed",
+		},
+		{
+			name:      "invalid backup code",
+			messages:  []kClient.UiText{{Id: InvalidBackupCode}},
+			expectErr: "invalid backup code",
+		},
+		{
+			name:      "backup code already used",
+			messages:  []kClient.UiText{{Id: BackupCodeAlreadyUsed}},
+			expectErr: "this backup code was already used",
+		},
+		{
+			name:      "invalid auth code",
+			messages:  []kClient.UiText{{Id: InvalidAuthCode}},
+			expectErr: "invalid authentication code",
+		},
+		{
+			name:      "missing security key setup",
+			messages:  []kClient.UiText{{Id: MissingSecurityKeySetup}},
+			expectErr: "choose a different login method",
+		},
+		{
+			name:      "missing backup codes setup",
+			messages:  []kClient.UiText{{Id: MissingBackupCodesSetup}},
+			expectErr: "login with backup codes unavailable",
+		},
+		{
+			name:      "password identifier similarity",
+			messages:  []kClient.UiText{{Id: PasswordIdentifierSimilarity}},
+			expectErr: "password can not be similar to the email",
+		},
+		{
+			name:      "unknown code logs and returns server error",
+			messages:  []kClient.UiText{{Id: 9999999}},
+			expectErr: "server error",
+			expectLog: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockHydra := NewMockHydraClientInterface(ctrl)
+			mockKratos := NewMockKratosClientInterface(ctrl)
+			mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+			mockAuthz := NewMockAuthorizerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
+			mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+			if tt.expectLog {
+				mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+			}
+
+			errorResp := UiErrorMessages{Ui: kClient.UiContainer{Messages: tt.messages}}
+			body, _ := json.Marshal(errorResp)
+			resp := io.NopCloser(bytes.NewBuffer(body))
+
+			err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).getUiError(resp)
+
+			if err == nil || err.Error() != tt.expectErr {
+				t.Fatalf("expected error '%s', got %v", tt.expectErr, err)
+			}
+		})
+	}
+}
+
 func TestUpdateLoginFlowFail(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

@@ -549,7 +549,6 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 		return err
 	}
 
-	// TODO: Add unit tests for all handled error codes
 	switch errorCode := errorCodes[0].Id; errorCode {
 	case IncorrectCredentials:
 		err = fmt.Errorf("incorrect username or password")
