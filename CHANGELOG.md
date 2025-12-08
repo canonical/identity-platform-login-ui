@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.24.1...v0.24.2) (2025-12-08)
+
+
+### Bug Fixes
+
+* handle password policy violations on backend ([b775d32](https://github.com/canonical/identity-platform-login-ui/commit/b775d32e2e7fd72fc9ab22832f31f0b1b253cc18))
+* handle password policy violations on backend ([#820](https://github.com/canonical/identity-platform-login-ui/issues/820)) ([70caffe](https://github.com/canonical/identity-platform-login-ui/commit/70caffe0234a349fcc5ab9f4611eeab643c2fef7))
+
 ## [0.24.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.24.0...v0.24.1) (2025-12-04)
 
 
