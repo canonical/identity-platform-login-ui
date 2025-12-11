@@ -9,7 +9,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/openfga/go-sdk v0.7.3
 	github.com/ory/hydra-client-go/v2 v2.2.1
-	github.com/ory/kratos-client-go v1.3.8
+	github.com/ory/kratos-client-go/v25 v25.4.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
