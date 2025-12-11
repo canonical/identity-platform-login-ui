@@ -10,7 +10,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	hClient "github.com/ory/hydra-client-go/v2"
-	kClient "github.com/ory/kratos-client-go"
+	kClient "github.com/ory/kratos-client-go/v25"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -18,7 +18,7 @@ import (
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_status.go -source=./interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_kratos.go -mock_names MetadataApi=MockKratosMetadataAPI github.com/ory/kratos-client-go MetadataAPI
+//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_kratos.go -mock_names MetadataApi=MockKratosMetadataAPI github.com/ory/kratos-client-go/v25 MetadataAPI
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_hydra.go -mock_names MetadataAPI=MockHydraMetadataAPI "github.com/ory/hydra-client-go/v2" MetadataAPI
 
 func TestKratosReadySuccess(t *testing.T) {

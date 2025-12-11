@@ -11,7 +11,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/version"
 
 	hClient "github.com/ory/hydra-client-go/v2"
-	kClient "github.com/ory/kratos-client-go"
+	kClient "github.com/ory/kratos-client-go/v25"
 )
 
 type BuildInfo struct {
