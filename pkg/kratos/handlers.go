@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	client "github.com/ory/kratos-client-go"
+	client "github.com/ory/kratos-client-go/v25"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
