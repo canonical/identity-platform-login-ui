@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	client "github.com/ory/kratos-client-go"
+	client "github.com/ory/kratos-client-go/v25"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 

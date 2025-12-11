@@ -12,7 +12,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	hClient "github.com/ory/hydra-client-go/v2"
-	kClient "github.com/ory/kratos-client-go"
+	kClient "github.com/ory/kratos-client-go/v25"
 
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
 )
