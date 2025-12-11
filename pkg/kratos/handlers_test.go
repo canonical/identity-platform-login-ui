@@ -17,7 +17,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 
 	hClient "github.com/ory/hydra-client-go/v2"
-	kClient "github.com/ory/kratos-client-go"
+	kClient "github.com/ory/kratos-client-go/v25"
 )
 
 const (
