@@ -98,12 +98,19 @@ const ResetPassword: NextPage<Props> = ({ forceSelfServe }: Props) => {
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
 
+      const csrfNode = flow?.ui.nodes.find(
+        (node) =>
+          node.group === "default" &&
+          node.attributes.node_type === "input" &&
+          node.attributes.name === "csrf_token",
+      );
+
       kratos
         .updateSettingsFlow({
           flow: String(flow?.id),
           updateSettingsFlowBody: {
-            csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
-              .value as string,
+            csrf_token: (csrfNode?.attributes as UiNodeInputAttributes)
+              ?.value as string,
             method: "password",
             password: password,
           },
