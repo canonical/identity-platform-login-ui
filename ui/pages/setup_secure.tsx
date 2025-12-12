@@ -85,12 +85,18 @@ const SetupSecure: NextPage<Props> = ({ forceSelfServe }: Props) => {
   const handleSubmit = useCallback(
     (values: UpdateSettingsFlowBody) => {
       const methodValues = values as UpdateSettingsFlowWithTotpMethod;
+      const csrfNode = flow?.ui?.nodes.find(
+        (node) =>
+          node.group === "default" &&
+          node.attributes.node_type === "input" &&
+          node.attributes.name === "csrf_token",
+      );
       return kratos
         .updateSettingsFlow({
           flow: String(flow?.id),
           updateSettingsFlowBody: {
-            csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
-              .value as string,
+            csrf_token: (csrfNode?.attributes as UiNodeInputAttributes)
+              ?.value as string,
             method: "totp",
             totp_code: methodValues.totp_code,
             totp_unlink: methodValues.totp_unlink ? true : undefined,

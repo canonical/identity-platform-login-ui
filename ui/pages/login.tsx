@@ -311,12 +311,13 @@ const Login: NextPage = () => {
           node.group === "default" &&
           node.attributes.node_type === "input" &&
           node.attributes.name === "csrf_token",
-      )?.attributes as UiNodeInputAttributes;
+      );
 
       void handleSubmit({
         method: "webauthn",
         identifier: email,
-        csrf_token: (csrfNode.value as string) ?? "",
+        csrf_token: (csrfNode?.attributes as UiNodeInputAttributes)
+          ?.value as string,
       }).catch(() => {
         if (flow?.return_to) {
           window.location.href = flow.return_to;
@@ -358,14 +359,18 @@ const Login: NextPage = () => {
   });
 
   // automatically forward to single oidc provider if it is the only option
+  const csrfNode = renderFlow?.ui.nodes.find(
+    (node) =>
+      node.group === "default" &&
+      node.attributes.node_type === "input" &&
+      node.attributes.name === "csrf_token",
+  );
   const isSingleOidcOption =
     isSequencedLogin &&
     renderFlow?.ui.nodes.length === 2 &&
     renderFlow?.ui.nodes[1].group === "oidc" &&
-    (renderFlow?.ui.nodes[0].attributes as UiNodeInputAttributes).name ===
-      "csrf_token";
+    csrfNode !== undefined;
   if (isSingleOidcOption) {
-    const csrfNode = renderFlow?.ui.nodes[0];
     const oidcNode = renderFlow?.ui.nodes[1];
     const oidcAttributes = oidcNode.attributes as UiNodeInputAttributes;
     const csrfAttributes = csrfNode.attributes as UiNodeInputAttributes;
