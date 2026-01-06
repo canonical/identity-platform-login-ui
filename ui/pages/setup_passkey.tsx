@@ -15,6 +15,7 @@ import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Button, Icon, Spinner } from "@canonical/react-components";
 import { UpdateSettingsFlowWithWebAuthnMethod } from "@ory/client/api";
+import { getCsrfToken } from "../util/getCsrfNode";
 import {
   isSecurityKeyAddBtn,
   isSecurityKeyNameInput,
@@ -113,8 +114,7 @@ const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
         .updateSettingsFlow({
           flow: String(flow?.id),
           updateSettingsFlowBody: {
-            csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
-              .value as string,
+            csrf_token: getCsrfToken(flow?.ui?.nodes),
             method: "webauthn",
             webauthn_remove: authValues.webauthn_remove,
           },

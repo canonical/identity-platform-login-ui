@@ -13,7 +13,7 @@ import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Notification, Spinner } from "@canonical/react-components";
-import { UiNodeInputAttributes } from "@ory/client/api";
+import { getCsrfToken } from "../util/getCsrfNode";
 import {
   getLoggedInName,
   hasSelfServeReturn,
@@ -89,8 +89,7 @@ const SetupSecure: NextPage<Props> = ({ forceSelfServe }: Props) => {
         .updateSettingsFlow({
           flow: String(flow?.id),
           updateSettingsFlowBody: {
-            csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
-              .value as string,
+            csrf_token: getCsrfToken(flow?.ui?.nodes),
             method: "totp",
             totp_code: methodValues.totp_code,
             totp_unlink: methodValues.totp_unlink ? true : undefined,
