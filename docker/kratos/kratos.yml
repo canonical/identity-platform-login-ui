@@ -78,6 +78,8 @@ selfservice:
             notify_unknown_recipients: False
 
     methods:
+        profile:
+            enabled: true
         totp:
             enabled: true
             config:
