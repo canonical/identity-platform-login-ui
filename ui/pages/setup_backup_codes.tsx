@@ -14,6 +14,7 @@ import PageLayout from "../components/PageLayout";
 import { AxiosError } from "axios";
 import { Spinner } from "@canonical/react-components";
 import { UiNodeInputAttributes } from "@ory/client/api";
+import { getCsrfToken } from "../util/getCsrfNode";
 import {
   isBackupCodeConfirm,
   isBackupCodeConfirmText,
@@ -95,8 +96,7 @@ const SetupBackupCodes: NextPage<Props> = ({ forceSelfServe }: Props) => {
         .updateSettingsFlow({
           flow: String(flow?.id),
           updateSettingsFlowBody: {
-            csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
-              .value as string,
+            csrf_token: getCsrfToken(flow?.ui?.nodes),
             method: "lookup_secret",
             lookup_secret_reveal: methodValues.lookup_secret_reveal
               ? true

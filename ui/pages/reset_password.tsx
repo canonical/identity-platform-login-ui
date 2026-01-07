@@ -8,7 +8,7 @@ import { handleFlowError } from "../util/handleFlowError";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import Password from "../components/Password";
-import { UiNodeInputAttributes } from "@ory/client/api";
+import { getCsrfToken } from "../util/getCsrfNode";
 import { AxiosError } from "axios";
 import { FlowResponse } from "./consent";
 import {
@@ -102,8 +102,7 @@ const ResetPassword: NextPage<Props> = ({ forceSelfServe }: Props) => {
         .updateSettingsFlow({
           flow: String(flow?.id),
           updateSettingsFlowBody: {
-            csrf_token: (flow?.ui?.nodes[0].attributes as UiNodeInputAttributes)
-              .value as string,
+            csrf_token: getCsrfToken(flow?.ui?.nodes),
             method: "password",
             password: password,
           },
