@@ -1,7 +1,7 @@
 name: identity-platform-login-ui
 base: bare
 build-base: ubuntu@22.04
-version: 0.24.1
+version: 0.24.2
 summary: Canonical Identity platform login UI
 description: |
   This is the Canonical Identity platform login UI used for connecting
