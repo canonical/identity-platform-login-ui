@@ -36,6 +36,10 @@ selfservice:
             ui_url: http://localhost/ui/login
             # TODO: Uncomment when the pattern is implemented in FE
             # style: identifier_first
+            # uncomment this block after verification-post-login has been addressed
+            #after:
+            #    hooks:
+            #      - hook: require_verified_address
         recovery:
             enabled: True
             ui_url: http://localhost/ui/reset_email
@@ -57,12 +61,22 @@ selfservice:
             enabled: true
             ui_url: http://localhost/ui/register
             after:
+                password:
+                    hooks:
+                        - hook: show_verification_ui
                 oidc:
                     hooks:
                     - hook: session
                 webauthn:
                     hooks:
                     - hook: session
+        verification:
+            enabled: True
+            ui_url: http://localhost/ui/verification
+            lifespan: 1h
+            use: code
+            notify_unknown_recipients: False
+
     methods:
         totp:
             enabled: true
@@ -99,5 +113,8 @@ selfservice:
                         scope: [ "user:email" ]
                         label: Github
 courier:
+    template_override_path: /etc/config/kratos/templates
     smtp:
         connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+        from_address: identity@canonical.com
+        from_name: Canonical Identity Platform
