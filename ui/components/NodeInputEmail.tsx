@@ -5,6 +5,7 @@ import { NodeInputProps } from "./helpers";
 
 export const NodeInputEmail: FC<NodeInputProps> = ({
   node,
+  attributes,
   value,
   setValue,
   disabled,
@@ -48,6 +49,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
   return (
     <Input
       type="email"
+      name={attributes.name}
       label={getNodeLabel(node)}
       disabled={disabled}
       defaultValue={defaultValue}

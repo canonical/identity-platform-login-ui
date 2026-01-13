@@ -5,6 +5,7 @@ import { NodeInputProps } from "./helpers";
 
 export const NodeInputPassword: FC<NodeInputProps> = ({
   node,
+  attributes,
   setValue,
   disabled,
   dispatchSubmit,
@@ -14,6 +15,7 @@ export const NodeInputPassword: FC<NodeInputProps> = ({
     <>
       <Input
         type="password"
+        name={attributes.name}
         tabIndex={2}
         label={
           <>
