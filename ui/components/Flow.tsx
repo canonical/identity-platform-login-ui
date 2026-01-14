@@ -8,6 +8,7 @@ import {
   UpdateRegistrationFlowBody,
   UpdateSettingsFlowBody,
   UpdateVerificationFlowBody,
+  VerificationFlow,
 } from "@ory/client";
 import { getNodeId, isUiNodeInputAttributes } from "@ory/integrations/ui";
 import React, { Component, FormEvent } from "react";
@@ -32,7 +33,7 @@ export type Methods =
 
 export interface Props<T> {
   // The flow
-  flow?: LoginFlow | RecoveryFlow | SettingsFlow;
+  flow?: LoginFlow | RecoveryFlow | SettingsFlow | VerificationFlow;
   // Only show certain nodes. We will always render the default nodes for CSRF tokens.
   only?: Methods;
   // Is triggered on submission
