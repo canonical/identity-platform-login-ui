@@ -1,0 +1,16 @@
+{
+  "credentials": [
+    {
+      "credentialId": "62H4pFWP6ts4qTbfzWG1s/W92shaaiybpDaqkq98lZ4=",
+      "isResidentCredential": false,
+      "rpId": "localhost",
+      "privateKey": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgWVotCl4gl8AWx1v2XVYE8ctym8XapsLLaN/Jwkxqn/2hRANCAAT4fDdN+xm38pSExQp9aQrsW2tEO66avfOjNCJvs2oe3l2pRL8mIcinraX0QhFTWK/qo3xrvocOQc6vbibZQk9U",
+      "userHandle": "iQ801PJRSNmqyQm70XCuug==",
+      "signCount": 1,
+      "backupEligibility": false,
+      "backupState": false,
+      "userName": "Canonical",
+      "userDisplayName": "Canonical"
+    }
+  ]
+}

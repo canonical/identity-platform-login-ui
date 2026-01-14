@@ -1,0 +1,71 @@
+name: Chaos Agent Matrix
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  matrix-test:
+    name: Matrix Test (ID-First=${{ matrix.identifier-first }}, MFA=${{ matrix.mfa-enabled }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        identifier-first: ['true', 'false']
+        mfa-enabled: ['true', 'false']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: tools/chaos-agent/package-lock.json
+
+      - name: Install Agent Dependencies
+        working-directory: tools/chaos-agent
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        working-directory: tools/chaos-agent
+        run: npx playwright install --with-deps chromium
+
+      - name: Build UI and Backend
+        run: |
+          make npm-build
+          make build
+
+      - name: Start Application Stack
+        env:
+          IDENTIFIER_FIRST_ENABLED: ${{ matrix.identifier-first }}
+          MFA_ENABLED: ${{ matrix.mfa-enabled }}
+          PORT: 8080
+        run: |
+          # Start with specific configuration
+          # Note: Adjust docker-compose command as needed for the environment
+          docker compose -f docker-compose.dev.yml up -d
+          
+          # Wait for service to be ready
+          echo "Waiting for service..."
+          sleep 15
+
+      - name: Run Chaos Agent (Validation)
+        working-directory: tools/chaos-agent
+        run: npm start -- --mode=validation --url=http://localhost:8080/ui/login --duration=60
+
+      - name: Upload Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-report-${{ matrix.identifier-first }}-${{ matrix.mfa-enabled }}
+          path: tools/chaos-agent/test-results/
+
+      - name: Stop Application Stack
+        if: always()
+        run: docker compose -f docker-compose.dev.yml down

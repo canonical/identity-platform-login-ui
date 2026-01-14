@@ -38,6 +38,14 @@ yarn-debug.log*
 yarn-error.log*
 
 
+# tools/chaos-agent
+tools/chaos-agent/node_modules
+tools/chaos-agent/dist
+tools/chaos-agent/build
+tools/chaos-agent/coverage
+tools/chaos-agent/playwright-report
+tools/chaos-agent/test-results
+
 ### Go ###
 # Binaries for programs and plugins
 *.exe

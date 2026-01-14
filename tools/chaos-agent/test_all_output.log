@@ -1,0 +1,414 @@
+
+> identity-platform-chaos-agent@0.1.0 test:all
+> npx ts-node scripts/run-all-scenarios.ts
+
+🚀 Starting Chaos Agent Test Suite
+
+[Runner] Starting Scenario: OIDC Flow
+Command: npx ts-node src/cli/index.ts --mode=validation --url=http://127.0.0.1:4446/ --profile=totp-user --duration=120
+[AgentState] Loaded persisted state from disk
+[34m[INFO] Starting Chaos Agent in validation mode[39m
+[34m[INFO] Target: http://127.0.0.1:4446/[39m
+[34m[INFO] Using user profile: totp-user (login-test@example.com)[39m
+[34m[INFO]   TOTP: ✓, WebAuthn: ✗, Backup Codes: ✗[39m
+[AgentState] Persisted state to disk
+[34m[INFO] Browser mode: headless[39m
+[34m[INFO] Navigated to [39m
+[36m[Validation] Starting deterministic validation...[39m
+[Graph] Matched state "OIDC Test Client" for URL: http://127.0.0.1:4446/ (via URL pattern)
+[36m[Validation] Current State: OIDC Test Client (iteration 1)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Start OIDC Authorization Code Flow
+[32m[Validation] Executing: Start OIDC Authorization Code Flow[39m
+[OIDC] Starting Authorization Flow...
+[Graph] Matched state "Login Page" for URL: http://localhost/ui/login?login_challenge=1UF_JBSZCdf568tJfk5kl-yFq6XNGiBnhXsp0bOnIhKSOjndbFDoTMwFIRHBuwVFnYa0zPebkIuYuE8uGFzVcgcF1yRtGeN1MCThtChCyogGmOCMuVK5pO75pUWZv7L2mzYdHpEgmEA_i4NIWvZJ7UTUlpP2FumWL34PxS7xtHtxzTM7l4W_FoVULzp_2rxxovytyGsGuQHTb0QxW-aqrL7sjuAiamhDF6X3B2GElYAA5NRqw0coilVa8lS-HxWfXC-vKFOKnEKatQRPT6ySf_yy2hnIQiNEKwouExhFGxK1jQYVLkZqp6hqX_kDION6LOpTpDQuHJJrvVlE02_rEOVHcTceBBuelCarNh_-dUdGvE8_Yc4w6-WaZ3BGD5Ypl3tNLmZrHv-v_7WsG4MQ1su0tbVY7yqS1IkBN9FWliks7xQZ_6DCJ7_zGfJlZLpoK0KXS8LBI7uU5EjK-7CHsNlnI3xbAw7ZvCh0TotZRQ43q4TBDYIu0eYDLF7fMUY82NcfE-9gibiYAfzTmQEzlkD_MQo57Duwa-jzK4yzrVfskl_LkFAkKLXwf0ZeFGkzXS4IrgFvzoWwpr1YsFerH8_hivvolr3CQQO68BW6EAapFj2hVNEBTo82250Jw67b9sS_marp0zeae5wh-98jocRP0DvXTm6kOl9cWF2IhhX56stxknSXEM1MslavrG_qgTFNyMeMTGC_u0jF5Wvu95VKFwq5j_iBXIkWCner0uZRG4vAwhy9l90ehD64po71lAjtKKYbsCrsHRPh0Pxvx_R-BOCScCFArPONqZkNO2CyvTtZ5ydgM4ka4gK_y0cYQpg8WIh-5Tb_j1jTEtB9rHbS2RoJMGEQAsEZF8iQMjfbhCxQLN_-LLwrXDPtgw9y-kqcVKl4-VbzzfWAH5zoQPDemZsSsTZ9VM3I9Tqhl9JM1-OzV9wmYH9Uu5xyBt1HFnQyxaZYJGV2Z1DVkhHd8TqJxq4MCpAM6US4tdGI410YdmUeVUaOdnfFZRYmODf7KdNawQzHlUbjRErM7E9YCB3JULO9OHMDh6pL249bths06jtJCLy0zDizolt4oFo2iRMHp7N6IcWHtkzAKKTvcOVz30TOMQzIBcFSh-543xFWo240xzGJpnVgv3reGRCmYjRZDH_di-marmpHqPT6kPhv1MT2vAU6-ANBlDUmCLH3xW8XfsLSF90nvm-6kX7aPuuTft89oXNUQnEeLIIdEF_wSD9MTt1Jr8Wp0Ig%3D (via content check)
+[36m[Validation] Current State: Login Page (iteration 2)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Submit email and password
+[32m[Validation] Executing: Submit email and password[39m
+[Login] Submitting credentials...
+[Login] Using credentials: login-test@example.com
+[Graph] Matched state "Login Page" for URL: http://localhost/ui/login?login_challenge=1UF_JBSZCdf568tJfk5kl-yFq6XNGiBnhXsp0bOnIhKSOjndbFDoTMwFIRHBuwVFnYa0zPebkIuYuE8uGFzVcgcF1yRtGeN1MCThtChCyogGmOCMuVK5pO75pUWZv7L2mzYdHpEgmEA_i4NIWvZJ7UTUlpP2FumWL34PxS7xtHtxzTM7l4W_FoVULzp_2rxxovytyGsGuQHTb0QxW-aqrL7sjuAiamhDF6X3B2GElYAA5NRqw0coilVa8lS-HxWfXC-vKFOKnEKatQRPT6ySf_yy2hnIQiNEKwouExhFGxK1jQYVLkZqp6hqX_kDION6LOpTpDQuHJJrvVlE02_rEOVHcTceBBuelCarNh_-dUdGvE8_Yc4w6-WaZ3BGD5Ypl3tNLmZrHv-v_7WsG4MQ1su0tbVY7yqS1IkBN9FWliks7xQZ_6DCJ7_zGfJlZLpoK0KXS8LBI7uU5EjK-7CHsNlnI3xbAw7ZvCh0TotZRQ43q4TBDYIu0eYDLF7fMUY82NcfE-9gibiYAfzTmQEzlkD_MQo57Duwa-jzK4yzrVfskl_LkFAkKLXwf0ZeFGkzXS4IrgFvzoWwpr1YsFerH8_hivvolr3CQQO68BW6EAapFj2hVNEBTo82250Jw67b9sS_marp0zeae5wh-98jocRP0DvXTm6kOl9cWF2IhhX56stxknSXEM1MslavrG_qgTFNyMeMTGC_u0jF5Wvu95VKFwq5j_iBXIkWCner0uZRG4vAwhy9l90ehD64po71lAjtKKYbsCrsHRPh0Pxvx_R-BOCScCFArPONqZkNO2CyvTtZ5ydgM4ka4gK_y0cYQpg8WIh-5Tb_j1jTEtB9rHbS2RoJMGEQAsEZF8iQMjfbhCxQLN_-LLwrXDPtgw9y-kqcVKl4-VbzzfWAH5zoQPDemZsSsTZ9VM3I9Tqhl9JM1-OzV9wmYH9Uu5xyBt1HFnQyxaZYJGV2Z1DVkhHd8TqJxq4MCpAM6US4tdGI410YdmUeVUaOdnfFZRYmODf7KdNawQzHlUbjRErM7E9YCB3JULO9OHMDh6pL249bths06jtJCLy0zDizolt4oFo2iRMHp7N6IcWHtkzAKKTvcOVz30TOMQzIBcFSh-543xFWo240xzGJpnVgv3reGRCmYjRZDH_di-marmpHqPT6kPhv1MT2vAU6-ANBlDUmCLH3xW8XfsLSF90nvm-6kX7aPuuTft89oXNUQnEeLIIdEF_wSD9MTt1Jr8Wp0Ig%3D (via content check)
+[36m[Validation] Current State: Login Page (iteration 3)[39m
+[90m[Validation] State visit count: 2[39m
+[Validation] Checking rule: Submit email and password
+[Validation] Checking rule: Click Forgot Password
+[32m[Validation] Executing: Click Forgot Password[39m
+[Recovery] Navigating to password recovery...
+[Recovery] Arrived at email entry page
+[Graph] Matched state "Recovery - Enter Email" for URL: http://localhost/ui/reset_email?flow=bdaf2cb1-102a-42a8-a08d-99adbcc93489 (via content check)
+[36m[Validation] Current State: Recovery - Enter Email (iteration 4)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Submit Recovery Email
+[32m[Validation] Executing: Submit Recovery Email[39m
+[Recovery] Submitting recovery email: test@example.com
+[Recovery] Current email count: 5
+[Recovery] Email submitted, code entry form loaded
+[Graph] Matched state "Recovery - Enter Code" for URL: http://localhost/ui/reset_email?flow=bdaf2cb1-102a-42a8-a08d-99adbcc93489 (via content check)
+[36m[Validation] Current State: Recovery - Enter Code (iteration 5)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Fetch and Enter Recovery Code
+[32m[Validation] Executing: Fetch and Enter Recovery Code[39m
+[Recovery] Fetching recovery code from Mailslurper...
+[EmailService] Fetching recovery code for test@example.com (max 10 attempts)
+[EmailService] Waiting for email count to exceed 5
+[EmailService] Attempt 1/10: Found 5 total emails
+[EmailService] Found 5 emails for test@example.com
+[EmailService] Email count (5) hasn't increased yet, waiting...
+[EmailService] Waiting 1000ms before retry...
+[EmailService] Attempt 2/10: Found 6 total emails
+[EmailService] Found 6 emails for test@example.com
+[EmailService] Latest email subject: "Recover access to your account" sent at 2026-01-14 11:19:24
+[EmailService] ✅ Found code: 500820
+[Recovery] Found code: 500820
+[Recovery] Code verified, navigated to password reset page
+[Graph] Matched state "Recovery - Set New Password" for URL: http://localhost/ui/reset_password?flow=e4e3b1a5-a8bc-4a00-8a86-7173089c1482 (via URL pattern)
+[36m[Validation] Current State: Recovery - Set New Password (iteration 6)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Set New Password
+[33m[Validation] No transition conditions met.[39m
+[32m[Validation] ✅ Successfully completed password recovery flow![39m
+[90m[Validation] States visited: oidc-client, login, recovery-email, recovery-code, recovery-password[39m
+[36m[Validation] Finished.[39m
+[90m[Validation] Final state visits: [["oidc-client",1],["login",2],["recovery-email",1],["recovery-code",1],["recovery-password",1]][39m
+[34m[INFO] Trace saved to: test-results/run-validation-trace.zip[39m
+[32m[SUCCESS] Agent finished.[39m
+[Runner] OIDC Flow PASSED (6.3s)
+
+[Runner] Starting Scenario: Standalone Login
+Command: npx ts-node src/cli/index.ts --mode=validation --url=http://localhost/ui/login --profile=totp-user --duration=60
+[AgentState] Loaded persisted state from disk
+[34m[INFO] Starting Chaos Agent in validation mode[39m
+[34m[INFO] Target: http://localhost/ui/login[39m
+[34m[INFO] Using user profile: totp-user (login-test@example.com)[39m
+[34m[INFO]   TOTP: ✓, WebAuthn: ✗, Backup Codes: ✗[39m
+[AgentState] Persisted state to disk
+[34m[INFO] Browser mode: headless[39m
+[34m[INFO] Navigated to [39m
+[36m[Validation] Starting deterministic validation...[39m
+[Graph] Matched state "Login Page" for URL: http://localhost/ui/login (via content check)
+[36m[Validation] Current State: Login Page (iteration 1)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Submit email and password
+[32m[Validation] Executing: Submit email and password[39m
+[Login] Submitting credentials...
+[Login] Using credentials: login-test@example.com
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 2)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Generated TOTP code: 188925
+[Login] Waiting for navigation after TOTP submit...
+[Login] URL after TOTP login: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 3)[39m
+[90m[Validation] State visit count: 2[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 188925 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 4)[39m
+[90m[Validation] State visit count: 3[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Generated TOTP code: 606278
+[Login] Waiting for navigation after TOTP submit...
+[Login] URL after TOTP login: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 5)[39m
+[90m[Validation] State visit count: 4[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 606278 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 6)[39m
+[90m[Validation] State visit count: 5[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 606278 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 7)[39m
+[90m[Validation] State visit count: 6[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 606278 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 8)[39m
+[90m[Validation] State visit count: 7[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 606278 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 9)[39m
+[90m[Validation] State visit count: 8[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 606278 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 10)[39m
+[90m[Validation] State visit count: 9[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 606278 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 11)[39m
+[90m[Validation] State visit count: 10[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Generated TOTP code: 439929
+[Login] Waiting for navigation after TOTP submit...
+[Login] URL after TOTP login: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 12)[39m
+[90m[Validation] State visit count: 11[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 439929 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 13)[39m
+[90m[Validation] State visit count: 12[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 439929 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 14)[39m
+[90m[Validation] State visit count: 13[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 439929 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 15)[39m
+[90m[Validation] State visit count: 14[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 439929 already submitted recently. Waiting for next TOTP window...
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=064f9a2d-40ff-4b64-8918-124e274fee66 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 16)[39m
+[90m[Validation] State visit count: 15[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Code 439929 already submitted recently. Waiting for next TOTP window...
+[36m[Validation] Finished.[39m
+[90m[Validation] Final state visits: [["login",1],["totp-verify",15]][39m
+[31m[Validation] ❌ Validation failed: Success criteria not met within duration.[39m
+[31m[ERROR] Error during execution:[39m Error: Validation failed: Success criteria not met
+    at Command.<anonymous> [90m(/home/nikos.sklikas@canonical.com/projects/identity-platform-login-ui/tools/chaos-agent/[39msrc/cli/index.ts:109:23[90m)[39m
+[34m[INFO] Screenshot saved to: test-results/crash-validation-fail-2026-01-14T11-20-29-512Z.png[39m
+[34m[INFO] Trace saved to: test-results/run-validation-trace.zip[39m
+[32m[SUCCESS] Agent finished.[39m
+[Runner] Standalone Login FAILED (64.2s)
+
+[Runner] Starting Scenario: Password Recovery
+Command: npx ts-node src/cli/index.ts --mode=validation --url=http://localhost/ui/reset_email --duration=60
+[AgentState] Loaded persisted state from disk
+[34m[INFO] Starting Chaos Agent in validation mode[39m
+[34m[INFO] Target: http://localhost/ui/reset_email[39m
+[34m[INFO] Browser mode: headless[39m
+[34m[INFO] Navigated to Enter an email to reset your password[39m
+[36m[Validation] Starting deterministic validation...[39m
+[Graph] Matched state "Recovery - Enter Email" for URL: http://localhost/ui/reset_email (via content check)
+[36m[Validation] Current State: Recovery - Enter Email (iteration 1)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Submit Recovery Email
+[32m[Validation] Executing: Submit Recovery Email[39m
+[Recovery] Submitting recovery email: test@example.com
+[Recovery] Current email count: 6
+[Recovery] Email submitted, code entry form loaded
+[Graph] Matched state "Recovery - Enter Code" for URL: http://localhost/ui/reset_email?flow=650af651-5136-435d-9c98-5953850b65f5 (via content check)
+[36m[Validation] Current State: Recovery - Enter Code (iteration 2)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Fetch and Enter Recovery Code
+[32m[Validation] Executing: Fetch and Enter Recovery Code[39m
+[Recovery] Fetching recovery code from Mailslurper...
+[EmailService] Fetching recovery code for test@example.com (max 10 attempts)
+[EmailService] Waiting for email count to exceed 6
+[EmailService] Attempt 1/10: Found 7 total emails
+[EmailService] Found 7 emails for test@example.com
+[EmailService] Latest email subject: "Recover access to your account" sent at 2026-01-14 11:20:32
+[EmailService] ✅ Found code: 495024
+[Recovery] Found code: 495024
+[Recovery] Code verified, navigated to password reset page
+[Graph] Matched state "Recovery - Set New Password" for URL: http://localhost/ui/reset_password?flow=a1966b27-bbdc-4942-8385-cc6ffe6d767a (via URL pattern)
+[36m[Validation] Current State: Recovery - Set New Password (iteration 3)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Set New Password
+[33m[Validation] No transition conditions met.[39m
+[32m[Validation] ✅ Successfully completed password recovery flow![39m
+[90m[Validation] States visited: recovery-email, recovery-code, recovery-password[39m
+[36m[Validation] Finished.[39m
+[90m[Validation] Final state visits: [["recovery-email",1],["recovery-code",1],["recovery-password",1]][39m
+[34m[INFO] Trace saved to: test-results/run-validation-trace.zip[39m
+[32m[SUCCESS] Agent finished.[39m
+[Runner] Password Recovery PASSED (3.8s)
+
+[Runner] Starting Scenario: WebAuthn Lifecycle
+Command: npx ts-node src/cli/index.ts --mode=validation --url=http://localhost/ui/login --profile=webauthn-flow --duration=90
+[AgentState] Loaded persisted state from disk
+[34m[INFO] Starting Chaos Agent in validation mode[39m
+[34m[INFO] Target: http://localhost/ui/login[39m
+[34m[INFO] Using user profile: webauthn-flow (webauthn-dynamic@example.com)[39m
+[34m[INFO]   TOTP: ✗, WebAuthn: ✗, Backup Codes: ✗[39m
+[34m[INFO] Browser mode: headless[39m
+[34m[INFO] Navigated to [39m
+[36m[Validation] Starting deterministic validation...[39m
+[Graph] Matched state "Login Page" for URL: http://localhost/ui/login (via content check)
+[36m[Validation] Current State: Login Page (iteration 1)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Submit email and password
+[32m[Validation] Executing: Submit email and password[39m
+[Login] Submitting credentials...
+[Login] Using credentials: webauthn-dynamic@example.com
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=5f63b2eb-b1ad-48d1-997d-d3cb60a56c10 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 2)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] Using TOTP secret from setup phase
+[Login] Generated TOTP code: 963423
+[Login] Waiting for navigation after TOTP submit...
+[Login] URL after TOTP login: http://localhost/ui/login?flow=5f63b2eb-b1ad-48d1-997d-d3cb60a56c10
+[Graph] Matched state "TOTP Verification" for URL: http://localhost/ui/login?flow=5f63b2eb-b1ad-48d1-997d-d3cb60a56c10 (via content check)
+[36m[Validation] Current State: TOTP Verification (iteration 3)[39m
+[90m[Validation] State visit count: 2[39m
+[Validation] Checking rule: Submit TOTP verification code
+[32m[Validation] Executing: Submit TOTP verification code[39m
+[Login] TOTP verification page detected, generating code...
+[Login] TOTP input no longer available, login likely succeeded
+[Graph] Matched state "Dashboard (Secure)" for URL: http://localhost/ui/manage_details?flow=8cfae055-2668-4164-901a-91b3dd4d9d76 (via URL pattern)
+[36m[Validation] Current State: Dashboard (Secure) (iteration 4)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Sign out (Simulated via Cookie Deletion)
+[Validation] Checking rule: Navigate to Security Key
+[32m[Validation] Executing: Navigate to Security Key[39m
+[Dashboard] Navigating to Security Key...
+[Graph] Matched state "WebAuthn Registration" for URL: http://localhost/ui/setup_passkey?flow=9f624142-f2ec-4b90-91d5-329193b30350 (via content check)
+[36m[Validation] Current State: WebAuthn Registration (iteration 5)[39m
+[90m[Validation] State visit count: 1[39m
+[Validation] Checking rule: Register a new WebAuthn device
+[Validation] Checking rule: Delete a WebAuthn device
+[32m[Validation] Executing: Delete a WebAuthn device[39m
+[WebAuthn] Deleting security key #1...
+[WebAuthn] ✅ Key deleted (total deleted: 1)
+[Graph] Matched state "WebAuthn Registration" for URL: http://localhost/ui/setup_passkey?flow=9f624142-f2ec-4b90-91d5-329193b30350 (via content check)
+[36m[Validation] Current State: WebAuthn Registration (iteration 6)[39m
+[90m[Validation] State visit count: 2[39m
+[Validation] Checking rule: Register a new WebAuthn device
+[Validation] Checking rule: Delete a WebAuthn device
+[32m[Validation] Executing: Delete a WebAuthn device[39m
+[WebAuthn] Deleting security key #2...
+[WebAuthn] ✅ Key deleted (total deleted: 2)
+[Graph] Matched state "WebAuthn Registration" for URL: http://localhost/ui/setup_passkey?flow=9f624142-f2ec-4b90-91d5-329193b30350 (via content check)
+[36m[Validation] Current State: WebAuthn Registration (iteration 7)[39m
+[90m[Validation] State visit count: 3[39m
+[Validation] Checking rule: Register a new WebAuthn device
+[32m[Validation] Executing: Register a new WebAuthn device[39m
+[WebAuthn] Starting registration...
+[WebAuthnService] WebAuthn protocol enabled
+[WebAuthnService] ✅ Virtual Authenticator created: ab7b3f3f-4e39-4784-b13c-172d5879b238
+[WebAuthn] Clicking "Add security key" button (name: Chaos Agent Key 1 (1768389642848))...
+[Graph] No state matched for URL: http://localhost/ui/setup_passkey?flow=9f624142-f2ec-4b90-91d5-329193b30350
+[33m[Validation] Unknown state: http://localhost/ui/setup_passkey?flow=9f624142-f2ec-4b90-91d5-329193b30350. Waiting...[39m
+[Graph] Matched state "WebAuthn Registration" for URL: http://localhost/ui/setup_passkey?flow=69afa117-6b88-49ff-be86-ff675b2b69f1 (via content check)
+[36m[Validation] Current State: WebAuthn Registration (iteration 9)[39m
+[90m[Validation] State visit count: 4[39m
+[Validation] Checking rule: Register a new WebAuthn device
+[32m[Validation] Executing: Register a new WebAuthn device[39m
+[WebAuthn] Starting registration...
+[WebAuthnService] Already enabled
+[WebAuthn] Clicking "Add security key" button (name: Chaos Agent Key 1 (1768389645120))...
+[WebAuthn] Warning: Could not verify key in list, but continuing (optimistic success)
+[Graph] No state matched for URL: http://localhost/ui/setup_passkey?flow=69afa117-6b88-49ff-be86-ff675b2b69f1
+[33m[Validation] Unknown state: http://localhost/ui/setup_passkey?flow=69afa117-6b88-49ff-be86-ff675b2b69f1. Waiting...[39m
+[Graph] Matched state "WebAuthn Registration" for URL: http://localhost/ui/setup_passkey?flow=df9c8a61-afc4-465f-8e6d-d269ea9f51d0 (via content check)
+[36m[Validation] Current State: WebAuthn Registration (iteration 11)[39m
+[90m[Validation] State visit count: 5[39m
+[Validation] Checking rule: Register a new WebAuthn device
+[Validation] Checking rule: Delete a WebAuthn device
+[32m[Validation] Executing: Delete a WebAuthn device[39m
+[WebAuthn] Deleting security key #3...
+[WebAuthn] ✅ Key deleted (total deleted: 3)
+[Graph] Matched state "WebAuthn Registration" for URL: http://localhost/ui/setup_passkey?flow=df9c8a61-afc4-465f-8e6d-d269ea9f51d0 (via content check)
+[36m[Validation] Current State: WebAuthn Registration (iteration 12)[39m
+[90m[Validation] State visit count: 6[39m
+[Validation] Checking rule: Register a new WebAuthn device
+[Validation] Checking rule: Delete a WebAuthn device
+[Validation] Checking rule: Navigate back to dashboard from WebAuthn page
+[33m[Validation] No transition conditions met.[39m
+[Graph] Matched state "WebAuthn Registration" for URL: http://localhost/ui/setup_passkey?flow=df9c8a61-afc4-465f-8e6d-d269ea9f51d0 (via content check)
+[36m[Validation] Current State: WebAuthn Registration (iteration 13)[39m
+[90m[Validation] State visit count: 7[39m
+[Validation] Checking rule: Register a new WebAuthn device
+[32m[Validation] Executing: Register a new WebAuthn device[39m
+[WebAuthn] Starting registration...
+[WebAuthnService] Already enabled
+[WebAuthn] Clicking "Add security key" button (name: Chaos Agent Key 2 (1768389648453))...
+[WebAuthn] ✅ Key 2 registered successfully - visible in list: Chaos Agent Key 2 (1768389648453)
+[Graph] No state matched for URL: http://localhost/ui/setup_passkey?flow=df9c8a61-afc4-465f-8e6d-d269ea9f51d0
+[33m[Validation] Unknown state: http://localhost/ui/setup_passkey?flow=df9c8a61-afc4-465f-8e6d-d269ea9f51d0. Waiting...[39m
+[Graph] Matched state "WebAuthn Registration" for URL: http://localhost/ui/setup_passkey?flow=c2b3edfb-b5d9-4f35-8d49-af007a06c497 (via content check)
+[36m[Validation] Current State: WebAuthn Registration (iteration 15)[39m
+[90m[Validation] State visit count: 8[39m
+[Validation] Checking rule: Register a new WebAuthn device
+[Validation] Checking rule: Delete a WebAuthn device
+[Validation] Checking rule: Navigate back to dashboard from WebAuthn page
+[32m[Validation] Executing: Navigate back to dashboard from WebAuthn page[39m
+[WebAuthn] Navigating back to dashboard...
+[WebAuthn] "Personal details" link not found. Forcing navigation to dashboard...
+[Graph] Matched state "Dashboard (Secure)" for URL: http://localhost/ui/manage_details?flow=235f337b-112b-4b33-814a-d350f5d83478 (via URL pattern)
+[36m[Validation] Current State: Dashboard (Secure) (iteration 16)[39m
+[90m[Validation] State visit count: 2[39m
+[Validation] Checking rule: Sign out (Simulated via Cookie Deletion)
+[33m[Dashboard] WebAuthn Flow: Key registered. Ready to logout.[39m
+[32m[Validation] Executing: Sign out (Simulated via Cookie Deletion)[39m
+[34m[Dashboard] Signing out by clearing Kratos session cookies...[39m
+[Dashboard] Cleared 1 Kratos cookies and all storage.
+[Dashboard] Navigating to Login page...
+[Dashboard] Successfully reached Login URL
+[Graph] Matched state "Login Page" for URL: http://localhost/ui/login (via content check)
+[36m[Validation] Current State: Login Page (iteration 17)[39m
+[90m[Validation] State visit count: 2[39m
+[Validation] Checking rule: Submit email and password
+[32m[Validation] Executing: Submit email and password[39m
+[Login] Submitting credentials...
+[Login] Using credentials: webauthn-dynamic@example.com
+[32m[Validation] ✅ Successfully registered WebAuthn key, logged out, and returned to login![39m
+[90m[Validation] registered keys: 2[39m
+[36m[Validation] Finished.[39m
+[90m[Validation] Final state visits: [["login",2],["totp-verify",2],["dashboard",2],["webauthn-register",8]][39m
+[34m[INFO] Trace saved to: test-results/run-validation-trace.zip[39m
+[32m[SUCCESS] Agent finished.[39m
+[Runner] WebAuthn Lifecycle PASSED (19.2s)
+
+[Runner] Report generated: /home/nikos.sklikas@canonical.com/projects/identity-platform-login-ui/tools/chaos-agent/chaos-report.md

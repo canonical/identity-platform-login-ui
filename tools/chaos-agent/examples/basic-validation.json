@@ -1,0 +1,5 @@
+{
+  "mode": "validation",
+  "baseUrl": "http://localhost:8080/ui/login",
+  "duration": 60
+}

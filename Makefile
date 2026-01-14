@@ -56,3 +56,14 @@ test-e2e:
 test-e2e-debug:
 	$(MAKE) -C ui/ test-e2e-debug
 .PHONY: test-e2e
+
+# AI Chaos Agent / QA Persona
+.PHONY: generate-test
+generate-test: ## Generate a new Playwright test scaffold using QA Persona
+	@./tools/chaos-agent/workflows/generate-test.sh
+
+.PHONY: analyze
+analyze: ## Analyze the project (or a specific file) with Copilot (Usage: make analyze [FILE=...])
+	@./tools/chaos-agent/workflows/analyze-project.sh $(FILE)
+
+

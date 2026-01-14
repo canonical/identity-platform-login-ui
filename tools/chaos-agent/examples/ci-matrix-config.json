@@ -1,0 +1,9 @@
+{
+  "mode": "validation",
+  "baseUrl": "http://test-env:8080/ui/login",
+  "duration": 120,
+  "matrix": {
+    "identifierFirst": true,
+    "mfaEnabled": false
+  }
+}

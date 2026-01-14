@@ -77,7 +77,7 @@ selfservice:
         webauthn:
             enabled: True
             config:
-                passwordless: True
+                passwordless: False
                 rp:
                     # Set 'id' to the top-level domain.
                     id: localhost

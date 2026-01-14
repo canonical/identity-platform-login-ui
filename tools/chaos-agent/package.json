@@ -1,0 +1,48 @@
+{
+  "name": "identity-platform-chaos-agent",
+  "version": "0.1.0",
+  "description": "AI-driven Chaos/Monkey testing agent for Identity Platform Login UI",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npx ts-node src/cli/index.ts",
+    "matrix": "npx ts-node scripts/matrix-runner.ts",
+    "analyze-coverage": "npx ts-node scripts/dump-graph.ts",
+    "test": "playwright test",
+    "lint": "eslint src/**/*.ts",
+    "test:recovery": "npm run build && npm start -- --mode=validation --url=http://localhost/ui/reset_email --duration=15 --headed",
+    "test:recovery-headless": "npm run build && npm start -- --mode=validation --url=http://localhost/ui/reset_email --duration=15",
+    "test:login": "npm run build && npm start -- --mode=validation --url=http://localhost/ui/login --duration=20 --headed",
+    "test:oidc": "npm run build && npm start -- --mode=validation --url=http://127.0.0.1:4446/ --duration=25 --headed",
+    "test:webauthn-register": "npm run build && npm start -- --mode=validation --url=http://localhost/ui/login --duration=50 --headed --profile=webauthn-flow",
+    "test:webauthn-login": "npm run build && npm start -- --mode=validation --url=http://localhost/ui/login --duration=60 --headed --profile=webauthn-flow",
+    "test:all": "npx ts-node scripts/run-all-scenarios.ts",
+    "profiles": "npm run build && npm start -- --list-profiles",
+    "setup-identities": "bash scripts/setup-identities.sh"
+  },
+  "keywords": [
+    "chaos",
+    "testing",
+    "playwright",
+    "automation"
+  ],
+  "author": "Canonical Identity Team",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "dotenv": "^16.3.1",
+    "glob": "^10.3.10",
+    "otpauth": "^9.4.1",
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.56.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "copilot-testing",
+  "version": "1.0.0",
+  "description": "This folder contains the \"Brain\" and \"Tools\" for AI-assisted testing.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@playwright/test": "^1.57.0",
+    "playwright": "^1.57.0"
+  }
+}
