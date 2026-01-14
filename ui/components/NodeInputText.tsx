@@ -1,6 +1,6 @@
 import { getNodeLabel } from "@ory/integrations/ui";
 import { Input } from "@canonical/react-components";
-import React, { FC } from "react";
+import React, { FC, useEffect, useMemo } from "react";
 import { NodeInputProps } from "./helpers";
 
 export const NodeInputText: FC<NodeInputProps> = ({
@@ -12,7 +12,9 @@ export const NodeInputText: FC<NodeInputProps> = ({
   dispatchSubmit,
   error,
 }) => {
-  const [inputValue, setInputValue] = React.useState(attributes.value as string);
+  const [inputValue, setInputValue] = React.useState(
+    attributes.value as string,
+  );
 
   const urlParams = new URLSearchParams(window.location.search);
   const isWebauthn = urlParams.get("webauthn") === "true";
@@ -27,10 +29,17 @@ export const NodeInputText: FC<NodeInputProps> = ({
   }
   const isDuplicate = deduplicateValues.includes(value as string);
 
-  const message = node.messages.map(({ text }) => text).join(" ");
-  if (message) {
-    setInputValue(message);
-  }
+  const message = useMemo(
+    () => node.messages.map(({ text }) => text).join(" "),
+    [node.messages],
+  );
+
+  useEffect(() => {
+    if (message) {
+      setInputValue(message);
+    }
+  }, [message, setInputValue]);
+
   const getError = () => {
     if (message.startsWith("Invalid login method")) {
       return "Invalid login method";
@@ -63,7 +72,11 @@ export const NodeInputText: FC<NodeInputProps> = ({
       disabled={disabled}
       value={inputValue}
       error={getError()}
-      onChange={(e) => void setValue(e.target.value)}
+      onChange={(e) => {
+        const newValue = e.target.value;
+        setInputValue(newValue);
+        void setValue(newValue);
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault();
