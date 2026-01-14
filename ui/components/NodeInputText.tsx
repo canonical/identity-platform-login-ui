@@ -12,6 +12,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
   dispatchSubmit,
   error,
 }) => {
+  const [inputValue, setInputValue] = React.useState(attributes.value as string);
+
   const urlParams = new URLSearchParams(window.location.search);
   const isWebauthn = urlParams.get("webauthn") === "true";
   const ucFirst = (s?: string) =>
@@ -26,10 +28,9 @@ export const NodeInputText: FC<NodeInputProps> = ({
   const isDuplicate = deduplicateValues.includes(value as string);
 
   const message = node.messages.map(({ text }) => text).join(" ");
-  const defaultValue = message.includes("Invalid login method")
-    ? (value as string)
-    : message;
-
+  if (message) {
+    setInputValue(message);
+  }
   const getError = () => {
     if (message.startsWith("Invalid login method")) {
       return "Invalid login method";
@@ -60,7 +61,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
       name={attributes.name}
       label={getNodeLabel(node)}
       disabled={disabled}
-      defaultValue={defaultValue}
+      value={inputValue}
       error={getError()}
       onChange={(e) => void setValue(e.target.value)}
       onKeyDown={(e) => {
