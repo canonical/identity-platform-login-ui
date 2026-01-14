@@ -25,6 +25,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     return node.group === "password" ||
       node.group === "code" ||
       node.group === "totp" ||
+      node.group === "profile" ||
       node.group === "webauthn" ||
       node.group === "lookup_secret"
       ? "positive"
