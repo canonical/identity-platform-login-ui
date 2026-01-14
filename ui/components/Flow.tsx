@@ -27,6 +27,7 @@ export type Methods =
   | "password"
   | "profile"
   | "code"
+  | "profile"
   | "totp"
   | "webauthn"
   | "lookup_secret";
