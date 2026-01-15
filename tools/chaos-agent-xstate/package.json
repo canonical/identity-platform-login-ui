@@ -1,0 +1,25 @@
+{
+  "name": "identity-platform-chaos-agent-xstate",
+  "version": "0.1.0",
+  "description": "XState-driven Chaos/Monkey testing agent for Identity Platform Login UI",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npx ts-node src/index.ts",
+    "test:webauthn": "npm run build && npm start -- --scenario=webauthn-login"
+  },
+  "dependencies": {
+    "xstate": "^5.0.0",
+    "axios": "^1.13.2",
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "dotenv": "^16.3.1",
+    "otpauth": "^9.4.1",
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

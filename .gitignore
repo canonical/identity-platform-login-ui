@@ -45,6 +45,15 @@ tools/chaos-agent/build
 tools/chaos-agent/coverage
 tools/chaos-agent/playwright-report
 tools/chaos-agent/test-results
+tools/chaos-agent/.chaos-agent-state.json
+
+# tools/chaos-agent-xstate
+tools/chaos-agent-xstate/node_modules
+tools/chaos-agent-xstate/dist
+tools/chaos-agent-xstate/reports
+tools/chaos-agent-xstate/playwright-report
+tools/chaos-agent-xstate/test-results
+tools/chaos-agent-xstate/.chaos-agent-state.json
 
 ### Go ###
 # Binaries for programs and plugins
