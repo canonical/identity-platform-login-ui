@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.24.2...v0.25.0) (2026-01-16)
+
+
+### Features
+
+* allow hot module reaload for local frontend development ([283c347](https://github.com/canonical/identity-platform-login-ui/commit/283c3475c19718c538c72159c83ee209120ca910))
+
 ## [0.24.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.24.1...v0.24.2) (2026-01-07)
 
 
