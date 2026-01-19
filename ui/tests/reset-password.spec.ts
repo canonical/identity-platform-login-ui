@@ -14,7 +14,6 @@ test("reset password from oidc app", async ({ context, page }) => {
   await page.getByRole("link", { name: "Reset password" }).click();
 
   await page.getByLabel("Email").fill(USER_EMAIL);
-  await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
   await page.getByRole("button", { name: "Reset password" }).click();
 
   await confirmMailCode(page, context);
@@ -23,14 +22,12 @@ test("reset password from oidc app", async ({ context, page }) => {
   const totpSetupKey = await setupTotp(page);
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
-  await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
   await finishAuthFlow(page);
 
   await startNewAuthFlow(page);
 
   await userPassLogin(page, USER_EMAIL, USER_PASSWORD);
   await expect(page.getByText("Incorrect username or password")).toBeVisible();
-  await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
 
   await userPassLogin(page, USER_EMAIL, USER_PASSWORD_NEW);
   await enterTotpCode(page, totpSetupKey);

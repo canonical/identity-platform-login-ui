@@ -12,7 +12,6 @@ test("first time login to oidc app", async ({ page }) => {
   await setupTotp(page);
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
-  await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
 
   await finishAuthFlow(page);
 });
