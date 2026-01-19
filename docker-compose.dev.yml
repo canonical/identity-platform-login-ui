@@ -19,7 +19,7 @@ services:
     networks:
       - intranet
   kratos-migrate:
-    image: ghcr.io/canonical/kratos:1.3.1
+    image: ghcr.io/canonical/kratos:25.4.0
     environment:
       - DSN=postgres://kratos:kratos@postgres/kratos?sslmode=disable
     volumes:
@@ -39,7 +39,7 @@ services:
   kratos:
     depends_on:
       - kratos-migrate
-    image: ghcr.io/canonical/kratos:1.3.1
+    image: ghcr.io/canonical/kratos:25.4.0
     container_name: kratos
     ports:
       - '4433:4433' # public
@@ -98,7 +98,7 @@ services:
       - "traefik.http.routers.kratos-admin-sessions.service=kratos-admin"
 
   kratos-setup:
-    image: ghcr.io/canonical/kratos:1.3.1
+    image: ghcr.io/canonical/kratos:25.4.0
     depends_on:
       - kratos
     restart: "no"
