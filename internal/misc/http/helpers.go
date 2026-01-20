@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	hydra_client "github.com/ory/hydra-client-go/v2"
-	kratos_client "github.com/ory/kratos-client-go"
+	kratos_client "github.com/ory/kratos-client-go/v25"
 
 	oidc "github.com/canonical/identity-platform-login-ui/pkg/oidc"
 )

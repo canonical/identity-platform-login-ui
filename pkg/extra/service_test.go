@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	hClient "github.com/ory/hydra-client-go/v2"
-	kClient "github.com/ory/kratos-client-go"
+	kClient "github.com/ory/kratos-client-go/v25"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/mock/gomock"
 
@@ -19,7 +19,7 @@ import (
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_extra.go -source=./interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_kratos.go github.com/ory/kratos-client-go FrontendAPI
+//go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_kratos.go github.com/ory/kratos-client-go/v25 FrontendAPI
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_hydra.go -source=../../internal/hydra/interfaces.go
 
 func TestGetConsentSuccess(t *testing.T) {
