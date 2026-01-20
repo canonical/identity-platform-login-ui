@@ -22,6 +22,7 @@ import (
 const TOTP_REGISTRATION_REQUIRED = "totp_registration_required"
 const WEBAUTHN_REGISTRATION_REQUIRED = "webauthn_registration_required"
 const RegenerateBackupCodesError = "regenerate_backup_codes"
+const SESSION_REFRESH_REQUIRED = "session_refresh_required"
 const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
 const LOGIN_UI_STATE_COOKIE = "login_ui_state"
 
@@ -172,8 +173,8 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginCh
 
 	cookies := r.Cookies()
 
-	// clear cookies if not aal2
-	if aal != "aal2" {
+	// clear cookies if not aal2 and not a refresh request
+	if !refresh && aal != "aal2" {
 		cookies = filterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
 	}
 
@@ -800,9 +801,34 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	setCookies(w, cookies)
 
 	if redirectInfo != nil {
-		a.redirectResponse(w, r, &BrowserLocationChangeRequired{
-			RedirectTo: redirectInfo.RedirectTo,
-		})
+		// Check for privileged session request
+		if redirectInfo.GetErrorId() == SESSION_REFRESH_REQUIRED && redirectInfo.HasRedirectTo() {
+			// Kratos defaults 'return_to' to the endpoint that triggered the error (POST /self-service/settings)
+			// We perform a GET request upon redirect after login, but the endpoint expects POST, causing 405 Method Not Allowed.
+			// To fix this, we overwrite 'return_to' to the settings UI page so the user can re-submit the form.
+			returnTo, err := a.settingsReturnToURL(r, flowId)
+			if err != nil {
+				a.logger.Errorf("Failed to build settings returnTo URL: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			u, err := url.Parse(redirectInfo.GetRedirectTo())
+			if err != nil {
+				a.logger.Errorf("Failed to parse redirect url: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			q := u.Query()
+			q.Set("return_to", returnTo)
+			u.RawQuery = q.Encode()
+
+			newURL := u.String()
+			redirectInfo.RedirectTo = &newURL
+		}
+
+		a.redirectResponse(w, r, redirectInfo)
 		return
 	}
 
@@ -839,6 +865,29 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
+}
+
+func (a *API) settingsReturnToURL(r *http.Request, flowId string) (string, error) {
+	currentFlow, _, err := a.service.GetSettingsFlow(r.Context(), flowId, r.Cookies())
+	if err != nil {
+		a.logger.Debugf("Failed to get settings flow: %v, falling back to default return_to", err)
+	}
+
+	var returnTo string
+	if currentFlow != nil {
+		if flowReturnTo, ok := currentFlow.GetReturnToOk(); ok {
+			returnTo = *flowReturnTo
+		}
+	}
+
+	if returnTo == "" {
+		// fall back to a default redirect path
+		returnTo, err = url.JoinPath("/", a.contextPath, ui.UI, "/manage_details")
+		if err != nil {
+			return "", fmt.Errorf("unable to build settings returnTo path, possible misconfiguration, err: %w", err)
+		}
+	}
+	return returnTo, nil
 }
 
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
