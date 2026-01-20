@@ -3031,6 +3031,77 @@ func TestUpdateSettingsFlowFailOnUpdateSettingsFlowExecute(t *testing.T) {
 	}
 }
 
+func TestUpdateSettingsFlowForbiddenStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
+
+	ctx := context.Background()
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
+	flowId := "flow"
+	body := new(kClient.UpdateSettingsFlowBody)
+
+	redirectTo := "http://kratos/self-service/login/browser?refresh=true"
+	sessionRequiredErrorId := "session_refresh_required"
+
+	errorPayload := ErrorBrowserLocationChangeRequired{
+		Error: &kClient.GenericError{
+			Id: &sessionRequiredErrorId,
+		},
+		RedirectBrowserTo: &redirectTo,
+	}
+	errorBodyJson, _ := json.Marshal(errorPayload)
+
+	request := kClient.FrontendAPIUpdateSettingsFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+
+	resp := &http.Response{
+		StatusCode: http.StatusForbidden,
+		Header: http.Header{
+			"Set-Cookie": []string{cookie.String()},
+		},
+		Body: io.NopCloser(bytes.NewBuffer(errorBodyJson)),
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().UpdateSettingsFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().UpdateSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, resp, fmt.Errorf("forbidden"))
+
+	f, r, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).UpdateSettingsFlow(ctx, flowId, *body, cookies)
+
+	if f != nil {
+		t.Fatalf("expected flow to be %v, not %v", nil, f)
+	}
+	if r == nil {
+		t.Fatalf("expected redirect info to be not nil")
+	}
+	if *r.RedirectTo != redirectTo {
+		t.Errorf("expected redirect url %s, got %s", redirectTo, *r.RedirectTo)
+	}
+	if len(c) == 0 {
+		t.Fatalf("expected cookies, got empty list")
+	}
+	if c[0].Name != "test" {
+		t.Fatalf("expected cookie name to be 'test', got %v", c[0].Name)
+	}
+	if err != nil {
+		t.Fatalf("expected error to be nil, got %v", err)
+	}
+}
+
 func TestHasNotEnoughLookupSecretsLeftSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
