@@ -1617,6 +1617,73 @@ func TestHandleUpdateSettingsFlow(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateSettingsFlowPrivilegedSessionRequired(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+
+	flowId := "test"
+	returnTo := "https://example.com/settings"
+
+	currentFlow := kClient.NewSettingsFlowWithDefaults()
+	currentFlow.Id = flowId
+	currentFlow.ReturnTo = &returnTo
+
+	redirectBase := "http://kratos/self-service/login/browser?refresh=true"
+	sessionRequiredErrorId := "session_refresh_required"
+
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectBase
+	redirectFlow.Error = &kClient.GenericError{
+		Id: &sessionRequiredErrorId,
+	}
+
+	flowBody := new(kClient.UpdateSettingsFlowBody)
+	flowBody.UpdateSettingsFlowWithPasswordMethod = kClient.NewUpdateSettingsFlowWithPasswordMethod("password", "password")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseSettingsFlowMethodBody(gomock.Any()).Return(flowBody, nil)
+	mockService.EXPECT().UpdateSettingsFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, redirectFlow, req.Cookies(), nil)
+	mockService.EXPECT().GetSettingsFlow(gomock.Any(), flowId, req.Cookies()).Return(currentFlow, nil, nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil, got %v", err)
+	}
+
+	flowResponse := new(BrowserLocationChangeRequired)
+	if err := json.Unmarshal(data, flowResponse); err != nil {
+		t.Fatalf("Expected error to be nil, got %v", err)
+	}
+
+	expectedRedirect := fmt.Sprintf("%s&return_to=%s", redirectBase, url.QueryEscape(returnTo))
+	if flowResponse.RedirectTo == nil || *flowResponse.RedirectTo != expectedRedirect {
+		t.Fatalf("Expected redirect_to to be %s, got %v", expectedRedirect, *flowResponse.RedirectTo)
+	}
+}
+
 func TestHandleUpdateSettingsFlowWithRedirect(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
