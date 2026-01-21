@@ -162,6 +162,7 @@ func buildMiddlewares(config *routerConfig) chi.Middlewares {
 func registerAPIs(config *routerConfig, router *chi.Mux) {
 	device.NewAPI(
 		device.NewService(config.hydraClient, config.tracer, config.monitor, config.logger),
+		config.tracer,
 		config.logger,
 	).RegisterEndpoints(router)
 
@@ -172,6 +173,7 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		config.oidcWebAuthnSequencingEnabled,
 		config.baseURL,
 		config.cookieManager,
+		config.tracer,
 		config.logger,
 	).RegisterEndpoints(router)
 
@@ -181,6 +183,7 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		config.baseURL,
 		config.mfaEnabled,
 		config.oidcWebAuthnSequencingEnabled,
+		config.tracer,
 		config.logger,
 	).RegisterEndpoints(router)
 
