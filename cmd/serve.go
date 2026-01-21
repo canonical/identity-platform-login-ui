@@ -58,7 +58,7 @@ func serve() error {
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	if err := validate.Struct(specs); err != nil {
-		return fmt.Errorf("issues with environment variables validation: %s", err)
+		return fmt.Errorf("issues with environment variables validation: %w", err)
 	}
 
 	logger := logging.NewLogger(specs.LogLevel)
@@ -68,7 +68,7 @@ func serve() error {
 
 	distFS, err := fs.Sub(jsFS, "ui/dist")
 	if err != nil {
-		return fmt.Errorf("issue with js distribution files %s", err)
+		return fmt.Errorf("issue with js distribution files: %w", err)
 	}
 
 	router, err := buildRouter(specs, distFS, logger)
