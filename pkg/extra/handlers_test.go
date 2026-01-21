@@ -21,6 +21,7 @@ const BASE_URL = "https://example.com"
 
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_extra.go -source=./interfaces.go
+//go:generate mockgen -build_flags=--mod=mod -package extra -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
 
 func TestHandleConsentSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -29,6 +30,7 @@ func TestHandleConsentSuccess(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
@@ -49,7 +51,7 @@ func TestHandleConsentSuccess(t *testing.T) {
 	mockService.EXPECT().AcceptConsent(gomock.Any(), *session.Identity, consent).Return(accept, nil)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -83,6 +85,7 @@ func TestHandleConsentWhenOIDCSequencingEnabled(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	session := kClient.NewSessionWithDefaults()
 	session.SetId("test")
@@ -110,7 +113,7 @@ func TestHandleConsentWhenOIDCSequencingEnabled(t *testing.T) {
 	mockService.EXPECT().AcceptConsent(gomock.Any(), *session.Identity, consent).Return(accept, nil)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, true, true, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, true, true, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -144,6 +147,7 @@ func TestHandleConsentInvalidPasswordAAL(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	session := kClient.NewSessionWithDefaults()
 	session.SetId("test")
@@ -167,7 +171,7 @@ func TestHandleConsentInvalidPasswordAAL(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, true, true, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, true, true, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -185,6 +189,7 @@ func TestHandleConsentInvalidOIDCAAL(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	session := kClient.NewSessionWithDefaults()
 	session.SetId("test")
@@ -208,7 +213,7 @@ func TestHandleConsentInvalidOIDCAAL(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, true, true, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, true, true, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -226,6 +231,7 @@ func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
@@ -246,7 +252,7 @@ func TestHandleConsentFailOnAcceptConsent(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -264,6 +270,7 @@ func TestHandleConsentFailOnGetConsent(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
@@ -282,7 +289,7 @@ func TestHandleConsentFailOnGetConsent(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -300,6 +307,7 @@ func TestHandleConsentFailOnCheckSession(t *testing.T) {
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
 	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
 
@@ -313,7 +321,7 @@ func TestHandleConsentFailOnCheckSession(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
