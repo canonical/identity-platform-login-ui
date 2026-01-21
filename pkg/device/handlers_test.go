@@ -18,6 +18,7 @@ import (
 
 //go:generate mockgen -build_flags=--mod=mod -package device -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package device -destination ./mock_device.go -source=./interfaces.go
+//go:generate mockgen -build_flags=--mod=mod -package device -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
 
 func TestHandleDeviceUserCodeAcceptSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -25,6 +26,7 @@ func TestHandleDeviceUserCodeAcceptSuccess(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	accept := hClient.NewOAuth2RedirectTo("test")
 
@@ -44,7 +46,7 @@ func TestHandleDeviceUserCodeAcceptSuccess(t *testing.T) {
 	mockService.EXPECT().AcceptUserCode(gomock.Any(), challenge, userCodeRequest).Return(accept, nil)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockTracer, mockLogger).RegisterEndpoints(mux)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
@@ -73,6 +75,7 @@ func TestHandleDeviceUserCodeAcceptParseUserCodeBodyFailure(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	code := "ABCDEFGH"
 	challenge := "7bb518c4eec2454dbb289f5fdb4c0ee2"
@@ -90,7 +93,7 @@ func TestHandleDeviceUserCodeAcceptParseUserCodeBodyFailure(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockTracer, mockLogger).RegisterEndpoints(mux)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
@@ -107,6 +110,7 @@ func TestHandleDeviceUserCodeAcceptAcceptUserCodeFailure(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	code := "ABCDEFGH"
 	challenge := "7bb518c4eec2454dbb289f5fdb4c0ee2"
@@ -125,7 +129,7 @@ func TestHandleDeviceUserCodeAcceptAcceptUserCodeFailure(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockTracer, mockLogger).RegisterEndpoints(mux)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
@@ -142,6 +146,7 @@ func TestHandleDeviceUserCodeInvalidCode(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	code := "ABCDEFGH"
 	challenge := "7bb518c4eec2454dbb289f5fdb4c0ee2"
@@ -163,7 +168,7 @@ func TestHandleDeviceUserCodeInvalidCode(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockTracer, mockLogger).RegisterEndpoints(mux)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
@@ -191,6 +196,7 @@ func TestHandleDeviceUserCodeUnexpectedError(t *testing.T) {
 
 	mockLogger := NewMockLoggerInterface(ctrl)
 	mockService := NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
 	code := "ABCDEFGH"
 	challenge := "7bb518c4eec2454dbb289f5fdb4c0ee2"
@@ -209,7 +215,7 @@ func TestHandleDeviceUserCodeUnexpectedError(t *testing.T) {
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 
 	mux := chi.NewMux()
-	NewAPI(mockService, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, mockTracer, mockLogger).RegisterEndpoints(mux)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
