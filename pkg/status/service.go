@@ -98,7 +98,7 @@ func (s *Service) kratosReady(ctx context.Context) (bool, error) {
 	}
 
 	span.SetStatus(codes.Ok, "")
-	return ok != nil, err
+	return ok != nil, nil
 }
 
 func (s *Service) hydraReady(ctx context.Context) (bool, error) {
@@ -129,7 +129,7 @@ func (s *Service) hydraReady(ctx context.Context) (bool, error) {
 	}
 
 	span.SetStatus(codes.Ok, "")
-	return ok != nil, err
+	return ok != nil, nil
 }
 
 func (s *Service) gitRevision(ctx context.Context, settings []debug.BuildSetting) string {
