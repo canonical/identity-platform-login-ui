@@ -181,12 +181,12 @@ func (c *Client) CompareModel(ctx context.Context, model openfga.AuthorizationMo
 
 	if authModel.SchemaVersion != model.SchemaVersion {
 		c.logger.Errorf("invalid authorization model schema version")
-		span.SetStatus(codes.Error, "invalid authorization model schema version")
+		span.SetStatus(codes.Ok, "")
 		return false, nil
 	}
 	if reflect.DeepEqual(authModel.TypeDefinitions, model.TypeDefinitions) {
 		c.logger.Errorf("invalid authorization model type definitions")
-		span.SetStatus(codes.Error, "invalid authorization model type definitions")
+		span.SetStatus(codes.Ok, "")
 		return false, nil
 	}
 
