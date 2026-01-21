@@ -162,5 +162,3 @@ func handleServeAndShutdown(srv *http.Server, securityLogger logging.SecurityLog
 
 	return errors.Join(listenAndServeError, shutdownError)
 }
-
-
