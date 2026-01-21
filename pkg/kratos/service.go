@@ -13,6 +13,8 @@ import (
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go/v25"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
@@ -113,9 +115,17 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
 
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
+
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
+
+	span.SetStatus(codes.Ok, "")
 	return session, resp.Cookies(), nil
 }
 
@@ -144,10 +154,17 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 		AcceptOAuth2LoginRequest(*accept).
 		Execute()
 
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
+
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return &BrowserLocationChangeRequired{RedirectTo: &redirectTo.RedirectTo}, resp.Cookies(), nil
 }
 
@@ -160,10 +177,17 @@ func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*
 		LoginChallenge(loginChallenge).
 		Execute()
 
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
+
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return redirectTo, resp.Cookies(), nil
 }
 
@@ -217,7 +241,12 @@ func (s *Service) CreateBrowserLoginFlow(
 	}
 
 	flow, resp, err := request.Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
@@ -227,6 +256,7 @@ func (s *Service) CreateBrowserLoginFlow(
 		s.logger.Warnf("Failed to fetch the hydra oauth2 request: %v", err)
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return flow, resp.Cookies(), nil
 }
 
@@ -238,10 +268,16 @@ func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string
 		CreateBrowserRecoveryFlow(ctx).
 		ReturnTo(returnTo).
 		Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return flow, resp.Cookies(), nil
 }
 
@@ -258,22 +294,31 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 	}
 
 	flow, resp, err := request.Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 
 	// 403 means the user must be redirected to complete second factor auth
 	// in order to access settings
 	if err != nil && resp.StatusCode != http.StatusForbidden {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
 	if err == nil {
+		span.SetStatus(codes.Ok, "")
 		return flow, nil, nil
 	}
 
 	returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return flow, returnToResp, err
 }
 
@@ -349,7 +394,12 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 		Id(id).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
@@ -358,6 +408,7 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 	if err != nil {
 		s.logger.Warnf("Failed to fetch the hydra oauth2 request: %v", err)
 	}
+	span.SetStatus(codes.Ok, "")
 	return flow, resp.Cookies(), nil
 }
 
@@ -370,10 +421,16 @@ func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*htt
 		Id(id).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return flow, resp.Cookies(), nil
 }
 
@@ -386,10 +443,15 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 		Id(id).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 
 	// 403 means the user must be redirected to complete second factor auth
 	// in order to access settings
 	if err != nil && resp.StatusCode != http.StatusForbidden {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
@@ -400,20 +462,27 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 
 		for _, message := range uiMsg.GetMessages() {
 			if message.GetId() == DuplicateIdentifier {
-				return nil, nil, fmt.Errorf("an account with the same identifier already exists, contact support")
+				err := fmt.Errorf("an account with the same identifier already exists, contact support")
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+				return nil, nil, err
 			}
 		}
 	}
 
 	if err == nil {
+		span.SetStatus(codes.Ok, "")
 		return flow, nil, nil
 	}
 
 	returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return flow, returnToResp, nil
 }
 
@@ -429,10 +498,19 @@ func (s *Service) UpdateRecoveryFlow(
 		UpdateRecoveryFlowBody(body).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 
 	// if the flow responds with 400, it means a session already exists
 	if err != nil && resp.StatusCode == http.StatusBadRequest {
 		returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			span.SetStatus(codes.Ok, "")
+		}
 		return returnToResp, nil, err
 	}
 
@@ -447,6 +525,8 @@ func (s *Service) UpdateRecoveryFlow(
 
 	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
 		err := s.getUiError(resp.Body)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
@@ -455,16 +535,22 @@ func (s *Service) UpdateRecoveryFlow(
 
 		for _, message := range uiMsg.GetMessages() {
 			if message.GetId() == InvalidRecoveryCode {
-				return nil, nil, fmt.Errorf("the recovery code is invalid or has already been used")
+				err := fmt.Errorf("the recovery code is invalid or has already been used")
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+				return nil, nil, err
 			}
 		}
 	}
 
 	returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return returnToResp, resp.Cookies(), nil
 }
 
@@ -476,17 +562,28 @@ func (s *Service) UpdateIdentifierFirstLoginFlow(
 
 	csrfToken, ok := body.GetCsrfTokenOk()
 	if !ok {
-		return nil, nil, fmt.Errorf("missing csrf token")
+		err := fmt.Errorf("missing csrf token")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, nil, err
 	}
 
 	identifier, ok := body.GetIdentifierOk()
 	if !ok {
-		return nil, nil, fmt.Errorf("missing identifier")
+		err := fmt.Errorf("missing identifier")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, nil, err
 	}
 
 	resp, err := s.kratos.ExecuteIdentifierFirstUpdateLoginRequest(ctx, flow, *csrfToken, *identifier, cookies)
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 	if err != nil {
 		s.logger.Errorf("kratos request failed: %s", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
@@ -495,13 +592,19 @@ func (s *Service) UpdateIdentifierFirstLoginFlow(
 	switch resp.StatusCode {
 	case http.StatusSeeOther:
 		location := resp.Header.Get("Location")
+		span.SetStatus(codes.Ok, "")
 		return &BrowserLocationChangeRequired{RedirectTo: &location}, resp.Cookies(), nil
 	case http.StatusBadRequest:
 		err = s.getUiError(resp.Body)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	default:
 		s.logger.Errorf("updating identifier first flow %s failed: got unexpected response status %d from kratos", flow, resp.StatusCode)
-		return nil, nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		err := fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, nil, err
 	}
 }
 
@@ -517,6 +620,9 @@ func (s *Service) UpdateLoginFlow(
 		UpdateLoginFlowBody(body).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 	// We expect to get a 422 response from Kratos. The sdk forces us to
 	// make the request with an 'application/json' content-type, whereas Kratos
 	// expects the 'Content-Type' and 'Accept' to be 'application/x-www-form-urlencoded'.
@@ -524,6 +630,8 @@ func (s *Service) UpdateLoginFlow(
 	// redirected to.
 	if err != nil && resp.StatusCode != http.StatusUnprocessableEntity {
 		err := s.getUiError(resp.Body)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, nil, err
 	}
 
@@ -542,14 +650,18 @@ func (s *Service) UpdateLoginFlow(
 	if resp.StatusCode == http.StatusUnprocessableEntity {
 		returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return nil, nil, nil, err
 		}
 
+		span.SetStatus(codes.Ok, "")
 		return returnToResp, nil, c, nil
 	}
 	// Workaround for marshalling error
 	// TODO: Evaluate if we can get rid of that when kratos sdk 1.3 is out
 	f.ContinueWith = nil
+	span.SetStatus(codes.Ok, "")
 	return nil, f, c, nil
 }
 
@@ -565,27 +677,38 @@ func (s *Service) UpdateSettingsFlow(
 		UpdateSettingsFlowBody(body).
 		Cookie(httpHelpers.CookiesToString(cookies)).
 		Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 
 	// Handle 422 response
 	if err != nil && resp.StatusCode == http.StatusUnprocessableEntity {
 		returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return nil, nil, nil, fmt.Errorf("failed to parse redirect response: %w", err)
 		}
 
 		if returnToResp.RedirectTo == nil {
-			return nil, nil, nil, fmt.Errorf("failed to get redirect url")
+			err := fmt.Errorf("failed to get redirect url")
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, nil, nil, err
 		}
 
+		span.SetStatus(codes.Ok, "")
 		return nil, returnToResp, resp.Cookies(), nil
 	}
 
 	if err != nil && resp.StatusCode != http.StatusOK {
 		err := s.getUiError(resp.Body)
-
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return settingsFlow, nil, resp.Cookies(), nil
 }
 
@@ -654,10 +777,16 @@ func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowErr
 	defer span.End()
 
 	flowError, resp, err := s.kratos.FrontendApi().GetFlowError(ctx).Id(id).Execute()
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return flowError, resp.Cookies(), nil
 }
 
@@ -670,12 +799,16 @@ func (s *Service) CheckAllowedProvider(ctx context.Context, loginFlow *kClient.L
 
 	allowedProviders, err := s.authz.ListObjects(ctx, fmt.Sprintf("app:%s", clientName), "allowed_access", "provider")
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return false, err
 	}
 	// If the user has not configured providers for this app, we allow all providers
 	if len(allowedProviders) == 0 {
+		span.SetStatus(codes.Ok, "")
 		return true, nil
 	}
+	span.SetStatus(codes.Ok, "")
 	return s.contains(allowedProviders, fmt.Sprintf("%v", provider)), nil
 }
 
@@ -703,11 +836,14 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 
 	allowedProviders, err := s.authz.ListObjects(ctx, fmt.Sprintf("app:%s", clientName), "allowed_access", "provider")
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	// If the user has not configured providers for this app, we allow all providers
 	if len(allowedProviders) == 0 {
+		span.SetStatus(codes.Ok, "")
 		return flow, nil
 	}
 
@@ -723,6 +859,7 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 	}
 
 	flow.Ui.Nodes = nodes
+	span.SetStatus(codes.Ok, "")
 	return flow, nil
 }
 

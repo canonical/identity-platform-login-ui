@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	hClient "github.com/ory/hydra-client-go/v2"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/canonical/identity-platform-login-ui/internal/hydra"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
@@ -30,12 +32,18 @@ func (s *Service) AcceptUserCode(ctx context.Context, deviceChallenge string, re
 		DeviceChallenge(deviceChallenge).
 		AcceptDeviceUserCodeRequest(*req).
 		Execute()
+	if res != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", res.StatusCode))
+	}
 
 	if err != nil {
 		s.logger.Debugf("full HTTP response: %v", res)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return accept, nil
 }
 
