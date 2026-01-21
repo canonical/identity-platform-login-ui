@@ -41,7 +41,7 @@ func (s *Service) BuildInfo(ctx context.Context) *BuildInfo {
 	info, ok := debug.ReadBuildInfo()
 
 	if !ok {
-		span.SetStatus(codes.Ok, "")
+		span.SetStatus(codes.Error, "failed to read build info")
 		return nil
 	}
 
@@ -94,11 +94,11 @@ func (s *Service) kratosReady(ctx context.Context) (bool, error) {
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return ok != nil, err
+	} else {
+		span.SetStatus(codes.Ok, "")
 	}
 
-	span.SetStatus(codes.Ok, "")
-	return ok != nil, nil
+	return ok != nil, err
 }
 
 func (s *Service) hydraReady(ctx context.Context) (bool, error) {
@@ -125,11 +125,11 @@ func (s *Service) hydraReady(ctx context.Context) (bool, error) {
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		return ok != nil, err
+	} else {
+		span.SetStatus(codes.Ok, "")
 	}
 
-	span.SetStatus(codes.Ok, "")
-	return ok != nil, nil
+	return ok != nil, err
 }
 
 func (s *Service) gitRevision(ctx context.Context, settings []debug.BuildSetting) string {
