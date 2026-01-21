@@ -1,10 +1,9 @@
 package kratos
 
 import (
-    "bytes"
-    "encoding/json"
-    "errors"
-    "fmt"
+	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"go.opentelemetry.io/otel/trace"
 	gomock "go.uber.org/mock/gomock"
 
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -238,7 +238,7 @@ func TestHandleCreateFlowWithoutSessionFailOnFilterProviders(t *testing.T) {
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(nil, fmt.Errorf("oh no"))
 	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -386,6 +386,8 @@ func TestHandleCreateFlowRedirectToSetupWebauthn(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().HasWebAuthnAvailable(gomock.Any(), session.Id).Return(false, nil)
 	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
 
@@ -436,6 +438,8 @@ func TestHandleCreateFlowWithSessionAcceptJSON(t *testing.T) {
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(&redirectTo, req.Cookies(), nil)
 	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
@@ -487,6 +491,8 @@ func TestHandleCreateFlowWithSessionNotAcceptJSON(t *testing.T) {
 	req.Header.Set("Accept", "application/x-www-form-urlencoded")
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(&redirectTo, req.Cookies(), nil)
 	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
@@ -535,10 +541,12 @@ func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(nil, nil, fmt.Errorf("error"))
 	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -618,7 +626,7 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -704,7 +712,7 @@ func TestHandleUpdateIdentifierFirstFlowFailOnParseLoginFlowMethodBody(t *testin
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -742,7 +750,7 @@ func TestHandleUpdateIdentifierFirstFlowFailOnUpdateIdLoginFlow(t *testing.T) {
 
 	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -782,6 +790,8 @@ func TestHandleUpdateFlow(t *testing.T) {
 	values.Add("flow", flowId)
 	req.URL.RawQuery = values.Encode()
 
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFA").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldRegenerateBackupCodes").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, nil, req.Cookies(), nil)
@@ -871,7 +881,7 @@ func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -929,9 +939,13 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, nil, req.Cookies(), nil)
 
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFA").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.Service.HasTOTPAvailable").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().HasTOTPAvailable(gomock.Any(), gomock.Any()).Return(true, nil)
 
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldRegenerateBackupCodes").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().HasNotEnoughLookupSecretsLeft(gomock.Any(), session.Identity.GetId()).Return(true, nil)
 	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
@@ -977,7 +991,7 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, nil, fmt.Errorf("error"))
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1016,7 +1030,7 @@ func TestHandleUpdateFlowFailOnCheckAllowedProvider(t *testing.T) {
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1137,7 +1151,7 @@ func TestHandleCreateRecoveryFlowFailOnCreateBrowserRecoveryFlow(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CreateBrowserRecoveryFlow(gomock.Any(), redirect, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1217,7 +1231,7 @@ func TestHandleGetRecoveryFlowFail(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().GetRecoveryFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1303,7 +1317,7 @@ func TestHandleUpdateRecoveryFlowFailOnParseRecoveryFlowMethodBody(t *testing.T)
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseRecoveryFlowMethodBody(gomock.Any()).Return(flowBody, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1378,7 +1392,7 @@ func TestHandleCreateSettingsFlowWithRedirect(t *testing.T) {
 
 	flow := kClient.NewSettingsFlowWithDefaults()
 	mockService.EXPECT().CreateBrowserSettingsFlow(gomock.Any(), redirect, req.Cookies()).Return(flow, redirectFlow, nil)
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1413,7 +1427,7 @@ func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CreateBrowserSettingsFlow(gomock.Any(), redirect, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1501,7 +1515,7 @@ func TestHandleGetSettingsFlowWithRedirect(t *testing.T) {
 	*redirectFlow.Error.Code = 403
 
 	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(flow, redirectFlow, nil)
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1539,7 +1553,7 @@ func TestHandleGetSettingsFlowFail(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().GetSettingsFlow(gomock.Any(), id, req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1780,7 +1794,7 @@ func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T)
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseSettingsFlowMethodBody(gomock.Any()).Return(flowBody, fmt.Errorf("error"))
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
