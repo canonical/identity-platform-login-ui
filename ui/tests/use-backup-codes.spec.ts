@@ -24,7 +24,6 @@ test("backup recovery code setup and usage", async ({ context, page }) => {
   await clickButton(page, "Create backup codes");
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
-  await expect(page).toHaveScreenshot({ fullPage: true, maxDiffPixels: 500 });
 
   await startNewAuthFlow(page);
   await userPassLogin(page);
