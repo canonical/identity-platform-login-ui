@@ -345,6 +345,7 @@ func TestMustReAuthenticateSuccess(t *testing.T) {
 
 	resp := new(http.Response)
 
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.MustReAuthenticate").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
@@ -397,6 +398,7 @@ func TestMustReAuthenticateBackupCodeUsed(t *testing.T) {
 
 	resp := new(http.Response)
 
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.MustReAuthenticate").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
@@ -449,6 +451,7 @@ func TestMustReAuthenticateNoSkip(t *testing.T) {
 
 	resp := new(http.Response)
 
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.MustReAuthenticate").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
@@ -488,6 +491,8 @@ func TestMustReAuthenticateNoLoginChallenge(t *testing.T) {
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.MustReAuthenticate").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+
 	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).
 		MustReAuthenticate(ctx, "", session, FlowStateCookie{})
 
@@ -513,6 +518,8 @@ func TestMustReAuthenticateNoSession(t *testing.T) {
 
 	ctx := context.Background()
 	loginChallenge := "123456"
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.MustReAuthenticate").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 
 	ret, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).
 		MustReAuthenticate(ctx, loginChallenge, nil, FlowStateCookie{})
@@ -546,6 +553,7 @@ func TestMustReAuthenticateFails(t *testing.T) {
 	session := kClient.NewSession("test")
 	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
 
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.MustReAuthenticate").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
 	mockHydraOauthApi.EXPECT().GetOAuth2LoginRequest(ctx).Times(1).Return(getLoginRequest)
@@ -592,6 +600,7 @@ func TestCreateBrowserLoginFlowWithLoginChallengeSuccess(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.hydrateKratosLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -658,6 +667,7 @@ func TestCreateBrowserLoginFlowWithReturnToSuccess(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.hydrateKratosLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -722,6 +732,7 @@ func TestCreateBrowserLoginFlowWithSequencingAndLoginChallenge(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.hydrateKratosLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().CreateBrowserLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -872,6 +883,7 @@ func TestGetLoginFlowSuccess(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.GetLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.hydrateKratosLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().GetLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().GetLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -1156,6 +1168,7 @@ func TestUpdateLoginFlowSuccess(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.parseKratosRedirectResponse").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -2340,6 +2353,7 @@ func TestUpdateRecoveryFlowSuccess(t *testing.T) {
 	}
 
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateRecoveryFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.parseKratosRedirectResponse").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlow(ctx).Times(1).Return(request)
 	mockKratosFrontendApi.EXPECT().UpdateRecoveryFlowExecute(gomock.Any()).Times(1).DoAndReturn(
@@ -3042,6 +3056,7 @@ func TestHasNotEnoughLookupSecretsLeftSuccess(t *testing.T) {
 		Id: "test",
 	}
 
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.HasNotEnoughLookupSecretsLeft").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
 
 	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)
@@ -3084,6 +3099,7 @@ func TestHasNotEnoughLookupSecretsLeftFailonGetIdentityExecute(t *testing.T) {
 		ApiService: mockKratosIdentityApi,
 	}
 
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.HasNotEnoughLookupSecretsLeft").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	mockAdminKratos.EXPECT().IdentityApi().Times(1).Return(mockKratosIdentityApi)
 
 	mockKratosIdentityApi.EXPECT().GetIdentity(ctx, gomock.Any()).Times(1).Return(identityRequest)

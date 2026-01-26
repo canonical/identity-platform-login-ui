@@ -168,6 +168,9 @@ func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*
 }
 
 func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge string, session *kClient.Session, c FlowStateCookie) (bool, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.MustReAuthenticate")
+	defer span.End()
+
 	if session == nil {
 		// No session exists, user is not logged in
 		return true, nil
@@ -862,6 +865,8 @@ func (s *Service) contains(str []string, e string) bool {
 }
 
 func (s *Service) HasTOTPAvailable(ctx context.Context, id string) (bool, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.HasTOTPAvailable")
+	defer span.End()
 
 	identity, _, err := s.kratosAdmin.IdentityApi().
 		GetIdentity(ctx, id).
@@ -923,6 +928,8 @@ func (s *Service) HasWebAuthnAvailable(ctx context.Context, id string) (bool, er
 }
 
 func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) (bool, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.HasNotEnoughLookupSecretsLeft")
+	defer span.End()
 
 	identity, _, err := s.kratosAdmin.IdentityApi().
 		GetIdentity(ctx, id).
@@ -988,6 +995,9 @@ func (s *Service) is1FAMethod(method string) bool {
 // that initiated it. This is usefull only if the login_challenge was not sent to kratos when
 // creating the flow.
 func (s *Service) hydrateKratosLoginFlow(ctx context.Context, flow *kClient.LoginFlow) (*kClient.LoginFlow, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.hydrateKratosLoginFlow")
+	defer span.End()
+
 	u, _ := url.Parse(flow.GetReturnTo())
 	loginChallenge := u.Query().Get("login_challenge")
 
@@ -1030,6 +1040,9 @@ func (s *Service) hydrateKratosLoginFlow(ctx context.Context, flow *kClient.Logi
 }
 
 func (s *Service) parseKratosRedirectResponse(ctx context.Context, resp *http.Response) (*BrowserLocationChangeRequired, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.parseKratosRedirectResponse")
+	defer span.End()
+
 	redirectResp := new(ErrorBrowserLocationChangeRequired)
 	err := unmarshalByteJson(resp.Body, redirectResp)
 	if err != nil {

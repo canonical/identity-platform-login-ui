@@ -15,6 +15,7 @@ import (
 	client "github.com/ory/kratos-client-go/v25"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
@@ -32,6 +33,7 @@ type API struct {
 	contextPath                   string
 	cookieManager                 AuthCookieManagerInterface
 
+	tracer tracing.TracingInterface
 	logger logging.LoggerInterface
 }
 
@@ -420,6 +422,9 @@ func (a *API) redirectResponse(w http.ResponseWriter, r *http.Request, resp Redi
 }
 
 func (a *API) shouldRegenerateBackupCodes(ctx context.Context, cookies []*http.Cookie) (bool, error) {
+	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldRegenerateBackupCodes")
+	defer span.End()
+
 	// skip the check if mfa is not enabled
 	if !a.mfaEnabled {
 		return false, nil
@@ -458,6 +463,9 @@ func (a *API) shouldRegenerateBackupCodes(ctx context.Context, cookies []*http.C
 }
 
 func (a *API) shouldEnforceMFA(ctx context.Context, cookies []*http.Cookie) (bool, error) {
+	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceMFA")
+	defer span.End()
+
 	if !a.mfaEnabled {
 		return false, nil
 	}
@@ -476,6 +484,9 @@ func (a *API) shouldEnforceMFA(ctx context.Context, cookies []*http.Cookie) (boo
 }
 
 func (a *API) shouldEnforceMFAWithSession(ctx context.Context, session *client.Session) (bool, error) {
+	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceMFAWithSession")
+	defer span.End()
+
 	if !a.mfaEnabled {
 		return false, nil
 	}
@@ -507,6 +518,9 @@ func (a *API) is40xError(err error) bool {
 }
 
 func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *client.Session) (bool, error) {
+	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceWebAuthnWithSession")
+	defer span.End()
+
 	if !a.oidcWebAuthnSequencingEnabled {
 		return false, nil
 	}
@@ -894,6 +908,7 @@ func NewAPI(
 	oidcWebAuthnSequencingEnabled bool,
 	baseURL string,
 	cookieManager AuthCookieManagerInterface,
+	tracer tracing.TracingInterface,
 	logger logging.LoggerInterface) *API {
 	a := new(API)
 
@@ -911,6 +926,7 @@ func NewAPI(
 
 	a.contextPath = fullBaseURL.Path
 
+	a.tracer = tracer
 	a.logger = logger
 
 	return a

@@ -5,12 +5,14 @@ import (
 	"net/http"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/go-chi/chi/v5"
 )
 
 type API struct {
 	service ServiceInterface
 
+	tracer tracing.TracingInterface
 	logger logging.LoggerInterface
 }
 
@@ -51,11 +53,12 @@ func (a *API) handleDevice(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func NewAPI(service ServiceInterface, logger logging.LoggerInterface) *API {
+func NewAPI(service ServiceInterface, tracer tracing.TracingInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.service = service
 
+	a.tracer = tracer
 	a.logger = logger
 
 	return a

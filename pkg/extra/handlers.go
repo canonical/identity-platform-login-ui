@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
 	kClient "github.com/ory/kratos-client-go/v25"
 )
@@ -20,6 +21,7 @@ type API struct {
 	oidcWebAuthnSequencingEnabled bool
 	mfaEnabled                    bool
 	contextPath                   string
+	tracer                        tracing.TracingInterface
 	logger                        logging.LoggerInterface
 }
 
@@ -107,7 +109,7 @@ func (a *API) sessionRequiredAAL(session *kClient.Session) kClient.Authenticator
 	return ret
 }
 
-func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL string, mfaEnabled, oidcWebAuthnSequencingEnabled bool, logger logging.LoggerInterface) *API {
+func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL string, mfaEnabled, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.service = service
@@ -125,6 +127,7 @@ func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL st
 		a.logger.Fatalf("Failed to construct API base URL: %v\n", err)
 	}
 	a.contextPath = fullBaseURL.Path
+	a.tracer = tracer
 
 	return a
 }
