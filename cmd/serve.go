@@ -40,8 +40,8 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "serve starts the web server",
 	Long:  `Launch the web application, list of environment variables is available in the readme`,
-	Run: func(cmd *cobra.Command, args []string) {
-		main()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return serve()
 	},
 }
 
@@ -58,7 +58,7 @@ func serve() error {
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	if err := validate.Struct(specs); err != nil {
-		return fmt.Errorf("issues with environment variables validation: %s", err)
+		return fmt.Errorf("issues with environment variables validation: %w", err)
 	}
 
 	logger := logging.NewLogger(specs.LogLevel)
@@ -68,10 +68,13 @@ func serve() error {
 
 	distFS, err := fs.Sub(jsFS, "ui/dist")
 	if err != nil {
-		logger.Fatalf("issue with js distribution files %s", err)
+		return fmt.Errorf("issue with js distribution files: %w", err)
 	}
 
-	router := buildRouter(specs, distFS, logger)
+	router, err := buildRouter(specs, distFS, logger)
+	if err != nil {
+		return err
+	}
 
 	logger.Infof("Starting server on port %v", specs.Port)
 	srv := &http.Server{
@@ -85,7 +88,7 @@ func serve() error {
 	return handleServeAndShutdown(srv, logger.Security())
 }
 
-func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) http.Handler {
+func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) (http.Handler, error) {
 	monitor := prometheus.NewMonitor("identity-login-ui", logger)
 	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.OtelGRPCEndpoint, specs.OtelHTTPEndpoint, logger))
 
@@ -111,8 +114,8 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) ht
 	}
 
 	authorizer := authz.NewAuthorizer(authzClient, tracer, monitor, logger)
-	if authorizer.ValidateModel(context.Background()) != nil {
-		panic("Invalid authorization model provided")
+	if err := authorizer.ValidateModel(context.Background()); err != nil {
+		return nil, fmt.Errorf("invalid authorization model provided: %w", err)
 	}
 
 	router := web.NewRouter(
@@ -130,7 +133,7 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) ht
 		web.WithMonitoring(monitor),
 		web.WithLogger(logger),
 	)
-	return router
+	return router, nil
 }
 
 func handleServeAndShutdown(srv *http.Server, securityLogger logging.SecurityLoggerInterface) error {
@@ -158,11 +161,4 @@ func handleServeAndShutdown(srv *http.Server, securityLogger logging.SecurityLog
 	}
 
 	return errors.Join(listenAndServeError, shutdownError)
-}
-
-func main() {
-	if err := serve(); err != nil {
-		fmt.Fprintf(os.Stderr, "Fatal error: %v\n", err)
-		os.Exit(1)
-	}
 }
