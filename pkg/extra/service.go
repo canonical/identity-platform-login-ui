@@ -5,6 +5,8 @@ import (
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go/v25"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	misc "github.com/canonical/identity-platform-login-ui/internal/misc/http"
@@ -27,14 +29,19 @@ func (s *Service) GetConsent(ctx context.Context, challenge string) (*hClient.OA
 	consent, res, err := s.hydra.OAuth2API().GetOAuth2ConsentRequest(
 		ctx,
 	).ConsentChallenge(challenge).Execute()
+	if res != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", res.StatusCode))
+	}
 
 	if err != nil {
 		// TODO @shipperizer we shouldn't be logging this
 		s.logger.Debugf("full HTTP response: %v", res)
-
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return consent, nil
 }
 
@@ -58,14 +65,19 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 	).AcceptOAuth2ConsentRequest(
 		*r,
 	).Execute()
+	if res != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", res.StatusCode))
+	}
 
 	if err != nil {
 		// TODO @shipperizer we shouldn't be logging this
 		s.logger.Debugf("full HTTP response: %v", res)
-
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return accept, nil
 }
 

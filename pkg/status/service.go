@@ -12,6 +12,8 @@ import (
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go/v25"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 type BuildInfo struct {
@@ -39,6 +41,7 @@ func (s *Service) BuildInfo(ctx context.Context) *BuildInfo {
 	info, ok := debug.ReadBuildInfo()
 
 	if !ok {
+		span.SetStatus(codes.Error, "failed to read build info")
 		return nil
 	}
 
@@ -47,6 +50,7 @@ func (s *Service) BuildInfo(ctx context.Context) *BuildInfo {
 	buildInfo.Version = version.Version
 	buildInfo.CommitHash = s.gitRevision(ctx, info.Settings)
 
+	span.SetStatus(codes.Ok, "")
 	return buildInfo
 }
 
@@ -54,6 +58,7 @@ func (s *Service) KratosStatus(ctx context.Context) bool {
 	ctx, span := s.tracer.Start(ctx, "status.Service.KratosStatus")
 	defer span.End()
 
+	span.SetStatus(codes.Ok, "")
 	return s.kratosStatus.Status()
 }
 
@@ -61,6 +66,7 @@ func (s *Service) HydraStatus(ctx context.Context) bool {
 	ctx, span := s.tracer.Start(ctx, "status.Service.HydraStatus")
 	defer span.End()
 
+	span.SetStatus(codes.Ok, "")
 	return s.hydraStatus.Status()
 }
 
@@ -69,7 +75,11 @@ func (s *Service) kratosReady(ctx context.Context) (bool, error) {
 	defer span.End()
 
 	// IsReady only checks the status of specific instance called, not the cluster status
-	ok, _, err := s.kratos.IsReady(ctx).Execute()
+	ok, resp, err := s.kratos.IsReady(ctx).Execute()
+
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 
 	var available float64
 
@@ -81,6 +91,13 @@ func (s *Service) kratosReady(ctx context.Context) (bool, error) {
 
 	s.monitor.SetDependencyAvailability(tags, available)
 
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	} else {
+		span.SetStatus(codes.Ok, "")
+	}
+
 	return ok != nil, err
 }
 
@@ -89,7 +106,11 @@ func (s *Service) hydraReady(ctx context.Context) (bool, error) {
 	defer span.End()
 
 	// IsReady only checks the status of specific instance called, not the cluster status
-	ok, _, err := s.hydra.IsReady(ctx).Execute()
+	ok, resp, err := s.hydra.IsReady(ctx).Execute()
+
+	if resp != nil {
+		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
+	}
 
 	var available float64
 
@@ -101,6 +122,13 @@ func (s *Service) hydraReady(ctx context.Context) (bool, error) {
 
 	s.monitor.SetDependencyAvailability(tags, available)
 
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	} else {
+		span.SetStatus(codes.Ok, "")
+	}
+
 	return ok != nil, err
 }
 
@@ -110,10 +138,12 @@ func (s *Service) gitRevision(ctx context.Context, settings []debug.BuildSetting
 
 	for _, setting := range settings {
 		if setting.Key == "vcs.revision" {
+			span.SetStatus(codes.Ok, "")
 			return setting.Value
 		}
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return "n/a"
 }
 

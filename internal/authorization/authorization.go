@@ -9,6 +9,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	fga "github.com/openfga/go-sdk"
+	"go.opentelemetry.io/otel/codes"
 )
 
 var ErrInvalidAuthModel = fmt.Errorf("Invalid authorization model schema")
@@ -25,14 +26,30 @@ func (a *Authorizer) Check(ctx context.Context, user string, relation string, ob
 	ctx, span := a.tracer.Start(ctx, "authorization.Authorizer.Check")
 	defer span.End()
 
-	return a.Client.Check(ctx, user, relation, object)
+	result, err := a.Client.Check(ctx, user, relation, object)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return false, err
+	}
+
+	span.SetStatus(codes.Ok, "")
+	return result, nil
 }
 
 func (a *Authorizer) ListObjects(ctx context.Context, user string, relation string, objectType string) ([]string, error) {
 	ctx, span := a.tracer.Start(ctx, "authorization.Authorizer.ListObjects")
 	defer span.End()
 
-	return a.Client.ListObjects(ctx, user, relation, objectType)
+	result, err := a.Client.ListObjects(ctx, user, relation, objectType)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	span.SetStatus(codes.Ok, "")
+	return result, nil
 }
 
 func (a *Authorizer) FilterObjects(ctx context.Context, user string, relation string, objectType string, objs []string) ([]string, error) {
@@ -41,6 +58,8 @@ func (a *Authorizer) FilterObjects(ctx context.Context, user string, relation st
 
 	allowedObjs, err := a.ListObjects(ctx, user, relation, objectType)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -50,6 +69,8 @@ func (a *Authorizer) FilterObjects(ctx context.Context, user string, relation st
 			ret = append(ret, obj)
 		}
 	}
+
+	span.SetStatus(codes.Ok, "")
 	return ret, nil
 }
 
@@ -60,16 +81,24 @@ func (a *Authorizer) ValidateModel(ctx context.Context) error {
 	var builtinAuthorizationModel fga.AuthorizationModel
 	err := json.Unmarshal([]byte(AuthModel), &builtinAuthorizationModel)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
 	eq, err := a.Client.CompareModel(ctx, builtinAuthorizationModel)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	if !eq {
+		span.RecordError(ErrInvalidAuthModel)
+		span.SetStatus(codes.Error, ErrInvalidAuthModel.Error())
 		return ErrInvalidAuthModel
 	}
+
+	span.SetStatus(codes.Ok, "")
 	return nil
 }
 

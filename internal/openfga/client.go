@@ -15,6 +15,7 @@ import (
 	"github.com/openfga/go-sdk/client"
 	"github.com/openfga/go-sdk/credentials"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/codes"
 )
 
 type Config struct {
@@ -71,9 +72,12 @@ func (c *Client) ReadModel(ctx context.Context) (*openfga.AuthorizationModel, er
 	authModel, err := c.c.ReadAuthorizationModelExecute(c.c.ReadAuthorizationModel(ctx))
 
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return authModel.AuthorizationModel, nil
 }
 
@@ -87,6 +91,8 @@ func (c *Client) WriteModel(ctx context.Context, model []byte) (string, error) {
 	authModel := new(client.ClientWriteAuthorizationModelRequest)
 
 	if err := json.Unmarshal(model, authModel); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return "", err
 	}
 
@@ -95,9 +101,12 @@ func (c *Client) WriteModel(ctx context.Context, model []byte) (string, error) {
 	)
 
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return "", err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return data.GetAuthorizationModelId(), nil
 }
 
@@ -115,6 +124,8 @@ func (c *Client) ListObjects(ctx context.Context, user string, relation string, 
 	objectsResponse, _, err := c.APIClient().OpenFgaApi.ListObjectsExecute(r)
 	if err != nil {
 		c.logger.Errorf("issues performing list operation: %s", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -124,6 +135,7 @@ func (c *Client) ListObjects(ctx context.Context, user string, relation string, 
 		allowedObjs[i] = p[len(fmt.Sprintf("%s:", objectType)):]
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return allowedObjs, nil
 }
 
@@ -144,9 +156,12 @@ func (c *Client) Check(ctx context.Context, user string, relation string, object
 	check, _, err := c.APIClient().OpenFgaApi.CheckExecute(r)
 	if err != nil {
 		c.logger.Errorf("issues performing check operation: %s", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return false, err
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return check.GetAllowed(), nil
 }
 
@@ -159,18 +174,23 @@ func (c *Client) CompareModel(ctx context.Context, model openfga.AuthorizationMo
 
 	authModel, err := c.ReadModel(ctx)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return false, err
 	}
 
 	if authModel.SchemaVersion != model.SchemaVersion {
 		c.logger.Errorf("invalid authorization model schema version")
+		span.SetStatus(codes.Error, "invalid authorization model schema version")
 		return false, nil
 	}
 	if reflect.DeepEqual(authModel.TypeDefinitions, model.TypeDefinitions) {
 		c.logger.Errorf("invalid authorization model type definitions")
+		span.SetStatus(codes.Error, "invalid authorization model type definitions")
 		return false, nil
 	}
 
+	span.SetStatus(codes.Ok, "")
 	return true, nil
 }
 
