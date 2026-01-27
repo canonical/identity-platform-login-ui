@@ -8,6 +8,15 @@ the [kratos-selfservice-ui-react-nextjs](https://github.com/ory/kratos-selfservi
 Run the app in the development mode.
 
 Open <http://localhost:3000> to view it in browser.
+Depending on wether you have OpenFGA running or not, port 3000 could be used by it and the frontend app will be running on 3001 instead.
+
+In order to have the local dev env with hmr (hot module replacement) working,
+you need to run the npm run dev command with the env var DEV set to true
+```shell
+DEV=true npm run dev
+```
+
+This will enable redirections and rewrites to the correct backend services, in order to mirror the production environment as closely as possible.
 
 The page will reload when you make changes. You may also see any lint errors in
 the console.
