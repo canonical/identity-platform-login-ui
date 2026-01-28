@@ -80,6 +80,13 @@ func (e *BrowserLocationChangeRequired) GetCode() int {
 	return int(*e.Error.Code)
 }
 
+func (e *BrowserLocationChangeRequired) GetErrorId() string {
+	if !e.HasError() || e.Error.Id == nil {
+		return ""
+	}
+	return *e.Error.Id
+}
+
 func (e *BrowserLocationChangeRequired) GetRedirectTo() string {
 	if e.RedirectTo == nil {
 		return ""
@@ -618,8 +625,8 @@ func (s *Service) UpdateSettingsFlow(
 		span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
 	}
 
-	// Handle 422 response
-	if err != nil && resp.StatusCode == http.StatusUnprocessableEntity {
+	// Handle 422 and 403 responses
+	if err != nil && (resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusUnprocessableEntity) {
 		returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
 		if err != nil {
 			span.RecordError(err)
