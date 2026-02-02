@@ -2,7 +2,9 @@ package kratos
 
 import (
 	"context"
-	"encoding/json"
+    "bytes"
+    "encoding/json"
+    "errors"
 	"fmt"
 	"io"
 	"net/http"
