@@ -41,6 +41,7 @@ const (
 	IncorrectAccountIdentifier   = 4000037
 	NewPasswordPolicyViolation   = 4000039
 	InvalidRecoveryCode          = 4060006
+	AmrPopValue                  = "pop"
 )
 
 type Service struct {
@@ -143,8 +144,15 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 	accept := hClient.NewAcceptOAuth2LoginRequest(session.Identity.Id)
 	accept.SetRemember(true)
 	accept.Amr = []string{}
+
 	for _, r := range session.AuthenticationMethods {
-		accept.Amr = append(accept.Amr, r.GetMethod())
+		method := r.GetMethod()
+
+		accept.Amr = append(accept.Amr, method)
+		// ensure we add pop for webauthn method
+		if s.oidcWebAuthnSequencingEnabled && method == "webauthn" {
+			accept.Amr = append(accept.Amr, AmrPopValue)
+		}
 	}
 
 	accept.IdentityProviderSessionId = &session.Id
