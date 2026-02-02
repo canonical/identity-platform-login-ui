@@ -232,6 +232,133 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	}
 }
 
+func TestAcceptLoginRequestWithPopForWebAuthn(t *testing.T) {
+	tests := []struct {
+		name                          string
+		authMethods                   []string
+		oidcWebAuthnSequencingEnabled bool
+		expectedAmr                   map[string]bool
+	}{
+		{
+			name:                          "TOTP with flag enabled should not include pop",
+			authMethods:                   []string{"totp"},
+			oidcWebAuthnSequencingEnabled: true,
+			expectedAmr:                   map[string]bool{"totp": true},
+		},
+		{
+			name:                          "WebAuthn with flag enabled should include pop",
+			authMethods:                   []string{"webauthn"},
+			oidcWebAuthnSequencingEnabled: true,
+			expectedAmr:                   map[string]bool{"webauthn": true, "pop": true},
+		},
+		{
+			name:                          "TOTP and WebAuthn with flag enabled should include pop",
+			authMethods:                   []string{"totp", "webauthn"},
+			oidcWebAuthnSequencingEnabled: true,
+			expectedAmr:                   map[string]bool{"totp": true, "webauthn": true, "pop": true},
+		},
+		{
+			name:                          "TOTP with flag disabled should not include pop",
+			authMethods:                   []string{"totp"},
+			oidcWebAuthnSequencingEnabled: false,
+			expectedAmr:                   map[string]bool{"totp": true},
+		},
+		{
+			name:                          "WebAuthn with flag disabled should not include pop",
+			authMethods:                   []string{"webauthn"},
+			oidcWebAuthnSequencingEnabled: false,
+			expectedAmr:                   map[string]bool{"webauthn": true},
+		},
+		{
+			name:                          "Password should not include pop even with flag enabled",
+			authMethods:                   []string{"password"},
+			oidcWebAuthnSequencingEnabled: true,
+			expectedAmr:                   map[string]bool{"password": true},
+		},
+		{
+			name:                          "OIDC should not include pop even with flag enabled",
+			authMethods:                   []string{"oidc"},
+			oidcWebAuthnSequencingEnabled: true,
+			expectedAmr:                   map[string]bool{"oidc": true},
+		},
+		{
+			name:                          "Multiple methods with TOTP should not include pop",
+			authMethods:                   []string{"password", "totp"},
+			oidcWebAuthnSequencingEnabled: true,
+			expectedAmr:                   map[string]bool{"password": true, "totp": true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockHydra := NewMockHydraClientInterface(ctrl)
+			mockKratos := NewMockKratosClientInterface(ctrl)
+			mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+			mockAuthz := NewMockAuthorizerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
+			mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+			mockHydraOauthApi := NewMockOAuth2API(ctrl)
+
+			ctx := context.Background()
+			loginChallenge := "123456"
+			identityID := "id"
+			redirectTo := hClient.NewOAuth2RedirectTo("http://redirect/to/path")
+			acceptLoginRequest := hClient.OAuth2APIAcceptOAuth2LoginRequestRequest{
+				ApiService: mockHydraOauthApi,
+			}
+			session := kClient.NewSession("test")
+			session.Identity = kClient.NewIdentity(identityID, "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+
+			// Set up authentication methods
+			var authMethods []kClient.SessionAuthenticationMethod
+			for _, method := range tt.authMethods {
+				m := method
+				authMethods = append(authMethods, kClient.SessionAuthenticationMethod{Method: &m})
+			}
+			session.AuthenticationMethods = authMethods
+
+			resp := new(http.Response)
+
+			mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
+			mockHydra.EXPECT().OAuth2API().Times(1).Return(mockHydraOauthApi)
+			mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequest(ctx).Times(1).Return(acceptLoginRequest)
+			mockHydraOauthApi.EXPECT().AcceptOAuth2LoginRequestExecute(gomock.Any()).Times(1).DoAndReturn(
+				func(r hClient.OAuth2APIAcceptOAuth2LoginRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
+					acceptReq := (*hClient.AcceptOAuth2LoginRequest)(reflect.ValueOf(r).FieldByName("acceptOAuth2LoginRequest").UnsafePointer())
+
+					// Verify all expected AMR values are present
+					amrMap := make(map[string]bool)
+					for _, amr := range acceptReq.Amr {
+						amrMap[amr] = true
+					}
+
+					if len(amrMap) != len(tt.expectedAmr) {
+						t.Fatalf("expected %d AMR values, got %d. Expected: %v, Got: %v", len(tt.expectedAmr), len(amrMap), tt.expectedAmr, amrMap)
+					}
+
+					for expectedAmr := range tt.expectedAmr {
+						if !amrMap[expectedAmr] {
+							t.Fatalf("expected AMR to contain %s, got %v", expectedAmr, acceptReq.Amr)
+						}
+					}
+
+					return redirectTo, resp, nil
+				},
+			)
+
+			_, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, tt.oidcWebAuthnSequencingEnabled, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, session, loginChallenge)
+
+			if err != nil {
+				t.Fatalf("expected error to be nil not %v", err)
+			}
+		})
+	}
+}
+
 func TestGetLoginRequestSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
