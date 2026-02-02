@@ -2,6 +2,7 @@ import { getNodeLabel } from "@ory/integrations/ui";
 import { Input } from "@canonical/react-components";
 import React, { Component, FC, useEffect, useMemo } from "react";
 import { NodeInputProps } from "./helpers";
+import CountDown from "./CountDown";
 
 export const NodeInputText: FC<NodeInputProps> = ({
   attributes,
@@ -88,7 +89,12 @@ export const NodeInputText: FC<NodeInputProps> = ({
 
   const getSuccess = useMemo(() => {
     if (node.messages.length > 0 && node.messages[0].type === "success") {
-      return node.messages[0].text;
+      return (
+        <CountDown
+          initialSeconds={10}
+          wrapperText="Code sent. You can request again in 00:"
+        />
+      );
     }
     return undefined;
   }, [node.messages]);

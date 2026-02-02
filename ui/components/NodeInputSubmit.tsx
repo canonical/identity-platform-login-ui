@@ -17,6 +17,8 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const image = getProviderImage(provider);
   const [buttonDisabled, setButtonDisabled] = useState<boolean>(false);
 
+  const DISABLE_TIMEOUT = 10000; // 10 seconds
+
   const disableButtonWithTimeout = (time: number) => {
     setButtonDisabled(true);
     const timer = setTimeout(() => {
@@ -61,7 +63,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
 
   useEffect(() => {
     if (node.meta.label?.id === 1070008) {
-      disableButtonWithTimeout(5000);
+      disableButtonWithTimeout(DISABLE_TIMEOUT);
     }
   }, []);
 
@@ -89,7 +91,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
             dispatchSubmit(e),
           );
           if (node.meta.label?.id === 1070008) {
-            disableButtonWithTimeout(5000);
+            disableButtonWithTimeout(DISABLE_TIMEOUT);
           }
         }}
         disabled={buttonDisabled}
