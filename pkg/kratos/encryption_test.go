@@ -1,6 +1,7 @@
 // Copyright 2024 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0
 
+// Package kratos provides unit tests for encryption functionality.
 package kratos
 
 import (
