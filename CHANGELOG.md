@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.25.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.24.2...v0.25.0) (2026-02-02)
+
+
+### Features
+
+* add error recording and status codes to tracing spans ([0dd5a90](https://github.com/canonical/identity-platform-login-ui/commit/0dd5a903bb5b4f5fe58f117a946fb14f950a80a3))
+* add pop value to AMR ([ce0fa73](https://github.com/canonical/identity-platform-login-ui/commit/ce0fa73d840d36c94d03f757a595242a18a80191)), closes [#841](https://github.com/canonical/identity-platform-login-ui/issues/841)
+* Add tracing to all methods accepting context.Context ([6b56e71](https://github.com/canonical/identity-platform-login-ui/commit/6b56e71090cddf156bd5951c8a975112930babd5))
+* allow hot module reaload for local frontend development ([283c347](https://github.com/canonical/identity-platform-login-ui/commit/283c3475c19718c538c72159c83ee209120ca910))
+* update docker kratos to 25.4.0 ([8376b80](https://github.com/canonical/identity-platform-login-ui/commit/8376b80064d03985346672f3d0206aa0005c7497))
+* update docker kratos to 25.4.0 ([#832](https://github.com/canonical/identity-platform-login-ui/issues/832)) ([7a61c9d](https://github.com/canonical/identity-platform-login-ui/commit/7a61c9d95e0d338d7812452fdb2e63a25a8bfa41))
+* upgrade kratos sdk to v25 ([#827](https://github.com/canonical/identity-platform-login-ui/issues/827)) ([3522639](https://github.com/canonical/identity-platform-login-ui/commit/3522639c18cdb0b40cd3f6565081a180e04c34b8))
+* upgrade sdk to v25 ([85bca8d](https://github.com/canonical/identity-platform-login-ui/commit/85bca8d8ad470812bad7962ddceae0f9b424df0f))
+
+
+### Bug Fixes
+
+* **cmd:** Fix error wrapping to use %w instead of %s ([7f253c6](https://github.com/canonical/identity-platform-login-ui/commit/7f253c6d05ed51f7b1e70ad7fcdc6f7256fbd2a3))
+* correct span status for validation failures and error returns ([aac609e](https://github.com/canonical/identity-platform-login-ui/commit/aac609e0cb49ff8f7662700baf7cf3fa6d5bde0e))
+* fix vulnerabilities ([d58ca47](https://github.com/canonical/identity-platform-login-ui/commit/d58ca47c05ccc4a049fc83aeb2132328dfbc360e))
+* handle 403 on settings update ([d403375](https://github.com/canonical/identity-platform-login-ui/commit/d4033756409b6f99c939945a4b5bcb3728f7580c))
+* mark validation failures as errors in tracing for consistency ([69ad15f](https://github.com/canonical/identity-platform-login-ui/commit/69ad15fc383663d8e3d86b2621a9c825d7282fb3))
+* preserve original error return behavior in status methods ([9ccb59a](https://github.com/canonical/identity-platform-login-ui/commit/9ccb59a58b5abb6b9729ea34247d2c8b5dfa8160))
+
 ## [0.24.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.24.1...v0.24.2) (2026-01-07)
 
 
