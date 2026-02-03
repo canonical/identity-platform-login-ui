@@ -1,6 +1,7 @@
 // Copyright 2024 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0
 
+// Package kratos provides AES encryption and decryption utilities for securing flow state.
 package kratos
 
 import (
@@ -63,6 +64,7 @@ func (e *Encrypt) Decrypt(hexData string) (string, error) {
 	return string(decryptedData), nil
 }
 
+// splitNonceFromPayload extracts the nonce and payload from an encrypted byte array.
 func (e *Encrypt) splitNonceFromPayload(encrypted []byte) ([]byte, []byte, error) {
 	nonceSize := e.gcm.NonceSize()
 	if len(encrypted) <= nonceSize {
@@ -73,6 +75,7 @@ func (e *Encrypt) splitNonceFromPayload(encrypted []byte) ([]byte, []byte, error
 	return noncePart, payloadPart, nil
 }
 
+// generateCipherNonce generates a random nonce for encryption.
 func (e *Encrypt) generateCipherNonce() ([]byte, error) {
 	nonce := make([]byte, e.gcm.NonceSize())
 	if _, err := ioReadFull(rand.Reader, nonce); err != nil {
@@ -82,6 +85,7 @@ func (e *Encrypt) generateCipherNonce() ([]byte, error) {
 	return nonce, nil
 }
 
+// NewEncrypt creates a new Encrypt instance with the provided secret key and interfaces.
 func NewEncrypt(secretKey []byte, logger logging.LoggerInterface, tracer tracing.TracingInterface) *Encrypt {
 	e := new(Encrypt)
 	c, err := aes.NewCipher(secretKey)

@@ -1,3 +1,8 @@
+// Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: AGPL-3.0
+
+// Package kratos provides integration with Ory Kratos authentication and identity management services.
+// It includes login, recovery, settings flows, session management, and cookie-based state handling.
 package kratos
 
 import (
@@ -66,14 +71,17 @@ type ErrorBrowserLocationChangeRequired struct {
 	RedirectBrowserTo *string `json:"redirect_browser_to,omitempty"`
 }
 
+// HasError returns true if the response contains an error.
 func (e *BrowserLocationChangeRequired) HasError() bool {
 	return e.Error != nil
 }
 
+// HasRedirectTo returns true if the response contains a redirect URL.
 func (e *BrowserLocationChangeRequired) HasRedirectTo() bool {
 	return e.RedirectTo != nil
 }
 
+// GetCode returns the HTTP status code from the error, or OK if no error.
 func (e *BrowserLocationChangeRequired) GetCode() int {
 	if !e.HasError() || e.Error.Code == nil {
 		return http.StatusOK
@@ -81,6 +89,7 @@ func (e *BrowserLocationChangeRequired) GetCode() int {
 	return int(*e.Error.Code)
 }
 
+// GetErrorId returns the error ID from the error response, or empty string if no error.
 func (e *BrowserLocationChangeRequired) GetErrorId() string {
 	if !e.HasError() || e.Error.Id == nil {
 		return ""
@@ -88,6 +97,7 @@ func (e *BrowserLocationChangeRequired) GetErrorId() string {
 	return *e.Error.Id
 }
 
+// GetRedirectTo returns the redirect URL from the response, or empty string if not set.
 func (e *BrowserLocationChangeRequired) GetRedirectTo() string {
 	if e.RedirectTo == nil {
 		return ""
@@ -95,6 +105,7 @@ func (e *BrowserLocationChangeRequired) GetRedirectTo() string {
 	return *e.RedirectTo
 }
 
+// BrowserLocationChangeRequired represents a response indicating browser location change requirements.
 type BrowserLocationChangeRequired struct {
 	Error *kClient.GenericError `json:"error,omitempty"`
 	// Points to where to redirect the user to next.
@@ -114,6 +125,7 @@ type LookupSecrets []struct {
 	UsedAt time.Time `json:"used_at,omitempty"`
 }
 
+// CheckSession retrieves the current session information for a user from Kratos.
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.ToSession")
 	defer span.End()
@@ -137,6 +149,7 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 	return session, resp.Cookies(), nil
 }
 
+// AcceptLoginRequest accepts a Kratos login request and redirects the user.
 func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Session, lc string) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.AcceptLoginRequest")
 	defer span.End()
@@ -183,6 +196,7 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 	return &BrowserLocationChangeRequired{RedirectTo: &redirectTo.RedirectTo}, resp.Cookies(), nil
 }
 
+// GetLoginRequest retrieves the OAuth2 login request from Hydra.
 func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*hClient.OAuth2LoginRequest, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetLoginRequest")
 	defer span.End()
@@ -206,6 +220,7 @@ func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*
 	return redirectTo, resp.Cookies(), nil
 }
 
+// MustReAuthenticate determines if a user needs to re-authenticate based on the session and login challenge.
 func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge string, session *kClient.Session, c FlowStateCookie) (bool, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.MustReAuthenticate")
 	defer span.End()
@@ -234,6 +249,7 @@ func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge st
 	return !hydraLoginRequest.GetSkip(), nil
 }
 
+// CreateBrowserLoginFlow creates a new browser login flow with the specified parameters.
 func (s *Service) CreateBrowserLoginFlow(
 	ctx context.Context, aal, returnTo, loginChallenge string, refresh bool, cookies []*http.Cookie,
 ) (*kClient.LoginFlow, []*http.Cookie, error) {
@@ -275,6 +291,7 @@ func (s *Service) CreateBrowserLoginFlow(
 	return flow, resp.Cookies(), nil
 }
 
+// CreateBrowserRecoveryFlow creates a new browser recovery flow.
 func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserRecoveryFlow")
 	defer span.End()
@@ -296,6 +313,7 @@ func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string
 	return flow, resp.Cookies(), nil
 }
 
+// CreateBrowserSettingsFlow creates a new browser settings flow.
 func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserSettingsFlow")
 	defer span.End()
@@ -364,6 +382,7 @@ func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.C
 	return flow, resp.Cookies(), nil
 }
 
+// GetRecoveryFlow retrieves a recovery flow by its ID from Kratos.
 func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetRecoveryFlow")
 	defer span.End()
@@ -386,6 +405,7 @@ func (s *Service) GetRecoveryFlow(ctx context.Context, id string, cookies []*htt
 	return flow, resp.Cookies(), nil
 }
 
+// GetSettingsFlow retrieves a settings flow by its ID from Kratos.
 func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetSettingsFlow")
 	defer span.End()
@@ -506,6 +526,7 @@ func (s *Service) UpdateRecoveryFlow(
 	return returnToResp, resp.Cookies(), nil
 }
 
+// UpdateIdentifierFirstLoginFlow updates an identifier-first login flow.
 func (s *Service) UpdateIdentifierFirstLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowWithIdentifierFirstMethod, cookies []*http.Cookie,
 ) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
@@ -560,6 +581,7 @@ func (s *Service) UpdateIdentifierFirstLoginFlow(
 	}
 }
 
+// UpdateLoginFlow updates a login flow with the specified parameters.
 func (s *Service) UpdateLoginFlow(
 	ctx context.Context, flow string, body kClient.UpdateLoginFlowBody, cookies []*http.Cookie,
 ) (*BrowserLocationChangeRequired, *kClient.SuccessfulNativeLogin, []*http.Cookie, error) {
@@ -617,6 +639,7 @@ func (s *Service) UpdateLoginFlow(
 	return nil, f, c, nil
 }
 
+// UpdateSettingsFlow updates a settings flow with the specified parameters.
 func (s *Service) UpdateSettingsFlow(
 	ctx context.Context, flow string, body kClient.UpdateSettingsFlowBody, cookies []*http.Cookie,
 ) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, []*http.Cookie, error) {
@@ -664,6 +687,7 @@ func (s *Service) UpdateSettingsFlow(
 	return settingsFlow, nil, resp.Cookies(), nil
 }
 
+// getUiError extracts UI error information from an HTTP response body.
 func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 	errorMessages := new(UiErrorMessages)
 	body, _ := io.ReadAll(responseBody)
@@ -724,6 +748,7 @@ func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 	return err
 }
 
+// GetFlowError retrieves error details for a flow by its ID.
 func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowError, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetFlowError")
 	defer span.End()
@@ -771,6 +796,7 @@ func (s *Service) getProviderName(updateFlowBody *kClient.UpdateLoginFlowBody) s
 	return ""
 }
 
+// getClientName extracts the client name from a login flow.
 func (s *Service) getClientName(loginFlow *kClient.LoginFlow) string {
 	oauth2LoginRequest := loginFlow.Oauth2LoginRequest
 	if oauth2LoginRequest != nil {
@@ -780,6 +806,7 @@ func (s *Service) getClientName(loginFlow *kClient.LoginFlow) string {
 	return ""
 }
 
+// FilterFlowProviderList filters the provider list in a login flow based on authorization rules.
 func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.LoginFlow) (*kClient.LoginFlow, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.FilterFlowProviderList")
 	defer span.End()
@@ -815,6 +842,7 @@ func (s *Service) FilterFlowProviderList(ctx context.Context, flow *kClient.Logi
 	return flow, nil
 }
 
+// ParseIdentifierFirstLoginFlowMethodBody parses the request body for an identifier-first login flow update.
 func (s *Service) ParseIdentifierFirstLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowWithIdentifierFirstMethod, []*http.Cookie, error) {
 	defer r.Body.Close()
 
@@ -913,6 +941,7 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 	return &ret, cookies, nil
 }
 
+// ParseRecoveryFlowMethodBody parses the request body for a recovery flow update.
 func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateRecoveryFlowBody, error) {
 	body := new(kClient.UpdateRecoveryFlowWithCodeMethod)
 
@@ -930,6 +959,7 @@ func (s *Service) ParseRecoveryFlowMethodBody(r *http.Request) (*kClient.UpdateR
 	return &ret, nil
 }
 
+// ParseSettingsFlowMethodBody parses the request body for a settings flow update.
 func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateSettingsFlowBody, error) {
 	defer r.Body.Close()
 
@@ -1016,6 +1046,7 @@ func (s *Service) contains(str []string, e string) bool {
 	return false
 }
 
+// HasTOTPAvailable checks if a user has TOTP (Time-based One-Time Password) available as a credential.
 func (s *Service) HasTOTPAvailable(ctx context.Context, id string) (bool, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.HasTOTPAvailable")
 	defer span.End()
@@ -1033,6 +1064,7 @@ func (s *Service) HasTOTPAvailable(ctx context.Context, id string) (bool, error)
 	return ok, nil
 }
 
+// HasWebAuthnAvailable checks if a user has WebAuthn available as a 2FA credential.
 func (s *Service) HasWebAuthnAvailable(ctx context.Context, id string) (bool, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.HasWebAuthnAvailable")
 	defer span.End()
@@ -1079,6 +1111,7 @@ func (s *Service) HasWebAuthnAvailable(ctx context.Context, id string) (bool, er
 	return false, nil
 }
 
+// HasNotEnoughLookupSecretsLeft checks if a user has fewer than the minimum required lookup secrets.
 func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) (bool, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.HasNotEnoughLookupSecretsLeft")
 	defer span.End()
@@ -1132,6 +1165,7 @@ func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) 
 	return true, nil
 }
 
+// is1FAMethod determines if an authentication method is a first-factor authentication method.
 func (s *Service) is1FAMethod(method string) bool {
 	switch method {
 	case "password", "oidc":
@@ -1191,6 +1225,7 @@ func (s *Service) hydrateKratosLoginFlow(ctx context.Context, flow *kClient.Logi
 	return newFlow, nil
 }
 
+// parseKratosRedirectResponse parses an HTTP response from Kratos into a BrowserLocationChangeRequired structure.
 func (s *Service) parseKratosRedirectResponse(ctx context.Context, resp *http.Response) (*BrowserLocationChangeRequired, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.parseKratosRedirectResponse")
 	defer span.End()
@@ -1208,6 +1243,7 @@ func (s *Service) parseKratosRedirectResponse(ctx context.Context, resp *http.Re
 	}, nil
 }
 
+// NewService creates and returns a new Service instance with the provided clients and interfaces.
 func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
@@ -1225,12 +1261,14 @@ func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInter
 	return s
 }
 
+// parseBody decodes JSON from a ReadCloser into the provided interface.
 func parseBody(b io.ReadCloser, body interface{}) error {
 	decoder := json.NewDecoder(b)
 	err := decoder.Decode(body)
 	return err
 }
 
+// unmarshalByteJson reads all data from a Reader and unmarshals it as JSON into the provided interface.
 func unmarshalByteJson(data io.Reader, v any) error {
 	json_data, err := io.ReadAll(data)
 	if err != nil {

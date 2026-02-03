@@ -1,3 +1,7 @@
+// Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: AGPL-3.0
+
+// Package kratos defines interfaces for Ory Kratos client interactions.
 package kratos
 
 import (
@@ -9,23 +13,28 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/hydra"
 )
 
+// KratosClientInterface defines methods for interacting with Ory Kratos frontend API.
 type KratosClientInterface interface {
 	FrontendApi() kClient.FrontendAPI
 	ExecuteIdentifierFirstUpdateLoginRequest(context.Context, string, string, string, []*http.Cookie) (*http.Response, error)
 }
 
+// KratosAdminClientInterface defines methods for interacting with Ory Kratos admin API.
 type KratosAdminClientInterface interface {
 	IdentityApi() kClient.IdentityAPI
 }
 
+// HydraClientInterface defines methods for interacting with Ory Hydra OAuth2 API.
 type HydraClientInterface interface {
 	OAuth2API() hydra.OAuth2API
 }
 
+// AuthorizerInterface defines methods for authorization and object listing.
 type AuthorizerInterface interface {
 	ListObjects(context.Context, string, string, string) ([]string, error)
 }
 
+// ServiceInterface defines the core service methods for Kratos authentication flows.
 type ServiceInterface interface {
 	CheckSession(context.Context, []*http.Cookie) (*kClient.Session, []*http.Cookie, error)
 	AcceptLoginRequest(context.Context, *kClient.Session, string) (*BrowserLocationChangeRequired, []*http.Cookie, error)
@@ -52,6 +61,7 @@ type ServiceInterface interface {
 	HasNotEnoughLookupSecretsLeft(context.Context, string) (bool, error)
 }
 
+// AuthCookieManagerInterface defines methods for managing authentication state cookies.
 type AuthCookieManagerInterface interface {
 	// SetStateCookie sets the nonce cookie on the response with the specified duration as MaxAge
 	SetStateCookie(http.ResponseWriter, FlowStateCookie) error
@@ -61,6 +71,7 @@ type AuthCookieManagerInterface interface {
 	ClearStateCookie(http.ResponseWriter)
 }
 
+// EncryptInterface defines methods for encrypting and decrypting data.
 type EncryptInterface interface {
 	// Encrypt a plain text string, returns the encrypted string in hex format or an error
 	Encrypt(string) (string, error)
@@ -68,6 +79,7 @@ type EncryptInterface interface {
 	Decrypt(string) (string, error)
 }
 
+// RedirectToInterface defines methods for responses that include redirect information.
 type RedirectToInterface interface {
 	GetCode() int
 	GetRedirectTo() string

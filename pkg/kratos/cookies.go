@@ -1,6 +1,7 @@
 // Copyright 2024 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0
 
+// Package kratos provides state cookie management for login flow state tracking.
 package kratos
 
 import (
@@ -34,6 +35,7 @@ type FlowStateCookie struct {
 	BackupCodeUsed     bool   `json:"bc,omitempty"`
 }
 
+// SetStateCookie sets a state cookie on the HTTP response.
 func (a *AuthCookieManager) SetStateCookie(w http.ResponseWriter, state FlowStateCookie) error {
 	rawState, err := json.Marshal(state)
 	if err != nil {
@@ -42,6 +44,7 @@ func (a *AuthCookieManager) SetStateCookie(w http.ResponseWriter, state FlowStat
 	return a.setCookie(w, stateCookieName, string(rawState), defaultCookiePath, a.cookieTTL, http.SameSiteLaxMode)
 }
 
+// GetStateCookie retrieves a state cookie from the HTTP request.
 func (a *AuthCookieManager) GetStateCookie(r *http.Request) (FlowStateCookie, error) {
 	var ret FlowStateCookie
 	c, err := a.getCookie(r, stateCookieName)
@@ -52,10 +55,12 @@ func (a *AuthCookieManager) GetStateCookie(r *http.Request) (FlowStateCookie, er
 	return ret, err
 }
 
+// ClearStateCookie clears the state cookie from the HTTP response.
 func (a *AuthCookieManager) ClearStateCookie(w http.ResponseWriter) {
 	a.clearCookie(w, stateCookieName, defaultCookiePath)
 }
 
+// setCookie sets a cookie on the HTTP response with the specified parameters.
 func (a *AuthCookieManager) setCookie(w http.ResponseWriter, name, value string, path string, ttl time.Duration, sameSitePolicy http.SameSite) error {
 	if value == "" {
 		return nil
@@ -83,6 +88,7 @@ func (a *AuthCookieManager) setCookie(w http.ResponseWriter, name, value string,
 	return nil
 }
 
+// clearCookie removes a cookie from the HTTP response.
 func (a *AuthCookieManager) clearCookie(w http.ResponseWriter, name string, path string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,
@@ -96,6 +102,7 @@ func (a *AuthCookieManager) clearCookie(w http.ResponseWriter, name string, path
 	})
 }
 
+// getCookie retrieves a cookie value from the HTTP request.
 func (a *AuthCookieManager) getCookie(r *http.Request, name string) (string, error) {
 	cookie, err := r.Cookie(name)
 	if err != nil {
@@ -111,6 +118,7 @@ func (a *AuthCookieManager) getCookie(r *http.Request, name string) (string, err
 	return value, nil
 }
 
+// NewAuthCookieManager creates a new AuthCookieManager instance.
 func NewAuthCookieManager(
 	cookieTTLSeconds int,
 	encrypt EncryptInterface,
