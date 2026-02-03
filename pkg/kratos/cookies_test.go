@@ -1,6 +1,7 @@
 // Copyright 2024 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0
 
+// Package kratos provides unit tests for cookie management functionality.
 package kratos
 
 import (
@@ -29,147 +30,179 @@ func findCookie(name string, cookies []*http.Cookie) (*http.Cookie, bool) {
 }
 
 func TestAuthCookieManager_ClearStateCookie(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	tests := []struct {
+		name string
+	}{
+		{
+			name: "ClearState",
+		},
+	}
 
-	mockLogger := NewMockLoggerInterface(ctrl)
-	mockEncrypt := NewMockEncryptInterface(ctrl)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 
-	mockRequest := httptest.NewRequest(http.MethodGet, "/", nil)
-	mockRequest.AddCookie(&http.Cookie{Name: "state"})
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockEncrypt := NewMockEncryptInterface(ctrl)
 
-	mockResponse := httptest.NewRecorder()
+			mockRequest := httptest.NewRequest(http.MethodGet, "/", nil)
+			mockRequest.AddCookie(&http.Cookie{Name: "state"})
 
-	manager := NewAuthCookieManager(5, mockEncrypt, mockLogger)
-	manager.ClearStateCookie(mockResponse)
+			mockResponse := httptest.NewRecorder()
 
-	c, _ := findCookie("login_ui_state", mockResponse.Result().Cookies())
+			manager := NewAuthCookieManager(5, mockEncrypt, mockLogger)
+			manager.ClearStateCookie(mockResponse)
 
-	if c.Expires != epoch {
-		t.Fatal("did not clear state cookie")
+			c, _ := findCookie("login_ui_state", mockResponse.Result().Cookies())
+
+			if c.Expires != epoch {
+				t.Fatal("did not clear state cookie")
+			}
+		})
 	}
 }
 
 func TestAuthCookieManager_GetStateCookie(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	mockLogger := NewMockLoggerInterface(ctrl)
-	mockEncrypt := NewMockEncryptInterface(ctrl)
-
-	state := FlowStateCookie{}
-	sj, _ := json.Marshal(state)
-
-	mockEncrypt.EXPECT().Decrypt("mock-state").Return(string(sj), nil)
-
-	mockRequest := httptest.NewRequest(http.MethodGet, "/", nil)
-	mockRequest.AddCookie(&http.Cookie{Name: "login_ui_state", Value: "mock-state"})
-
-	manager := NewAuthCookieManager(5, mockEncrypt, mockLogger)
-	cookie, err := manager.GetStateCookie(mockRequest)
-
-	if cookie != state {
-		t.Fatal("state cookie value does not match expected")
+	tests := []struct {
+		name           string
+		setupMocks     func(*MockEncryptInterface, *MockLoggerInterface)
+		requestCookie  *http.Cookie
+		expectedCookie FlowStateCookie
+		expectedErr    bool
+	}{
+		{
+			name: "Success",
+			setupMocks: func(mockEncrypt *MockEncryptInterface, mockLogger *MockLoggerInterface) {
+				state := FlowStateCookie{}
+				sj, _ := json.Marshal(state)
+				mockEncrypt.EXPECT().Decrypt("mock-state").Return(string(sj), nil)
+			},
+			requestCookie:  &http.Cookie{Name: "login_ui_state", Value: "mock-state"},
+			expectedCookie: FlowStateCookie{},
+			expectedErr:    false,
+		},
+		{
+			name:           "NoCookie",
+			setupMocks:     func(mockEncrypt *MockEncryptInterface, mockLogger *MockLoggerInterface) {},
+			requestCookie:  nil,
+			expectedCookie: FlowStateCookie{},
+			expectedErr:    false,
+		},
+		{
+			name: "DecryptFailure",
+			setupMocks: func(mockEncrypt *MockEncryptInterface, mockLogger *MockLoggerInterface) {
+				mockError := errors.New("mock-error")
+				mockLogger.EXPECT().Errorf("can't decrypt cookie value, %v", mockError).Times(1)
+				mockEncrypt.EXPECT().Decrypt("mock-state").Return("", mockError)
+			},
+			requestCookie:  &http.Cookie{Name: "login_ui_state", Value: "mock-state"},
+			expectedCookie: FlowStateCookie{},
+			expectedErr:    true,
+		},
 	}
 
-	if err != nil {
-		t.Fatalf("expected error to be nil not  %v", err)
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 
-func TestAuthCookieManager_GetStateCookieNoCookie(t *testing.T) {
-	ctrl := gomock.NewController(t)
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockEncrypt := NewMockEncryptInterface(ctrl)
 
-	mockLogger := NewMockLoggerInterface(ctrl)
-	mockRequest := httptest.NewRequest(http.MethodGet, "/", nil)
+			if tt.requestCookie == nil {
+				mockEncrypt = nil
+			}
+			if mockEncrypt != nil {
+				tt.setupMocks(mockEncrypt, mockLogger)
+			} else {
+				tt.setupMocks(nil, mockLogger)
+			}
 
-	manager := NewAuthCookieManager(5, nil, mockLogger)
-	cookie, err := manager.GetStateCookie(mockRequest)
+			mockRequest := httptest.NewRequest(http.MethodGet, "/", nil)
+			if tt.requestCookie != nil {
+				mockRequest.AddCookie(tt.requestCookie)
+			}
 
-	state := FlowStateCookie{}
-	if cookie != state {
-		t.Fatal("state cookie value does not match expected")
-	}
+			manager := NewAuthCookieManager(5, mockEncrypt, mockLogger)
+			cookie, err := manager.GetStateCookie(mockRequest)
 
-	if err != nil {
-		t.Fatalf("expected error to be nil, not %v", err)
-	}
-}
+			if cookie != tt.expectedCookie {
+				t.Fatal("state cookie value does not match expected")
+			}
 
-func TestAuthCookieManager_GetStateCookieDecryptFailure(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockError := errors.New("mock-error")
-
-	mockLogger := NewMockLoggerInterface(ctrl)
-	mockLogger.EXPECT().Errorf("can't decrypt cookie value, %v", mockError).Times(1)
-
-	mockEncrypt := NewMockEncryptInterface(ctrl)
-	mockEncrypt.EXPECT().Decrypt("mock-state").Return("", mockError)
-
-	mockRequest := httptest.NewRequest(http.MethodGet, "/", nil)
-	mockRequest.AddCookie(&http.Cookie{Name: "login_ui_state", Value: "mock-state"})
-
-	manager := NewAuthCookieManager(5, mockEncrypt, mockLogger)
-	cookie, err := manager.GetStateCookie(mockRequest)
-
-	state := FlowStateCookie{}
-	if cookie != state {
-		t.Fatal("state cookie value does not match expected")
-	}
-
-	if err == nil {
-		t.Fatalf("expected error to be not nil")
+			if tt.expectedErr {
+				if err == nil {
+					t.Fatalf("expected error to be not nil")
+				}
+			} else if err != nil {
+				t.Fatalf("expected error to be nil not  %v", err)
+			}
+		})
 	}
 }
 
 func TestAuthCookieManager_SetStateCookie(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	mockLogger := NewMockLoggerInterface(ctrl)
-	mockEncrypt := NewMockEncryptInterface(ctrl)
-
-	state := FlowStateCookie{}
-	js, _ := json.Marshal(state)
-
-	mockEncrypt.EXPECT().Encrypt(string(js)).Return("mock-state", nil)
-
-	mockResponse := httptest.NewRecorder()
-
-	manager := NewAuthCookieManager(5, mockEncrypt, mockLogger)
-	err := manager.SetStateCookie(mockResponse, state)
-
-	c, found := findCookie("login_ui_state", mockResponse.Result().Cookies())
-
-	if !found {
-		t.Fatal("did not set state cookie")
+	tests := []struct {
+		name        string
+		setupMocks  func(*MockEncryptInterface, *MockLoggerInterface)
+		expectedErr bool
+	}{
+		{
+			name: "Success",
+			setupMocks: func(mockEncrypt *MockEncryptInterface, mockLogger *MockLoggerInterface) {
+				state := FlowStateCookie{}
+				js, _ := json.Marshal(state)
+				mockEncrypt.EXPECT().Encrypt(string(js)).Return("mock-state", nil)
+			},
+			expectedErr: false,
+		},
+		{
+			name: "Failure",
+			setupMocks: func(mockEncrypt *MockEncryptInterface, mockLogger *MockLoggerInterface) {
+				mockError := errors.New("mock-error")
+				state := FlowStateCookie{}
+				js, _ := json.Marshal(state)
+				mockLogger.EXPECT().Errorf("can't encrypt cookie value, %v", mockError).Times(1)
+				mockEncrypt.EXPECT().Encrypt(string(js)).Return("", mockError)
+			},
+			expectedErr: true,
+		},
 	}
 
-	if c.Value != "mock-state" {
-		t.Fatal("state cookie value does not match expected")
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 
-	if err != nil {
-		t.Fatalf("expected error to be nil not  %v", err)
-	}
-}
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockEncrypt := NewMockEncryptInterface(ctrl)
 
-func TestAuthCookieManager_SetStateCookieFailure(t *testing.T) {
-	ctrl := gomock.NewController(t)
+			tt.setupMocks(mockEncrypt, mockLogger)
 
-	mockError := errors.New("mock-error")
-	state := FlowStateCookie{}
-	js, _ := json.Marshal(state)
+			state := FlowStateCookie{}
+			mockResponse := httptest.NewRecorder()
 
-	mockLogger := NewMockLoggerInterface(ctrl)
-	mockLogger.EXPECT().Errorf("can't encrypt cookie value, %v", mockError).Times(1)
+			manager := NewAuthCookieManager(5, mockEncrypt, mockLogger)
+			err := manager.SetStateCookie(mockResponse, state)
 
-	mockEncrypt := NewMockEncryptInterface(ctrl)
-	mockEncrypt.EXPECT().Encrypt(string(js)).Return("", mockError)
+			if tt.expectedErr {
+				if err == nil {
+					t.Fatalf("expected error to be not nil")
+				}
+				return
+			}
 
-	mockResponse := httptest.NewRecorder()
+			c, found := findCookie("login_ui_state", mockResponse.Result().Cookies())
 
-	manager := NewAuthCookieManager(5, mockEncrypt, mockLogger)
-	err := manager.SetStateCookie(mockResponse, state)
+			if !found {
+				t.Fatal("did not set state cookie")
+			}
 
-	if err == nil {
-		t.Fatalf("expected error to be not nil")
+			if c.Value != "mock-state" {
+				t.Fatal("state cookie value does not match expected")
+			}
+
+			if err != nil {
+				t.Fatalf("expected error to be nil not  %v", err)
+			}
+		})
 	}
 }

@@ -1,3 +1,8 @@
+// Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: AGPL-3.0
+
+// Package kratos provides HTTP handlers for Ory Kratos authentication flows.
+// It handles login, recovery, and settings flow operations through a REST API.
 package kratos
 
 import (
@@ -38,6 +43,7 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
+// RegisterEndpoints registers all HTTP endpoints for Kratos authentication flows with the chi router.
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Post("/api/kratos/self-service/login", a.handleUpdateFlow)
 	mux.Post("/api/kratos/self-service/login/id-first", a.handleUpdateIdentifierFirstFlow)
@@ -52,6 +58,7 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Get("/api/kratos/self-service/settings/flows", a.handleGetSettingsFlow)
 }
 
+// handleCreateFlow handles HTTP GET requests to create a new login flow.
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	var (
@@ -164,6 +171,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
+// handleCreateFlowNewSession creates a new login flow for unauthenticated users.
 func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
 	// redirect user to this endpoint with the login_challenge after login
 	// see https://github.com/ory/kratos/issues/3052
@@ -195,6 +203,7 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginCh
 	return flow, cookies, nil
 }
 
+// handleCreateFlowWithSession handles flow creation for authenticated users.
 func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session, loginChallenge)
 	if err != nil {
@@ -227,6 +236,7 @@ func (a *API) returnToUrl(loginChallenge string) (string, error) {
 	return returnTo, nil
 }
 
+// handleGetLoginFlow retrieves an existing login flow by ID.
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -251,6 +261,7 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(flow)
 }
 
+// handleUpdateIdentifierFirstFlow handles POST requests to update an identifier-first login flow.
 func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
@@ -279,6 +290,7 @@ func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// handleUpdateFlow handles POST requests to update a login flow.
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -484,6 +496,7 @@ func (a *API) shouldEnforceMFA(ctx context.Context, cookies []*http.Cookie) (boo
 	return a.shouldEnforceMFAWithSession(ctx, session)
 }
 
+// shouldEnforceMFAWithSession checks if MFA should be enforced for the given session.
 func (a *API) shouldEnforceMFAWithSession(ctx context.Context, session *client.Session) (bool, error) {
 	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceMFAWithSession")
 	defer span.End()
@@ -507,6 +520,7 @@ func (a *API) shouldEnforceMFAWithSession(ctx context.Context, session *client.S
 	return !totpAvailable, nil
 }
 
+// is40xError checks if the error is a 4xx HTTP error from Kratos.
 func (a *API) is40xError(err error) bool {
 	if openAPIErr, ok := err.(*client.GenericOpenAPIError); ok {
 		if genericKratosErr, ok := openAPIErr.Model().(client.ErrorGeneric); ok {
@@ -518,6 +532,7 @@ func (a *API) is40xError(err error) bool {
 	return false
 }
 
+// shouldEnforceWebAuthnWithSession checks if WebAuthn enforcement is needed for the given session.
 func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *client.Session) (bool, error) {
 	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceWebAuthnWithSession")
 	defer span.End()
@@ -539,6 +554,7 @@ func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *cli
 	return false, nil
 }
 
+// webAuthnSettingsRedirect redirects the user to the WebAuthn settings page.
 func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, r *http.Request, returnTo string, flowStateCookie FlowStateCookie) {
 	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_passkey")
 	if err != nil {
@@ -569,6 +585,7 @@ func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, r *http.Request, r
 	})
 }
 
+// mfaSettingsRedirect redirects the user to the MFA settings page.
 func (a *API) mfaSettingsRedirect(w http.ResponseWriter, r *http.Request, returnTo string, flowStateCookie FlowStateCookie) {
 	redirect, err := url.JoinPath("/", a.contextPath, "/ui/setup_secure")
 
@@ -604,6 +621,7 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, r *http.Request, return
 	})
 }
 
+// lookupSecretsSettingsRedirect redirects the user to regenerate backup codes.
 func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, r *http.Request, flowId, returnTo string, flowStateCookie FlowStateCookie) {
 	redirect, err := url.JoinPath("/", a.contextPath, ui.UI, "/backup_codes_regenerate")
 	if err != nil {
@@ -636,6 +654,7 @@ func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+// handleKratosError handles HTTP GET requests for retrieving flow error details.
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -659,6 +678,7 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// handleGetRecoveryFlow retrieves an existing recovery flow by ID.
 func (a *API) handleGetRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
@@ -680,6 +700,7 @@ func (a *API) handleGetRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// handleUpdateRecoveryFlow handles POST requests to update a recovery flow.
 func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
@@ -711,6 +732,7 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleCreateRecoveryFlow handles HTTP GET requests to create a new recovery flow.
 func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	returnTo := r.URL.Query().Get("return_to")
 
@@ -747,6 +769,7 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// handleGetSettingsFlow retrieves an existing settings flow by ID.
 func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
@@ -777,6 +800,7 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// handleUpdateSettingsFlow handles POST requests to update a settings flow.
 func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
@@ -864,6 +888,7 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// settingsReturnToURL constructs the return URL for a settings flow.
 func (a *API) settingsReturnToURL(r *http.Request, flowId string) (string, error) {
 	currentFlow, _, err := a.service.GetSettingsFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
@@ -887,6 +912,7 @@ func (a *API) settingsReturnToURL(r *http.Request, flowId string) (string, error
 	return returnTo, nil
 }
 
+// handleCreateSettingsFlow handles HTTP GET requests to create a new settings flow.
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	returnTo := r.URL.Query().Get("return_to")
 
@@ -917,11 +943,13 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// isHTMLRequest checks if the request accepts HTML content type.
 func (a *API) isHTMLRequest(r *http.Request) bool {
 	// Treat requests that don't explicitly accept json as form submissions
 	return r.Header.Get("Accept") != "application/json, text/plain, */*"
 }
 
+// deleteKratosSession deletes the Kratos session cookie.
 func (a *API) deleteKratosSession(w http.ResponseWriter) {
 	// To delete the session we delete the kratos session cookie.
 	// This is hacky as it does not call the Kratos API and is likely to break on
@@ -931,6 +959,7 @@ func (a *API) deleteKratosSession(w http.ResponseWriter) {
 	http.SetCookie(w, c)
 }
 
+// getReturnToFromContinueWith extracts the return_to URL from a list of ContinueWith items.
 func getReturnToFromContinueWith(continueWith []client.ContinueWith) *string {
 	for _, c := range continueWith {
 		if r := c.ContinueWithRedirectBrowserTo; r != nil {
@@ -940,6 +969,7 @@ func getReturnToFromContinueWith(continueWith []client.ContinueWith) *string {
 	return nil
 }
 
+// kratosSessionUnsetCookie creates an HTTP cookie to unset the Kratos session.
 func kratosSessionUnsetCookie() *http.Cookie {
 	return &http.Cookie{
 		Name:     KRATOS_SESSION_COOKIE_NAME,
@@ -951,6 +981,7 @@ func kratosSessionUnsetCookie() *http.Cookie {
 	}
 }
 
+// NewAPI creates a new API instance with the provided service and configuration.
 func NewAPI(
 	service ServiceInterface,
 	mfaEnabled,
@@ -981,12 +1012,14 @@ func NewAPI(
 	return a
 }
 
+// setCookies sets the provided cookies on the HTTP response.
 func setCookies(w http.ResponseWriter, cookies []*http.Cookie, exclude ...string) {
 	for _, c := range filterCookies(cookies, exclude...) {
 		http.SetCookie(w, c)
 	}
 }
 
+// filterCookies returns a filtered list of cookies excluding those matching the provided names.
 func filterCookies(cookies []*http.Cookie, exclude ...string) []*http.Cookie {
 	ret := []*http.Cookie{}
 l1:
@@ -1001,12 +1034,14 @@ l1:
 	return ret
 }
 
+// hash computes an MD5-based hash of a plain string and returns the base64-encoded result.
 func hash(plain string) string {
 	h := md5.New()
 	h.Write([]byte(plain))
 	return base64.URLEncoding.EncodeToString(h.Sum(nil))
 }
 
+// validateHash verifies that a hash matches the expected signature.
 func validateHash(plain, sig string) bool {
 	h := md5.New()
 	h.Write([]byte(plain))
