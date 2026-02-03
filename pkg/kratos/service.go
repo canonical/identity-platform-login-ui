@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
+	"strings"
 	"time"
 
 	hClient "github.com/ory/hydra-client-go/v2"
@@ -112,6 +114,34 @@ type methodOnly struct {
 type LookupSecrets []struct {
 	Code   string    `json:"code"`
 	UsedAt time.Time `json:"used_at,omitempty"`
+}
+
+type RegistrationFlowResponse struct {
+	completedFlow  *kClient.SuccessfulNativeRegistration
+	inProgressFlow *kClient.RegistrationFlow
+	changeRequired *BrowserLocationChangeRequired
+}
+
+func (r *RegistrationFlowResponse) GetFlowAndStatus() (any, int) {
+	var (
+		toEncode any
+		status   = http.StatusOK
+	)
+
+	if r.completedFlow != nil {
+		toEncode = r.completedFlow
+	}
+
+	if r.inProgressFlow != nil {
+		toEncode = r.inProgressFlow
+	}
+
+	if r.changeRequired != nil {
+		status = http.StatusUnprocessableEntity
+		toEncode = r.changeRequired
+	}
+
+	return toEncode, status
 }
 
 func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kClient.Session, []*http.Cookie, error) {
@@ -275,7 +305,173 @@ func (s *Service) CreateBrowserLoginFlow(
 	return flow, resp.Cookies(), nil
 }
 
-func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string, cookies []*http.Cookie) (*kClient.RecoveryFlow, []*http.Cookie, error) {
+func (s *Service) CreateBrowserRegistrationFlow(ctx context.Context, returnTo string) (*kClient.RegistrationFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserRegistrationFlow")
+	defer span.End()
+
+	request := s.kratos.FrontendApi().
+		CreateBrowserRegistrationFlow(ctx).
+		ReturnTo(returnTo)
+
+	flow, resp, err := s.kratos.FrontendApi().CreateBrowserRegistrationFlowExecute(request)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cookies := make([]*http.Cookie, 0)
+	if resp != nil {
+		cookies = resp.Cookies()
+	}
+
+	return flow, cookies, nil
+}
+
+func (s *Service) UpdateRegistrationFlow(ctx context.Context, flowId string, body kClient.UpdateRegistrationFlowBody, cookies []*http.Cookie) (*RegistrationFlowResponse, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateRegistrationFlow")
+	defer span.End()
+
+	var registration *RegistrationFlowResponse = nil
+
+	request := s.kratos.FrontendApi().
+		UpdateRegistrationFlow(ctx).
+		Flow(flowId).
+		UpdateRegistrationFlowBody(body).
+		Cookie(httpHelpers.CookiesToString(cookies))
+
+	successfulFlow, resp, err := s.kratos.FrontendApi().UpdateRegistrationFlowExecute(request)
+
+	if resp != nil {
+		cookies = resp.Cookies()
+	}
+
+	if successfulFlow != nil {
+		registration = &RegistrationFlowResponse{completedFlow: successfulFlow}
+		return registration, cookies, err
+	}
+
+	// if we get an error from the sdk + one of the expected status codes, then the flow will be in the response body
+	if err != nil && resp != nil && slices.Contains([]int{http.StatusUnprocessableEntity, http.StatusBadRequest}, resp.StatusCode) {
+		registration, err = s.tryProcessingRegistration(resp)
+	}
+
+	return registration, cookies, err
+}
+
+func (s *Service) tryProcessingRegistration(resp *http.Response) (*RegistrationFlowResponse, error) {
+	responseBody, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error marshalling response body: %w", err)
+	}
+
+	switch resp.StatusCode {
+	case http.StatusBadRequest:
+		var registrationFlow kClient.RegistrationFlow
+		// in this case the error has a body with the actual flow to return or user is already authenticated
+		if err := json.Unmarshal(responseBody, &registrationFlow); err != nil {
+			if isSessionAlreadyAvailableError(responseBody) {
+				return nil, fmt.Errorf("a valid session was detected and thus registration is not possible")
+			}
+
+			return nil, fmt.Errorf("unexpected error unmarshalling response body: %w", err)
+		}
+
+		if isDuplicateIdentifierError(registrationFlow) {
+			return nil, fmt.Errorf("an account with the same identifier already exists, contact support")
+		}
+
+		if err := passwordPolicyError(registrationFlow); err != nil {
+			return nil, err
+		}
+
+		if state, ok := registrationFlow.State.(string); ok && state == "choose_method" {
+			return &RegistrationFlowResponse{inProgressFlow: &registrationFlow}, nil
+		}
+
+	case http.StatusUnprocessableEntity:
+		var locationChangeRequired ErrorBrowserLocationChangeRequired
+		// in this case the complex error has a body with the location change required
+		if err := json.Unmarshal(responseBody, &locationChangeRequired); err != nil {
+			return nil, fmt.Errorf("unexpected error unmarshalling response body")
+		}
+
+		if locationChangeRequired.Error != nil && locationChangeRequired.Error.GetId() == "browser_location_change_required" {
+			return &RegistrationFlowResponse{
+				changeRequired: &BrowserLocationChangeRequired{
+					Error:      locationChangeRequired.Error,
+					RedirectTo: locationChangeRequired.RedirectBrowserTo,
+				},
+			}, nil
+		}
+
+	}
+
+	return nil, fmt.Errorf("error processing registration response: %v", resp)
+}
+
+func passwordPolicyError(flow kClient.RegistrationFlow) error {
+	var err error
+	ui := flow.GetUi()
+	for _, node := range ui.GetNodes() {
+		if node.GetGroup() == "password" && node.GetType() == "input" && node.GetAttributes().UiNodeInputAttributes.Name == "password" {
+			for _, msg := range node.GetMessages() {
+                // grab and build all errors related to password policy
+				err = fmt.Errorf("%w ", errors.New(msg.GetText()))
+			}
+
+            if err != nil {
+                return fmt.Errorf("Password policy error: %w", err)
+            }
+		}
+	}
+
+	return nil
+}
+
+func isSessionAlreadyAvailableError(responseBody []byte) bool {
+	var errorBody kClient.GenericError
+	if err := json.Unmarshal(responseBody, &errorBody); err != nil {
+		return false
+	}
+
+	if errorBody.GetId() == "session_already_available" {
+		return true
+	}
+
+	return false
+}
+
+func isDuplicateIdentifierError(flow kClient.RegistrationFlow) bool {
+	ui := flow.GetUi()
+	for _, message := range ui.GetMessages() {
+		if message.GetId() == DuplicateIdentifier {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (s *Service) GetRegistrationFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.RegistrationFlow, []*http.Cookie, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetRegistrationFlow")
+	defer span.End()
+
+	request := s.kratos.FrontendApi().
+		GetRegistrationFlow(ctx).
+		Id(id).
+		Cookie(httpHelpers.CookiesToString(cookies))
+
+	flow, resp, err := s.kratos.FrontendApi().GetRegistrationFlowExecute(request)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return flow, resp.Cookies(), nil
+}
+
+func (s *Service) CreateBrowserRecoveryFlow(ctx context.Context, returnTo string) (*kClient.RecoveryFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserRecoveryFlow")
 	defer span.End()
 
@@ -616,7 +812,6 @@ func (s *Service) UpdateLoginFlow(
 	span.SetStatus(codes.Ok, "")
 	return nil, f, c, nil
 }
-
 func (s *Service) UpdateSettingsFlow(
 	ctx context.Context, flow string, body kClient.UpdateSettingsFlowBody, cookies []*http.Cookie,
 ) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, []*http.Cookie, error) {
@@ -664,10 +859,104 @@ func (s *Service) UpdateSettingsFlow(
 	return settingsFlow, nil, resp.Cookies(), nil
 }
 
+func peekRequestBody(r *http.Request) ([]byte, error) {
+	body := r.Body
+	if body == nil {
+		return nil, fmt.Errorf("request body is nil")
+	}
+
+	defer body.Close()
+
+	bodyBytes, err := io.ReadAll(body)
+	if err != nil {
+		return nil, err
+	}
+
+	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+	return bodyBytes, nil
+}
+
+func kratosFlowMethod(r *http.Request) (string, error) {
+	bodyBytes, err := peekRequestBody(r)
+	if err != nil {
+		return "", err
+	}
+
+	var methodPayload methodOnly
+	if err = json.Unmarshal(bodyBytes, &methodPayload); err != nil {
+		return "", err
+	}
+
+	return methodPayload.Method, nil
+}
+
+func (s *Service) ParseRegistrationFlowMethodBody(r *http.Request) (*kClient.UpdateRegistrationFlowBody, error) {
+	method, err := kratosFlowMethod(r)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret kClient.UpdateRegistrationFlowBody
+	switch method {
+	case "password":
+		var body kClient.UpdateRegistrationFlowWithPasswordMethod
+		if err := parseBody(r.Body, &body); err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateRegistrationFlowWithPasswordMethodAsUpdateRegistrationFlowBody(&body)
+
+	case "profile":
+		body, err := parseProfileBody(r.Body)
+		if err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateRegistrationFlowWithProfileMethodAsUpdateRegistrationFlowBody(body)
+
+	case "oidc":
+		var body kClient.UpdateRegistrationFlowWithOidcMethod
+		if err := parseBody(r.Body, &body); err != nil {
+			return nil, err
+		}
+		ret = kClient.UpdateRegistrationFlowWithOidcMethodAsUpdateRegistrationFlowBody(&body)
+	default:
+		return nil, fmt.Errorf("unknown method: %s", method)
+	}
+
+	return &ret, nil
+}
+
+func parseProfileBody(body io.ReadCloser) (*kClient.UpdateRegistrationFlowWithProfileMethod, error) {
+	var raw map[string]interface{}
+	if err := json.NewDecoder(body).Decode(&raw); err != nil {
+		return nil, err
+	}
+
+	traits := make(map[string]interface{})
+	for k, v := range raw {
+		if strings.HasPrefix(k, "traits.") {
+			key := strings.TrimPrefix(k, "traits.")
+			traits[key] = v
+			delete(raw, k)
+		}
+	}
+
+	profileBody := kClient.UpdateRegistrationFlowWithProfileMethod{
+		Method: "profile",
+		Traits: traits,
+	}
+
+	if csrf, ok := raw["csrf_token"].(string); ok {
+		profileBody.CsrfToken = &csrf
+	}
+
+	return &profileBody, nil
+}
+
 func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
 	errorMessages := new(UiErrorMessages)
 	body, _ := io.ReadAll(responseBody)
-	json.Unmarshal([]byte(body), &errorMessages)
+	json.Unmarshal(body, &errorMessages)
 
 	errorCodes := errorMessages.Ui.Messages
 
