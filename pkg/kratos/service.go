@@ -337,6 +337,69 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 	return flow, returnToResp, err
 }
 
+func (s *Service) CreateBrowserVerificationFlow(ctx context.Context, cookies []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error) {
+    ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserVerificationFlow")
+    defer span.End()
+
+    flow, resp, err := s.kratos.FrontendApi().
+        CreateBrowserVerificationFlow(ctx).
+        Execute()
+
+    if err != nil {
+        s.logger.Errorf("unable to create verification flow: %s", err)
+        return nil, nil, fmt.Errorf("unable to create verification flow: %w", err)
+    }
+
+    if resp != nil {
+        cookies = resp.Cookies()
+    }
+
+    return flow, cookies, nil
+}
+
+func (s *Service) GetVerificationFlow(ctx context.Context, flowId string, cookies []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error) {
+    ctx, span := s.tracer.Start(ctx, "kratos.Service.GetVerificationFlow")
+    defer span.End()
+
+    req := s.kratos.FrontendApi().GetVerificationFlow(ctx).
+        Id(flowId).
+        Cookie(httpHelpers.CookiesToString(cookies))
+
+    flow, response, err := s.kratos.FrontendApi().GetVerificationFlowExecute(req)
+    if err != nil {
+        return nil, nil, fmt.Errorf("unable to fetch verification flow: %w", err)
+    }
+
+    if response != nil {
+        cookies = response.Cookies()
+    }
+
+    return flow, cookies, nil
+}
+
+func (s *Service) UpdateVerificationFlow(ctx context.Context, flowId string, body kClient.UpdateVerificationFlowBody, cookies []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error) {
+    ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateVerificationFlow")
+    defer span.End()
+
+    req := s.kratos.FrontendApi().UpdateVerificationFlow(ctx).
+        Flow(flowId).
+        Cookie(httpHelpers.CookiesToString(cookies)).
+        UpdateVerificationFlowBody(body)
+
+    flow, resp, err := s.kratos.FrontendApi().UpdateVerificationFlowExecute(req)
+
+    if err != nil {
+        s.logger.Errorf("unable to update verification flow: %s", err)
+        return nil, nil, fmt.Errorf("unable to update verification flow: %w", err)
+    }
+
+    if resp != nil {
+        cookies = resp.Cookies()
+    }
+
+    return flow, cookies, err
+}
+
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetLoginFlow")
 	defer span.End()

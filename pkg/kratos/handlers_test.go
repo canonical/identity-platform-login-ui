@@ -1,8 +1,10 @@
 package kratos
 
 import (
+    "bytes"
+    "encoding/json"
+    "errors"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,10 +35,13 @@ const (
 	HANDLE_CREATE_SETTINGS_FLOW_URL               = BASE_URL + "/api/kratos/self-service/settings/browser"
 	HANDLE_UPDATE_SETTINGS_FLOW_URL               = BASE_URL + "/api/kratos/self-service/settings"
 	HANDLE_GET_SETTINGS_FLOW_URL                  = BASE_URL + "/api/kratos/self-service/settings/flows"
+    HANDLE_CREATE_VERIFICATION_FLOW_URL = BASE_URL + "/api/kratos/self-service/verification/browser"
+    HANDLE_UPDATE_VERIFICATION_FLOW_URL = BASE_URL + "/api/kratos/self-service/verification"
+    HANDLE_GET_VERIFICATION_FLOW_URL = BASE_URL + "/api/kratos/self-service/verification/flows"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_kratos.go -source=./interfaces.go
+//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_interfaces.go -source=./interfaces.go
 
 func TestHandleCreateFlowWithoutParams(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -1871,4 +1876,459 @@ func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T)
 	if res.StatusCode != http.StatusInternalServerError {
 		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
 	}
+}
+
+func TestHandleCreateVerificationFlow(t *testing.T) {
+    tests := []struct {
+        name           string
+        setupMocks     func(
+            service *MockServiceInterface,
+            logger *MockLoggerInterface,
+            req *http.Request,
+        )
+        expectedStatus int
+        expectBody     bool
+    }{
+        {
+            name: "service error",
+            setupMocks: func(
+                service *MockServiceInterface,
+                logger *MockLoggerInterface,
+                req *http.Request,
+            ) {
+                service.
+                    EXPECT().
+                    CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
+                    Return(nil, nil, errors.New("service error"))
+
+                logger.
+                    EXPECT().
+                    Errorf(gomock.Any(), gomock.Any())
+            },
+            expectedStatus: http.StatusInternalServerError,
+            expectBody:     false,
+        },
+        {
+            name: "success",
+            setupMocks: func(
+                service *MockServiceInterface,
+                _ *MockLoggerInterface,
+                req *http.Request,
+            ) {
+                flow := kClient.VerificationFlow{
+                    Id: "verification-flow-id",
+                    State: "mock-state",
+                }
+
+                service.
+                    EXPECT().
+                    CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
+                    Return(&flow, nil, nil)
+            },
+            expectedStatus: http.StatusOK,
+            expectBody:     true,
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            ctrl := gomock.NewController(t)
+            defer ctrl.Finish()
+
+            mockLogger := NewMockLoggerInterface(ctrl)
+            mockService := NewMockServiceInterface(ctrl)
+            mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+            mockTracer := NewMockTracingInterface(ctrl)
+
+            req := httptest.NewRequest(
+                http.MethodGet,
+                HANDLE_CREATE_VERIFICATION_FLOW_URL,
+                nil,
+            )
+
+            if tt.setupMocks != nil {
+                tt.setupMocks(mockService, mockLogger, req)
+            }
+
+            w := httptest.NewRecorder()
+            mux := chi.NewMux()
+            NewAPI(
+                mockService,
+                false,
+                false,
+                BASE_URL,
+                mockCookieManager,
+                mockTracer,
+                mockLogger,
+            ).RegisterEndpoints(mux)
+
+            mux.ServeHTTP(w, req)
+
+            res := w.Result()
+
+            if res.StatusCode != tt.expectedStatus {
+                t.Fatalf(
+                    "Expected status %d, got %d",
+                    tt.expectedStatus,
+                    res.StatusCode,
+                )
+            }
+
+            if tt.expectBody {
+                data, err := io.ReadAll(res.Body)
+                if err != nil {
+                    t.Fatalf("Expected error to be nil, got %v", err)
+                }
+
+                var flow kClient.VerificationFlow
+                if err := json.Unmarshal(data, &flow); err != nil {
+                    t.Fatalf("Expected error to be nil, got %v", err)
+                }
+
+                if flow.Id == "" {
+                    t.Fatalf("Expected flow Id to be set")
+                }
+            }
+        })
+    }
+}
+
+
+func TestHandleGetVerificationFlow(t *testing.T) {
+    tests := []struct {
+        name           string
+        queryFlowID    string
+        setupMocks     func(
+            service *MockServiceInterface,
+            logger *MockLoggerInterface,
+            req *http.Request,
+        )
+        expectedStatus int
+        expectBody     bool
+    }{
+        {
+            name:        "missing flow id",
+            queryFlowID: "",
+            setupMocks: func(
+                _ *MockServiceInterface,
+                logger *MockLoggerInterface,
+                _ *http.Request,
+            ) {
+                logger.
+                    EXPECT().
+                    Debug(gomock.Any())
+            },
+            expectedStatus: http.StatusBadRequest,
+            expectBody:     false,
+        },
+        {
+            name:        "service error",
+            queryFlowID: "flow-id",
+            setupMocks: func(
+                service *MockServiceInterface,
+                logger *MockLoggerInterface,
+                req *http.Request,
+            ) {
+                service.
+                    EXPECT().
+                    GetVerificationFlow(
+                        gomock.Any(),
+                        "flow-id",
+                        req.Cookies(),
+                    ).
+                    Return(nil, nil, errors.New("service error"))
+
+                logger.
+                    EXPECT().
+                    Errorf(gomock.Any(), gomock.Any())
+            },
+            expectedStatus: http.StatusInternalServerError,
+            expectBody:     false,
+        },
+        {
+            name:        "success",
+            queryFlowID: "flow-id",
+            setupMocks: func(
+                service *MockServiceInterface,
+                _ *MockLoggerInterface,
+                req *http.Request,
+            ) {
+                flow := kClient.VerificationFlow{
+                    Id: "flow-id",
+                    State: "mock-state",
+                }
+
+                service.
+                    EXPECT().
+                    GetVerificationFlow(
+                        gomock.Any(),
+                        "flow-id",
+                        req.Cookies(),
+                    ).
+                    Return(&flow, nil, nil)
+            },
+            expectedStatus: http.StatusOK,
+            expectBody:     true,
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            ctrl := gomock.NewController(t)
+            defer ctrl.Finish()
+
+            mockLogger := NewMockLoggerInterface(ctrl)
+            mockService := NewMockServiceInterface(ctrl)
+            mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+            mockTracer := NewMockTracingInterface(ctrl)
+
+            req := httptest.NewRequest(
+                http.MethodGet,
+                HANDLE_GET_VERIFICATION_FLOW_URL,
+                nil,
+            )
+
+            if tt.queryFlowID != "" {
+                q := req.URL.Query()
+                q.Set("id", tt.queryFlowID)
+                req.URL.RawQuery = q.Encode()
+            }
+
+            if tt.setupMocks != nil {
+                tt.setupMocks(mockService, mockLogger, req)
+            }
+
+            w := httptest.NewRecorder()
+            mux := chi.NewMux()
+            NewAPI(
+                mockService,
+                false,
+                false,
+                BASE_URL,
+                mockCookieManager,
+                mockTracer,
+                mockLogger,
+            ).RegisterEndpoints(mux)
+
+            mux.ServeHTTP(w, req)
+
+            res := w.Result()
+
+            if res.StatusCode != tt.expectedStatus {
+                t.Fatalf(
+                    "Expected status %d, got %d",
+                    tt.expectedStatus,
+                    res.StatusCode,
+                )
+            }
+
+            if tt.expectBody {
+                data, err := io.ReadAll(res.Body)
+                if err != nil {
+                    t.Fatalf("Expected error to be nil, got %v", err)
+                }
+
+                var flow kClient.VerificationFlow
+                if err := json.Unmarshal(data, &flow); err != nil {
+                    t.Fatalf("Expected error to be nil, got %v", err)
+                }
+
+                if flow.Id != "flow-id" {
+                    t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
+                }
+            }
+        })
+    }
+}
+
+
+func TestHandleUpdateVerificationFlow(t *testing.T) {
+    code := "123456"
+
+    tests := []struct {
+        name           string
+        queryFlowID    string
+        body           any
+        setupMocks     func(
+            service *MockServiceInterface,
+            logger *MockLoggerInterface,
+            req *http.Request,
+        )
+        expectedStatus int
+        expectBody     bool
+    }{
+        {
+            name:        "missing flow id",
+            queryFlowID: "",
+            body:        nil,
+            setupMocks: func(
+                _ *MockServiceInterface,
+                logger *MockLoggerInterface,
+                _ *http.Request,
+            ) {
+                logger.
+                    EXPECT().
+                    Debug(gomock.Any())
+            },
+            expectedStatus: http.StatusBadRequest,
+            expectBody:     false,
+        },
+        {
+            name:        "invalid json body",
+            queryFlowID: "flow-id",
+            body:        make(chan int), // forza JSON invalido
+            setupMocks: func(
+                _ *MockServiceInterface,
+                logger *MockLoggerInterface,
+                _ *http.Request,
+            ) {
+                logger.
+                    EXPECT().
+                    Errorf(gomock.Any(), gomock.Any())
+            },
+            expectedStatus: http.StatusInternalServerError,
+            expectBody:     false,
+        },
+        {
+            name:        "service returns error",
+            queryFlowID: "flow-id",
+            body: kClient.UpdateVerificationFlowBody{
+                UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
+                    Method: "code",
+                    Code:   &code,
+                },
+            },
+            setupMocks: func(
+                service *MockServiceInterface,
+                logger *MockLoggerInterface,
+                req *http.Request,
+            ) {
+                service.
+                    EXPECT().
+                    UpdateVerificationFlow(
+                        gomock.Any(),
+                        "flow-id",
+                        gomock.Any(),
+                        req.Cookies(),
+                    ).
+                    Return(nil, nil, errors.New("service error"))
+
+                logger.
+                    EXPECT().
+                    Errorf(gomock.Any(), gomock.Any())
+            },
+            expectedStatus: http.StatusInternalServerError,
+            expectBody:     false,
+        },
+        {
+            name:        "success",
+            queryFlowID: "flow-id",
+            body: kClient.UpdateVerificationFlowBody{
+                UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
+                    Method: "code",
+                    Code:   &code,
+                },
+            },
+            setupMocks: func(
+                service *MockServiceInterface,
+                _ *MockLoggerInterface,
+                req *http.Request,
+            ) {
+                flow := kClient.VerificationFlow{
+                    Id: "flow-id",
+                    State: "mock-state",
+                }
+
+                service.
+                    EXPECT().
+                    UpdateVerificationFlow(
+                        gomock.Any(),
+                        "flow-id",
+                        gomock.Any(),
+                        req.Cookies(),
+                    ).
+                    Return(&flow, nil, nil)
+            },
+            expectedStatus: http.StatusOK,
+            expectBody:     true,
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            ctrl := gomock.NewController(t)
+            defer ctrl.Finish()
+
+            mockLogger := NewMockLoggerInterface(ctrl)
+            mockService := NewMockServiceInterface(ctrl)
+            mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+            mockTracer := NewMockTracingInterface(ctrl)
+
+            var bodyReader io.Reader
+            if tt.body != nil {
+                data, err := json.Marshal(tt.body)
+                if err != nil {
+                    bodyReader = bytes.NewReader([]byte("{"))
+                } else {
+                    bodyReader = bytes.NewReader(data)
+                }
+            }
+
+            req := httptest.NewRequest(
+                http.MethodPost,
+                HANDLE_UPDATE_VERIFICATION_FLOW_URL,
+                bodyReader,
+            )
+
+            if tt.queryFlowID != "" {
+                q := req.URL.Query()
+                q.Set("flow", tt.queryFlowID)
+                req.URL.RawQuery = q.Encode()
+            }
+
+            if tt.setupMocks != nil {
+                tt.setupMocks(mockService, mockLogger, req)
+            }
+
+            w := httptest.NewRecorder()
+            mux := chi.NewMux()
+            NewAPI(
+                mockService,
+                false,
+                false,
+                BASE_URL,
+                mockCookieManager,
+                mockTracer,
+                mockLogger,
+            ).RegisterEndpoints(mux)
+
+            mux.ServeHTTP(w, req)
+
+            res := w.Result()
+
+            if res.StatusCode != tt.expectedStatus {
+                t.Fatalf(
+                    "Expected status %d, got %d",
+                    tt.expectedStatus,
+                    res.StatusCode,
+                )
+            }
+
+            if tt.expectBody {
+                data, err := io.ReadAll(res.Body)
+                if err != nil {
+                    t.Fatalf("Expected error to be nil, got %v", err)
+                }
+
+                var flow = kClient.NewVerificationFlowWithDefaults()
+                if err := json.Unmarshal(data, &flow); err != nil {
+                    t.Fatalf("Expected error to be nil, got %v", err)
+                }
+
+                if flow.Id != "flow-id" {
+                    t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
+                }
+            }
+        })
+    }
 }
