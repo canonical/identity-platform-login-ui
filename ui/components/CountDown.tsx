@@ -23,7 +23,9 @@ const CountDown = ({
     return () => clearInterval(timerId);
   }, [seconds]);
 
-  return seconds > 0 ? `${wrapperText}${seconds}s` : "";
+  return seconds > 0
+    ? `${wrapperText}${seconds.toString().padStart(2, "0")}s`
+    : "";
 };
 
 export default CountDown;

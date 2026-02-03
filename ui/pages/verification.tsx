@@ -93,7 +93,6 @@ const Verification: NextPage = () => {
           },
         })
         .then(({ data }) => {
-          console.log(data);
           if ("continue_with" in data) {
             const continue_with: any = (
               data as { continue_with: Array<{ action: string } & any> }
