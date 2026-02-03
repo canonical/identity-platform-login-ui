@@ -1,7 +1,7 @@
 import { getNodeLabel } from "@ory/integrations/ui";
 import { Button } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
-import React, { Component, FC } from "react";
+import React, { Component, FC, useEffect, useState } from "react";
 import { getProviderImage } from "../util/logos";
 
 export const NodeInputSubmit: FC<NodeInputProps> = ({
@@ -15,6 +15,17 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const isProvider = attributes.name === "provider";
   const provider = attributes.value as string;
   const image = getProviderImage(provider);
+  const [buttonDisabled, setButtonDisabled] = useState<boolean>(false);
+
+  const DISABLE_TIMEOUT = 10000; // 10 seconds
+
+  const disableButtonWithTimeout = (time: number) => {
+    setButtonDisabled(true);
+    const timer = setTimeout(() => {
+      setButtonDisabled(false);
+    }, time);
+    return () => clearTimeout(timer);
+  };
 
   const getAppearance = () => {
     const appearance = (node.meta.label?.context as { appearance: string })
@@ -50,6 +61,19 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     }
   )?.afterComponent;
 
+  useEffect(() => {
+    if (node.meta.label?.id === 1070008) {
+      disableButtonWithTimeout(DISABLE_TIMEOUT);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (node.meta.label?.id === 1070008) {
+      return;
+    }
+    setButtonDisabled(attributes.disabled || disabled);
+  }, [attributes.disabled, disabled]);
+
   return (
     <>
       {beforeComponent}
@@ -66,8 +90,11 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
           await setValue(attributes.value as string).then(() =>
             dispatchSubmit(e),
           );
+          if (node.meta.label?.id === 1070008) {
+            disableButtonWithTimeout(DISABLE_TIMEOUT);
+          }
         }}
-        disabled={attributes.disabled || disabled}
+        disabled={buttonDisabled}
         className={
           node.group === "oidc" ? "oidc-login-button u-no-print" : "u-no-print"
         }
