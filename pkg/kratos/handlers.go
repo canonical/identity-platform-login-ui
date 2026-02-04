@@ -5,12 +5,14 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
+	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/go-chi/chi/v5"
 	client "github.com/ory/kratos-client-go/v25"
 
@@ -25,6 +27,7 @@ const RegenerateBackupCodesError = "regenerate_backup_codes"
 const SESSION_REFRESH_REQUIRED = "session_refresh_required"
 const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
 const LOGIN_UI_STATE_COOKIE = "login_ui_state"
+const SECURITY_CSRF_VIOLATION_ERROR = "security_csrf_violation"
 
 type API struct {
 	mfaEnabled                    bool
@@ -36,6 +39,12 @@ type API struct {
 
 	tracer tracing.TracingInterface
 	logger logging.LoggerInterface
+}
+
+type KratosErrorResponse struct {
+	Error             *client.GenericError `json:"error,omitempty"`
+	RedirectBrowserTo string               `json:"redirect_browser_to,omitempty"`
+	RedirectTo        string               `json:"redirect_to,omitempty"`
 }
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
@@ -138,10 +147,17 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			a.cookieManager.ClearStateCookie(w)
 		}
 	} else {
-		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh)
+		response, cookies, err = a.handleCreateFlowNewSession(r, aal, returnTo, loginChallenge, refresh, session)
 	}
 
 	if err != nil {
+		// Propagate the KratosErrorResponse so frontend can handle it
+		if kratosError, ok := parseGenericError(err); ok {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(kratosError)
+			return
+		}
+
 		a.logger.Errorf(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -167,15 +183,17 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginChallenge string, refresh bool) (*client.LoginFlow, []*http.Cookie, error) {
+func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginChallenge string, refresh bool, session *client.Session) (*client.LoginFlow, []*http.Cookie, error) {
 	// redirect user to this endpoint with the login_challenge after login
 	// see https://github.com/ory/kratos/issues/3052
 
 	cookies := r.Cookies()
 
-	// clear cookies if not aal2 and not a refresh request
-	if !refresh && aal != "aal2" {
-		cookies = filterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
+	// clear cookies if not a refresh request, not aal2, and either:
+	// - it's a hydra login (with loginChallenge)
+	// - it's a kratos local login without a session
+	if !refresh && aal != "aal2" && (session == nil || loginChallenge != "") {
+		cookies = httpHelpers.FilterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
 	}
 
 	flow, cookies, err := a.service.CreateBrowserLoginFlow(
@@ -187,7 +205,7 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginCh
 		cookies,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create login flow, err: %v", err)
+		return nil, nil, fmt.Errorf("failed to create login flow, err: %w", err)
 	}
 
 	flow, err = a.service.FilterFlowProviderList(r.Context(), flow)
@@ -201,10 +219,24 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginCh
 func (a *API) handleCreateFlowWithSession(r *http.Request, session *client.Session, loginChallenge string) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session, loginChallenge)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to accept login request: %v", err)
+		return nil, nil, fmt.Errorf("failed to accept login request: %w", err)
 	}
 
 	return response, cookies, nil
+}
+
+func parseGenericError(err error) (*KratosErrorResponse, bool) {
+	var apiErr *client.GenericOpenAPIError
+	if !errors.As(err, &apiErr) {
+		return nil, false
+	}
+
+	var resp KratosErrorResponse
+	if err := json.Unmarshal(apiErr.Body(), &resp); err != nil {
+		return nil, false
+	}
+
+	return &resp, true
 }
 
 func (a *API) returnToUrl(loginChallenge string) (string, error) {
@@ -244,6 +276,15 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 
 	flow, cookies, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
+		if kratosError, ok := parseGenericError(err); ok {
+			if kratosError.Error.GetId() == SECURITY_CSRF_VIOLATION_ERROR {
+				a.deleteKratosSession(w)
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(kratosError)
+			return
+		}
+
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
 		return
@@ -298,12 +339,12 @@ func (a *API) handleGetRegistrationFlow(w http.ResponseWriter, r *http.Request) 
 func (a *API) handleUpdateRegistrationFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
-    if flowId == "" {
-        a.logger.Errorf("ID parameter not present")
-        w.WriteHeader(http.StatusBadRequest)
-        _ = json.NewEncoder(w).Encode("ID parameter not present")
-        return
-    }
+	if flowId == "" {
+		a.logger.Errorf("ID parameter not present")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode("ID parameter not present")
+		return
+	}
 
 	body, err := a.service.ParseRegistrationFlowMethodBody(r)
 	if err != nil {
@@ -1056,23 +1097,9 @@ func NewAPI(
 }
 
 func setCookies(w http.ResponseWriter, cookies []*http.Cookie, exclude ...string) {
-	for _, c := range filterCookies(cookies, exclude...) {
+	for _, c := range httpHelpers.FilterCookies(cookies, exclude...) {
 		http.SetCookie(w, c)
 	}
-}
-
-func filterCookies(cookies []*http.Cookie, exclude ...string) []*http.Cookie {
-	ret := []*http.Cookie{}
-l1:
-	for _, c := range cookies {
-		for _, n := range exclude {
-			if c.Name == n {
-				continue l1
-			}
-		}
-		ret = append(ret, c)
-	}
-	return ret
 }
 
 func hash(plain string) string {

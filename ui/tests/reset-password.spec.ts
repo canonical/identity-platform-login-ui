@@ -7,7 +7,7 @@ import { confirmMailCode, enterNewPassword } from "./helpers/password";
 
 const USER_PASSWORD_NEW = "abcABC123!!!";
 
-test("reset password from oidc app", async ({ context, page }) => {
+test("reset password from oidc app", async ({ browser, context, page }) => {
   resetIdentities();
   await startNewAuthFlow(page);
 
@@ -24,13 +24,17 @@ test("reset password from oidc app", async ({ context, page }) => {
   await expect(page.getByText("Account setup complete")).toBeVisible();
   await finishAuthFlow(page);
 
-  await startNewAuthFlow(page);
+  // Start login in a new context as user is already authenticated within the current context
+  const newContext = await browser.newContext();
+  const newPage = await newContext.newPage();
 
-  await userPassLogin(page, USER_EMAIL, USER_PASSWORD);
-  await expect(page.getByText("Incorrect username or password")).toBeVisible();
+  await startNewAuthFlow(newPage);
 
-  await userPassLogin(page, USER_EMAIL, USER_PASSWORD_NEW);
-  await enterTotpCode(page, totpSetupKey);
+  await userPassLogin(newPage, USER_EMAIL, USER_PASSWORD);
+  await expect(newPage.getByText("Incorrect username or password")).toBeVisible();
 
-  await finishAuthFlow(page);
+  await userPassLogin(newPage, USER_EMAIL, USER_PASSWORD_NEW);
+  await enterTotpCode(newPage, totpSetupKey);
+
+  await finishAuthFlow(newPage);
 });

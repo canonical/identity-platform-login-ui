@@ -1112,6 +1112,8 @@ func (s *Service) ParseIdentifierFirstLoginFlowMethodBody(r *http.Request) (*kCl
 	if err := parseBody(r.Body, &body); err != nil {
 		return nil, cookies, err
 	}
+
+	cookies = httpHelpers.FilterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
 	return &body, cookies, nil
 }
 
@@ -1190,13 +1192,7 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 
 	// Remove session cookie if this is a 1FA method
 	if s.is1FAMethod(methodPayload.Method) {
-		filtered := make([]*http.Cookie, 0)
-		for _, c := range cookies {
-			if c.Name != KRATOS_SESSION_COOKIE_NAME {
-				filtered = append(filtered, c)
-			}
-		}
-		cookies = filtered
+		cookies = httpHelpers.FilterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
 	}
 
 	return &ret, cookies, nil

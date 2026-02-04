@@ -5,7 +5,7 @@ import { resetIdentities } from "./helpers/kratosIdentities";
 import { userPassLogin } from "./helpers/login";
 import { clickButton, verifyBackupCode } from "./helpers/backupCode";
 
-test("backup recovery code setup and usage", async ({ context, page }) => {
+test("backup recovery code setup and usage", async ({ browser, context, page }) => {
   resetIdentities();
   await startNewAuthFlow(page);
   await userPassLogin(page);
@@ -25,11 +25,15 @@ test("backup recovery code setup and usage", async ({ context, page }) => {
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
 
-  await startNewAuthFlow(page);
-  await userPassLogin(page);
+  // Start login in a new context as user is already authenticated within the current context
+  const newContext = await browser.newContext();
+  const newPage = await newContext.newPage();
 
-  await clickButton(page, "Use backup code instead");
-  await verifyBackupCode(page, backupCode);
+  await startNewAuthFlow(newPage);
+  await userPassLogin(newPage);
 
-  await finishAuthFlow(page);
+  await clickButton(newPage, "Use backup code instead");
+  await verifyBackupCode(newPage, backupCode);
+
+  await finishAuthFlow(newPage);
 });
