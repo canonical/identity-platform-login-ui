@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const CountDown = ({
+const CountDownText = ({
   initialSeconds,
   wrapperText,
 }: {
@@ -28,4 +28,4 @@ const CountDown = ({
     : "";
 };
 
-export default CountDown;
+export default CountDownText;

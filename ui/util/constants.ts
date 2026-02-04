@@ -15,6 +15,7 @@ const ORY_LABEL_SIGN_IN_EMAIL_INPUT = 1070002; // this is wrong since it's used 
 const ORY_LABEL_SIGN_IN_WITH_PASSWORD = 1010022;
 const ORY_LABEL_CONTINUE_PASSWORD_RESET = 1070009;
 const ORY_LABEL_SIGN_IN_WITH_HARDWARE_KEY = 1010008;
+const ORY_LABEL_RESEND_VERIFICATION_CODE = 1070008;
 
 type NodeWithLabel = UiNode & { meta: { label: object } };
 
@@ -61,3 +62,8 @@ export const isContinueWithPasswordReset = (
 
 export const isSignInWithHardwareKey = (node: UiNode): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_SIGN_IN_WITH_HARDWARE_KEY;
+
+export const isResendVerificationCode = (
+  node: UiNode,
+): node is NodeWithLabel =>
+  node.meta.label?.id === ORY_LABEL_RESEND_VERIFICATION_CODE;

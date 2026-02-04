@@ -2,7 +2,7 @@ import { getNodeLabel } from "@ory/integrations/ui";
 import { Input } from "@canonical/react-components";
 import React, { Component, FC, useEffect, useMemo } from "react";
 import { NodeInputProps } from "./helpers";
-import CountDown from "./CountDown";
+import CountDownText from "./CountDownText";
 
 export const NodeInputText: FC<NodeInputProps> = ({
   attributes,
@@ -87,10 +87,10 @@ export const NodeInputText: FC<NodeInputProps> = ({
     return undefined;
   }, [message, node.messages, isDuplicate, attributes.name, isWebauthn, error]);
 
-  const getSuccess = useMemo(() => {
-    if (node.messages.length > 0 && node.messages[0].type === "success") {
+  const success = useMemo(() => {
+    if (node.messages.length > 0 && node.messages.find((msg) => msg.type === "success")) {
       return (
-        <CountDown
+        <CountDownText
           initialSeconds={10}
           wrapperText="Code sent. You can request again in 00:"
         />
@@ -110,7 +110,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
         label={getNodeLabel(node)}
         disabled={disabled}
         value={inputValue}
-        success={getSuccess}
+        success={success}
         error={getError}
         onChange={(e) => {
           const newValue = e.target.value;
