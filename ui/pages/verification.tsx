@@ -15,6 +15,7 @@ import PageLayout from "../components/PageLayout";
 import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
+import { isResendVerificationCode } from "../util/constants";
 
 function setFlowIDQueryParam(router: NextRouter, flowId: string) {
   void router.push(
@@ -183,7 +184,7 @@ const Verification: NextPage = () => {
               };
             }
           }
-          if (node.meta.label?.id === 1070008) {
+          if (isResendVerificationCode(node)) {
             node.meta.label.context = {
               ...node.meta.label.context,
               appearance: "link",

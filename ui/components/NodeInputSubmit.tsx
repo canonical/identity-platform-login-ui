@@ -3,6 +3,7 @@ import { Button } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
 import React, { Component, FC, useEffect, useState } from "react";
 import { getProviderImage } from "../util/logos";
+import { isResendVerificationCode } from "../util/constants";
 
 export const NodeInputSubmit: FC<NodeInputProps> = ({
   node,
@@ -62,13 +63,13 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   )?.afterComponent;
 
   useEffect(() => {
-    if (node.meta.label?.id === 1070008) {
+    if (isResendVerificationCode(node)) {
       disableButtonWithTimeout(DISABLE_TIMEOUT);
     }
   }, []);
 
   useEffect(() => {
-    if (node.meta.label?.id === 1070008) {
+    if (isResendVerificationCode(node)) {
       return;
     }
     setButtonDisabled(attributes.disabled || disabled);
@@ -90,7 +91,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
           await setValue(attributes.value as string).then(() =>
             dispatchSubmit(e),
           );
-          if (node.meta.label?.id === 1070008) {
+          if (isResendVerificationCode(node)) {
             disableButtonWithTimeout(DISABLE_TIMEOUT);
           }
         }}
