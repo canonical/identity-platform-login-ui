@@ -50,8 +50,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
 
     return (
       <p className="registration-cta">
-        Don&apos;t have an account?{" "}
-        <Link href="/ui/register_email">Register</Link>
+        Don&apos;t have an account? <Link href="/ui/register">Register</Link>
       </p>
     );
   };
