@@ -143,6 +143,16 @@ const Verification: NextPage = () => {
     [flow],
   );
 
+  const userEmail = useMemo(() => {
+    if (!flow) {
+      return "";
+    }
+    const emailNode = flow.ui.nodes.find(
+      (node) => (node.attributes as UiNodeInputAttributes).name === "email",
+    );
+    return emailNode ? (emailNode.attributes as UiNodeInputAttributes).value : "";
+  }, [flow]);
+
   const lookupFlow = useMemo(() => {
     if (!flow) {
       return flow;
@@ -160,7 +170,7 @@ const Verification: NextPage = () => {
             if (node.meta.label) {
               node.meta.label.context = {
                 ...node.meta.label.context,
-                beforeComponent: <EmailVerificationPrompt />,
+                beforeComponent: <EmailVerificationPrompt email={userEmail} />,
               };
             }
           }
