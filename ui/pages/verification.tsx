@@ -16,6 +16,7 @@ import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
+import { isResendVerificationCode } from "../util/constants";
 
 
 const Verification: NextPage = () => {
@@ -174,7 +175,7 @@ const Verification: NextPage = () => {
               };
             }
           }
-          if (node.meta.label?.id === 1070008) {
+          if (isResendVerificationCode(node)) {
             node.meta.label.context = {
               ...node.meta.label.context,
               appearance: "link",
