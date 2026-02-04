@@ -16,17 +16,6 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const isProvider = attributes.name === "provider";
   const provider = attributes.value as string;
   const image = getProviderImage(provider);
-  const [buttonDisabled, setButtonDisabled] = useState<boolean>(false);
-
-  const DISABLE_TIMEOUT = 10000; // 10 seconds
-
-  const disableButtonWithTimeout = (time: number) => {
-    setButtonDisabled(true);
-    const timer = setTimeout(() => {
-      setButtonDisabled(false);
-    }, time);
-    return () => clearTimeout(timer);
-  };
 
   const getAppearance = () => {
     const appearance = (node.meta.label?.context as { appearance: string })
@@ -63,19 +52,6 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     }
   )?.afterComponent;
 
-  useEffect(() => {
-    if (isResendVerificationCode(node)) {
-      disableButtonWithTimeout(DISABLE_TIMEOUT);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isResendVerificationCode(node)) {
-      return;
-    }
-    setButtonDisabled(attributes.disabled || disabled);
-  }, [attributes.disabled, disabled]);
-
   return (
     <>
       {beforeComponent}
@@ -92,11 +68,8 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
           await setValue(attributes.value as string).then(() =>
             dispatchSubmit(e),
           );
-          if (isResendVerificationCode(node)) {
-            disableButtonWithTimeout(DISABLE_TIMEOUT);
-          }
         }}
-        disabled={buttonDisabled}
+        disabled={attributes.disabled || disabled}
         className={
           node.group === "oidc" ? "oidc-login-button u-no-print" : "u-no-print"
         }
