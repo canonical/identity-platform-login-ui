@@ -40,7 +40,18 @@ const Verification: NextPage = () => {
     flow: flowId,
     code: verificationCode,
   } = router.query;
+  
+  const RESEND_CODE_TIMEOUT = 10000; // 10 seconds
 
+  const [resendDisabled, setResendDisabled] = useState<boolean>(false);
+  const disableButtonWithTimeout = () => {
+    setResendDisabled(true);
+    const timer = setTimeout(() => {
+      setResendDisabled(false);
+    }, RESEND_CODE_TIMEOUT);
+    return () => clearTimeout(timer);
+  };
+  
   const redirectToErrorPage = () => {
     const idParam = flowId ? `?id=${flowId.toString()}` : "";
     window.location.href = `./error${idParam}`;
@@ -116,6 +127,7 @@ const Verification: NextPage = () => {
             data.ui.messages?.find((msg) => msg.type === "error") === undefined
           ) {
             // Check if email is sent and there is no error message
+            // If no error message, add success message and disable resend button for 10 seconds
             const codeUiNode = data.ui.nodes.find(UiNodePredicate);
             if (codeUiNode) {
               codeUiNode.messages = [
@@ -127,6 +139,8 @@ const Verification: NextPage = () => {
                 },
               ];
             }
+            // Disable resend button for 10 seconds
+            disableButtonWithTimeout();
           } else if (data.ui.messages?.find((msg) => msg.type === "error")) {
             const codeUiNode = data.ui.nodes.find(UiNodePredicate);
             data.ui.messages?.forEach((message) => {
@@ -189,12 +203,13 @@ const Verification: NextPage = () => {
               ...node.meta.label.context,
               appearance: "link",
             };
+            (node.attributes as UiNodeInputAttributes).disabled = resendDisabled;
           }
           return node;
         }),
       },
     };
-  }, [flow]);
+  }, [flow, resendDisabled]);
 
   if (!flow) {
     return null;
