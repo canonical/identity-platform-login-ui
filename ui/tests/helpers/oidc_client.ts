@@ -4,7 +4,7 @@ export const startNewAuthFlow = async (page: Page) => {
   const url = "http://127.0.0.1:4446/";
   await page.goto(url);
   await page.getByRole("link", { name: "Authorize application" }).click();
-  await expect(page.getByText("Sign in to OIDC App")).toBeVisible();
+  await expect(page.getByText("Sign in")).toBeVisible();
 };
 
 export const finishAuthFlow = async (page: Page) => {
