@@ -1,4 +1,4 @@
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 
 const CountDownText = ({
   wrapperText="",
@@ -12,15 +12,18 @@ const CountDownText = ({
   useEffect(() => {
     console.log("CountDownText useEffect triggered with seconds:", seconds);
     const timerId = setInterval(() => {
-      if (seconds <= 0){
-        clearInterval(timerId);
-        return;
-      };
-      setSeconds((prev) => prev - 1);
+      setSeconds((prev) => {
+        const next = prev - 1;
+        if (next <= 0) {
+          clearInterval(timerId);
+        }
+
+        return next;
+      });
       console.log("Timer tick:", seconds);
     }, 1000);
     return () => clearInterval(timerId);
-  }, [initialSeconds, seconds]);
+  }, [initialSeconds]);
 
   if(seconds <= 0) {
     return null;
