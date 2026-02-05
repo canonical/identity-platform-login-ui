@@ -1,6 +1,6 @@
 import { getNodeLabel } from "@ory/integrations/ui";
 import { Input } from "@canonical/react-components";
-import React, { Component, FC, useEffect, useMemo } from "react";
+import React, { Component, FC, useEffect, useMemo, useRef, useState } from "react";
 import { NodeInputProps } from "./helpers";
 import CountDownText from "./CountDownText";
 
@@ -37,13 +37,13 @@ export const NodeInputText: FC<NodeInputProps> = ({
 
   const beforeComponent = (
     node.meta.label?.context as {
-      beforeComponent: Component;
+      beforeComponent: React.ReactNode;
     }
   )?.beforeComponent;
 
   const afterComponent = (
     node.meta.label?.context as {
-      afterComponent: Component;
+      afterComponent: React.ReactNode;
     }
   )?.afterComponent;
 
@@ -89,10 +89,12 @@ export const NodeInputText: FC<NodeInputProps> = ({
 
   const success = useMemo(() => {
     if (node.messages.length > 0 && node.messages.find((msg) => msg.type === "success")) {
+      
       return (
         <CountDownText
           initialSeconds={10}
           wrapperText="Code sent. You can request again in 00:"
+          key={(new Date()).getTime()}
         />
       );
     }
