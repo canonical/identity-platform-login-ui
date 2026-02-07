@@ -13,6 +13,7 @@ import {
 import { getNodeId, isUiNodeInputAttributes } from "@ory/integrations/ui";
 import React, { Component, FormEvent } from "react";
 import { Node } from "./Node";
+import { FlowContext } from "../context/FlowContext";
 
 export type Values = Partial<
   | UpdateLoginFlowBody
@@ -163,40 +164,42 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
     }
 
     return (
-      <form
-        action={flow.ui.action}
-        method={flow.ui.method}
-        onSubmit={void this.handleSubmit}
-        className={error && "is-error"}
-      >
-        {nodes.map((node, k) => {
-          const id = getNodeId(node) as keyof Values;
-          return (
-            <Node
-              key={`${id}-${k}`}
-              disabled={isLoading}
-              error={error}
-              node={node}
-              value={values[id]}
-              dispatchSubmit={this.handleSubmit}
-              setValue={(value) => {
-                return new Promise((resolve) => {
-                  this.setState(
-                    (state) => ({
-                      ...state,
-                      values: {
-                        ...state.values,
-                        [getNodeId(node)]: value,
-                      },
-                    }),
-                    resolve,
-                  );
-                });
-              }}
-            />
-          );
-        })}
-      </form>
+      <FlowContext.Provider value={flow}>
+        <form
+          action={flow.ui.action}
+          method={flow.ui.method}
+          onSubmit={void this.handleSubmit}
+          className={error && "is-error"}
+        >
+          {nodes.map((node, k) => {
+            const id = getNodeId(node) as keyof Values;
+            return (
+              <Node
+                key={`${id}-${k}`}
+                disabled={isLoading}
+                error={error}
+                node={node}
+                value={values[id]}
+                dispatchSubmit={this.handleSubmit}
+                setValue={(value, key = getNodeId(node)) => {
+                  return new Promise((resolve) => {
+                    this.setState(
+                      (state) => ({
+                        ...state,
+                        values: {
+                          ...state.values,
+                          [key]: value,
+                        },
+                      }),
+                      resolve,
+                    );
+                  });
+                }}
+              />
+            );
+          })}
+        </form>
+      </FlowContext.Provider>
     );
   }
 }
