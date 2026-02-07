@@ -1,7 +1,7 @@
 import { getNodeLabel } from "@ory/integrations/ui";
 import { Button } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
-import React, { Component, FC, useEffect, useState } from "react";
+import React, { FC } from "react";
 import { getProviderImage } from "../util/logos";
 import { isResendVerificationCode } from "../util/constants";
 
@@ -41,15 +41,17 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
 
   const beforeComponent = (
     node.meta.label?.context as {
-      beforeComponent: Component;
+      beforeComponent: React.ReactNode;
     }
   )?.beforeComponent;
 
   const afterComponent = (
     node.meta.label?.context as {
-      afterComponent: Component;
+      afterComponent: React.ReactNode;
     }
   )?.afterComponent;
+
+  if (isResendVerificationCode(node)) return null;
 
   return (
     <>

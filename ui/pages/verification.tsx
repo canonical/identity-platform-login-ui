@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   UiNode,
   UiNodeInputAttributes,
+  UiNodeMeta,
   UpdateVerificationFlowBody,
   UpdateVerificationFlowWithCodeMethod,
   VerificationFlow,
@@ -17,6 +18,7 @@ import { AxiosError } from "axios";
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
 import { isResendVerificationCode } from "../util/constants";
+import CountDownText from "../components/CountDownText";
 
 
 const Verification: NextPage = () => {
@@ -31,18 +33,20 @@ const Verification: NextPage = () => {
     flow: flowId,
     code: verificationCode,
   } = router.query;
-  
+
   const RESEND_CODE_TIMEOUT = 10000; // 10 seconds
 
   const [resendDisabled, setResendDisabled] = useState<boolean>(false);
   const disableButtonWithTimeout = () => {
     setResendDisabled(true);
+
     const timer = setTimeout(() => {
       setResendDisabled(false);
+      clearTimeout(timer);
     }, RESEND_CODE_TIMEOUT);
     return () => clearTimeout(timer);
   };
-  
+
   const redirectToErrorPage = () => {
     const idParam = flowId ? `?id=${flowId.toString()}` : "";
     window.location.href = `./error${idParam}`;
@@ -119,16 +123,24 @@ const Verification: NextPage = () => {
           ) {
             // Check if email is sent and there is no error message
             // If no error message, add success message and disable resend button for 10 seconds
-            const codeUiNode = data.ui.nodes.find(UiNodePredicate);
+            const codeUiNode = data.ui.nodes.find(UiNodePredicate) as UiNode;
             if (codeUiNode) {
-              codeUiNode.messages = [
-                ...codeUiNode.messages,
-                {
-                  id: 11,
-                  type: "success",
-                  text: "Code sent. You can request a new one in 00:10s",
+              codeUiNode.meta = {
+                ...codeUiNode.meta,
+                label: {
+                  ...codeUiNode.meta.label,
+                  context: {
+                    ...codeUiNode.meta.label?.context,
+                    afterComponent: (
+                      <CountDownText
+                        initialSeconds={RESEND_CODE_TIMEOUT / 1000}
+                        wrapperText="Code sent. You can request again in 00:"
+                        key={new Date().toISOString()}
+                      />
+                    ),
+                  },
                 },
-              ];
+              } as UiNodeMeta;
             }
             // Disable resend button for 10 seconds
             disableButtonWithTimeout();
@@ -165,7 +177,9 @@ const Verification: NextPage = () => {
     const emailNode = flow.ui.nodes.find(
       (node) => (node.attributes as UiNodeInputAttributes).name === "email",
     );
-    return emailNode ? (emailNode.attributes as UiNodeInputAttributes).value : "";
+    return emailNode
+      ? ((emailNode.attributes as UiNodeInputAttributes).value as string)
+      : "";
   }, [flow]);
 
   const lookupFlow = useMemo(() => {
@@ -194,7 +208,8 @@ const Verification: NextPage = () => {
               ...node.meta.label.context,
               appearance: "link",
             };
-            (node.attributes as UiNodeInputAttributes).disabled = resendDisabled;
+            (node.attributes as UiNodeInputAttributes).disabled =
+              resendDisabled;
           }
           return node;
         }),
@@ -207,7 +222,7 @@ const Verification: NextPage = () => {
   }
 
   return (
-    <PageLayout title="Check your email">
+    <PageLayout title={flow.state==="passed_challenge"?"Verification successful":"Check your email"}>
       {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
     </PageLayout>
   );
