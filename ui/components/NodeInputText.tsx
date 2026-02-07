@@ -1,8 +1,13 @@
-import { getNodeLabel } from "@ory/integrations/ui";
-import { Input } from "@canonical/react-components";
-import React, { Component, FC, useEffect, useMemo, useRef, useState } from "react";
+import { getNodeId, getNodeLabel } from "@ory/integrations/ui";
+import { Button, Input } from "@canonical/react-components";
+import React, { FC, useEffect, useMemo } from "react";
 import { NodeInputProps } from "./helpers";
-import CountDownText from "./CountDownText";
+import { FlowContext } from "../context/FlowContext";
+import {
+  isResendVerificationCode,
+  isVerificationCodeInput,
+} from "../util/constants";
+import { UiNodeInputAttributes } from "@ory/client/api";
 
 export const NodeInputText: FC<NodeInputProps> = ({
   attributes,
@@ -17,6 +22,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
     attributes.value as string,
   );
 
+  const flow = React.useContext(FlowContext);
   const urlParams = new URLSearchParams(window.location.search);
   const isWebauthn = urlParams.get("webauthn") === "true";
   const ucFirst = (s?: string) =>
@@ -66,8 +72,11 @@ export const NodeInputText: FC<NodeInputProps> = ({
       return "Invalid login method";
     }
 
-    if (node.messages.length > 0 && node.messages[0].type === "error") {
-      return message;
+    if (node.messages.length > 0) {
+      return node.messages
+        .filter((msg) => msg.type === "error")
+        .map((msg) => msg.text)
+        .join(" ");
     }
 
     if (isDuplicate) {
@@ -87,19 +96,36 @@ export const NodeInputText: FC<NodeInputProps> = ({
     return undefined;
   }, [message, node.messages, isDuplicate, attributes.name, isWebauthn, error]);
 
-  const success = useMemo(() => {
-    if (node.messages.length > 0 && node.messages.find((msg) => msg.type === "success")) {
-      
+  const getLabel = useMemo(() => {
+    if (isVerificationCodeInput(node)) {
+      const resendButton = flow.ui.nodes.find(isResendVerificationCode);
       return (
-        <CountDownText
-          initialSeconds={10}
-          wrapperText="Code sent. You can request again in 00:"
-          key={(new Date()).getTime()}
-        />
+        <>
+          <span>{getNodeLabel(node)}</span>
+          <Button
+            appearance={"link"}
+            tabIndex={4}
+            onClick={async (e) => {
+              e.preventDefault();
+              // On click, we set this value, and once set, dispatch the submission!
+              await setValue(
+                (resendButton?.attributes as UiNodeInputAttributes)
+                  .value as string,
+                resendButton ? getNodeId(resendButton) : undefined,
+              ).then(() => dispatchSubmit(e));
+            }}
+            style={{ float: "right", marginBottom: 0 }}
+            disabled={
+              (resendButton?.attributes as UiNodeInputAttributes).disabled
+            }
+          >
+            Resend code
+          </Button>
+        </>
       );
     }
-    return undefined;
-  }, [node.messages]);
+    return getNodeLabel(node);
+  }, [node, flow]);
 
   return (
     <>
@@ -109,10 +135,10 @@ export const NodeInputText: FC<NodeInputProps> = ({
         autoFocus={true}
         tabIndex={1}
         name={attributes.name}
-        label={getNodeLabel(node)}
+        label={getLabel}
+        labelClassName="password-label"
         disabled={disabled}
         value={inputValue}
-        success={success}
         error={getError}
         onChange={(e) => {
           const newValue = e.target.value;
@@ -126,6 +152,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
             void dispatchSubmit(e, "password");
           }
         }}
+        maxLength={isVerificationCodeInput(node) ? 6 : undefined}
       />
       {afterComponent}
     </>
