@@ -1,8 +1,9 @@
 import { NextPage } from "next";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   UiNode,
   UiNodeInputAttributes,
+  UiNodeMeta,
   UpdateVerificationFlowBody,
   UpdateVerificationFlowWithCodeMethod,
   VerificationFlow,
@@ -14,6 +15,9 @@ import { Flow } from "../components/Flow";
 import PageLayout from "../components/PageLayout";
 import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
+import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
+import { isResendVerificationCode } from "../util/constants";
+import CountDownText from "../components/CountDownText";
 
 function setFlowIDQueryParam(router: NextRouter, flowId: string) {
   void router.push(
@@ -27,6 +31,10 @@ function setFlowIDQueryParam(router: NextRouter, flowId: string) {
 }
 
 const Verification: NextPage = () => {
+  const UiNodePredicate = (node: UiNode) =>
+    node.group === "code" &&
+    node.type === "input" &&
+    (node.attributes as UiNodeInputAttributes).name === "code";
   const [flow, setFlow] = useState<VerificationFlow>();
   const router = useRouter();
   const {
@@ -34,6 +42,19 @@ const Verification: NextPage = () => {
     flow: flowId,
     code: verificationCode,
   } = router.query;
+
+  const RESEND_CODE_TIMEOUT = 10000; // 10 seconds
+
+  const [resendDisabled, setResendDisabled] = useState<boolean>(false);
+  const disableButtonWithTimeout = () => {
+    setResendDisabled(true);
+
+    const timer = setTimeout(() => {
+      setResendDisabled(false);
+      clearTimeout(timer);
+    }, RESEND_CODE_TIMEOUT);
+    return () => clearTimeout(timer);
+  };
 
   const redirectToErrorPage = () => {
     const idParam = flowId ? `?id=${flowId.toString()}` : "";
@@ -50,11 +71,7 @@ const Verification: NextPage = () => {
         .getVerificationFlow({ id: String(flowId) })
         .then(({ data }) => {
           if (verificationCode) {
-            const predicate = (node: UiNode) =>
-              node.group === "code" &&
-              node.type === "input" &&
-              (node.attributes as UiNodeInputAttributes).name === "code";
-            const codeUiNode = data.ui.nodes.find(predicate);
+            const codeUiNode = data.ui.nodes.find(UiNodePredicate);
             if (codeUiNode) {
               (codeUiNode.attributes as UiNodeInputAttributes).value =
                 String(verificationCode);
@@ -93,13 +110,60 @@ const Verification: NextPage = () => {
         })
         .then(({ data }) => {
           if ("continue_with" in data) {
-            const continue_with: any = (
-              data as { continue_with: Array<{ action: string } & any> }
-            ).continue_with[0];
-            if (continue_with.action === "redirect_browser_to") {
-              window.location.href = continue_with.redirect_browser_to;
+            const continue_with: {
+              action: string;
+              redirect_browser_to: string;
+            }[] = (
+              data as {
+                continue_with: Array<{
+                  action: string;
+                  redirect_browser_to: string;
+                }>;
+              }
+            ).continue_with;
+            if (continue_with[0].action === "redirect_browser_to") {
+              window.location.href = continue_with[0].redirect_browser_to;
             }
             return;
+          }
+          if (
+            data.state === "sent_email" &&
+            data.ui.messages?.find((msg) => msg.type === "error") === undefined
+          ) {
+            // Check if email is sent and there is no error message
+            // If no error message, add success message and disable resend button for 10 seconds
+            const codeUiNode = data.ui.nodes.find(UiNodePredicate) as UiNode;
+            if (codeUiNode) {
+              codeUiNode.meta = {
+                ...codeUiNode.meta,
+                label: {
+                  ...codeUiNode.meta.label,
+                  context: {
+                    ...codeUiNode.meta.label?.context,
+                    afterComponent: (
+                      <CountDownText
+                        initialSeconds={RESEND_CODE_TIMEOUT / 1000}
+                        wrapperText="Code sent. You can request again in 00:"
+                        key={new Date().toISOString()}
+                      />
+                    ),
+                  },
+                },
+              } as UiNodeMeta;
+            }
+            // Disable resend button for 10 seconds
+            disableButtonWithTimeout();
+          } else if (data.ui.messages?.find((msg) => msg.type === "error")) {
+            const codeUiNode = data.ui.nodes.find(UiNodePredicate);
+            data.ui.messages?.forEach((message) => {
+              if (message.type === "error") {
+                codeUiNode?.messages.push({
+                  id: message.id,
+                  type: "error",
+                  text: "Verification code incorrect. Check your email or resend the code.",
+                });
+              }
+            });
           }
           setFlow(data);
         })
@@ -115,13 +179,60 @@ const Verification: NextPage = () => {
     [flow],
   );
 
+  const userEmail = useMemo(() => {
+    if (!flow) {
+      return "";
+    }
+    const emailNode = flow.ui.nodes.find(
+      (node) => (node.attributes as UiNodeInputAttributes).name === "email",
+    );
+    return emailNode
+      ? ((emailNode.attributes as UiNodeInputAttributes).value as string)
+      : "";
+  }, [flow]);
+
+  const lookupFlow = useMemo(() => {
+    if (!flow) {
+      return flow;
+    }
+    return {
+      ...flow,
+      ui: {
+        ...flow.ui,
+        nodes: flow.ui.nodes.map((node) => {
+          if (
+            node.group === "code" &&
+            node.type === "input" &&
+            (node.attributes as UiNodeInputAttributes).name === "code"
+          ) {
+            if (node.meta.label) {
+              node.meta.label.context = {
+                ...node.meta.label.context,
+                beforeComponent: <EmailVerificationPrompt email={userEmail} />,
+              };
+            }
+          }
+          if (isResendVerificationCode(node)) {
+            node.meta.label.context = {
+              ...node.meta.label.context,
+              appearance: "link",
+            };
+            (node.attributes as UiNodeInputAttributes).disabled =
+              resendDisabled;
+          }
+          return node;
+        }),
+      },
+    };
+  }, [flow, resendDisabled]);
+
   if (!flow) {
     return null;
   }
 
   return (
-    <PageLayout title="Verify your email">
-      {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
+    <PageLayout title={flow.state==="passed_challenge"?"Verification successful":"Check your email"}>
+      {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
     </PageLayout>
   );
 };

@@ -2,7 +2,11 @@ import React from "react";
 import { LoginFlow } from "@ory/client";
 import { UseBackupCodeButton } from "../components/UseBackupCodeButton";
 import { UseOtherButton } from "../components/UseOtherButton";
-import { isSignInWithHardwareKey, isUseAuthenticator, isUseBackupCode } from "./constants";
+import {
+  isSignInWithHardwareKey,
+  isUseAuthenticator,
+  isUseBackupCode,
+} from "./constants";
 
 export const replaceAuthLabel = (
   flow: LoginFlow | undefined,
@@ -16,7 +20,9 @@ export const replaceAuthLabel = (
   );
 
   const hasConfiguredTotp = flow.ui.nodes.some((node) => node.group === "totp");
-  const hasConfiguredWebauth = flow.ui.nodes.some((node) => node.group === "webauthn");
+  const hasConfiguredWebauth = flow.ui.nodes.some(
+    (node) => node.group === "webauthn",
+  );
 
   return {
     ...flow,
@@ -55,7 +61,7 @@ export const replaceAuthLabel = (
                     <UseOtherButton method="authentication code" />
                   ) : hasConfiguredWebauth ? (
                     <UseOtherButton method="security key" />
-                  ): undefined,
+                  ) : undefined,
                 },
               },
             },
