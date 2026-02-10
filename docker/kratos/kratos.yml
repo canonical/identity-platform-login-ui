@@ -21,8 +21,8 @@ identity:
         - id: default
           url: file:///etc/config/kratos/identity.schema.json
 session:
-  whoami:
-    required_aal: highest_available
+    whoami:
+        required_aal: highest_available
 
 selfservice:
     allowed_return_urls:
@@ -58,6 +58,8 @@ selfservice:
                 webauthn:
                     default_browser_return_url: http://localhost/ui/setup_passkey
         registration:
+            enabled: true
+            ui_url: http://localhost/ui/register
             after:
                 password:
                     hooks:
@@ -85,15 +87,17 @@ selfservice:
         lookup_secret:
             enabled: true
         password:
-            enabled: True
+            enabled: true
             config:
                 haveibeenpwned_enabled: false
         code:
-            enabled: True
+            enabled: true
+        profile:
+            enabled: true
         webauthn:
-            enabled: True
+            enabled: true
             config:
-                passwordless: True
+                passwordless: true
                 rp:
                     # Set 'id' to the top-level domain.
                     id: localhost
@@ -102,14 +106,14 @@ selfservice:
                         - http://localhost
                     display_name: Canonical
         oidc:
-            enabled: True
+            enabled: true
             config:
                 providers:
-                - id: "github"
-                  provider: "github"
-                  mapper_url: "file:///etc/config/kratos/schema.jsonnet"
-                  scope: ["user:email"]
-                  label: Github
+                    -   id: "github"
+                        provider: "github"
+                        mapper_url: "file:///etc/config/kratos/schema.jsonnet"
+                        scope: [ "user:email" ]
+                        label: Github
 courier:
     template_override_path: /etc/config/kratos/templates
     smtp:

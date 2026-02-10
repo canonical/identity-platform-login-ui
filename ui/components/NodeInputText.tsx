@@ -41,6 +41,12 @@ export const NodeInputText: FC<NodeInputProps> = ({
     [node.messages],
   );
 
+  useEffect(() => {
+    if (message) {
+      setInputValue(message);
+    }
+  }, [message, setInputValue]);
+
   const beforeComponent = (
     node.meta.label?.context as {
       beforeComponent: React.ReactNode;
