@@ -1,6 +1,10 @@
 /* eslint-disable */
 
-import {RegistrationFlow, UiNodeInputAttributes, UpdateRegistrationFlowBody} from "@ory/client";
+import {
+  RegistrationFlow,
+  UiNodeInputAttributes,
+  UpdateRegistrationFlowBody,
+} from "@ory/client";
 import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
