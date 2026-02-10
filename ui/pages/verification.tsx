@@ -222,7 +222,13 @@ const Verification: NextPage = () => {
   }
 
   return (
-    <PageLayout title={flow.state==="passed_challenge"?"Verification successful":"Check your email"}>
+    <PageLayout
+      title={
+        flow.state === "passed_challenge"
+          ? "Verification successful"
+          : "Check your email"
+      }
+    >
       {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
     </PageLayout>
   );
