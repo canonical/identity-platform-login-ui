@@ -92,8 +92,6 @@ selfservice:
                 haveibeenpwned_enabled: false
         code:
             enabled: true
-        profile:
-            enabled: true
         webauthn:
             enabled: true
             config:

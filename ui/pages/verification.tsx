@@ -100,6 +100,17 @@ const Verification: NextPage = () => {
           },
         })
         .then(({ data }) => {
+          if (data.state === "passed_challenge") {
+            // If verification is successful, redirect to return_to URL or home page
+            if (returnTo && typeof returnTo === "string") {
+              window.location.href = returnTo;
+            } else {
+              const timer = setTimeout(() => {
+                clearTimeout(timer);
+                window.location.href = "/ui/manage_details";
+              }, 10000);
+            }
+          }
           if ("continue_with" in data) {
             const continue_with: {
               action: string;
@@ -221,13 +232,20 @@ const Verification: NextPage = () => {
     return null;
   }
 
+  if (flow.state === "passed_challenge") {
+    return (
+      <PageLayout title="Verification successful">
+        <CountDownText
+          initialSeconds={10}
+          wrapperText="Verification successful! Redirecting in 00:"
+          key={new Date().toISOString()}
+        />
+        <Flow onSubmit={handleSubmit} flow={lookupFlow} />
+      </PageLayout>)
+  }
   return (
     <PageLayout
-      title={
-        flow.state === "passed_challenge"
-          ? "Verification successful"
-          : "Check your email"
-      }
+      title="Check your email"
     >
       {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
     </PageLayout>
