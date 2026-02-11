@@ -17,15 +17,11 @@ import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
-import { isResendVerificationCode } from "../util/constants";
+import { isResendVerificationCode, isVerificationCodeInput } from "../util/constants";
 import CountDownText from "../components/CountDownText";
 
 
 const Verification: NextPage = () => {
-  const UiNodePredicate = (node: UiNode) =>
-    node.group === "code" &&
-    node.type === "input" &&
-    (node.attributes as UiNodeInputAttributes).name === "code";
   const [flow, setFlow] = useState<VerificationFlow>();
   const router = useRouter();
   const {
@@ -34,7 +30,7 @@ const Verification: NextPage = () => {
     code: verificationCode,
   } = router.query;
 
-  const RESEND_CODE_TIMEOUT = 10000; // 10 seconds
+  const RESEND_CODE_TIMEOUT = 60000; // 60 seconds
 
   const [resendDisabled, setResendDisabled] = useState<boolean>(false);
   const disableButtonWithTimeout = () => {
@@ -62,7 +58,7 @@ const Verification: NextPage = () => {
         .getVerificationFlow({ id: String(flowId) })
         .then(({ data }) => {
           if (verificationCode) {
-            const codeUiNode = data.ui.nodes.find(UiNodePredicate);
+            const codeUiNode = data.ui.nodes.find(isVerificationCodeInput);
             if (codeUiNode) {
               (codeUiNode.attributes as UiNodeInputAttributes).value =
                 String(verificationCode);
@@ -134,7 +130,7 @@ const Verification: NextPage = () => {
           ) {
             // Check if email is sent and there is no error message
             // If no error message, add success message and disable resend button for 10 seconds
-            const codeUiNode = data.ui.nodes.find(UiNodePredicate) as UiNode;
+            const codeUiNode = data.ui.nodes.find(isVerificationCodeInput) as UiNode;
             if (codeUiNode) {
               codeUiNode.meta = {
                 ...codeUiNode.meta,
@@ -156,7 +152,7 @@ const Verification: NextPage = () => {
             // Disable resend button for 10 seconds
             disableButtonWithTimeout();
           } else if (data.ui.messages?.find((msg) => msg.type === "error")) {
-            const codeUiNode = data.ui.nodes.find(UiNodePredicate);
+            const codeUiNode = data.ui.nodes.find(isVerificationCodeInput) as UiNode;
             data.ui.messages?.forEach((message) => {
               if (message.type === "error") {
                 codeUiNode?.messages.push({
@@ -229,7 +225,7 @@ const Verification: NextPage = () => {
   }, [flow, resendDisabled]);
 
   if (!flow) {
-    return null;
+    return <Spinner />;
   }
 
   if (flow.state === "passed_challenge") {
@@ -244,9 +240,10 @@ const Verification: NextPage = () => {
       </PageLayout>
     );
   }
+
   return (
     <PageLayout title="Check your email">
-      {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
+      <Flow onSubmit={handleSubmit} flow={lookupFlow} />
     </PageLayout>
   );
 };
