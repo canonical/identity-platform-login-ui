@@ -1,6 +1,6 @@
 import { getNodeId, getNodeLabel } from "@ory/integrations/ui";
 import { Button, Input } from "@canonical/react-components";
-import React, { FC, useEffect, useMemo } from "react";
+import React, { FC, useCallback, useEffect, useMemo } from "react";
 import { NodeInputProps } from "./helpers";
 import { FlowContext } from "../context/FlowContext";
 import {
@@ -127,6 +127,24 @@ export const NodeInputText: FC<NodeInputProps> = ({
     return getNodeLabel(node);
   }, [node, flow]);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        void dispatchSubmit(e, "password");
+      }
+    },
+    [dispatchSubmit],
+  );
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      setInputValue(newValue);
+      void setValue(newValue);
+    },
+    [setValue],
+  );
   return (
     <>
       {beforeComponent}
@@ -140,18 +158,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
         disabled={disabled}
         value={inputValue}
         error={getError}
-        onChange={(e) => {
-          const newValue = e.target.value;
-          setInputValue(newValue);
-          void setValue(newValue);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            e.stopPropagation();
-            void dispatchSubmit(e, "password");
-          }
-        }}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
         maxLength={isVerificationCodeInput(node) ? 6 : undefined}
       />
       {afterComponent}

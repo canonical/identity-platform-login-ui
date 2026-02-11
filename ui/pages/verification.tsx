@@ -241,12 +241,11 @@ const Verification: NextPage = () => {
           key={new Date().toISOString()}
         />
         <Flow onSubmit={handleSubmit} flow={lookupFlow} />
-      </PageLayout>)
+      </PageLayout>
+    );
   }
   return (
-    <PageLayout
-      title="Check your email"
-    >
+    <PageLayout title="Check your email">
       {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
     </PageLayout>
   );
