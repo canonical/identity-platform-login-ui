@@ -17,7 +17,10 @@ import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
-import { isResendVerificationCode, isVerificationCodeInput } from "../util/constants";
+import {
+  isResendVerificationCode,
+  isVerificationCodeInput,
+} from "../util/constants";
 import CountDownText from "../components/CountDownText";
 
 
@@ -130,7 +133,9 @@ const Verification: NextPage = () => {
           ) {
             // Check if email is sent and there is no error message
             // If no error message, add success message and disable resend button for 10 seconds
-            const codeUiNode = data.ui.nodes.find(isVerificationCodeInput) as UiNode;
+            const codeUiNode = data.ui.nodes.find(
+              isVerificationCodeInput,
+            ) as UiNode;
             if (codeUiNode) {
               codeUiNode.meta = {
                 ...codeUiNode.meta,
@@ -152,7 +157,9 @@ const Verification: NextPage = () => {
             // Disable resend button for 10 seconds
             disableButtonWithTimeout();
           } else if (data.ui.messages?.find((msg) => msg.type === "error")) {
-            const codeUiNode = data.ui.nodes.find(isVerificationCodeInput) as UiNode;
+            const codeUiNode = data.ui.nodes.find(
+              isVerificationCodeInput,
+            ) as UiNode;
             data.ui.messages?.forEach((message) => {
               if (message.type === "error") {
                 codeUiNode?.messages.push({

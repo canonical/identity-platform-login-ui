@@ -41,6 +41,15 @@ export const NodeInputText: FC<NodeInputProps> = ({
     [node.messages],
   );
 
+  useEffect(() => {
+    if (isVerificationCodeInput(node)) {
+      return;
+    }
+    if (message) {
+      setInputValue(message);
+    }
+  }, [message, setInputValue]);
+
   const beforeComponent = (
     node.meta.label?.context as {
       beforeComponent: React.ReactNode;
@@ -139,7 +148,10 @@ export const NodeInputText: FC<NodeInputProps> = ({
   );
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = e.target.value;
+      let newValue = e.target.value;
+      if(isVerificationCodeInput(node)){
+        newValue = newValue.replace(/[^0-9]/g, '');
+      }
       setInputValue(newValue);
       void setValue(newValue);
     },
