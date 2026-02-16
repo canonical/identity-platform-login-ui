@@ -149,8 +149,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       let newValue = e.target.value;
-      if(isVerificationCodeInput(node)){
-        newValue = newValue.replace(/[^0-9]/g, '');
+      if (isVerificationCodeInput(node)) {
+        newValue = newValue.replace(/[^0-9]/g, "");
       }
       setInputValue(newValue);
       void setValue(newValue);
