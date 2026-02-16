@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.26.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.25.0...v0.26.0) (2026-02-16)
+
+
+### Features
+
+* **frontend:** implement verification flow ([78d9809](https://github.com/canonical/identity-platform-login-ui/commit/78d98092d43f4c4ddc9db6abe773409cc3bbe491))
+* implement registration ([2369f15](https://github.com/canonical/identity-platform-login-ui/commit/2369f159de9948f427fa799965bbc43c0ef62c01))
+* implement verification flow handlers and service methods ([ea3c01c](https://github.com/canonical/identity-platform-login-ui/commit/ea3c01cfb36e38fff53b39c74c0bcb2c98c799c2))
+* initiate login in a new context ([383f085](https://github.com/canonical/identity-platform-login-ui/commit/383f085692b39949be97f5961b036dde26cde5cf))
+* temporary UI work as a guide for web team implementation ([f37ef3e](https://github.com/canonical/identity-platform-login-ui/commit/f37ef3e7f0e5e5b9d194f9d25c23c021c678435e))
+* update service interface ([19a46dc](https://github.com/canonical/identity-platform-login-ui/commit/19a46dc673684f846ff500cc474dc9df532410a6))
+
+
+### Bug Fixes
+
+* propagate aal2 to determine if cookies must be deleted ([c01a716](https://github.com/canonical/identity-platform-login-ui/commit/c01a716e59fa87313da7a90d5beef08566ed8609))
+* redirect to user details page when session is valid ([be3ca15](https://github.com/canonical/identity-platform-login-ui/commit/be3ca15be817301093ff32ec4f95f8df68f77771))
+* redirect to user details page when session is valid ([#769](https://github.com/canonical/identity-platform-login-ui/issues/769)) ([6f39b2b](https://github.com/canonical/identity-platform-login-ui/commit/6f39b2b6b21e60ed8d30d70dfb5238001413cfd5))
+* respect max_age ([f8326f1](https://github.com/canonical/identity-platform-login-ui/commit/f8326f1ec420bfd0ea9dd33b24bbc784f52ccda1))
+* return error on GetLoginFlow and delete session cookie in case of csrf violation ([b3cd112](https://github.com/canonical/identity-platform-login-ui/commit/b3cd1127a6532d9a025a1db8252a4ba8131a53da))
+
 ## [0.25.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.24.2...v0.25.0) (2026-02-02)
 
 
