@@ -66,7 +66,7 @@ const Verification: NextPage = () => {
                 String(verificationCode);
             }
           }
-          setFlowIDQueryParam(router, data.id);
+          setFlowIDQueryParam(String(data.id));
           setFlow(data);
         })
         .catch(handleFlowError("verification", setFlow))
@@ -81,7 +81,7 @@ const Verification: NextPage = () => {
       })
       .then(({ data }) => {
         setFlow(data);
-        setFlowIDQueryParam(router, String(data.id));
+        setFlowIDQueryParam(String(data.id));
       })
       .catch(handleFlowError("verification", setFlow))
       .catch(redirectToErrorPage);
