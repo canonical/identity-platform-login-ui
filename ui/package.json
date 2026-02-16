@@ -10,7 +10,7 @@
     "react": "^19.1.2",
     "react-dom": "^19.1.2",
     "sass": "1.93.1",
-    "vanilla-framework": "4.34.1"
+    "vanilla-framework": "4.34.2"
   },
   "engines": {
     "node": "22"
