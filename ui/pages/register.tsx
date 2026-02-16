@@ -15,6 +15,7 @@ import {
   UpdateRegistrationFlowWithPasswordMethod,
   UpdateRegistrationFlowWithProfileMethod,
 } from "@ory/client/api";
+import {setFlowIDQueryParam} from "../util/flowHelper";
 
 type FlowPreparer = (values: any) => UpdateRegistrationFlowBody;
 type SupportedFlowMethods = "oidc" | "password" | "profile";
@@ -63,17 +64,6 @@ function getFlowMethod(values: any): SupportedFlowMethods {
   } else {
     return "profile";
   }
-}
-
-function setFlowIDQueryParam(router: NextRouter, flowId: string) {
-  router.push(
-    {
-      pathname: router.pathname,
-      query: { ...router.query, flow: flowId },
-    },
-    undefined,
-    { shallow: true },
-  );
 }
 
 const Registration: NextPage = () => {
