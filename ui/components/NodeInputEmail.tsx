@@ -13,7 +13,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
 }) => {
   const [hasLocalValidation, setLocalValidation] = React.useState(false);
 
-  const emailRegex = /^[^\s@]+@[^\s@]+$/;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
   const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
   const localError = isInvalid ? "Incorrect email address" : undefined;
   const message = node.messages.map(({ text }) => text).join(" ");
