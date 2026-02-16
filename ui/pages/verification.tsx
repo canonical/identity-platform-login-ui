@@ -13,7 +13,7 @@ import { handleFlowError } from "../util/handleFlowError";
 import { kratos } from "../api/kratos";
 import { Flow } from "../components/Flow";
 import PageLayout from "../components/PageLayout";
-import { Spinner } from "@canonical/react-components";
+import { Notification, Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
@@ -107,7 +107,7 @@ const Verification: NextPage = () => {
               const timer = setTimeout(() => {
                 clearTimeout(timer);
                 window.location.href = "/ui/manage_details";
-              }, 10000);
+              }, 3000);
             }
           }
           if ("continue_with" in data) {
@@ -237,13 +237,15 @@ const Verification: NextPage = () => {
 
   if (flow.state === "passed_challenge") {
     return (
-      <PageLayout title="Verification successful">
-        <CountDownText
-          initialSeconds={10}
-          wrapperText="Verification successful! Redirecting in 00:"
-          key={new Date().toISOString()}
+      <PageLayout title="Account setup complete">
+        <Notification severity="positive" inline>
+          Email verification successful
+        </Notification>
+        <Spinner
+          text={`You will be redirected to ${
+            returnTo ? (returnTo as string) : "/ui/manage_details"
+          }`}
         />
-        <Flow onSubmit={handleSubmit} flow={lookupFlow} />
       </PageLayout>
     );
   }
