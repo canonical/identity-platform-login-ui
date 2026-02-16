@@ -23,7 +23,6 @@ import {
 } from "../util/constants";
 import CountDownText from "../components/CountDownText";
 
-
 const Verification: NextPage = () => {
   const [flow, setFlow] = useState<VerificationFlow>();
   const router = useRouter();
