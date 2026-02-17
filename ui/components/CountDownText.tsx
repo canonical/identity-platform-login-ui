@@ -31,7 +31,7 @@ const CountDownText = ({
       severity="positive"
       borderless
       className="u-no-margin--bottom"
-    >{`${wrapperText}${seconds >= 60 ? `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, "0")}` : `${seconds.toString().padStart(2, "0")}s`}`}</Notification>
+    >{`${wrapperText}${`${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`}s`}</Notification>
   );
 };
 
