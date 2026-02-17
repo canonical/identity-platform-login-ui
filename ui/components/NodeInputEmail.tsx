@@ -1,6 +1,6 @@
 import { getNodeLabel } from "@ory/integrations/ui";
 import { Input } from "@canonical/react-components";
-import React, { FC, useCallback } from "react";
+import React, { FC, useCallback, useEffect } from "react";
 import { NodeInputProps } from "./helpers";
 
 export const NodeInputEmail: FC<NodeInputProps> = ({
@@ -38,6 +38,18 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
       submitBtn?.removeAttribute("disabled");
     }
   }, [value, upstreamError]);
+
+  useEffect(() => {
+    const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
+    const localError = isInvalid ? "Incorrect email address" : undefined;
+    const error = localError ?? upstreamError;
+    if (!error) {
+      const submitBtn =
+        document.getElementsByClassName("p-button--positive")?.[0];
+      submitBtn?.removeAttribute("disabled");
+      setError(error);
+    }
+  }, [upstreamError, value]);
 
   const submitOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !error) {
