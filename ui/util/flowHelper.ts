@@ -1,3 +1,5 @@
 export function setFlowIDQueryParam(flowId: string) {
-  window.history.replaceState(null, "", `?flow=${flowId}`);
+  const url = new URL(window.location.href);
+  url.searchParams.set("flow", flowId);
+  window.history.replaceState(null, "", url);
 }
