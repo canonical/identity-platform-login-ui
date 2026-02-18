@@ -225,7 +225,7 @@ const Login: NextPage = () => {
       if (method === "identifier_first") {
         const flowId = String(flow?.id);
 
-        loginIdentifierFirst(flowId, values, method, flow)
+        return loginIdentifierFirst(flowId, values, method, flow)
           .then((data) => {
             if ("redirect_to" in data) {
               window.location.href = data.redirect_to;
