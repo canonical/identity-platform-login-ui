@@ -44,7 +44,6 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     }
   }, [value, upstreamError]);
 
-
   useEffect(() => {
     const error = getError();
     if (!error) {
