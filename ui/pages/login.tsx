@@ -12,7 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
-import { kratos } from "../api/kratos";
+import { kratos, loginIdentifierFirst } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
@@ -35,6 +35,35 @@ type AppConfig = {
   oidc_webauthn_sequencing_enabled?: boolean;
 };
 
+const getTitleSuffix = (reqName: string, reqDomain: string) => {
+  if (reqName && reqDomain) {
+    return ` to ${reqName} on ${reqDomain}`;
+  }
+  if (reqName) {
+    return ` to ${reqName}`;
+  }
+  if (reqDomain) {
+    return ` to ${reqDomain}`;
+  }
+  return "";
+};
+
+const resolveLoginTitle = (
+  isIdentifierFirst: boolean,
+  isAuthCode: UiNode | undefined,
+  titleSuffix: string,
+) => {
+  if (isIdentifierFirst) {
+    return "Sign in";
+  }
+
+  if (isAuthCode) {
+    return "Verify your identity";
+  }
+
+  return `Sign in${titleSuffix}`;
+};
+
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
@@ -42,6 +71,14 @@ const Login: NextPage = () => {
   const is2FaWebauthn =
     flow?.requested_aal === "aal2" &&
     flow?.ui.nodes.find((node) => node.group === "webauthn") !== undefined;
+
+  const isIdentifierFirst =
+    flow?.ui.nodes.some(
+      (node) =>
+        node.attributes.node_type === "input" &&
+        (node.attributes as UiNodeInputAttributes).name === "method" &&
+        (node.attributes as UiNodeInputAttributes).value === "identifier_first",
+    ) ?? false;
 
   useEffect(() => {
     void fetch("../api/v0/app-config")
@@ -78,8 +115,12 @@ const Login: NextPage = () => {
   };
 
   useEffect(() => {
-    // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
+    // If the router is not ready yet, do nothing.
+    if (!router.isReady) {
+      return;
+    }
+
+    if (flowId && flow) {
       return;
     }
 
@@ -100,7 +141,7 @@ const Login: NextPage = () => {
       if (login_challenge) {
         return undefined;
       }
-      return window.location.pathname.replace("login", "manage_details");
+      return window.location.pathname;
     };
 
     // Otherwise we initialize it
@@ -111,7 +152,7 @@ const Login: NextPage = () => {
         returnTo: getReturnTo(),
         loginChallenge: login_challenge ? String(login_challenge) : undefined,
       })
-      .then(({ data }: FlowResponse) => {
+      .then(async ({ data }: FlowResponse) => {
         if (data.redirect_to !== undefined) {
           const addendum = data.redirect_to.includes("?") ? "&" : "?";
           const pwParam = pwChanged
@@ -120,6 +161,19 @@ const Login: NextPage = () => {
           window.location.href = `${data.redirect_to}${pwParam}`;
           return;
         }
+
+        await router.replace(
+          {
+            pathname: "/ui/login",
+            query: {
+              ...router.query,
+              flow: data.id,
+            },
+          },
+          undefined,
+          { shallow: true },
+        );
+
         setFlow(data);
       })
       .catch(handleFlowError("login", setFlow))
@@ -134,9 +188,13 @@ const Login: NextPage = () => {
     flow,
     login_challenge,
   ]);
+
   const handleSubmit = useCallback(
     (values: UpdateLoginFlowBody) => {
       const getMethod = () => {
+        if (values.method === "identifier_first") {
+          return "identifier_first";
+        }
         if ((values as UpdateLoginFlowWithOidcMethod).provider) {
           return "oidc";
         }
@@ -164,6 +222,24 @@ const Login: NextPage = () => {
         setEmptyPassword();
       }
 
+      if (method === "identifier_first") {
+        const flowId = String(flow?.id);
+
+        return loginIdentifierFirst(flowId, values, method, flow)
+          .then((data) => {
+            if ("redirect_to" in data) {
+              window.location.href = data.redirect_to;
+              return;
+            }
+            if (flow?.return_to) {
+              window.location.href = flow.return_to;
+              return;
+            }
+            setFlow(data);
+          })
+          .catch(redirectToErrorPage);
+      }
+
       return kratos
         .updateLoginFlow({
           flow: String(flow?.id),
@@ -173,6 +249,10 @@ const Login: NextPage = () => {
           } as UpdateLoginFlowBody,
         })
         .then(({ data }) => {
+          if ("state" in data && data.state === "choose_method") {
+            setFlow(data as unknown as LoginFlow);
+            return;
+          }
           if ("redirect_to" in data) {
             window.location.href = data.redirect_to as string;
             return;
@@ -209,25 +289,12 @@ const Login: NextPage = () => {
     },
     [flow, router],
   );
-  const reqName = flow?.oauth2_login_request?.client?.client_name;
+  const reqName = flow?.oauth2_login_request?.client?.client_name ?? "";
   const reqDomain = flow?.oauth2_login_request?.client?.client_uri
     ? new URL(flow.oauth2_login_request.client.client_uri).hostname
     : "";
-  const getTitleSuffix = () => {
-    if (reqName && reqDomain) {
-      return ` to ${reqName} on ${reqDomain}`;
-    }
-    if (reqName) {
-      return ` to ${reqName}`;
-    }
-    if (reqDomain) {
-      return ` to ${reqDomain}`;
-    }
-    return "";
-  };
-  const title = isAuthCode
-    ? "Verify your identity"
-    : `Sign in${getTitleSuffix()}`;
+  const titleSuffix = getTitleSuffix(reqName, reqDomain);
+  const title = resolveLoginTitle(isIdentifierFirst, isAuthCode, titleSuffix);
 
   const filterFlow = (flow: LoginFlow | undefined): LoginFlow => {
     if (!flow) {
@@ -251,8 +318,33 @@ const Login: NextPage = () => {
   const supportsWebauthn = flow?.ui.nodes.some(
     (node) => node.group === "webauthn",
   );
-  const renderFlow =
-    isAuthCode || is2FaWebauthn ? filterFlow(replaceAuthLabel(flow)) : flow;
+
+  const renderFlow: LoginFlow | undefined = flow
+    ? isIdentifierFirst
+      ? {
+          ...flow,
+          ui: {
+            ...flow.ui,
+            nodes: flow.ui.nodes.filter((n: UiNode) => {
+              if (
+                n.attributes.node_type === "input" &&
+                typeof (n.attributes as UiNodeInputAttributes).name === "string"
+              ) {
+                const name = (n.attributes as UiNodeInputAttributes).name;
+                return (
+                  name === "identifier" ||
+                  name === "csrf_token" ||
+                  name === "method"
+                );
+              }
+              return false;
+            }),
+          },
+        }
+      : isAuthCode || is2FaWebauthn
+        ? filterFlow(replaceAuthLabel(flow))
+        : flow
+    : undefined;
 
   if (renderFlow?.ui) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -380,7 +472,8 @@ const Login: NextPage = () => {
         <>
           {isWebauthn && isSequencedLogin && (
             <p className="u-text--muted">
-              Additional authentication needed to get access {getTitleSuffix()}
+              Additional authentication needed to get access{" "}
+              {getTitleSuffix(reqName, reqDomain)}
             </p>
           )}
           {flow ? (

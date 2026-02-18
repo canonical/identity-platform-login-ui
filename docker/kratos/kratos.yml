@@ -35,7 +35,7 @@ selfservice:
         login:
             ui_url: http://localhost/ui/login
             # TODO: Uncomment when the pattern is implemented in FE
-            # style: identifier_first
+            style: identifier_first
             # uncomment this block after verification-post-login has been addressed
             #after:
             #    hooks:
