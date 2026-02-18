@@ -24,10 +24,15 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     void setValue(defaultValue);
   }
 
-  const emailValidationOnBlur = useCallback(() => {
+  const getError = useCallback(() => {
     const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
     const localError = isInvalid ? "Incorrect email address" : undefined;
     const error = localError ?? upstreamError;
+    return error;
+  }, [value, upstreamError]);
+
+  const emailValidationOnBlur = useCallback(() => {
+    const error = getError();
     setError(error);
 
     const submitBtn =
@@ -39,10 +44,9 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     }
   }, [value, upstreamError]);
 
+
   useEffect(() => {
-    const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
-    const localError = isInvalid ? "Incorrect email address" : undefined;
-    const error = localError ?? upstreamError;
+    const error = getError();
     if (!error) {
       const submitBtn =
         document.getElementsByClassName("p-button--positive")?.[0];
