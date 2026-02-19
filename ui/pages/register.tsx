@@ -1,6 +1,10 @@
 /* eslint-disable */
 
-import {RegistrationFlow, UiNodeInputAttributes, UpdateRegistrationFlowBody} from "@ory/client";
+import {
+  RegistrationFlow,
+  UiNodeInputAttributes,
+  UpdateRegistrationFlowBody,
+} from "@ory/client";
 import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
@@ -15,7 +19,7 @@ import {
   UpdateRegistrationFlowWithPasswordMethod,
   UpdateRegistrationFlowWithProfileMethod,
 } from "@ory/client/api";
-import {setFlowIDQueryParam} from "../util/flowHelper";
+import { setFlowIDQueryParam } from "../util/flowHelper";
 
 type FlowPreparer = (values: any) => UpdateRegistrationFlowBody;
 type SupportedFlowMethods = "oidc" | "password" | "profile";
@@ -86,7 +90,7 @@ const Registration: NextPage = () => {
         .getRegistrationFlow({ id: String(flowId) })
         .then(({ data }) => {
           setFlow(data);
-          setFlowIDQueryParam(router, data.id);
+          setFlowIDQueryParam(String(data.id));
         })
         .catch(handleFlowError("registration", setFlow))
         .catch(redirectToErrorPage);
@@ -100,7 +104,7 @@ const Registration: NextPage = () => {
       })
       .then(({ data }) => {
         setFlow(data);
-        setFlowIDQueryParam(router, data.id);
+        setFlowIDQueryParam(String(data.id));
       })
       .catch(handleFlowError("registration", setFlow))
       .catch(redirectToErrorPage);

@@ -1,6 +1,6 @@
 import { getNodeLabel } from "@ory/integrations/ui";
 import { Input } from "@canonical/react-components";
-import React, { FC, useEffect } from "react";
+import React, { FC, useCallback, useEffect } from "react";
 import { NodeInputProps } from "./helpers";
 
 export const NodeInputEmail: FC<NodeInputProps> = ({
@@ -11,19 +11,30 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
   dispatchSubmit,
   error: upstreamError,
 }) => {
-  const [hasLocalValidation, setLocalValidation] = React.useState(false);
+  const [error, setError] = React.useState<string | undefined>(upstreamError);
 
-  const emailRegex = /^[^\s@]+@[^\s@]+$/;
-  const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
-  const localError = isInvalid ? "Incorrect email address" : undefined;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$/;
+
   const message = node.messages.map(({ text }) => text).join(" ");
   const defaultValue = message.includes('is not valid "email"')
     ? message.split('"')[1]
     : message;
 
-  const error = hasLocalValidation ? localError : upstreamError;
+  if (value == undefined) {
+    void setValue(defaultValue);
+  }
 
-  useEffect(() => {
+  const getError = useCallback(() => {
+    const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
+    const localError = isInvalid ? "Incorrect email address" : undefined;
+    const error = localError ?? upstreamError;
+    return error;
+  }, [value, upstreamError]);
+
+  const emailValidationOnBlur = useCallback(() => {
+    const error = getError();
+    setError(error);
+
     const submitBtn =
       document.getElementsByClassName("p-button--positive")?.[0];
     if (error) {
@@ -31,17 +42,27 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     } else {
       submitBtn?.removeAttribute("disabled");
     }
-  }, [error]);
+  }, [value, upstreamError]);
 
-  if (value == undefined) {
-    void setValue(defaultValue);
-  }
+  useEffect(() => {
+    const error = getError();
+    if (!error) {
+      const submitBtn =
+        document.getElementsByClassName("p-button--positive")?.[0];
+      submitBtn?.removeAttribute("disabled");
+      setError(error);
+    }
+  }, [upstreamError, value]);
 
   const submitOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !error) {
+    if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
-      void dispatchSubmit(e, "code");
+      const error = getError();
+      setError(error);
+      if(!error) {
+        void dispatchSubmit(e, "code");
+      }
     }
   };
 
@@ -54,7 +75,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
       autoFocus={true}
       error={error}
       onChange={(e) => void setValue(e.target.value)}
-      onBlur={() => setLocalValidation(true)}
+      onBlur={emailValidationOnBlur}
       onKeyDown={submitOnEnter}
     />
   );
