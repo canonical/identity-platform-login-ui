@@ -55,10 +55,14 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
   }, [upstreamError, value]);
 
   const submitOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !error) {
+    if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
-      void dispatchSubmit(e, "code");
+      const error = getError();
+      setError(error);
+      if(!error) {
+        void dispatchSubmit(e, "code");
+      }
     }
   };
 
