@@ -9,7 +9,7 @@
     "next": "^15.5.8",
     "react": "^19.1.2",
     "react-dom": "^19.1.2",
-    "sass": "1.93.1",
+    "sass": "1.97.3",
     "vanilla-framework": "4.34.1"
   },
   "engines": {
@@ -44,19 +44,19 @@
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "15.5.2",
-    "@playwright/test": "1.55.0",
-    "@testing-library/jest-dom": "6.8.0",
+    "@playwright/test": "1.58.2",
+    "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.0",
     "@testing-library/user-event": "14.6.1",
-    "@typescript-eslint/eslint-plugin": "8.44.0",
+    "@typescript-eslint/eslint-plugin": "8.56.0",
     "autoprefixer": "10.4.21",
-    "eslint": "9.36.0",
+    "eslint": "9.39.3",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.4",
     "eslint-plugin-react": "7.37.5",
     "postcss": "8.5.6",
     "postcss-cli": "11.0.1",
-    "prettier": "3.6.2",
+    "prettier": "3.8.1",
     "typescript": "5.9.2"
   }
 }
