@@ -219,6 +219,7 @@ const Verification: NextPage = () => {
     const emailNode = flow.ui.nodes.find(
       (node) => (node.attributes as UiNodeInputAttributes).name === "email",
     );
+
     return emailNode
       ? ((emailNode.attributes as UiNodeInputAttributes).value as string)
       : "";

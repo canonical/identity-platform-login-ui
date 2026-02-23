@@ -22,6 +22,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
     attributes.value as string,
   );
 
+  const [isDirty, setIsDirty] = React.useState(false);
+
   const flow = React.useContext(FlowContext);
   const urlParams = new URLSearchParams(window.location.search);
   const isWebauthn = urlParams.get("webauthn") === "true";
@@ -40,6 +42,12 @@ export const NodeInputText: FC<NodeInputProps> = ({
     () => node.messages.map(({ text }) => text).join(" "),
     [node.messages],
   );
+
+  useEffect(() => {
+    if (isVerificationCodeInput(node)) {
+      setIsDirty(false);
+    }
+  }, [node.messages]);
 
   useEffect(() => {
     if (isVerificationCodeInput(node)) {
@@ -77,6 +85,11 @@ export const NodeInputText: FC<NodeInputProps> = ({
   }, [message, setInputValue]);
 
   const getError = useMemo(() => {
+    if(node && isVerificationCodeInput(node)) {
+      if (isDirty){
+        return;
+      }
+    }
     if (message.startsWith("Invalid login method")) {
       return "Invalid login method";
     }
@@ -103,7 +116,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
     }
 
     return undefined;
-  }, [message, node.messages, isDuplicate, attributes.name, isWebauthn, error]);
+  }, [message, node.messages, isDuplicate, attributes.name, isWebauthn, error, isDirty]);
 
   const getLabel = useMemo(() => {
     if (isVerificationCodeInput(node)) {
@@ -125,7 +138,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
             }}
             style={{ float: "right", marginBottom: 0 }}
             disabled={
-              (resendButton?.attributes as UiNodeInputAttributes).disabled
+              (resendButton?.attributes as UiNodeInputAttributes)?.disabled || false
             }
           >
             Resend code
@@ -141,6 +154,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
+        setIsDirty(false);
         void dispatchSubmit(e, "password");
       }
     },
@@ -150,6 +164,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       let newValue = e.target.value;
       if (isVerificationCodeInput(node)) {
+        setIsDirty(true);
         newValue = newValue.replace(/[^0-9]/g, "");
       }
       setInputValue(newValue);
