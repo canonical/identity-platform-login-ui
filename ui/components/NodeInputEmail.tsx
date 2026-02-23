@@ -60,7 +60,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
       e.stopPropagation();
       const error = getError();
       setError(error);
-      if(!error) {
+      if (!error) {
         void dispatchSubmit(e, "code");
       }
     }

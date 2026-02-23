@@ -85,8 +85,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
   }, [message, setInputValue]);
 
   const getError = useMemo(() => {
-    if(node && isVerificationCodeInput(node)) {
-      if (isDirty){
+    if (node && isVerificationCodeInput(node)) {
+      if (isDirty) {
         return;
       }
     }
@@ -116,7 +116,15 @@ export const NodeInputText: FC<NodeInputProps> = ({
     }
 
     return undefined;
-  }, [message, node.messages, isDuplicate, attributes.name, isWebauthn, error, isDirty]);
+  }, [
+    message,
+    node.messages,
+    isDuplicate,
+    attributes.name,
+    isWebauthn,
+    error,
+    isDirty,
+  ]);
 
   const getLabel = useMemo(() => {
     if (isVerificationCodeInput(node)) {
@@ -138,7 +146,8 @@ export const NodeInputText: FC<NodeInputProps> = ({
             }}
             style={{ float: "right", marginBottom: 0 }}
             disabled={
-              (resendButton?.attributes as UiNodeInputAttributes)?.disabled || false
+              (resendButton?.attributes as UiNodeInputAttributes)?.disabled ||
+              false
             }
           >
             Resend code
