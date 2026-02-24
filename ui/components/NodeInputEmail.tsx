@@ -61,7 +61,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
       const error = getError();
       const submitBtn =
         document.getElementsByClassName("p-button--positive")?.[0];
-      submitBtn?.setAttribute("disabled","");
+      submitBtn?.setAttribute("disabled", "");
       setError(error);
       if (!error) {
         void dispatchSubmit(e, "code");
