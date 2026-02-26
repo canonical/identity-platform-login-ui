@@ -989,20 +989,31 @@ func (s *Service) ParseRegistrationFlowMethodBody(r *http.Request) (*kClient.Upd
 	return &ret, nil
 }
 
+func extractProfileTraits(raw map[string]any) map[string]any {
+	traits := make(map[string]any)
+
+	if nested, ok := raw["traits"].(map[string]any); ok {
+		for k, v := range nested {
+			traits[k] = v
+		}
+	}
+
+	for k, v := range raw {
+		if strings.HasPrefix(k, "traits.") {
+			traits[strings.TrimPrefix(k, "traits.")] = v
+		}
+	}
+
+	return traits
+}
+
 func parseProfileBody(body io.ReadCloser) (*kClient.UpdateRegistrationFlowWithProfileMethod, error) {
 	var raw map[string]interface{}
 	if err := json.NewDecoder(body).Decode(&raw); err != nil {
 		return nil, err
 	}
 
-	traits := make(map[string]interface{})
-	for k, v := range raw {
-		if strings.HasPrefix(k, "traits.") {
-			key := strings.TrimPrefix(k, "traits.")
-			traits[key] = v
-			delete(raw, k)
-		}
-	}
+	traits := extractProfileTraits(raw)
 
 	profileBody := kClient.UpdateRegistrationFlowWithProfileMethod{
 		Method: "profile",
@@ -1348,11 +1359,58 @@ func (s *Service) ParseSettingsFlowMethodBody(r *http.Request) (*kClient.UpdateS
 		}
 		ret = kClient.UpdateSettingsFlowWithLookupMethodAsUpdateSettingsFlowBody(&body)
 
+	case "profile":
+		profileBody, err := s.parseSettingsProfileMethod(r, bodyBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		ret = kClient.UpdateSettingsFlowWithProfileMethodAsUpdateSettingsFlowBody(profileBody)
+
 	default:
-		return nil, fmt.Errorf("upsupported method: %s", methodPayload.Method)
+		return nil, fmt.Errorf("unsupported method: %s", methodPayload.Method)
 	}
 
 	return &ret, nil
+}
+
+func (s *Service) parseSettingsProfileMethod(r *http.Request, bodyBytes []byte) (*kClient.UpdateSettingsFlowWithProfileMethod, error) {
+	var raw map[string]any
+	if err := json.Unmarshal(bodyBytes, &raw); err != nil {
+		return nil, fmt.Errorf("failed to parse profile body: %w", err)
+	}
+
+	traits := extractProfileTraits(raw)
+
+	// Remove the email trait if present in the request
+	delete(traits, "email")
+
+	session, _, err := s.CheckSession(r.Context(), r.Cookies())
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify session for profile update: %w", err)
+	}
+
+	if session == nil || session.Identity == nil {
+		return nil, fmt.Errorf("invalid session state: identity is missing")
+	}
+
+	// Inject the current user email and preserve other existing traits
+	// so they are not unset when omitted in the request payload
+	identityTraits, ok := session.Identity.Traits.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("internal error: could not parse existing user traits")
+	}
+
+	for k, v := range traits {
+		identityTraits[k] = v
+	}
+	profileBody := kClient.NewUpdateSettingsFlowWithProfileMethod("profile", identityTraits)
+
+	if csrf, ok := raw["csrf_token"].(string); ok {
+		profileBody.SetCsrfToken(csrf)
+	}
+
+	return profileBody, nil
 }
 
 func (s *Service) contains(str []string, e string) bool {
