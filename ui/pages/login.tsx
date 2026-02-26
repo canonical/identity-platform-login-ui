@@ -13,6 +13,7 @@ import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
 import { kratos, loginIdentifierFirst } from "../api/kratos";
+import { fetchTenants } from "../api/tenants";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
@@ -107,7 +108,18 @@ const Login: NextPage = () => {
     email,
     invalid_method,
     pw_changed: pwChanged,
+    tenant_id,
   } = router.query;
+
+  // Store tenant_id from query param so it can be used in subsequent submissions
+  const tenantId = tenant_id ? String(tenant_id) : undefined;
+
+  // Persist tenant selection from query param into localStorage
+  useEffect(() => {
+    if (tenantId) {
+      localStorage.setItem("selected_tenant_id", tenantId);
+    }
+  }, [tenantId]);
 
   const redirectToErrorPage = () => {
     const idParam = flowId ? `?id=${flowId.toString()}` : "";
@@ -224,18 +236,48 @@ const Login: NextPage = () => {
 
       if (method === "identifier_first") {
         const flowId = String(flow?.id);
+        const identifier = (values as { identifier?: string }).identifier ?? "";
 
         return loginIdentifierFirst(flowId, values, method, flow)
           .then((data) => {
-            if ("redirect_to" in data) {
-              window.location.href = data.redirect_to;
-              return;
-            }
-            if (flow?.return_to) {
-              window.location.href = flow.return_to;
-              return;
-            }
-            setFlow(data);
+            // Resolve the Kratos identity UUID from the email so the tenants
+            // API receives a proper user ID.
+            return fetch(
+              `/api/v0/users/identity-id?email=${encodeURIComponent(identifier)}`,
+            )
+              .then((r) => r.json())
+              .then(({ id: kratosId }: { id: string }) =>
+                fetchTenants(kratosId).then((tenants) => {
+                  // 0 or 1 tenants – skip the selection page entirely.
+                  if (tenants.length <= 1) {
+                    if (tenants.length === 1) {
+                      localStorage.setItem("selected_tenant_id", tenants[0].id);
+                    }
+                    if ("redirect_to" in data) {
+                      window.location.href = data.redirect_to;
+                    } else {
+                      setFlow(data as unknown as LoginFlow);
+                    }
+                    return;
+                  }
+
+                  // Multiple tenants – navigate to the selection page.
+                  const params = new URLSearchParams({ user_id: kratosId });
+                  if ("redirect_to" in data) {
+                    params.set("redirect_to", data.redirect_to);
+                  } else {
+                    params.set("flow", String((data as { id: string }).id));
+                  }
+                  // Derive path prefix from the current page pathname
+                  // (e.g. /ui/login → /ui) so we don't lose the /ui prefix
+                  // that the Go server mounts the UI under.
+                  const base = window.location.pathname
+                    .split("/")
+                    .slice(0, -1)
+                    .join("/");
+                  window.location.href = `${base}/select_tenant?${params.toString()}`;
+                }),
+              );
           })
           .catch(redirectToErrorPage);
       }
@@ -246,6 +288,10 @@ const Login: NextPage = () => {
           updateLoginFlowBody: {
             ...values,
             method,
+            transient_payload: {
+              tenant_id:
+                localStorage.getItem("selected_tenant_id") ?? undefined,
+            },
           } as UpdateLoginFlowBody,
         })
         .then(({ data }) => {

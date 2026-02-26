@@ -416,13 +416,13 @@ func passwordPolicyError(flow kClient.RegistrationFlow) error {
 	for _, node := range ui.GetNodes() {
 		if node.GetGroup() == "password" && node.GetType() == "input" && node.GetAttributes().UiNodeInputAttributes.Name == "password" {
 			for _, msg := range node.GetMessages() {
-                // grab and build all errors related to password policy
+				// grab and build all errors related to password policy
 				err = fmt.Errorf("%w ", errors.New(msg.GetText()))
 			}
 
-            if err != nil {
-                return fmt.Errorf("Password policy error: %w", err)
-            }
+			if err != nil {
+				return fmt.Errorf("Password policy error: %w", err)
+			}
 		}
 	}
 
@@ -534,66 +534,66 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 }
 
 func (s *Service) CreateBrowserVerificationFlow(ctx context.Context, cookies []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error) {
-    ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserVerificationFlow")
-    defer span.End()
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserVerificationFlow")
+	defer span.End()
 
-    flow, resp, err := s.kratos.FrontendApi().
-        CreateBrowserVerificationFlow(ctx).
-        Execute()
+	flow, resp, err := s.kratos.FrontendApi().
+		CreateBrowserVerificationFlow(ctx).
+		Execute()
 
-    if err != nil {
-        s.logger.Errorf("unable to create verification flow: %s", err)
-        return nil, nil, fmt.Errorf("unable to create verification flow: %w", err)
-    }
+	if err != nil {
+		s.logger.Errorf("unable to create verification flow: %s", err)
+		return nil, nil, fmt.Errorf("unable to create verification flow: %w", err)
+	}
 
-    if resp != nil {
-        cookies = resp.Cookies()
-    }
+	if resp != nil {
+		cookies = resp.Cookies()
+	}
 
-    return flow, cookies, nil
+	return flow, cookies, nil
 }
 
 func (s *Service) GetVerificationFlow(ctx context.Context, flowId string, cookies []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error) {
-    ctx, span := s.tracer.Start(ctx, "kratos.Service.GetVerificationFlow")
-    defer span.End()
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetVerificationFlow")
+	defer span.End()
 
-    req := s.kratos.FrontendApi().GetVerificationFlow(ctx).
-        Id(flowId).
-        Cookie(httpHelpers.CookiesToString(cookies))
+	req := s.kratos.FrontendApi().GetVerificationFlow(ctx).
+		Id(flowId).
+		Cookie(httpHelpers.CookiesToString(cookies))
 
-    flow, response, err := s.kratos.FrontendApi().GetVerificationFlowExecute(req)
-    if err != nil {
-        return nil, nil, fmt.Errorf("unable to fetch verification flow: %w", err)
-    }
+	flow, response, err := s.kratos.FrontendApi().GetVerificationFlowExecute(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to fetch verification flow: %w", err)
+	}
 
-    if response != nil {
-        cookies = response.Cookies()
-    }
+	if response != nil {
+		cookies = response.Cookies()
+	}
 
-    return flow, cookies, nil
+	return flow, cookies, nil
 }
 
 func (s *Service) UpdateVerificationFlow(ctx context.Context, flowId string, body kClient.UpdateVerificationFlowBody, cookies []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error) {
-    ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateVerificationFlow")
-    defer span.End()
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateVerificationFlow")
+	defer span.End()
 
-    req := s.kratos.FrontendApi().UpdateVerificationFlow(ctx).
-        Flow(flowId).
-        Cookie(httpHelpers.CookiesToString(cookies)).
-        UpdateVerificationFlowBody(body)
+	req := s.kratos.FrontendApi().UpdateVerificationFlow(ctx).
+		Flow(flowId).
+		Cookie(httpHelpers.CookiesToString(cookies)).
+		UpdateVerificationFlowBody(body)
 
-    flow, resp, err := s.kratos.FrontendApi().UpdateVerificationFlowExecute(req)
+	flow, resp, err := s.kratos.FrontendApi().UpdateVerificationFlowExecute(req)
 
-    if err != nil {
-        s.logger.Errorf("unable to update verification flow: %s", err)
-        return nil, nil, fmt.Errorf("unable to update verification flow: %w", err)
-    }
+	if err != nil {
+		s.logger.Errorf("unable to update verification flow: %s", err)
+		return nil, nil, fmt.Errorf("unable to update verification flow: %w", err)
+	}
 
-    if resp != nil {
-        cookies = resp.Cookies()
-    }
+	if resp != nil {
+		cookies = resp.Cookies()
+	}
 
-    return flow, cookies, err
+	return flow, cookies, err
 }
 
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
@@ -1362,6 +1362,23 @@ func (s *Service) contains(str []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func (s *Service) GetIdentityIDByEmail(ctx context.Context, email string) (string, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetIdentityIDByEmail")
+	defer span.End()
+
+	identities, _, err := s.kratosAdmin.IdentityApi().
+		ListIdentities(ctx).
+		CredentialsIdentifier(email).
+		Execute()
+	if err != nil {
+		return "", err
+	}
+	if len(identities) == 0 {
+		return "", fmt.Errorf("no identity found for email %s", email)
+	}
+	return identities[0].GetId(), nil
 }
 
 func (s *Service) HasTOTPAvailable(ctx context.Context, id string) (bool, error) {

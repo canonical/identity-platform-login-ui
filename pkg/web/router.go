@@ -19,6 +19,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
 	"github.com/canonical/identity-platform-login-ui/pkg/metrics"
 	"github.com/canonical/identity-platform-login-ui/pkg/status"
+	"github.com/canonical/identity-platform-login-ui/pkg/tenants"
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
@@ -87,6 +88,12 @@ func WithKratosPublicURL(url string) Option {
 	}
 }
 
+func WithTenantsService(s tenants.ServiceInterface) Option {
+	return func(r *routerConfig) {
+		r.tenantsService = s
+	}
+}
+
 func WithTracing(t tracing.TracingInterface) Option {
 	return func(r *routerConfig) {
 		r.tracer = t
@@ -122,6 +129,7 @@ type routerConfig struct {
 	tracer                        tracing.TracingInterface
 	monitor                       monitoring.MonitorInterface
 	logger                        logging.LoggerInterface
+	tenantsService                tenants.ServiceInterface
 }
 
 func NewRouter(opts ...Option) http.Handler {
@@ -205,6 +213,10 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		config.kratosPublicURL,
 		config.logger,
 	).RegisterEndpoints(router)
+
+	if config.tenantsService != nil {
+		tenants.NewAPI(config.tenantsService, config.logger).RegisterEndpoints(router)
+	}
 
 	metrics.NewAPI(config.logger).RegisterEndpoints(router)
 }

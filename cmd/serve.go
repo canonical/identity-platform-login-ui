@@ -26,6 +26,7 @@ import (
 	fga "github.com/canonical/identity-platform-login-ui/internal/openfga"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
+	"github.com/canonical/identity-platform-login-ui/pkg/tenants"
 	"github.com/canonical/identity-platform-login-ui/pkg/web"
 )
 
@@ -118,8 +119,11 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) (h
 		return nil, fmt.Errorf("invalid authorization model provided: %w", err)
 	}
 
+	tenantsService := tenants.NewService("http://localhost:8000")
+
 	router := web.NewRouter(
 		web.WithKratosClients(kClient, kAdminClient),
+		web.WithTenantsService(tenantsService),
 		web.WithHydraClient(hClient),
 		web.WithAuthzClient(authorizer),
 		web.WithCookieManager(cookieManager),
