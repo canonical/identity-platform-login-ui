@@ -164,7 +164,6 @@ const Login: NextPage = () => {
 
         await router.replace(
           {
-            pathname: "/ui/login",
             query: {
               ...router.query,
               flow: data.id,
