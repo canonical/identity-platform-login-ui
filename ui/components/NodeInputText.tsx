@@ -206,7 +206,10 @@ export const NodeInputText: FC<NodeInputProps> = ({
         e.preventDefault();
         e.stopPropagation();
         setIsDirty(false);
-        void dispatchSubmit(e, isIdentifierFirstGroup ? "identifier_first" : "password");
+        void dispatchSubmit(
+          e,
+          isIdentifierFirstGroup ? "identifier_first" : "password",
+        );
       }
     },
     [dispatchSubmit],
