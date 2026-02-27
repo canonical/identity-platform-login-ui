@@ -3,6 +3,7 @@ import { FormEvent } from "react";
 
 export type ValueSetter = (
   value: string | number | boolean | undefined,
+  key?: string,
 ) => Promise<void>;
 
 export type FormDispatcher = (
