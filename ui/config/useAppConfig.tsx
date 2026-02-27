@@ -15,21 +15,28 @@ const defaultAppConfig: AppConfig = {
   baseURL: "",
   identifierFirstEnabled: false,
   supportEmail: "",
-  flags: []
-}
+  flags: [],
+};
 
-type AppConfigContextValue = AppConfig & { configReady: boolean }
+type AppConfigContextValue = AppConfig & { configReady: boolean };
 
-const defaultAppContextValue: AppConfigContextValue = {...defaultAppConfig, configReady: false}
+const defaultAppContextValue: AppConfigContextValue = {
+  ...defaultAppConfig,
+  configReady: false,
+};
 
-const AppConfigContext = createContext<AppConfigContextValue>(defaultAppContextValue)
-
+const AppConfigContext = createContext<AppConfigContextValue>(
+  defaultAppContextValue,
+);
 
 function useAppConfig() {
   return useContext(AppConfigContext);
 }
 
-function hasFeatureFlag(requiredFlags: FeatureFlags, {flags: activeFlags, configReady}: AppConfigContextValue) {
+function hasFeatureFlag(
+  requiredFlags: FeatureFlags,
+  { flags: activeFlags, configReady }: AppConfigContextValue,
+) {
   if (!requiredFlags) {
     return false;
   }
@@ -42,27 +49,29 @@ function hasFeatureFlag(requiredFlags: FeatureFlags, {flags: activeFlags, config
     requiredFlags = [requiredFlags];
   }
 
-  return  requiredFlags.every(requiredFlag => activeFlags.includes(requiredFlag));
+  return requiredFlags.every((requiredFlag) =>
+    activeFlags.includes(requiredFlag),
+  );
 }
 
-
-function AppConfigProvider({children}: { children: React.ReactNode }): React.JSX.Element {
-  const [contextValue, setContextValue] = useState<AppConfigContextValue>(defaultAppContextValue)
+function AppConfigProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const [contextValue, setContextValue] = useState<AppConfigContextValue>(
+    defaultAppContextValue,
+  );
 
   useEffect(() => {
-    fetch("../api/v0/app-config", {cache: 'no-store'})
-      .then(value => value.json())
-      .then(value => setContextValue({...value, configReady: true}))
+    fetch("../api/v0/app-config", { cache: "no-store" })
+      .then((value) => value.json())
+      .then((value) => setContextValue({ ...value, configReady: true }))
       .catch(() => setContextValue(defaultAppContextValue));
-  }, [])
+  }, []);
 
-  return (
-    <AppConfigContext value={contextValue}>
-      {children}
-    </AppConfigContext>
-  )
+  return <AppConfigContext value={contextValue}>{children}</AppConfigContext>;
 }
 
-export {AppConfigProvider, useAppConfig, hasFeatureFlag};
-export type {FeatureFlags};
-
+export { AppConfigProvider, useAppConfig, hasFeatureFlag };
+export type { FeatureFlags };
