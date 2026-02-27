@@ -3576,6 +3576,130 @@ func TestUpdateSettingsFlowForbiddenStatus(t *testing.T) {
 	}
 }
 
+func TestParseSettingsFlowProfileMethodBodySuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
+
+	ctx := context.Background()
+
+	session := kClient.NewSession("test-session")
+	session.Identity = kClient.NewIdentity("id", "schema", "url", map[string]any{
+		"email": "test@example.com",
+		"name":  "Old Name",
+	})
+	sessionRequest := kClient.FrontendAPIToSessionRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.Service.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().ToSession(gomock.Any()).Times(1).Return(sessionRequest)
+	mockKratosFrontendApi.EXPECT().ToSessionExecute(gomock.Any()).Times(1).Return(session, &http.Response{}, nil)
+
+	// User attempts to change email while updating profile
+	payload := map[string]any{
+		"method":     "profile",
+		"csrf_token": "token123",
+		"traits": map[string]any{
+			"email": "impersonated@example.com",
+			"name":  "New Name",
+		},
+	}
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal payload: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	svc := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger)
+	b, err := svc.ParseSettingsFlowMethodBody(req)
+
+	if err != nil {
+		t.Fatalf("expected error to be nil, got %v", err)
+	}
+
+	profileMethod := b.UpdateSettingsFlowWithProfileMethod
+	if profileMethod == nil {
+		t.Fatalf("expected profile method, got nil")
+	}
+
+	if *profileMethod.CsrfToken != "token123" {
+		t.Fatalf("expected csrf_token to be token123, got %s", *profileMethod.CsrfToken)
+	}
+
+	traits := profileMethod.Traits
+	if traits == nil {
+		t.Fatalf("expected traits to not be nil")
+	}
+
+	if traits["email"] != "test@example.com" {
+		t.Fatalf("expected email to be unchanged (test@example.com), got %v", traits["email"])
+	}
+	if traits["name"] != "New Name" {
+		t.Fatalf("expected name to be updated (New Name), got %v", traits["name"])
+	}
+}
+
+func TestParseSettingsFlowProfileMethodBodySessionFail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
+
+	ctx := context.Background()
+
+	sessionRequest := kClient.FrontendAPIToSessionRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.Service.ToSession").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().ToSession(gomock.Any()).Times(1).Return(sessionRequest)
+	mockKratosFrontendApi.EXPECT().ToSessionExecute(gomock.Any()).Times(1).Return(nil, &http.Response{}, fmt.Errorf("session invalid or expired"))
+
+	payload := map[string]any{
+		"method":     "profile",
+		"csrf_token": "token123",
+		"traits": map[string]any{
+			"name": "New Name",
+		},
+	}
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal payload: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+
+	svc := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger)
+
+	_, err = svc.ParseSettingsFlowMethodBody(req)
+
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "session invalid or expired") {
+		t.Fatalf("expected session error, got %v", err)
+	}
+}
+
 func TestHasNotEnoughLookupSecretsLeftSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
