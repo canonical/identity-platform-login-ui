@@ -26,9 +26,8 @@ session:
 
 selfservice:
     allowed_return_urls:
-      - http://localhost/ui/
-    default_browser_return_url:
-        http://localhost/ui/
+      - http://localhost/ui
+    default_browser_return_url: http://localhost/ui/manage_details
     flows:
         error:
             ui_url: http://localhost/ui/error
@@ -46,7 +45,6 @@ selfservice:
             ui_url: http://localhost/ui/reset_email
             use: code
             after:
-                default_browser_return_url: http://localhost/ui
                 hooks:
                     - hook: revoke_active_sessions
         settings:
