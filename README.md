@@ -121,7 +121,12 @@ CLIENT_SECRET=<client_secret>
 
 From the root folder of the repository, run the docker-compose:
 ```shell
-docker compose up
+docker compose -f docker-compose.dev.yml up --build
+```
+
+For frontend development, you can easily tell the kratos instance to use port 3001 for login-ui endpoints by running docker compose with the LOGIN_UI_BASE_URL env var:
+```shell
+LOGIN_UI_BASE_URL=http://localhost:3001 docker compose up
 ```
 
 To test the authorization code flow you can use the Ory Hydra CLI:

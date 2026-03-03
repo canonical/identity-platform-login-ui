@@ -49,6 +49,20 @@ services:
       - LOG_LEVEL=trace
       - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_ID=${CLIENT_ID}
       - SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_SECRET=${CLIENT_SECRET}
+
+      - SERVE_PUBLIC_BASE_URL=${LOGIN_UI_BASE_URL:-http://localhost}
+      - SELFSERVICE_ALLOWED_RETURN_URLS_0=${LOGIN_UI_BASE_URL:-http://localhost}/ui
+      - SELFSERVICE_DEFAULT_BROWSER_RETURN_URL=${LOGIN_UI_BASE_URL:-http://localhost}/ui/manage_details
+      - SELFSERVICE_FLOWS_ERROR_UI_URL=${LOGIN_UI_BASE_URL:-http://localhost}/ui/error
+      - SELFSERVICE_FLOWS_LOGIN_UI_URL=${LOGIN_UI_BASE_URL:-http://localhost}/ui/login
+      - SELFSERVICE_FLOWS_RECOVERY_UI_URL=${LOGIN_UI_BASE_URL:-http://localhost}/ui/reset_email
+      - SELFSERVICE_FLOWS_SETTINGS_UI_URL=${LOGIN_UI_BASE_URL:-http://localhost}/ui/reset_password
+      - SELFSERVICE_FLOWS_SETTINGS_AFTER_OIDC_DEFAULT_BROWSER_RETURN_URL=${LOGIN_UI_BASE_URL:-http://localhost}/ui/manage_connected_accounts
+      - SELFSERVICE_FLOWS_SETTINGS_AFTER_WEBAUTHN_DEFAULT_BROWSER_RETURN_URL=${LOGIN_UI_BASE_URL:-http://localhost}/ui/setup_passkey
+      - SELFSERVICE_FLOWS_REGISTRATION_UI_URL=${LOGIN_UI_BASE_URL:-http://localhost}/ui/register
+      - SELFSERVICE_FLOWS_VERIFICATION_UI_URL=${LOGIN_UI_BASE_URL:-http://localhost}/ui/verification
+      - SELFSERVICE_METHODS_WEBAUTHN_CONFIG_RP_ORIGINS_0=${LOGIN_UI_BASE_URL:-http://localhost}
+
     command: exec kratos serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
     volumes:
       - type: volume
