@@ -46,6 +46,19 @@ function buildTraits(values: any): Traits {
   };
 }
 
+function redirectTo(url: string, router: NextRouter): void {
+  const newUrl = new URL(url);
+  const kratosParams = Object.fromEntries(newUrl.searchParams.entries());
+
+  void router.push({
+    pathname: newUrl.pathname,
+    query: {
+      ...router.query,
+      ...kratosParams,
+    },
+  });
+}
+
 const flowPreparerMap: PreparerMap = {
   oidc: (values: any): UpdateRegistrationFlowBody => ({
     ...(values as UpdateRegistrationFlowWithOidcMethod),
@@ -125,21 +138,28 @@ const Registration: NextPage = () => {
           flow: String(flow?.id),
           updateRegistrationFlowBody: body,
         })
-        .then(({ data }) => {
-          if ("continue_with" in data) {
-            const continue_with = (
-              data as {
-                continue_with: {
-                  action: string;
-                  redirect_browser_to: string;
-                }[];
-              }
-            ).continue_with[0];
-            if (continue_with.action == "redirect_browser_to") {
-              window.location.href = continue_with.redirect_browser_to;
+        .then(({ data }: any) => {
+          if (data.continue_with && Array.isArray(data.continue_with)) {
+            const verificationAction = data.continue_with.find(
+              (item: any) => item.action === "show_verification_ui"
+            );
+
+            if (verificationAction) {
+              redirectTo(verificationAction.flow.url, router);
+              return;
             }
-            return;
+
+            // fallback to redirect_browser_to
+            const redirectAction = data.continue_with.find(
+              (item: any) => item.action === "redirect_browser_to"
+            );
+
+            if (redirectAction) {
+              redirectTo(redirectAction.redirect_browser_to, router);
+              return;
+            }
           }
+
           setFlow(data as unknown as RegistrationFlow);
         })
         .catch(handleFlowError("registration", setFlow))
