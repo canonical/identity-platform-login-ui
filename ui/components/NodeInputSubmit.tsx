@@ -3,7 +3,7 @@ import { Button } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
 import React, { FC } from "react";
 import { getProviderImage } from "../util/logos";
-import { isResendVerificationCode } from "../util/constants";
+import { isRegisterEmailSubmit, isResendVerificationCode } from "../util/constants";
 
 export const NodeInputSubmit: FC<NodeInputProps> = ({
   node,
@@ -88,7 +88,9 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
           label
         )}
       </Button>
+      {isRegisterEmailSubmit(node) && <>Already have an account? <a href="/ui/login">Sign in</a></>}
       {afterComponent}
+      {isRegisterEmailSubmit(node) && <div className="row u-sv5"><hr className="p-rule" /></div>}
     </>
   );
 };

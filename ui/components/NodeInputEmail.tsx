@@ -20,9 +20,11 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     ? message.split('"')[1]
     : message;
 
-  if (value == undefined) {
-    void setValue(defaultValue);
-  }
+  useEffect(() => {
+    if (value == undefined) {
+      void setValue(defaultValue);
+    }
+  }, []);
 
   const getError = useCallback(() => {
     const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
