@@ -105,6 +105,11 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
           label
         )}
       </Button>
+      {isRegisterEmailSubmit(node) && (
+        <>
+          Already have an account? <a href="/ui/login">Sign in</a>
+        </>
+      )}
       {afterComponent}
       {renderRegistrationCta()}
     </>
