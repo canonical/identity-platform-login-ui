@@ -53,15 +53,6 @@ export const NodeInputText: FC<NodeInputProps> = ({
     }
   }, [node.messages]);
 
-  useEffect(() => {
-    if (isVerificationCodeInput(node)) {
-      return;
-    }
-    if (message) {
-      setInputValue(message);
-    }
-  }, [message, setInputValue]);
-
   const beforeComponent = (
     node.meta.label?.context as {
       beforeComponent: React.ReactNode;
@@ -73,20 +64,6 @@ export const NodeInputText: FC<NodeInputProps> = ({
       afterComponent: React.ReactNode;
     }
   )?.afterComponent;
-
-  useEffect(() => {
-    if (node.messages.length === 0) {
-      return;
-    }
-    for (const msg of node.messages) {
-      if (msg.type !== "info") {
-        return;
-      }
-    }
-    if (message) {
-      setInputValue(message);
-    }
-  }, [message, setInputValue]);
 
   const getError = useMemo(() => {
     const currentValue = (typeof value === "string" && value) || "";
