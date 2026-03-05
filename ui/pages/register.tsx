@@ -187,18 +187,21 @@ const Registration: NextPage = () => {
 
       return !noShowFields.includes(name);
     });
-    const reorderedNodes: UiNode[] = filteredNodes.sort((a:UiNode, b:UiNode) => {
-      return nodeOrder.indexOf(a.group) - nodeOrder.indexOf(b.group);
-    });
+    const reorderedNodes: UiNode[] = filteredNodes.sort(
+      (a: UiNode, b: UiNode) => {
+        return nodeOrder.indexOf(a.group) - nodeOrder.indexOf(b.group);
+      },
+    );
 
     console.log(reorderedNodes);
-    return {...flow, ui: {...flow.ui, nodes: reorderedNodes}};
+    return { ...flow, ui: { ...flow.ui, nodes: reorderedNodes } };
   }, [flow]);
 
-  if(flow?.state==="choose_method" && flow.ui.nodes.some(isRegisterPasswordInput)) {
-    return (
-      <RegisterPassword handleSubmit={handleSubmit} flow={lookupFlow} />
-    );
+  if (
+    flow?.state === "choose_method" &&
+    flow.ui.nodes.some(isRegisterPasswordInput)
+  ) {
+    return <RegisterPassword flow={lookupFlow} />;
   }
 
   return (
