@@ -124,7 +124,7 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) (h
 		web.WithAuthzClient(authorizer),
 		web.WithCookieManager(cookieManager),
 		web.WithFS(distFS),
-		web.WithFlags(specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.IdentifierFirstEnabled),
+		web.WithFlags(specs.VerificationEnabled, specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.IdentifierFirstEnabled),
 		web.WithBaseURL(specs.BaseURL),
 		web.WithSupportEmail(specs.SupportEmail),
 		web.WithFeatureFlags(specs.FeatureFlags),
