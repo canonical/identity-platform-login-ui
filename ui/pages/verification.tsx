@@ -30,6 +30,7 @@ const Verification: NextPage = () => {
     return_to: returnTo,
     flow: flowId,
     code: verificationCode,
+    email: queryEmail,
   } = router.query;
 
   const RESEND_CODE_TIMEOUT = 60000; // 60 seconds
@@ -109,12 +110,48 @@ const Verification: NextPage = () => {
         returnTo: returnTo ? String(returnTo) : undefined,
       })
       .then(({ data }) => {
-        setFlow(data);
-        setFlowIDQueryParam(String(data.id));
+        if (queryEmail && data.state === "choose_method") {
+          const csrfNode = data.ui.nodes.find(
+            (node) =>
+              (node.attributes as UiNodeInputAttributes).name === "csrf_token",
+          );
+          const csrfToken = csrfNode
+            ? ((csrfNode.attributes as UiNodeInputAttributes).value as string)
+            : "";
+
+          kratos
+            .updateVerificationFlow({
+              flow: data.id,
+              updateVerificationFlowBody: {
+                email: String(queryEmail),
+                method: "code",
+                csrf_token: csrfToken,
+              },
+            })
+            .then((updateRes) => {
+              setFlow(updateRes.data);
+              setFlowIDQueryParam(String(updateRes.data.id));
+              disableButtonWithTimeout();
+
+              // Clean up the URL
+              const url = new URL(window.location.href);
+              url.searchParams.delete("email");
+              void router.replace(url.pathname + url.search, undefined, {
+                shallow: true,
+              });
+            })
+            .catch(() => {
+              setFlow(data);
+              setFlowIDQueryParam(String(data.id));
+            });
+        } else {
+          setFlow(data);
+          setFlowIDQueryParam(String(data.id));
+        }
       })
       .catch(handleFlowError("verification", setFlow))
       .catch(redirectToErrorPage);
-  }, [flowId, router, router.isReady, returnTo]);
+  }, [flowId, router, router.isReady, returnTo, queryEmail]);
 
   const handleSubmit = useCallback(
     (values: UpdateVerificationFlowBody) => {
@@ -209,7 +246,7 @@ const Verification: NextPage = () => {
           return Promise.reject(err);
         });
     },
-    [flow],
+    [flow, returnTo],
   );
 
   const userEmail = useMemo(() => {
@@ -258,7 +295,7 @@ const Verification: NextPage = () => {
         }),
       },
     };
-  }, [flow, resendDisabled]);
+  }, [flow, resendDisabled, userEmail]);
 
   if (!flow) {
     return <Spinner />;
