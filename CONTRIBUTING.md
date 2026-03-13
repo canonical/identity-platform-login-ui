@@ -39,10 +39,17 @@ Run the login UI dependencies:
 docker-compose -f docker-compose.dev.yml --build --force-recreate up
 ```
 
+> **Using GitHub Copilot?** We have built-in prompts and skills to help you set up
+> your environment and debug flows. In VS Code Copilot Chat or `gh copilot`, try typing:
+>
+> * `Use the setup-dev-env prompt` to start and verify the stack
+> * `Use the monitor-browser prompt` to have Copilot launch an isolated browser session, watch you click through a flow, and capture network/console logs
+> * `Use the debug-browser-errors skill` if a flow fails and you want Copilot to analyse the Kratos/Hydra logs to find the root cause
+
 Build and run the Login UI:
 
 ```shell
-make build
+make npm-build build
 
 export KRATOS_PUBLIC_URL=http://localhost:4433
 export KRATOS_ADMIN_URL=http://localhost:4434
@@ -106,7 +113,7 @@ docker compose -f docker-compose.dev.yml up
 And run with the store:
 
 ```shell
-make build
+make npm-build build
 
 ./app create-fga-model --fga-api-token 42 --fga-api-url http://localhost:8080 --store-id 01GP1254CHWJC1MNGVB0WDG1T0
 
