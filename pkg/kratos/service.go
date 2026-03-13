@@ -1538,6 +1538,57 @@ func (s *Service) HasNotEnoughLookupSecretsLeft(ctx context.Context, id string) 
 	return true, nil
 }
 
+func (s *Service) RequireVerificationForEmail(ctx context.Context, session *kClient.Session) (bool, string, error) {
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.RequireVerificationForEmail")
+	defer span.End()
+
+	if session == nil || session.Identity == nil || session.AuthenticationMethods == nil {
+		return false, "", nil
+	}
+
+	// enforce verification only on password login
+	pwdLogin := false
+	for _, method := range session.AuthenticationMethods {
+		if method.Method != nil && *method.Method == "password" {
+			pwdLogin = true
+			break
+		}
+	}
+
+	// skip verification enforcement for other methods
+	if !pwdLogin {
+		return false, "", nil
+	}
+
+	// check verifiable addresses
+	if len(session.Identity.VerifiableAddresses) == 0 {
+		return false, "", nil
+	}
+
+	traits, ok := session.Identity.Traits.(map[string]interface{})
+	if !ok {
+		return false, "", fmt.Errorf("failed to parse identity %s traits for verification check", session.Identity.GetId())
+	}
+
+	primaryIdentifier, ok := traits["email"].(string)
+	// this should never happen as kratos requires an email trait for password login
+	if !ok || primaryIdentifier == "" {
+		return false, "", fmt.Errorf("no email trait found for identity %s", session.Identity.GetId())
+	}
+
+	for _, addr := range session.Identity.VerifiableAddresses {
+		if addr.Value == primaryIdentifier {
+			if addr.Verified {
+				return false, "", nil // the identifier is verified, no need to enforce verification
+			}
+			return true, primaryIdentifier, nil // the identifier is not verified, enforce verification
+		}
+	}
+
+	s.logger.Debugf("Identity %s logged in with an identifier that is not marked as verifiable", session.Identity.GetId())
+	return false, "", nil
+}
+
 func (s *Service) is1FAMethod(method string) bool {
 	switch method {
 	case "password", "oidc":
