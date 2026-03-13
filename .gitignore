@@ -31,7 +31,9 @@ ui/test-results
 .env.test.local
 .env.production.local
 .idea
-.vscode
+# Ignore personal VS Code settings but track shared team config:
+# mcp.json (MCP servers), launch.json (debug config), extensions.json (recommended extensions)
+.vscode/settings.json
 
 npm-debug.log*
 yarn-debug.log*
