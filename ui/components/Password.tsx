@@ -32,13 +32,29 @@ const Password: FC<Props> = ({
     // }
     switch (check) {
       case "lowercase":
-        return /[a-z]/.test(password) ? "success" : isEditingPass ? "neutral" : "error";
+        return /[a-z]/.test(password)
+          ? "success"
+          : isEditingPass
+            ? "neutral"
+            : "error";
       case "uppercase":
-        return /[A-Z]/.test(password) ? "success" : isEditingPass ? "neutral" : "error";
+        return /[A-Z]/.test(password)
+          ? "success"
+          : isEditingPass
+            ? "neutral"
+            : "error";
       case "number":
-        return /[0-9]/.test(password) ? "success" : isEditingPass ? "neutral" : "error";
+        return /[0-9]/.test(password)
+          ? "success"
+          : isEditingPass
+            ? "neutral"
+            : "error";
       case "length":
-        return password.length >= 8 ? "success" : isEditingPass ? "neutral" : "error";
+        return password.length >= 8
+          ? "success"
+          : isEditingPass
+            ? "neutral"
+            : "error";
     }
   };
 
