@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
 
@@ -44,8 +43,6 @@ func TestMiddlewareResponseTime(t *testing.T) {
 	mockMonitor.EXPECT().GetService().Times(1)
 	mockMonitor.EXPECT().SetResponseTimeMetric(tags, gomock.Any()).Times(1).Return(nil)
 
-	assert := assert.New(t)
-
 	router := chi.NewMux()
 
 	router.Use(NewMiddleware(mockMonitor, mockLogger).ResponseTime())
@@ -54,8 +51,10 @@ func TestMiddlewareResponseTime(t *testing.T) {
 
 	// setup metrics endpoint
 	req, err := http.NewRequest(http.MethodGet, "/api/test", nil)
+	if err != nil {
+		t.Fatalf("error should be nil, got: %v", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
-	assert.Nil(err, "error should be nil")
 
 	rr := httptest.NewRecorder()
 
