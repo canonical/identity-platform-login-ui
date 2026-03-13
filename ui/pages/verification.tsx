@@ -30,6 +30,7 @@ const Verification: NextPage = () => {
     return_to: returnTo,
     flow: flowId,
     code: verificationCode,
+    email: queryEmail,
   } = router.query;
 
   const RESEND_CODE_TIMEOUT = 60000; // 60 seconds
@@ -109,12 +110,81 @@ const Verification: NextPage = () => {
         returnTo: returnTo ? String(returnTo) : undefined,
       })
       .then(({ data }) => {
-        setFlow(data);
-        setFlowIDQueryParam(String(data.id));
+        if (queryEmail && data.state === "choose_method") {
+          const csrfNode = data.ui.nodes.find(
+            (node) =>
+              (node.attributes as UiNodeInputAttributes).name === "csrf_token",
+          );
+          const csrfToken = csrfNode
+            ? ((csrfNode.attributes as UiNodeInputAttributes).value as string)
+            : "";
+
+          kratos
+            .updateVerificationFlow({
+              flow: data.id,
+              updateVerificationFlowBody: {
+                email: String(queryEmail),
+                method: "code",
+                csrf_token: csrfToken,
+              },
+            })
+            .then((updateRes) => {
+              if (
+                updateRes.data.state === "sent_email" &&
+                updateRes.data.ui.messages?.find(
+                  (msg) => msg.type === "error",
+                ) === undefined
+              ) {
+                const codeUiNode = updateRes.data.ui.nodes.find(
+                  isVerificationCodeInput,
+                ) as UiNode;
+                if (codeUiNode) {
+                  codeUiNode.meta = {
+                    ...codeUiNode.meta,
+                    label: {
+                      ...codeUiNode.meta.label,
+                      context: {
+                        ...codeUiNode.meta.label?.context,
+                        afterComponent: (
+                          <CountDownText
+                            initialSeconds={RESEND_CODE_TIMEOUT / 1000}
+                            wrapperText="Code sent. You can request again in "
+                            key={new Date().toISOString()}
+                          />
+                        ),
+                      },
+                    },
+                  } as UiNodeMeta;
+                }
+              }
+              setFlow(updateRes.data);
+              setFlowIDQueryParam(String(updateRes.data.id));
+              disableButtonWithTimeout();
+
+              // Clean up the URL
+              const restQuery = { ...router.query };
+              delete restQuery.email;
+              void router.replace(
+                {
+                  pathname: router.pathname,
+                  query: restQuery,
+                },
+                undefined,
+                { shallow: true },
+              );
+            })
+            .catch(() => {
+              setFlow(data);
+              setFlowIDQueryParam(String(data.id));
+            });
+        } else {
+          setFlow(data);
+          setFlowIDQueryParam(String(data.id));
+        }
       })
       .catch(handleFlowError("verification", setFlow))
       .catch(redirectToErrorPage);
-  }, [flowId, router, router.isReady, returnTo]);
+  }, [flowId, router, returnTo, queryEmail, flow, redirectToErrorPage]);
 
   const handleSubmit = useCallback(
     (values: UpdateVerificationFlowBody) => {
@@ -209,7 +279,7 @@ const Verification: NextPage = () => {
           return Promise.reject(err);
         });
     },
-    [flow],
+    [flow, returnTo, router],
   );
 
   const userEmail = useMemo(() => {
@@ -258,7 +328,7 @@ const Verification: NextPage = () => {
         }),
       },
     };
-  }, [flow, resendDisabled]);
+  }, [flow, resendDisabled, userEmail]);
 
   if (!flow) {
     return <Spinner />;
@@ -272,7 +342,7 @@ const Verification: NextPage = () => {
         </Notification>
         <Spinner
           text={`You will be redirected to ${
-            returnTo ? (returnTo as string) : "/ui/manage_details"
+            returnTo ? (returnTo as string).split("?")[0] : "/ui/manage_details"
           }`}
         />
       </PageLayout>
