@@ -24,21 +24,21 @@ const Password: FC<Props> = ({
   const [confirmation, setConfirmation] = React.useState("");
   const [hasPassBlur, setPasswordBlurred] = React.useState(false);
   const [hasConfirmBlur, setConfirmationBlurred] = React.useState(false);
+  const [isEditingPass, setIsEditingPass] = React.useState(true);
 
   const getStatus = (check: PasswordCheckType) => {
-    if (!hasPassBlur) {
-      return "neutral";
-    }
-
+    // if (isEditingPass) {
+    //   return "neutral";
+    // }
     switch (check) {
       case "lowercase":
-        return /[a-z]/.test(password) ? "success" : "error";
+        return /[a-z]/.test(password) ? "success" : isEditingPass ? "neutral" : "error";
       case "uppercase":
-        return /[A-Z]/.test(password) ? "success" : "error";
+        return /[A-Z]/.test(password) ? "success" : isEditingPass ? "neutral" : "error";
       case "number":
-        return /[0-9]/.test(password) ? "success" : "error";
+        return /[0-9]/.test(password) ? "success" : isEditingPass ? "neutral" : "error";
       case "length":
-        return password.length >= 8 ? "success" : "error";
+        return password.length >= 8 ? "success" : isEditingPass ? "neutral" : "error";
     }
   };
 
@@ -58,7 +58,11 @@ const Password: FC<Props> = ({
         type="password"
         label={label}
         placeholder="Your password"
-        onBlur={() => setPasswordBlurred(true)}
+        onBlur={() => {
+          setPasswordBlurred(true);
+          setIsEditingPass(false);
+        }}
+        onFocus={() => setIsEditingPass(true)}
         onChange={(e) => setPassword(e.target.value)}
         value={password}
         help={checks.length > 0 && "Password must contain"}
