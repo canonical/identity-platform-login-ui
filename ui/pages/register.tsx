@@ -141,7 +141,7 @@ const Registration: NextPage = () => {
         .then(({ data }: any) => {
           if (data.continue_with && Array.isArray(data.continue_with)) {
             const verificationAction = data.continue_with.find(
-              (item: any) => item.action === "show_verification_ui"
+              (item: any) => item.action === "show_verification_ui",
             );
 
             if (verificationAction) {
@@ -151,7 +151,7 @@ const Registration: NextPage = () => {
 
             // fallback to redirect_browser_to
             const redirectAction = data.continue_with.find(
-              (item: any) => item.action === "redirect_browser_to"
+              (item: any) => item.action === "redirect_browser_to",
             );
 
             if (redirectAction) {
