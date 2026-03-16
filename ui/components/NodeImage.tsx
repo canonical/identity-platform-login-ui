@@ -17,6 +17,8 @@ export const NodeImage: FC<Props> = ({ node, attributes }) => {
         data-testid={`node/image/${attributes.id}`}
         src={attributes.src}
         alt={node.meta.label?.text ?? ""}
+        width={attributes.width ?? 256}
+        height={attributes.height ?? 256}
       />
     </>
   );
