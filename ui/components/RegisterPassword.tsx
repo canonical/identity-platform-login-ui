@@ -4,12 +4,16 @@ import PageLayout from "./PageLayout";
 import Password from "./Password";
 import { useCallback, useMemo, useState } from "react";
 import {
+  ContinueWith,
+  ContinueWithVerificationUi,
   RegistrationFlow,
   UiNode,
   UiNodeInputAttributes,
   UpdateRegistrationFlowBody,
 } from "@ory/client";
 import { kratos } from "../api/kratos";
+import { redirectTo } from "../pages/register";
+import { useRouter } from "next/router";
 
 interface RegisterPasswordProps {
   flow: RegistrationFlow | undefined;
@@ -18,6 +22,8 @@ interface RegisterPasswordProps {
 export const RegisterPassword = ({ flow }: RegisterPasswordProps) => {
   const [password, setPassword] = useState("");
   const [isPassValid, setPassValid] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   const CSRFToken = useMemo(() => {
     if (!flow) return "";
@@ -34,6 +40,7 @@ export const RegisterPassword = ({ flow }: RegisterPasswordProps) => {
     (e: React.FormEvent<HTMLFormElement>) => {
       if (!flow) return;
       e.preventDefault();
+      setIsSubmitting(true);
       const emailNode: UiNode = flow?.ui.nodes.find(
         (node: UiNode) =>
           (node.attributes as UiNodeInputAttributes).name === "traits.email",
@@ -54,13 +61,39 @@ export const RegisterPassword = ({ flow }: RegisterPasswordProps) => {
           flow: flow.id,
           updateRegistrationFlowBody: values,
         })
-        .then(() => {
-          // Handle successful submission, e.g., navigate to the next page
-          window.location.href = "/ui/verification";
+        .then((response) => {
+          const result = response.data;
+          console.log(result);
+          if (result.continue_with && Array.isArray(result.continue_with)) {
+            const verificationAction: ContinueWith | undefined =
+              result.continue_with.find(
+                (item) => item.action === "show_verification_ui",
+              );
+
+            if (verificationAction) {
+              const url =
+                (verificationAction as ContinueWithVerificationUi).flow.url ??
+                "";
+              redirectTo(url, router);
+              return;
+            }
+
+            // fallback to redirect_browser_to
+            const redirectAction: ContinueWith | undefined =
+              result.continue_with.find(
+                (item) => item.action === "redirect_browser_to",
+              );
+
+            if (redirectAction) {
+              redirectTo(redirectAction.redirect_browser_to, router);
+              return;
+            }
+          }
         })
         .catch((error) => {
           // Handle errors, e.g., display error messages
           console.error("Error submitting registration flow:", error);
+          setIsSubmitting(false);
         });
     },
     [password, CSRFToken, flow],
@@ -80,7 +113,7 @@ export const RegisterPassword = ({ flow }: RegisterPasswordProps) => {
         <Button
           type="submit"
           appearance="positive"
-          disabled={!isPassValid}
+          disabled={!isPassValid || isSubmitting}
           className="u-no-margin--bottom"
         >
           Next

@@ -46,12 +46,15 @@ function buildTraits(values: any): Traits {
   };
 }
 
-function redirectTo(url: string, router: NextRouter): void {
+export function redirectTo(url: string, router: NextRouter): void {
   const newUrl = new URL(url);
   const kratosParams = Object.fromEntries(newUrl.searchParams.entries());
-
+  const basePath = router.basePath || "";
+  const pathWithoutBase = newUrl.pathname.startsWith(basePath)
+    ? newUrl.pathname.slice(basePath.length)
+    : newUrl.pathname;
   void router.push({
-    pathname: newUrl.pathname,
+    pathname: pathWithoutBase,
     query: {
       ...router.query,
       ...kratosParams,
@@ -132,7 +135,6 @@ const Registration: NextPage = () => {
     (values: UpdateRegistrationFlowBody) => {
       const method = getFlowMethod(values);
       const body: UpdateRegistrationFlowBody = flowPreparerMap[method](values);
-      console.log(values);
       return kratos
         .updateRegistrationFlow({
           flow: String(flow?.id),
@@ -213,7 +215,6 @@ const Registration: NextPage = () => {
       },
     );
 
-    console.log(reorderedNodes);
     return { ...flow, ui: { ...flow.ui, nodes: reorderedNodes } };
   }, [flow]);
 
