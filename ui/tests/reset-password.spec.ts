@@ -10,7 +10,10 @@ const USER_PASSWORD_NEW = "abcABC123!!!";
 test("reset password from oidc app", async ({ browser, context, page }) => {
   resetIdentities();
   await startNewAuthFlow(page);
+  const emailInput = page.getByLabel("Email");
 
+  await emailInput.fill(USER_EMAIL);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("link", { name: "Reset password" }).click();
 
   await page.getByLabel("Email").fill(USER_EMAIL);
@@ -22,7 +25,6 @@ test("reset password from oidc app", async ({ browser, context, page }) => {
   const totpSetupKey = await setupTotp(page);
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
-  await finishAuthFlow(page);
 
   // Start login in a new context as user is already authenticated within the current context
   const newContext = await browser.newContext();
@@ -31,9 +33,13 @@ test("reset password from oidc app", async ({ browser, context, page }) => {
   await startNewAuthFlow(newPage);
 
   await userPassLogin(newPage, USER_EMAIL, USER_PASSWORD);
-  await expect(newPage.getByText("Incorrect username or password")).toBeVisible();
+  await expect(newPage.getByText("Incorrect password. Please try again.")).toBeVisible();
 
-  await userPassLogin(newPage, USER_EMAIL, USER_PASSWORD_NEW);
+  // Since the email step is already completed, we do not use userPassLogin(), instead we just fill the password field directly
+  const passwordInput = newPage.getByRole("textbox", { name: "Password" });
+  await passwordInput.fill(USER_PASSWORD_NEW);
+  await newPage.getByRole("button", { name: "Sign in", exact: true }).click();
+
   await enterTotpCode(newPage, totpSetupKey);
 
   await finishAuthFlow(newPage);
