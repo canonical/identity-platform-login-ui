@@ -25,6 +25,7 @@ export type Values = Partial<
 
 export type Methods =
   | "oidc"
+  | "identifier_first"
   | "password"
   | "code"
   | "profile"
