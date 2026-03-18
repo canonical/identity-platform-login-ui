@@ -13,6 +13,9 @@ $breakpoint-navigation-threshold: 820px;
 @include vf-p-icon-profile;
 @include vf-p-icon-show;
 @include vf-p-icon-warning-grey;
+@include vf-p-icon-private-key;
+
+
 
 body {
   background-color: $color-paper;
@@ -111,6 +114,9 @@ hr {
 
 .p-card {
   background-color: $color-x-light;
+  .clickable {
+    cursor: pointer;
+  }
 }
 
 .self-serve-logo {
@@ -224,4 +230,37 @@ hr {
   .p-form-validation__message {
     margin-top: -.2rem;
   }
+}
+
+.secure-account-options {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.m-auto {
+  margin: auto;
+}
+
+.justify-items--end {
+  justify-items: end;
+}
+
+.p-icon--qr-code {
+  background-size: contain;
+  height: 1rem;
+  width: 1rem;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: inline-block;
+  font-size: inherit;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  vertical-align: calc(0.5px + 0.3465em - 0.5rem);
+  background-image: url('../../public/logos/qr-code-symbolic.svg');
 }

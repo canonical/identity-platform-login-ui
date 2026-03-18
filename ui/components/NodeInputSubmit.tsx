@@ -3,7 +3,10 @@ import { Button, Link } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
 import React, { FC } from "react";
 import { getProviderImage } from "../util/logos";
-import { isResendVerificationCode } from "../util/constants";
+import {
+  isRegisterEmailSubmit,
+  isResendVerificationCode,
+} from "../util/constants";
 import { ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN } from "../util/constants";
 
 export const NodeInputSubmit: FC<NodeInputProps> = ({
