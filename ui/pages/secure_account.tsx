@@ -24,7 +24,9 @@ const secureAccount: NextPage = () => {
             <Col size={5} className="d-flex">
               <p style={{ marginBlock: "auto" }}>
                 <strong>Set up Passkey (recommended)</strong> <br />
-                <small>Verify with your FaceID, TouchID, PIN or Security key.</small>
+                <small>
+                  Verify with your FaceID, TouchID, PIN or Security key.
+                </small>
               </p>
             </Col>
           </Row>
@@ -46,7 +48,9 @@ const secureAccount: NextPage = () => {
             <Col size={5} className="d-flex">
               <p style={{ marginBlock: "auto" }}>
                 <strong>Set up an Authenticator App</strong> <br />
-                <small>Verify by entering a 6-digit code from your authenticator app.</small>
+                <small>
+                  Verify by entering a 6-digit code from your authenticator app.
+                </small>
               </p>
             </Col>
           </Row>
