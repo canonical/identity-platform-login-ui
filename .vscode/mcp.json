@@ -1,0 +1,58 @@
+{
+	// MCP servers for VS Code Copilot Chat.
+	// Each server is installed on-demand via npx — no global installs needed.
+	//
+	// IMPORTANT: a parallel copy of this config exists at .github/copilot/mcp.json
+	// for gh copilot CLI users. Keep both in sync when adding or changing servers.
+	// Differences: this file uses ${input:figmaApiKey} for the Figma key;
+	// .github/copilot/mcp.json uses $FIGMA_API_KEY (env var).
+	"servers": {
+		// Chrome DevTools MCP — live console/network/DOM/performance inspection against a running app.
+		// Docs: https://github.com/ChromeDevTools/chrome-devtools-mcp
+		"chrome-devtools": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"chrome-devtools-mcp@latest"
+			]
+		},
+
+		// Framelink Figma MCP — fetch layout, spacing, colours and components from Figma frames.
+		// Requires a personal Figma access token:
+		//   https://help.figma.com/hc/en-us/articles/8085703771159
+		// VS Code will prompt you for the token on first use and store it securely.
+		// Docs: https://github.com/GLips/Figma-Context-MCP
+		"figma": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"figma-developer-mcp",
+				"--stdio"
+			],
+			"env": {
+				"FIGMA_API_KEY": "${input:figmaApiKey}"
+			}
+		}
+
+		// OPTIONAL — BrowserMCP: connects to your existing logged-in Chrome session.
+		// Useful for debugging auth flows without going through the full login sequence.
+		// Requires installing the BrowserMCP Chrome extension first: https://browsermcp.io/install
+		// To enable, uncomment the block below:
+		//
+		// "browsermcp": {
+		//   "type": "stdio",
+		//   "command": "npx",
+		//   "args": ["-y", "@browsermcp/mcp@latest"]
+		// }
+	},
+	"inputs": [
+		{
+			"id": "figmaApiKey",
+			"type": "promptString",
+			"description": "Figma personal access token (Settings → Security → Personal access tokens)",
+			"password": true
+		}
+	]
+}

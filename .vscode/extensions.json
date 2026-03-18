@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    // Copilot
+    "github.copilot",
+    "github.copilot-chat",
+    // Go backend
+    "golang.go",
+    // Frontend tooling
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    // Playwright E2E tests (integrates with the Playwright MCP server)
+    "ms-playwright.playwright"
+  ]
+}
