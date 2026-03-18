@@ -21,10 +21,10 @@ const secureAccount: NextPage = () => {
                 <Icon name="private-key" />
               </h1>
             </Col>
-            <Col size={5}>
-              <p>
+            <Col size={5} className="d-flex">
+              <p style={{ marginBlock: "auto" }}>
                 <strong>Set up Passkey (recommended)</strong> <br />
-                Verify with your FaceID, TouchID, PIN or Security key.
+                <small>Verify with your FaceID, TouchID, PIN or Security key.</small>
               </p>
             </Col>
           </Row>
@@ -43,10 +43,10 @@ const secureAccount: NextPage = () => {
                 <i className="p-icon--qr-code" />
               </h1>
             </Col>
-            <Col size={5}>
-              <p>
+            <Col size={5} className="d-flex">
+              <p style={{ marginBlock: "auto" }}>
                 <strong>Set up an Authenticator App</strong> <br />
-                Verify by entering a 6-digit code from your authenticator app.
+                <small>Verify by entering a 6-digit code from your authenticator app.</small>
               </p>
             </Col>
           </Row>
