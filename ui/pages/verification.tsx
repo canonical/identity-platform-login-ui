@@ -45,6 +45,39 @@ const Verification: NextPage = () => {
     }, RESEND_CODE_TIMEOUT);
   };
 
+  const handleSentEmailState = (flowData: VerificationFlow) => {
+    if (
+      flowData.state === "sent_email" &&
+      flowData.ui.messages?.find((msg) => msg.type === "error") === undefined
+    ) {
+      // Check if email is sent and there is no error message
+      // If no error message, add success message and disable resend button for 60 seconds
+      const codeUiNode = flowData.ui.nodes.find(
+        isVerificationCodeInput,
+      ) as UiNode;
+      if (codeUiNode) {
+        codeUiNode.meta = {
+          ...codeUiNode.meta,
+          label: {
+            ...codeUiNode.meta.label,
+            context: {
+              ...codeUiNode.meta.label?.context,
+              afterComponent: (
+                <CountDownText
+                  initialSeconds={RESEND_CODE_TIMEOUT / 1000}
+                  wrapperText="Code sent. You can request again in "
+                  key={new Date().toISOString()}
+                />
+              ),
+            },
+          },
+        } as UiNodeMeta;
+      }
+      // Disable resend button for 60 seconds
+      disableButtonWithTimeout();
+    }
+  };
+
   const redirectToErrorPage = () => {
     const idParam = flowId ? `?id=${flowId.toString()}` : "";
     window.location.href = `./error${idParam}`;
@@ -66,36 +99,8 @@ const Verification: NextPage = () => {
                 String(verificationCode);
             }
           }
-          if (
-            data.state === "sent_email" &&
-            data.ui.messages?.find((msg) => msg.type === "error") === undefined
-          ) {
-            // Check if email is sent and there is no error message
-            // If no error message, add success message and disable resend button for 60 seconds
-            const codeUiNode = data.ui.nodes.find(
-              isVerificationCodeInput,
-            ) as UiNode;
-            if (codeUiNode) {
-              codeUiNode.meta = {
-                ...codeUiNode.meta,
-                label: {
-                  ...codeUiNode.meta.label,
-                  context: {
-                    ...codeUiNode.meta.label?.context,
-                    afterComponent: (
-                      <CountDownText
-                        initialSeconds={RESEND_CODE_TIMEOUT / 1000}
-                        wrapperText="Code sent. You can request again in "
-                        key={new Date().toISOString()}
-                      />
-                    ),
-                  },
-                },
-              } as UiNodeMeta;
-            }
-            // Disable resend button for 60 seconds
-            disableButtonWithTimeout();
-          }
+
+          handleSentEmailState(data);
           setFlowIDQueryParam(String(data.id));
           setFlow(data);
         })
@@ -129,37 +134,9 @@ const Verification: NextPage = () => {
               },
             })
             .then((updateRes) => {
-              if (
-                updateRes.data.state === "sent_email" &&
-                updateRes.data.ui.messages?.find(
-                  (msg) => msg.type === "error",
-                ) === undefined
-              ) {
-                const codeUiNode = updateRes.data.ui.nodes.find(
-                  isVerificationCodeInput,
-                ) as UiNode;
-                if (codeUiNode) {
-                  codeUiNode.meta = {
-                    ...codeUiNode.meta,
-                    label: {
-                      ...codeUiNode.meta.label,
-                      context: {
-                        ...codeUiNode.meta.label?.context,
-                        afterComponent: (
-                          <CountDownText
-                            initialSeconds={RESEND_CODE_TIMEOUT / 1000}
-                            wrapperText="Code sent. You can request again in "
-                            key={new Date().toISOString()}
-                          />
-                        ),
-                      },
-                    },
-                  } as UiNodeMeta;
-                }
-              }
+              handleSentEmailState(updateRes.data);
               setFlow(updateRes.data);
               setFlowIDQueryParam(String(updateRes.data.id));
-              disableButtonWithTimeout();
 
               // Clean up the URL
               const restQuery = { ...router.query };
@@ -225,36 +202,9 @@ const Verification: NextPage = () => {
             }
             return;
           }
-          if (
-            data.state === "sent_email" &&
-            data.ui.messages?.find((msg) => msg.type === "error") === undefined
-          ) {
-            // Check if email is sent and there is no error message
-            // If no error message, add success message and disable resend button for 60 seconds
-            const codeUiNode = data.ui.nodes.find(
-              isVerificationCodeInput,
-            ) as UiNode;
-            if (codeUiNode) {
-              codeUiNode.meta = {
-                ...codeUiNode.meta,
-                label: {
-                  ...codeUiNode.meta.label,
-                  context: {
-                    ...codeUiNode.meta.label?.context,
-                    afterComponent: (
-                      <CountDownText
-                        initialSeconds={RESEND_CODE_TIMEOUT / 1000}
-                        wrapperText="Code sent. You can request again in "
-                        key={new Date().toISOString()}
-                      />
-                    ),
-                  },
-                },
-              } as UiNodeMeta;
-            }
-            // Disable resend button for 60 seconds
-            disableButtonWithTimeout();
-          } else if (data.ui.messages?.find((msg) => msg.type === "error")) {
+
+          handleSentEmailState(data);
+          if (data.ui.messages?.find((msg) => msg.type === "error")) {
             const codeUiNode = data.ui.nodes.find(
               isVerificationCodeInput,
             ) as UiNode;
