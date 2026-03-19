@@ -21,6 +21,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
+const VERIFICATION_REQUIRED = "verification_required"
 const TOTP_REGISTRATION_REQUIRED = "totp_registration_required"
 const WEBAUTHN_REGISTRATION_REQUIRED = "webauthn_registration_required"
 const RegenerateBackupCodesError = "regenerate_backup_codes"
@@ -30,6 +31,7 @@ const LOGIN_UI_STATE_COOKIE = "login_ui_state"
 const SECURITY_CSRF_VIOLATION_ERROR = "security_csrf_violation"
 
 type API struct {
+	verificationEnabled           bool
 	mfaEnabled                    bool
 	oidcWebAuthnSequencingEnabled bool
 	service                       ServiceInterface
@@ -105,6 +107,18 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order to avoid this bug.
 	session, _, _ := a.service.CheckSession(r.Context(), r.Cookies())
 	if session != nil {
+		shouldEnforceVerification, unverifiedEmail, err := a.shouldEnforceVerificationWithSession(r.Context(), session)
+		if err != nil {
+			a.logger.Errorf("failed check for verification status: %v", err)
+			http.Error(w, "Failed check for verification", http.StatusInternalServerError)
+			return
+		}
+		if shouldEnforceVerification {
+			flowCookie := FlowStateCookie{LoginChallengeHash: hash(loginChallenge)}
+			a.verificationRedirect(w, r, returnTo, flowCookie, unverifiedEmail)
+			return
+		}
+
 		shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
 
 		if err != nil {
@@ -439,6 +453,14 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	lc := u.Query().Get("login_challenge")
 	flowCookie := FlowStateCookie{LoginChallengeHash: hash(lc)}
 
+	shouldEnforceVerification, unverifiedEmail, err := a.shouldEnforceVerification(r.Context(), cookies)
+	if err != nil {
+		err = fmt.Errorf("verification enforce check error: %v", err)
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	shouldEnforceMfa, err := a.shouldEnforceMFA(r.Context(), cookies)
 	if err != nil {
 		err = fmt.Errorf("enforce check error: %v", err)
@@ -457,6 +479,12 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setCookies(w, cookies)
+
+	if shouldEnforceVerification {
+		// redirect to verification ui and pass the original returnTo so the flow continues after verification
+		a.verificationRedirect(w, r, *loginFlow.ReturnTo, flowCookie, unverifiedEmail)
+		return
+	}
 
 	if shouldRegenerateBackupCodes {
 		a.lookupSecretsSettingsRedirect(w, r, flowId, *loginFlow.ReturnTo, flowCookie)
@@ -513,6 +541,80 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
+}
+
+func (a *API) shouldEnforceVerification(ctx context.Context, cookies []*http.Cookie) (bool, string, error) {
+	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceVerification")
+	defer span.End()
+
+	if !a.verificationEnabled {
+		return false, "", nil
+	}
+
+	session, _, err := a.service.CheckSession(ctx, cookies)
+	if err != nil {
+		if a.is40xError(err) {
+			a.logger.Debugf("check session failed: %v", err)
+			return false, "", nil
+		}
+		return false, "", err
+	}
+
+	return a.shouldEnforceVerificationWithSession(ctx, session)
+}
+
+func (a *API) shouldEnforceVerificationWithSession(ctx context.Context, session *client.Session) (bool, string, error) {
+	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceVerificationWithSession")
+	defer span.End()
+
+	if !a.verificationEnabled {
+		return false, "", nil
+	}
+
+	if session == nil {
+		return false, "", nil
+	}
+
+	shouldEnforceVerification, unverifiedEmail, err := a.service.RequireVerificationForEmail(ctx, session)
+	if err != nil {
+		a.logger.Debugf("verification check failed: %v", err)
+		return false, "", err
+	}
+
+	return shouldEnforceVerification, unverifiedEmail, nil
+}
+
+func (a *API) verificationRedirect(w http.ResponseWriter, r *http.Request, returnTo string, flowStateCookie FlowStateCookie, email string) {
+	redirect, err := url.JoinPath("/", a.contextPath, "/ui/verification")
+	if err != nil {
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// set return_to so that after verification the user is sent back to resume the login flow
+	redirectTo, err := url.ParseRequestURI(redirect)
+	if err != nil {
+		a.logger.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	q := redirectTo.Query()
+	q.Set("return_to", returnTo)
+	// add email to query params so that the verification ui directly asks for code sent to that email
+	if email != "" {
+		q.Set("email", email)
+	}
+	redirectTo.RawQuery = q.Encode()
+	rt := redirectTo.String()
+	errorId := VERIFICATION_REQUIRED
+
+	a.cookieManager.SetStateCookie(w, flowStateCookie)
+	a.redirectResponse(w, r, &BrowserLocationChangeRequired{
+		Error:      &client.GenericError{Id: &errorId},
+		RedirectTo: &rt,
+	})
 }
 
 func (a *API) redirectResponse(w http.ResponseWriter, r *http.Request, resp RedirectToInterface) {
@@ -1136,6 +1238,7 @@ func kratosSessionUnsetCookie() *http.Cookie {
 
 func NewAPI(
 	service ServiceInterface,
+	verificationEnabled,
 	mfaEnabled,
 	oidcWebAuthnSequencingEnabled bool,
 	baseURL string,
@@ -1144,6 +1247,7 @@ func NewAPI(
 	logger logging.LoggerInterface) *API {
 	a := new(API)
 
+	a.verificationEnabled = verificationEnabled
 	a.mfaEnabled = mfaEnabled
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.service = service

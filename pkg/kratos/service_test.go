@@ -3784,6 +3784,198 @@ func TestHasNotEnoughLookupSecretsLeftFailonGetIdentityExecute(t *testing.T) {
 	}
 }
 
+func TestRequireVerificationForEmail(t *testing.T) {
+	passwordMethod := "password"
+	oidcMethod := "oidc"
+
+	tests := []struct {
+		name              string
+		setupSession      func() *kClient.Session
+		expectEnforce     bool
+		expectEmail       string
+		expectError       bool
+		expectDebugLog    bool
+	}{
+		{
+			name: "Nil session returns false",
+			setupSession: func() *kClient.Session {
+				return nil
+			},
+			expectEnforce: false,
+			expectEmail:   "",
+			expectError:   false,
+		},
+		{
+			name: "OIDC login skips verification",
+			setupSession: func() *kClient.Session {
+				session := kClient.NewSession("sess-id")
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{
+					{Method: &oidcMethod},
+				}
+				session.Identity = kClient.NewIdentity("id", "schema", "url", nil)
+				return session
+			},
+			expectEnforce: false,
+			expectEmail:   "",
+			expectError:   false,
+		},
+		{
+			name: "No verifiable addresses skips verification",
+			setupSession: func() *kClient.Session {
+				session := kClient.NewSession("sess-id")
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{
+					{Method: &passwordMethod},
+				}
+				session.Identity = kClient.NewIdentity("id", "schema", "url", nil)
+				session.Identity.VerifiableAddresses = []kClient.VerifiableIdentityAddress{}
+				return session
+			},
+			expectEnforce: false,
+			expectEmail:   "",
+			expectError:   false,
+		},
+		{
+			name: "Invalid traits structure returns error",
+			setupSession: func() *kClient.Session {
+				session := kClient.NewSession("sess-id")
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{
+					{Method: &passwordMethod},
+				}
+				session.Identity = kClient.NewIdentity("id", "schema", "url", "not-a-map")
+				session.Identity.VerifiableAddresses = []kClient.VerifiableIdentityAddress{
+					{Value: "test@example.com", Verified: false},
+				}
+				return session
+			},
+			expectEnforce: false,
+			expectEmail:   "",
+			expectError:   true,
+		},
+		{
+			name: "Missing email trait returns error",
+			setupSession: func() *kClient.Session {
+				session := kClient.NewSession("sess-id")
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{
+					{Method: &passwordMethod},
+				}
+				session.Identity = kClient.NewIdentity("id", "schema", "url", map[string]interface{}{
+					"name": "Test User",
+				})
+				session.Identity.VerifiableAddresses = []kClient.VerifiableIdentityAddress{
+					{Value: "test@example.com", Verified: false},
+				}
+				return session
+			},
+			expectEnforce: false,
+			expectEmail:   "",
+			expectError:   true,
+		},
+		{
+			name: "Unverified email requires verification",
+			setupSession: func() *kClient.Session {
+				session := kClient.NewSession("sess-id")
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{
+					{Method: &passwordMethod},
+				}
+				session.Identity = kClient.NewIdentity("id", "schema", "url", map[string]interface{}{
+					"email": "test@example.com",
+				})
+				session.Identity.VerifiableAddresses = []kClient.VerifiableIdentityAddress{
+					{Value: "test@example.com", Verified: false},
+				}
+				return session
+			},
+			expectEnforce: true,
+			expectEmail:   "test@example.com",
+			expectError:   false,
+		},
+		{
+			name: "Verified email allows access",
+			setupSession: func() *kClient.Session {
+				session := kClient.NewSession("sess-id")
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{
+					{Method: &passwordMethod},
+				}
+				session.Identity = kClient.NewIdentity("id", "schema", "url", map[string]interface{}{
+					"email": "test@example.com",
+				})
+				session.Identity.VerifiableAddresses = []kClient.VerifiableIdentityAddress{
+					{Value: "test@example.com", Verified: true},
+				}
+				return session
+			},
+			expectEnforce: false,
+			expectEmail:   "",
+			expectError:   false,
+		},
+		{
+			name: "Email not in verifiable addresses skips verification with warning",
+			setupSession: func() *kClient.Session {
+				session := kClient.NewSession("sess-id")
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{
+					{Method: &passwordMethod},
+				}
+				session.Identity = kClient.NewIdentity("id", "schema", "url", map[string]interface{}{
+					"email": "test@example.com",
+				})
+				session.Identity.VerifiableAddresses = []kClient.VerifiableIdentityAddress{
+					{Value: "other@example.com", Verified: false}, // Mismatched verifiable address
+				}
+				return session
+			},
+			expectEnforce:  false,
+			expectEmail:    "",
+			expectError:    false,
+			expectDebugLog: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockTracer := NewMockTracingInterface(ctrl)
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+			ctx := context.Background()
+			session := tt.setupSession()
+
+			mockTracer.EXPECT().
+				Start(ctx, "kratos.Service.RequireVerificationForEmail").
+				Times(1).
+				Return(ctx, trace.SpanFromContext(ctx))
+
+			if tt.expectDebugLog {
+				mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).Times(1)
+			}
+
+			svc := NewService(nil, nil, nil, nil, false, mockTracer, mockMonitor, mockLogger)
+
+			enforce, email, err := svc.RequireVerificationForEmail(ctx, session)
+
+			if tt.expectError {
+				if err == nil {
+					t.Fatalf("expected an error but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("expected no error but got %v", err)
+				}
+			}
+
+			if enforce != tt.expectEnforce {
+				t.Fatalf("expected enforce to be %v, got %v", tt.expectEnforce, enforce)
+			}
+
+			if email != tt.expectEmail {
+				t.Fatalf("expected email to be '%s', got '%s'", tt.expectEmail, email)
+			}
+		})
+	}
+}
+
 func TestHasWebAuthnAvailableSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
