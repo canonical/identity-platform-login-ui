@@ -1,14 +1,11 @@
 import React, { FC } from "react";
 import { Icon } from "@canonical/react-components";
 import { PasswordCheckType } from "./Password";
-import classNames from "classnames";
 
 type Props = {
   check: PasswordCheckType;
   status: "success" | "error" | "neutral";
 };
-
-const STATUSES_WITH_INFO_ICON = ["error", "neutral"];
 
 const PasswordCheck: FC<Props> = ({ check, status }) => {
   const getMessage = () => {
@@ -24,24 +21,27 @@ const PasswordCheck: FC<Props> = ({ check, status }) => {
     }
   };
 
-  return (
-    <div
-      className={classNames({
-        "is-success": status === "success",
-      })}
-    >
-      <p
-        className={classNames("p-form-validation__message", {
-          "is-neutral u-text--muted": STATUSES_WITH_INFO_ICON.includes(status),
-        })}
-      >
-        {STATUSES_WITH_INFO_ICON.includes(status) && (
+  switch (status) {
+    case "success":
+      return (
+        <div className="p-form-validation is-success">
+          <p className="p-form-validation__message">{getMessage()}</p>
+        </div>
+      );
+    case "error":
+      return (
+        <div className="p-form-validation is-error">
+          <p className="p-form-validation__message">{getMessage()}</p>
+        </div>
+      );
+    case "neutral":
+      return (
+        <p className="p-text--small u-text--muted">
           <Icon name="information" />
-        )}
-        {getMessage()}
-      </p>
-    </div>
-  );
+          &nbsp;&nbsp;{getMessage()}
+        </p>
+      );
+  }
 };
 
 export default PasswordCheck;
