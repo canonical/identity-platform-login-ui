@@ -1,6 +1,6 @@
-import React, { FC, useEffect, useState, useCallback } from "react";
+import React, { FC, useCallback } from "react";
+import { PasswordToggle } from "@canonical/react-components";
 import PasswordCheck from "./PasswordCheck";
-import PasswordToggle from "./PasswordToggle";
 
 export type PasswordCheckType = "lowercase" | "uppercase" | "number" | "length";
 
@@ -11,30 +11,6 @@ type Props = {
   isValid: boolean;
   setValid: (isValid: boolean) => void;
   label?: string;
-};
-
-const DEBOUNCE_DURATION = 500;
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(debounceTimer);
-  }, [value, delay]);
-  return debounced;
-}
-
-const validateCheck = (check: PasswordCheckType, value: string): boolean => {
-  switch (check) {
-    case "lowercase":
-      return /[a-z]/.test(value);
-    case "uppercase":
-      return /[A-Z]/.test(value);
-    case "number":
-      return /\d/.test(value);
-    case "length":
-      return value.length >= 8;
-  }
 };
 
 const Password: FC<Props> = ({
@@ -59,25 +35,12 @@ const Password: FC<Props> = ({
   };
 
   const isCheckFailed = checks.some((check) => getStatus(check) === "error");
-  const isMismatch =
-    debouncedConfirmation.length > 0 &&
-    debouncedPassword !== debouncedConfirmation;
-  const computedValid =
-    hasTouched && !isCheckFailed && debouncedPassword === debouncedConfirmation;
+  const isMismatch = hasConfirmBlur && password !== confirmation;
 
-  useEffect(() => {
-    if (isValid !== computedValid) {
-      setValid(computedValid);
-    }
-  }, [computedValid, setValid]);
-
-  const handlePasswordChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (!hasTouched) setHasTouched(true);
-      setPassword(e.target.value);
-    },
-    [hasTouched, setPassword],
-  );
+  const localValid = hasPassBlur && !isCheckFailed && password === confirmation;
+  if (isValid !== localValid) {
+    setValid(localValid);
+  }
 
   return (
     <>
@@ -89,17 +52,15 @@ const Password: FC<Props> = ({
         onBlur={() => setHasBlurred(true)}
         onChange={handlePasswordChange}
         value={password}
+        error={isCheckFailed ? "Password does not match requirements" : undefined}
         help={checks.length > 0 && "Password must contain"}
-        className={isCheckFailed ? "password-error" : ""}
       />
       <div className="password-checks">
         {checks.map((check) => {
+          const status = getStatus(check);
+          console.log(`Check: ${check}, Status: ${status}`);
           return (
-            <PasswordCheck
-              key={check}
-              check={check}
-              status={getStatus(check)}
-            />
+            <PasswordCheck key={check} check={check} status={status} />
           );
         })}
       </div>
@@ -108,19 +69,11 @@ const Password: FC<Props> = ({
         name="passwordConfirm"
         label={`Confirm ${label}`}
         placeholder="Your password"
+        onBlur={() => setConfirmationBlurred(true)}
         onChange={(e) => setConfirmation(e.target.value)}
         error={
-          debouncedConfirmation.length > 0
-            ? isCheckFailed
-              ? "Password does not match requirements."
-              : isMismatch
-                ? "Passwords do not match."
-                : undefined
-            : undefined
-        }
-        success={
-          debouncedConfirmation.length > 0 && !isMismatch && !isCheckFailed
-            ? "Passwords match."
+          isMismatch
+            ? "Passwords do not match"
             : undefined
         }
       />
