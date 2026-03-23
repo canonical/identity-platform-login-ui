@@ -52,16 +52,16 @@ const Password: FC<Props> = ({
         onBlur={() => setHasBlurred(true)}
         onChange={handlePasswordChange}
         value={password}
-        error={isCheckFailed ? "Password does not match requirements" : undefined}
+        error={
+          isCheckFailed ? "Password does not match requirements" : undefined
+        }
         help={checks.length > 0 && "Password must contain"}
       />
       <div className="password-checks">
         {checks.map((check) => {
           const status = getStatus(check);
           console.log(`Check: ${check}, Status: ${status}`);
-          return (
-            <PasswordCheck key={check} check={check} status={status} />
-          );
+          return <PasswordCheck key={check} check={check} status={status} />;
         })}
       </div>
       <PasswordToggle
@@ -71,11 +71,7 @@ const Password: FC<Props> = ({
         placeholder="Your password"
         onBlur={() => setConfirmationBlurred(true)}
         onChange={(e) => setConfirmation(e.target.value)}
-        error={
-          isMismatch
-            ? "Passwords do not match"
-            : undefined
-        }
+        error={isMismatch ? "Passwords do not match" : undefined}
       />
     </>
   );

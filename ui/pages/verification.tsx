@@ -181,7 +181,7 @@ const Verification: NextPage = () => {
             } else {
               const timer = setTimeout(() => {
                 clearTimeout(timer);
-                window.location.href = "/ui/manage_details";
+                void router.push("/secure_account");
               }, 3000);
             }
           }
