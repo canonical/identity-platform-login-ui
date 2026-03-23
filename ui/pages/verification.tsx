@@ -134,7 +134,7 @@ const Verification: NextPage = () => {
             } else {
               const timer = setTimeout(() => {
                 clearTimeout(timer);
-                window.location.href = "/ui/manage_details";
+                void router.push("/secure_account");
               }, 3000);
             }
           }
@@ -272,7 +272,7 @@ const Verification: NextPage = () => {
         </Notification>
         <Spinner
           text={`You will be redirected to ${
-            returnTo ? (returnTo as string) : "/ui/manage_details"
+            returnTo ? (returnTo as string) : "/ui/secure_account"
           }`}
         />
       </PageLayout>

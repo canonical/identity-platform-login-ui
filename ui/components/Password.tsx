@@ -26,35 +26,38 @@ const Password: FC<Props> = ({
   const [hasConfirmBlur, setConfirmationBlurred] = React.useState(false);
   const [isEditingPass, setIsEditingPass] = React.useState(true);
 
-  const getStatus = useCallback((check: PasswordCheckType) => {
-    console.log(check, isEditingPass);
-    switch (check) {
-      case "lowercase":
-        return /[a-z]/.test(password)
-          ? "success"
-          : isEditingPass
-            ? "neutral"
-            : "error";
-      case "uppercase":
-        return /[A-Z]/.test(password)
-          ? "success"
-          : isEditingPass
-            ? "neutral"
-            : "error";
-      case "number":
-        return /[0-9]/.test(password)
-          ? "success"
-          : isEditingPass
-            ? "neutral"
-            : "error";
-      case "length":
-        return password.length >= 8
-          ? "success"
-          : isEditingPass
-            ? "neutral"
-            : "error";
-    }
-  }, [password, isEditingPass]);
+  const getStatus = useCallback(
+    (check: PasswordCheckType) => {
+      console.log(check, isEditingPass);
+      switch (check) {
+        case "lowercase":
+          return /[a-z]/.test(password)
+            ? "success"
+            : isEditingPass
+              ? "neutral"
+              : "error";
+        case "uppercase":
+          return /[A-Z]/.test(password)
+            ? "success"
+            : isEditingPass
+              ? "neutral"
+              : "error";
+        case "number":
+          return /[0-9]/.test(password)
+            ? "success"
+            : isEditingPass
+              ? "neutral"
+              : "error";
+        case "length":
+          return password.length >= 8
+            ? "success"
+            : isEditingPass
+              ? "neutral"
+              : "error";
+      }
+    },
+    [password, isEditingPass],
+  );
 
   const isCheckFailed = checks.some((check) => getStatus(check) === "error");
   const isMismatch = hasConfirmBlur && password !== confirmation;
@@ -78,16 +81,16 @@ const Password: FC<Props> = ({
         onFocus={() => setIsEditingPass(true)}
         onChange={(e) => setPassword(e.target.value)}
         value={password}
-        error={isCheckFailed ? "Password does not match requirements" : undefined}
+        error={
+          isCheckFailed ? "Password does not match requirements" : undefined
+        }
         help={checks.length > 0 && "Password must contain"}
       />
       <div className="password-checks">
         {checks.map((check) => {
           const status = getStatus(check);
           console.log(`Check: ${check}, Status: ${status}`);
-          return (
-            <PasswordCheck key={check} check={check} status={status} />
-          );
+          return <PasswordCheck key={check} check={check} status={status} />;
         })}
       </div>
       <PasswordToggle
@@ -97,11 +100,7 @@ const Password: FC<Props> = ({
         placeholder="Your password"
         onBlur={() => setConfirmationBlurred(true)}
         onChange={(e) => setConfirmation(e.target.value)}
-        error={
-          isMismatch
-            ? "Passwords do not match"
-            : undefined
-        }
+        error={isMismatch ? "Passwords do not match" : undefined}
       />
     </>
   );
