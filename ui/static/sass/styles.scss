@@ -197,6 +197,11 @@ hr {
       top: 41%;
     }
   }
+  &:has(.p-form-validation__message):has(.p-form-help-text) {
+    .password-visibility {
+      top: 33%;
+    }
+  }
 
   .password-error {
     background-color: var(--vf-color-background-negative-active);

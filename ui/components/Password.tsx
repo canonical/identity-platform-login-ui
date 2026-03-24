@@ -1,5 +1,5 @@
 import React, { FC, useCallback } from "react";
-import { PasswordToggle } from "@canonical/react-components";
+import PasswordToggle from "./PasswordToggle";
 import PasswordCheck from "./PasswordCheck";
 
 export type PasswordCheckType = "lowercase" | "uppercase" | "number" | "length";
@@ -28,7 +28,6 @@ const Password: FC<Props> = ({
 
   const getStatus = useCallback(
     (check: PasswordCheckType) => {
-      console.log(check, isEditingPass);
       switch (check) {
         case "lowercase":
           return /[a-z]/.test(password)
@@ -81,15 +80,14 @@ const Password: FC<Props> = ({
         onFocus={() => setIsEditingPass(true)}
         onChange={(e) => setPassword(e.target.value)}
         value={password}
+        help={checks.length > 0 && "Password must contain"}
         error={
           isCheckFailed ? "Password does not match requirements" : undefined
         }
-        help={checks.length > 0 && "Password must contain"}
       />
       <div className="password-checks">
         {checks.map((check) => {
           const status = getStatus(check);
-          console.log(`Check: ${check}, Status: ${status}`);
           return <PasswordCheck key={check} check={check} status={status} />;
         })}
       </div>
