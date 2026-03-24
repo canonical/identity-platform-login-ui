@@ -55,8 +55,9 @@ func WithFS(fsys fs.FS) Option {
 	}
 }
 
-func WithFlags(mfa, oidcSeq, identifierFirst bool) Option {
+func WithFlags(verification, mfa, oidcSeq, identifierFirst bool) Option {
 	return func(r *routerConfig) {
+		r.verificationEnabled = verification
 		r.mfaEnabled = mfa
 		r.oidcWebAuthnSequencingEnabled = oidcSeq
 		r.identifierFirstEnabled = identifierFirst
@@ -112,6 +113,7 @@ type routerConfig struct {
 	authzClient                   authz.AuthorizerInterface
 	cookieManager                 *kratos.AuthCookieManager
 	distFS                        fs.FS
+	verificationEnabled           bool
 	mfaEnabled                    bool
 	oidcWebAuthnSequencingEnabled bool
 	identifierFirstEnabled        bool
@@ -169,6 +171,7 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 	kratosService := kratos.NewService(config.kratosClient, config.kratosAdminClient, config.hydraClient, config.authzClient, config.oidcWebAuthnSequencingEnabled, config.tracer, config.monitor, config.logger)
 	kratos.NewAPI(
 		kratosService,
+		config.verificationEnabled,
 		config.mfaEnabled,
 		config.oidcWebAuthnSequencingEnabled,
 		config.baseURL,

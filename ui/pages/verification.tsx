@@ -30,6 +30,7 @@ const Verification: NextPage = () => {
     return_to: returnTo,
     flow: flowId,
     code: verificationCode,
+    email: queryEmail,
   } = router.query;
 
   const RESEND_CODE_TIMEOUT = 60000; // 60 seconds
@@ -42,6 +43,39 @@ const Verification: NextPage = () => {
       setResendDisabled(false);
       clearTimeout(timer);
     }, RESEND_CODE_TIMEOUT);
+  };
+
+  const handleSentEmailState = (flowData: VerificationFlow) => {
+    if (
+      flowData.state === "sent_email" &&
+      flowData.ui.messages?.find((msg) => msg.type === "error") === undefined
+    ) {
+      // Check if email is sent and there is no error message
+      // If no error message, add success message and disable resend button for 60 seconds
+      const codeUiNode = flowData.ui.nodes.find(
+        isVerificationCodeInput,
+      ) as UiNode;
+      if (codeUiNode) {
+        codeUiNode.meta = {
+          ...codeUiNode.meta,
+          label: {
+            ...codeUiNode.meta.label,
+            context: {
+              ...codeUiNode.meta.label?.context,
+              afterComponent: (
+                <CountDownText
+                  initialSeconds={RESEND_CODE_TIMEOUT / 1000}
+                  wrapperText="Code sent. You can request again in "
+                  key={new Date().toISOString()}
+                />
+              ),
+            },
+          },
+        } as UiNodeMeta;
+      }
+      // Disable resend button for 60 seconds
+      disableButtonWithTimeout();
+    }
   };
 
   const redirectToErrorPage = () => {
@@ -65,36 +99,8 @@ const Verification: NextPage = () => {
                 String(verificationCode);
             }
           }
-          if (
-            data.state === "sent_email" &&
-            data.ui.messages?.find((msg) => msg.type === "error") === undefined
-          ) {
-            // Check if email is sent and there is no error message
-            // If no error message, add success message and disable resend button for 60 seconds
-            const codeUiNode = data.ui.nodes.find(
-              isVerificationCodeInput,
-            ) as UiNode;
-            if (codeUiNode) {
-              codeUiNode.meta = {
-                ...codeUiNode.meta,
-                label: {
-                  ...codeUiNode.meta.label,
-                  context: {
-                    ...codeUiNode.meta.label?.context,
-                    afterComponent: (
-                      <CountDownText
-                        initialSeconds={RESEND_CODE_TIMEOUT / 1000}
-                        wrapperText="Code sent. You can request again in "
-                        key={new Date().toISOString()}
-                      />
-                    ),
-                  },
-                },
-              } as UiNodeMeta;
-            }
-            // Disable resend button for 60 seconds
-            disableButtonWithTimeout();
-          }
+
+          handleSentEmailState(data);
           setFlowIDQueryParam(String(data.id));
           setFlow(data);
         })
@@ -109,12 +115,53 @@ const Verification: NextPage = () => {
         returnTo: returnTo ? String(returnTo) : undefined,
       })
       .then(({ data }) => {
-        setFlow(data);
-        setFlowIDQueryParam(String(data.id));
+        if (queryEmail && data.state === "choose_method") {
+          const csrfNode = data.ui.nodes.find(
+            (node) =>
+              (node.attributes as UiNodeInputAttributes).name === "csrf_token",
+          );
+          const csrfToken = csrfNode
+            ? ((csrfNode.attributes as UiNodeInputAttributes).value as string)
+            : "";
+
+          kratos
+            .updateVerificationFlow({
+              flow: data.id,
+              updateVerificationFlowBody: {
+                email: String(queryEmail),
+                method: "code",
+                csrf_token: csrfToken,
+              },
+            })
+            .then((updateRes) => {
+              handleSentEmailState(updateRes.data);
+              setFlow(updateRes.data);
+              setFlowIDQueryParam(String(updateRes.data.id));
+
+              // Clean up the URL
+              const restQuery = { ...router.query };
+              delete restQuery.email;
+              void router.replace(
+                {
+                  pathname: router.pathname,
+                  query: restQuery,
+                },
+                undefined,
+                { shallow: true },
+              );
+            })
+            .catch(() => {
+              setFlow(data);
+              setFlowIDQueryParam(String(data.id));
+            });
+        } else {
+          setFlow(data);
+          setFlowIDQueryParam(String(data.id));
+        }
       })
       .catch(handleFlowError("verification", setFlow))
       .catch(redirectToErrorPage);
-  }, [flowId, router, router.isReady, returnTo]);
+  }, [flowId, router, returnTo, queryEmail, flow, redirectToErrorPage]);
 
   const handleSubmit = useCallback(
     (values: UpdateVerificationFlowBody) => {
@@ -155,36 +202,9 @@ const Verification: NextPage = () => {
             }
             return;
           }
-          if (
-            data.state === "sent_email" &&
-            data.ui.messages?.find((msg) => msg.type === "error") === undefined
-          ) {
-            // Check if email is sent and there is no error message
-            // If no error message, add success message and disable resend button for 60 seconds
-            const codeUiNode = data.ui.nodes.find(
-              isVerificationCodeInput,
-            ) as UiNode;
-            if (codeUiNode) {
-              codeUiNode.meta = {
-                ...codeUiNode.meta,
-                label: {
-                  ...codeUiNode.meta.label,
-                  context: {
-                    ...codeUiNode.meta.label?.context,
-                    afterComponent: (
-                      <CountDownText
-                        initialSeconds={RESEND_CODE_TIMEOUT / 1000}
-                        wrapperText="Code sent. You can request again in "
-                        key={new Date().toISOString()}
-                      />
-                    ),
-                  },
-                },
-              } as UiNodeMeta;
-            }
-            // Disable resend button for 60 seconds
-            disableButtonWithTimeout();
-          } else if (data.ui.messages?.find((msg) => msg.type === "error")) {
+
+          handleSentEmailState(data);
+          if (data.ui.messages?.find((msg) => msg.type === "error")) {
             const codeUiNode = data.ui.nodes.find(
               isVerificationCodeInput,
             ) as UiNode;
@@ -209,7 +229,7 @@ const Verification: NextPage = () => {
           return Promise.reject(err);
         });
     },
-    [flow],
+    [flow, returnTo, router],
   );
 
   const userEmail = useMemo(() => {
@@ -258,7 +278,7 @@ const Verification: NextPage = () => {
         }),
       },
     };
-  }, [flow, resendDisabled]);
+  }, [flow, resendDisabled, userEmail]);
 
   if (!flow) {
     return <Spinner />;
@@ -272,7 +292,7 @@ const Verification: NextPage = () => {
         </Notification>
         <Spinner
           text={`You will be redirected to ${
-            returnTo ? (returnTo as string) : "/ui/secure_account"
+            returnTo ? (returnTo as string).split("?")[0] : "/ui/secure_account"
           }`}
         />
       </PageLayout>
