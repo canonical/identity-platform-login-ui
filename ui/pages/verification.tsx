@@ -13,7 +13,7 @@ import { handleFlowError } from "../util/handleFlowError";
 import { kratos } from "../api/kratos";
 import { Flow } from "../components/Flow";
 import PageLayout from "../components/PageLayout";
-import { Notification, Spinner } from "@canonical/react-components";
+import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
@@ -22,6 +22,7 @@ import {
   isVerificationCodeInput,
 } from "../util/constants";
 import CountDownText from "../components/CountDownText";
+import { redirectTo } from "../util/redirectTo";
 
 const Verification: NextPage = () => {
   const [flow, setFlow] = useState<VerificationFlow>();
@@ -175,15 +176,10 @@ const Verification: NextPage = () => {
         })
         .then(({ data }) => {
           if (data.state === "passed_challenge") {
-            // If verification is successful, redirect to return_to URL or home page
-            if (returnTo && typeof returnTo === "string") {
-              window.location.href = returnTo;
-            } else {
-              const timer = setTimeout(() => {
-                clearTimeout(timer);
-                void router.push("/secure_account");
-              }, 3000);
-            }
+            console.log(
+              "Verification successful, redirecting to secure account page...",
+            );
+            redirectTo("http://localhost/ui/secure_account", router);
           }
           if ("continue_with" in data) {
             const continue_with: {

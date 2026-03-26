@@ -5,7 +5,7 @@ import type { InputHTMLAttributes, ReactNode } from "react";
 import Field from "./Field";
 
 type PropsWithSpread<P, H> = P & Omit<H, keyof P>;
-type Props = PropsWithSpread<
+export type Props = PropsWithSpread<
   {
     /**
      * The content for caution validation.

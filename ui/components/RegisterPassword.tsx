@@ -12,7 +12,7 @@ import {
   UpdateRegistrationFlowBody,
 } from "@ory/client";
 import { kratos } from "../api/kratos";
-import { redirectTo } from "../pages/register";
+import { redirectTo } from "../util/redirectTo";
 import { useRouter } from "next/router";
 
 interface RegisterPasswordProps {
@@ -96,7 +96,7 @@ export const RegisterPassword = ({ flow }: RegisterPasswordProps) => {
           setIsSubmitting(false);
         });
     },
-    [password, CSRFToken, flow],
+    [password, CSRFToken, flow, router],
   );
 
   return (

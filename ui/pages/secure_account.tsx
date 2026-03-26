@@ -3,6 +3,7 @@ import { NextPage } from "next";
 import PageLayout from "../components/PageLayout";
 import { Col, Icon, Row } from "@canonical/react-components";
 import { useRouter } from "next/router";
+import { redirectTo } from "../util/redirectTo";
 
 const secureAccount: NextPage = () => {
   const router = useRouter();
@@ -11,17 +12,17 @@ const secureAccount: NextPage = () => {
       <div
         className="p-card clickable"
         onClick={() => {
-          void router.push("/setup_passkey");
+          redirectTo("http://localhost/ui/setup_passkey", router);
         }}
       >
         <div className="p-card__content d-flex">
           <Row className="m-auto">
-            <Col size={1} className="justify-items--end">
-              <h1>
+            <Col size={1} medium={1} small={1} className="justify-items--end">
+              <h1 className="p-heading--display">
                 <Icon name="private-key" />
               </h1>
             </Col>
-            <Col size={5} className="d-flex">
+            <Col size={5} medium={5} small={3} className="d-flex">
               <p style={{ marginBlock: "auto" }}>
                 <strong>Set up Passkey (recommended)</strong> <br />
                 <small>
@@ -35,17 +36,17 @@ const secureAccount: NextPage = () => {
       <div
         className="p-card clickable"
         onClick={() => {
-          void router.push("/setup_secure");
+          redirectTo("http://localhost/ui/setup_secure", router);
         }}
       >
         <div className="p-card__content d-flex">
           <Row className="m-auto">
-            <Col size={1} className="justify-items--end">
-              <h1>
+            <Col size={1} medium={1} small={1} className="justify-items--end">
+              <h1 className="p-heading--display">
                 <i className="p-icon--qr-code" />
               </h1>
             </Col>
-            <Col size={5} className="d-flex">
+            <Col size={5} medium={5} small={3} className="d-flex">
               <p style={{ marginBlock: "auto" }}>
                 <strong>Set up an Authenticator App</strong> <br />
                 <small>
