@@ -23,6 +23,7 @@ import {
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { RegisterPassword } from "../components/RegisterPassword";
 import { isRegisterPasswordInput } from "../util/constants";
+import { redirectTo } from "../util/redirectTo";
 
 type FlowPreparer = (values: any) => UpdateRegistrationFlowBody;
 type SupportedFlowMethods = "oidc" | "password" | "profile";
@@ -44,22 +45,6 @@ function buildTraits(values: any): Traits {
       ? (values["traits.full_name"] as string)
       : undefined,
   };
-}
-
-export function redirectTo(url: string, router: NextRouter): void {
-  const newUrl = new URL(url);
-  const kratosParams = Object.fromEntries(newUrl.searchParams.entries());
-  const basePath = router.basePath || "";
-  const pathWithoutBase = newUrl.pathname.startsWith(basePath)
-    ? newUrl.pathname.slice(basePath.length)
-    : newUrl.pathname;
-  void router.push({
-    pathname: pathWithoutBase,
-    query: {
-      ...router.query,
-      ...kratosParams,
-    },
-  });
 }
 
 const flowPreparerMap: PreparerMap = {
