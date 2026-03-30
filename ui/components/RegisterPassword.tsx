@@ -11,15 +11,18 @@ import {
   UiNodeInputAttributes,
   UpdateRegistrationFlowBody,
 } from "@ory/client";
+import { AxiosError } from "axios";
 import { kratos } from "../api/kratos";
 import { redirectTo } from "../util/redirectTo";
 import { useRouter } from "next/router";
+import { handleFlowError } from "../util/handleFlowError";
 
 interface RegisterPasswordProps {
   flow: RegistrationFlow | undefined;
+  setFlow: React.Dispatch<React.SetStateAction<RegistrationFlow | undefined>>;
 }
 
-export const RegisterPassword = ({ flow }: RegisterPasswordProps) => {
+export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
   const [password, setPassword] = useState("");
   const [isPassValid, setPassValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,10 +93,16 @@ export const RegisterPassword = ({ flow }: RegisterPasswordProps) => {
             }
           }
         })
-        .catch((error) => {
+        .catch(handleFlowError("registration", setFlow))
+        .catch((error: AxiosError<RegistrationFlow>) => {
           // Handle errors, e.g., display error messages
           console.error("Error submitting registration flow:", error);
           setIsSubmitting(false);
+          if (error.response?.status === 400) {
+            setFlow(error.response.data);
+            return;
+          }
+          return Promise.reject(error);
         });
     },
     [password, CSRFToken, flow, router],

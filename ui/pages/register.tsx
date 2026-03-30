@@ -207,7 +207,7 @@ const Registration: NextPage = () => {
     flow?.state === "choose_method" &&
     flow.ui.nodes.some(isRegisterPasswordInput)
   ) {
-    return <RegisterPassword flow={lookupFlow} />;
+    return <RegisterPassword flow={lookupFlow} setFlow={setFlow} />;
   }
 
   return (
