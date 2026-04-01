@@ -1,7 +1,10 @@
-// Copyright 2024 Canonical Ltd.
+// Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0
 
-package kratos
+// Package cookies provides the shared FlowStateCookie type, the
+// AuthCookieManagerInterface, and the production AuthCookieManager
+// implementation. It is shared between the kratos and tenants packages.
+package cookies
 
 import (
 	"encoding/json"
@@ -16,22 +19,41 @@ const (
 	stateCookieName   = "login_ui_state"
 )
 
-var (
-	epoch = time.Unix(0, 0).UTC()
-)
+var epoch = time.Unix(0, 0).UTC()
 
-type AuthCookieManager struct {
-	cookieTTL time.Duration
-	encrypt   EncryptInterface
-
-	logger logging.LoggerInterface
+// EncryptInterface abstracts string encryption for the cookie manager.
+type EncryptInterface interface {
+	// Encrypt a plain text string, returns the encrypted string in hex format or an error
+	Encrypt(string) (string, error)
+	// Decrypt a hex string, returns the decrypted string or an error
+	Decrypt(string) (string, error)
 }
 
+// FlowStateCookie holds per-flow UI state persisted across redirects in an
+// encrypted browser cookie.
 type FlowStateCookie struct {
 	LoginChallengeHash string `json:"lc,omitempty"`
 	TotpSetup          bool   `json:"t,omitempty"`
 	WebauthnSetup      bool   `json:"w,omitempty"`
 	BackupCodeUsed     bool   `json:"bc,omitempty"`
+	TenantID           string `json:"tid,omitempty"`
+}
+
+// AuthCookieManagerInterface describes operations on the encrypted state cookie.
+type AuthCookieManagerInterface interface {
+	// SetStateCookie sets the nonce cookie on the response with the specified duration as MaxAge
+	SetStateCookie(http.ResponseWriter, FlowStateCookie) error
+	// GetStateCookie returns the string value of the nonce cookie if present, or empty string otherwise
+	GetStateCookie(*http.Request) (FlowStateCookie, error)
+	// ClearStateCookie sets the expiration of the cookie to epoch
+	ClearStateCookie(http.ResponseWriter)
+}
+
+// AuthCookieManager is the production implementation of AuthCookieManagerInterface.
+type AuthCookieManager struct {
+	cookieTTL time.Duration
+	encrypt   EncryptInterface
+	logger    logging.LoggerInterface
 }
 
 func (a *AuthCookieManager) SetStateCookie(w http.ResponseWriter, state FlowStateCookie) error {
@@ -65,7 +87,7 @@ func (a *AuthCookieManager) setCookie(w http.ResponseWriter, name, value string,
 
 	encrypted, err := a.encrypt.Encrypt(value)
 	if err != nil {
-		a.logger.Errorf("can't encrypt cookie value, %v", err)
+		a.logger.Errorf("cannot encrypt cookie value: %v", err)
 		return err
 	}
 
@@ -105,12 +127,14 @@ func (a *AuthCookieManager) getCookie(r *http.Request, name string) (string, err
 
 	value, err := a.encrypt.Decrypt(cookie.Value)
 	if err != nil {
-		a.logger.Errorf("can't decrypt cookie value, %v", err)
+		a.logger.Errorf("cannot decrypt cookie value: %v", err)
 		return "", err
 	}
 	return value, nil
 }
 
+// NewAuthCookieManager constructs an AuthCookieManager with the given TTL,
+// encryption backend, and logger.
 func NewAuthCookieManager(
 	cookieTTLSeconds int,
 	encrypt EncryptInterface,
@@ -119,8 +143,6 @@ func NewAuthCookieManager(
 	a := new(AuthCookieManager)
 	a.cookieTTL = time.Duration(cookieTTLSeconds) * time.Second
 	a.encrypt = encrypt
-
 	a.logger = logger
 	return a
-
 }

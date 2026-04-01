@@ -1,7 +1,7 @@
-// Copyright 2024 Canonical Ltd.
+// Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0
 
-package kratos
+package cookies
 
 import (
 	"encoding/hex"
@@ -12,9 +12,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_cipher.go crypto/cipher AEAD
-//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_tracing.go go.opentelemetry.io/otel/trace Tracer
+//go:generate mockgen -build_flags=--mod=mod -package cookies -destination ./mock_cipher.go crypto/cipher AEAD
+//go:generate mockgen -build_flags=--mod=mod -package cookies -destination ./mock_tracing.go -source=../tracing/interfaces.go
 
 const (
 	mockSecretKey       = "caskjdflasjkfdlaksjfalskdfjasfda"
