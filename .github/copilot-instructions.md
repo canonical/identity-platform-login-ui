@@ -78,6 +78,7 @@ make npm-build build  # Full build (frontend must precede Go binary)
 - **Logging**: log errors in handlers only, never in services.
 - **Return values**: always `return nil, nil, err` (zero values with error).
 - **Naming**: named receivers `func (s *Service) Method()`, concise variables (`flow` not `flowObject`).
+- **Interface re-definition**: When a package depends on an interface from another package, re-define a local interface in `interfaces.go` with only the methods needed. Never embed or directly reference foreign interface types as field types. This keeps dependencies explicit, aids testability, and prevents accidental coupling.
 - **Testing**: standard library `testing` only — no testify. Table-driven tests. Mock all interfaces with gomock.
 - **No bare returns**, no global mutable state, no pyramids of doom (prefer early returns).
 

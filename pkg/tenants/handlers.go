@@ -1,0 +1,280 @@
+// Copyright 2026 Canonical Ltd.
+// SPDX-License-Identifier: AGPL-3.0
+
+package tenants
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+
+	"github.com/go-chi/chi/v5"
+	kClient "github.com/ory/kratos-client-go/v25"
+
+	"github.com/canonical/identity-platform-login-ui/internal/cookies"
+	"github.com/canonical/identity-platform-login-ui/internal/logging"
+	"github.com/canonical/identity-platform-login-ui/internal/tracing"
+)
+
+// API exposes the tenant selection endpoint.
+type API struct {
+	service        ServiceInterface
+	sessionChecker SessionCheckerInterface
+	storer         TenantStorerInterface
+	baseURL        string
+
+	tracer tracing.TracingInterface
+	logger logging.LoggerInterface
+}
+
+func (a *API) RegisterEndpoints(mux *chi.Mux) {
+	mux.Get("/api/v0/tenants", a.handleLookupTenants)
+	mux.Post("/api/v0/auth/tenant", a.handleTenantSelection)
+	mux.Post("/api/v0/tenants/resolve", a.handleResolveTenant)
+}
+
+// handleLookupTenants accepts an optional ?flow= query parameter. When flow is
+// provided it fetches the Kratos flow to extract the email; otherwise the email
+// is read from the active Kratos session. Email is never accepted as a URL
+// parameter to prevent unauthenticated tenant enumeration.
+func (a *API) handleLookupTenants(w http.ResponseWriter, r *http.Request) {
+	flowID := r.URL.Query().Get("flow")
+
+	var (
+		tenants []Tenant
+		err     error
+	)
+	if flowID != "" {
+		tenants, err = a.service.LookupTenantsByFlow(r.Context(), flowID, r.Cookies())
+	} else {
+		var session *kClient.Session
+		session, _, err = a.sessionChecker.CheckSession(r.Context(), r.Cookies())
+		if err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		email := emailFromSession(session)
+		if email == "" {
+			http.Error(w, "could not determine email from session", http.StatusUnauthorized)
+			return
+		}
+		tenants, err = a.service.LookupTenantsByEmail(r.Context(), email)
+	}
+	if err != nil {
+		a.logger.Errorf("failed to look up tenants: %v", err)
+		http.Error(w, "failed to look up tenants", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{"tenants": tenants})
+}
+
+// tenantSelectionRequest is the JSON body for POST /api/v0/auth/tenant.
+type tenantSelectionRequest struct {
+	LoginChallenge string `json:"login_challenge"`
+	TenantID       string `json:"tenant_id"`
+	Flow           string `json:"flow"`
+}
+
+// handleTenantSelection receives a JSON body with login_challenge, tenant_id,
+// and flow ID. It persists the tenant selection into the encrypted state cookie
+// and returns a JSON response redirecting to /ui/login?flow=<flow> so the user
+// lands on the already-advanced Kratos flow (choose_method step).
+//
+// If tenant_id is empty the handler performs a server-side tenant lookup to
+// verify the user genuinely has no tenants available, then stores the
+// no-tenant sentinel on their behalf. The sentinel value itself is never
+// accepted directly from the client to prevent bypassing tenant selection.
+func (a *API) handleTenantSelection(w http.ResponseWriter, r *http.Request) {
+	var body tenantSelectionRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if body.LoginChallenge == "" {
+		http.Error(w, "login_challenge is required", http.StatusBadRequest)
+		return
+	}
+
+	// The backend determines when to store the no-tenant sentinel; rejecting it
+	// from the client prevents a user from bypassing tenant selection.
+	if body.TenantID == cookies.NoTenantAvailable {
+		http.Error(w, "invalid tenant_id", http.StatusBadRequest)
+		return
+	}
+
+	// Determine the tenant ID to persist. An empty submission is allowed only
+	// when server-side verification confirms the user has no tenants.
+	tenantToStore := body.TenantID
+	if tenantToStore == "" {
+		tenants, err := a.lookupTenants(r.Context(), body.Flow, r.Cookies())
+		if err != nil {
+			a.logger.Errorf("failed to look up tenants for empty-selection check: %v", err)
+			http.Error(w, "failed to verify tenant list", http.StatusInternalServerError)
+			return
+		}
+		if len(tenants) != 0 {
+			http.Error(w, "tenant_id is required", http.StatusBadRequest)
+			return
+		}
+		tenantToStore = cookies.NoTenantAvailable
+	}
+
+	if err := a.storer.StoreTenant(w, r, tenantToStore, body.LoginChallenge); err != nil {
+		a.logger.Errorf("failed to persist tenant selection state: %v", err)
+		http.Error(w, "failed to persist tenant selection", http.StatusInternalServerError)
+		return
+	}
+
+	// When flow is absent (active-session path) redirect back to the login page
+	// with only the login_challenge so the backend can accept the Hydra challenge
+	// using the existing Kratos session, without starting a new credentials flow.
+	var redirectTo string
+	if body.Flow != "" {
+		redirectTo = a.loginURL(body.Flow)
+	} else {
+		redirectTo = a.loginChallengeURL(body.LoginChallenge)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"redirect_to": redirectTo})
+}
+
+// lookupTenants returns the caller's tenant list using the Kratos flow when
+// provided, falling back to the active Kratos session.
+func (a *API) lookupTenants(ctx context.Context, flowID string, httpCookies []*http.Cookie) ([]Tenant, error) {
+	if flowID != "" {
+		return a.service.LookupTenantsByFlow(ctx, flowID, httpCookies)
+	}
+	session, _, err := a.sessionChecker.CheckSession(ctx, httpCookies)
+	if err != nil {
+		return nil, fmt.Errorf("cannot check session: %v", err)
+	}
+	email := emailFromSession(session)
+	if email == "" {
+		return nil, fmt.Errorf("cannot determine email from session")
+	}
+	return a.service.LookupTenantsByEmail(ctx, email)
+}
+
+// resolveRequest is the JSON body for POST /api/v0/tenants/resolve.
+type resolveRequest struct {
+	Flow           string `json:"flow"`
+	LoginChallenge string `json:"login_challenge"`
+}
+
+// handleResolveTenant performs the tenant lookup and returns a routing decision.
+// The response is either {"redirect_to": "..."} when the user must be redirected
+// (single-tenant callback or multi-tenant selection page), or {} when the caller
+// should proceed with the original Kratos flow response.
+func (a *API) handleResolveTenant(w http.ResponseWriter, r *http.Request) {
+	var body resolveRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if body.Flow == "" {
+		http.Error(w, "flow is required", http.StatusBadRequest)
+		return
+	}
+
+	if body.LoginChallenge == "" {
+		http.Error(w, "login_challenge is required", http.StatusBadRequest)
+		return
+	}
+
+	result, err := a.service.ResolveTenant(r.Context(), body.Flow, body.LoginChallenge, r.Cookies())
+	if err != nil {
+		a.logger.Errorf("failed to resolve tenant: %v", err)
+		http.Error(w, "failed to resolve tenant", http.StatusInternalServerError)
+		return
+	}
+
+	// No tenants: store the no-tenant sentinel so that handleCreateFlow can
+	// recognise the authenticated state after 1FA (the LoginChallengeHash is
+	// now set in the cookie). Return {} so the frontend's followData() keeps
+	// the user on the same Kratos flow and proceeds to the 1FA step — no
+	// redirect needed.
+	if result.TenantID == "" && result.RedirectTo == "" {
+		if err := a.storer.StoreTenant(w, r, cookies.NoTenantAvailable, body.LoginChallenge); err != nil {
+			a.logger.Errorf("failed to persist no-tenant sentinel: %v", err)
+			http.Error(w, "failed to persist no-tenant state", http.StatusInternalServerError)
+			return
+		}
+		// result.RedirectTo stays empty — frontend calls followData()
+	} else if result.TenantID != "" {
+		// Single-tenant: store the auto-selected tenant and return the login redirect
+		// directly, avoiding an extra round-trip through a callback endpoint.
+		if err := a.storer.StoreTenant(w, r, result.TenantID, body.LoginChallenge); err != nil {
+			a.logger.Errorf("failed to persist auto-selected tenant: %v", err)
+			http.Error(w, "failed to persist tenant selection", http.StatusInternalServerError)
+			return
+		}
+		result.RedirectTo = a.loginURL(body.Flow)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+// loginChallengeURL builds the /ui/login?login_challenge=<challenge> URL used
+// in the active-session path where no Kratos flow exists yet. Redirecting here
+// lets the backend accept the Hydra challenge via the existing session.
+func (a *API) loginChallengeURL(loginChallenge string) string {
+	loginPath, _ := url.JoinPath(a.baseURL, "/ui/login")
+	u, _ := url.Parse(loginPath)
+	uq := u.Query()
+	uq.Set("login_challenge", loginChallenge)
+	u.RawQuery = uq.Encode()
+	return u.String()
+}
+
+// loginURL builds the /ui/login?flow=<flowID> URL for redirecting back to
+// the Kratos 1 FA after tenant selection.
+func (a *API) loginURL(flowID string) string {
+	loginPath, _ := url.JoinPath(a.baseURL, "/ui/login")
+	u, _ := url.Parse(loginPath)
+	uq := u.Query()
+	uq.Set("flow", flowID)
+	u.RawQuery = uq.Encode()
+	return u.String()
+}
+
+func NewAPI(
+	service ServiceInterface,
+	storer TenantStorerInterface,
+	sessionChecker SessionCheckerInterface,
+	baseURL string,
+	tracer tracing.TracingInterface,
+	logger logging.LoggerInterface,
+) *API {
+	return &API{
+		service:        service,
+		sessionChecker: sessionChecker,
+		storer:         storer,
+		baseURL:        baseURL,
+		tracer:         tracer,
+		logger:         logger,
+	}
+}
+
+// emailFromSession extracts the email trait from a Kratos session identity.
+func emailFromSession(session *kClient.Session) string {
+	if session == nil || session.Identity == nil {
+		return ""
+	}
+	traits, ok := session.Identity.Traits.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	email, _ := traits["email"].(string)
+	return email
+}

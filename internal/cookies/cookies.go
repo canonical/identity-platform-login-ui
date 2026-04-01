@@ -7,6 +7,8 @@
 package cookies
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -17,16 +19,22 @@ import (
 const (
 	defaultCookiePath = "/"
 	stateCookieName   = "login_ui_state"
+
+	// NoTenantAvailable is a sentinel TenantID stored in FlowStateCookie
+	// when multi-tenancy is enabled but the user has no tenants to choose
+	// from. It distinguishes "selection completed with zero results" from
+	// "selection not yet attempted" (empty string).
+	NoTenantAvailable = "_none"
 )
 
 var epoch = time.Unix(0, 0).UTC()
 
-// EncryptInterface abstracts string encryption for the cookie manager.
-type EncryptInterface interface {
-	// Encrypt a plain text string, returns the encrypted string in hex format or an error
-	Encrypt(string) (string, error)
-	// Decrypt a hex string, returns the decrypted string or an error
-	Decrypt(string) (string, error)
+// ChallengeHash returns the SHA-256 hex digest of loginChallenge.
+// It is the canonical way to compute LoginChallengeHash values stored in
+// FlowStateCookie, used by both the kratos and tenants packages.
+func ChallengeHash(loginChallenge string) string {
+	h := sha256.Sum256([]byte(loginChallenge))
+	return hex.EncodeToString(h[:])
 }
 
 // FlowStateCookie holds per-flow UI state persisted across redirects in an
@@ -39,21 +47,24 @@ type FlowStateCookie struct {
 	TenantID           string `json:"tid,omitempty"`
 }
 
-// AuthCookieManagerInterface describes operations on the encrypted state cookie.
-type AuthCookieManagerInterface interface {
-	// SetStateCookie sets the nonce cookie on the response with the specified duration as MaxAge
-	SetStateCookie(http.ResponseWriter, FlowStateCookie) error
-	// GetStateCookie returns the string value of the nonce cookie if present, or empty string otherwise
-	GetStateCookie(*http.Request) (FlowStateCookie, error)
-	// ClearStateCookie sets the expiration of the cookie to epoch
-	ClearStateCookie(http.ResponseWriter)
-}
-
 // AuthCookieManager is the production implementation of AuthCookieManagerInterface.
 type AuthCookieManager struct {
 	cookieTTL time.Duration
 	encrypt   EncryptInterface
 	logger    logging.LoggerInterface
+}
+
+// RenewForChallenge returns a new FlowStateCookie with LoginChallengeHash set
+// for the given loginChallenge. TenantID is carried forward only when the
+// existing cookie was stored for the same challenge, preventing state
+// pollution across different flows.
+func (c FlowStateCookie) RenewForChallenge(loginChallenge string) FlowStateCookie {
+	lcHash := ChallengeHash(loginChallenge)
+	next := FlowStateCookie{LoginChallengeHash: lcHash}
+	if c.LoginChallengeHash == lcHash {
+		next.TenantID = c.TenantID
+	}
+	return next
 }
 
 func (a *AuthCookieManager) SetStateCookie(w http.ResponseWriter, state FlowStateCookie) error {

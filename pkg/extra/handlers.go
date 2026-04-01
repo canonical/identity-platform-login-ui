@@ -65,7 +65,9 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accept, err := a.service.AcceptConsent(r.Context(), *session.Identity, consent)
+	tenantID := a.resolveTenantID(consent)
+
+	accept, err := a.service.AcceptConsent(r.Context(), *session.Identity, consent, tenantID)
 	if err != nil {
 		a.logger.Errorf("error when calling hydra: %s", err)
 		// TODO @shipperizer evaluate return status
@@ -87,6 +89,20 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 }
 
 // sessionRequiredAAL returns the required aal, based on the session's authentication methods.
+// resolveTenantID returns the tenant_id to embed in the token.
+// It reads the value from the Hydra login context, which was set when
+// the login UI called AcceptLoginRequest with the tenant_id.
+func (a *API) resolveTenantID(consent interface {
+	GetContext() interface{}
+}) string {
+	if ctx, ok := consent.GetContext().(map[string]interface{}); ok {
+		if v, ok := ctx["tenant_id"].(string); ok && v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 func (a *API) sessionRequiredAAL(session *kClient.Session) kClient.AuthenticatorAssuranceLevel {
 	var authMethod string
 	ret := kClient.AUTHENTICATORASSURANCELEVEL_AAL1

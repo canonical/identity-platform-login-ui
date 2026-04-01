@@ -86,8 +86,10 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
         appearance={getAppearance()}
         tabIndex={4}
         onClick={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
           if (onClick) {
-            e.preventDefault();
             onClick();
             return;
           }

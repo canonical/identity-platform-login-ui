@@ -68,6 +68,11 @@ export const handleFlowError =
         // Ory Kratos asked us to point the user to this URL.
         window.location.href = getRedirectToFromError(err.response.data);
         return;
+      case "tenant_selection_required":
+        // User already authenticated but hasn't picked a tenant yet
+        // (e.g. pressed the browser back button from tenant selection).
+        window.location.href = getRedirectToFromError(err.response.data);
+        return;
       case "regenerate_backup_codes":
         // The user logged in with a lookup secret and is running out of backup codes, redirect to generate a new set
         window.location.href = getRedirectToFromError(err.response.data);

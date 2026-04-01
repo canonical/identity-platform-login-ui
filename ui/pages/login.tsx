@@ -13,6 +13,8 @@ import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
 import { kratos, loginIdentifierFirst } from "../api/kratos";
+import { resolveTenant } from "../api/tenantResolve";
+import { useAppConfig } from "../config/useAppConfig";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
@@ -67,6 +69,7 @@ const resolveLoginTitle = (
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
+  const { multiTenancyEnabled } = useAppConfig();
   const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
   const is2FaWebauthn =
     flow?.requested_aal === "aal2" &&
@@ -226,15 +229,33 @@ const Login: NextPage = () => {
 
         return loginIdentifierFirst(flowId, values, method, flow)
           .then((data) => {
-            if ("redirect_to" in data) {
-              window.location.href = data.redirect_to;
+            const followData = () => {
+              if ("redirect_to" in data) {
+                window.location.href = data.redirect_to;
+              } else {
+                setFlow(data);
+              }
+            };
+
+            const challengeForResolve =
+              typeof login_challenge === "string"
+                ? login_challenge
+                : flow?.oauth2_login_challenge;
+
+            if (!multiTenancyEnabled || !challengeForResolve) {
+              followData();
               return;
             }
-            if (flow?.return_to) {
-              window.location.href = flow.return_to;
-              return;
-            }
-            setFlow(data);
+
+            return resolveTenant(flowId, challengeForResolve)
+              .then((redirectTo) => {
+                if (redirectTo) {
+                  window.location.href = redirectTo;
+                } else {
+                  followData();
+                }
+              })
+              .catch(() => followData());
           })
           .catch(redirectToErrorPage);
       }
@@ -286,7 +307,7 @@ const Login: NextPage = () => {
           return Promise.reject(err);
         });
     },
-    [flow, router],
+    [flow, router, multiTenancyEnabled, login_challenge],
   );
   const reqName = flow?.oauth2_login_request?.client?.client_name ?? "";
   const reqDomain = flow?.oauth2_login_request?.client?.client_uri

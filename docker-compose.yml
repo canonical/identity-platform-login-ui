@@ -18,6 +18,7 @@ services:
       - OPENFGA_STORE_ID=01GP1254CHWJC1MNGVB0WDG1T0
       # TODO: Switch to true when implemented in FE
       - IDENTIFIER_FIRST_ENABLED=false
+      - MULTI_TENANCY_ENABLED=false
     ports:
       - "4455:4455"
     networks:

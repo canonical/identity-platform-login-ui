@@ -19,13 +19,13 @@ import (
 
 	authz "github.com/canonical/identity-platform-login-ui/internal/authorization"
 	"github.com/canonical/identity-platform-login-ui/internal/config"
+	"github.com/canonical/identity-platform-login-ui/internal/cookies"
 	ih "github.com/canonical/identity-platform-login-ui/internal/hydra"
 	ik "github.com/canonical/identity-platform-login-ui/internal/kratos"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus"
 	fga "github.com/canonical/identity-platform-login-ui/internal/openfga"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
-	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
 	"github.com/canonical/identity-platform-login-ui/pkg/web"
 )
 
@@ -59,6 +59,10 @@ func serve() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	if err := validate.Struct(specs); err != nil {
 		return fmt.Errorf("issues with environment variables validation: %w", err)
+	}
+
+	if specs.MultiTenancyEnabled && specs.TenantsServiceURL == "" {
+		return fmt.Errorf("cannot enable multi-tenancy without TENANTS_SERVICE_URL")
 	}
 
 	logger := logging.NewLogger(specs.LogLevel)
@@ -96,8 +100,8 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) (h
 	kAdminClient := ik.NewClient(specs.KratosAdminURL, specs.Debug)
 	hClient := ih.NewClient(specs.HydraAdminURL, specs.Debug)
 
-	encrypt := kratos.NewEncrypt([]byte(specs.CookiesEncryptionKey), logger, tracer)
-	cookieManager := kratos.NewAuthCookieManager(
+	encrypt := cookies.NewEncrypt([]byte(specs.CookiesEncryptionKey), logger, tracer)
+	cookieManager := cookies.NewAuthCookieManager(
 		specs.CookieTTL,
 		encrypt,
 		logger,
@@ -118,13 +122,19 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) (h
 		return nil, fmt.Errorf("invalid authorization model provided: %w", err)
 	}
 
+	var tenantsServiceURL string
+	if specs.MultiTenancyEnabled {
+		tenantsServiceURL = specs.TenantsServiceURL
+	}
+
 	router := web.NewRouter(
 		web.WithKratosClients(kClient, kAdminClient),
+		web.WithTenantsServiceURL(tenantsServiceURL),
 		web.WithHydraClient(hClient),
 		web.WithAuthzClient(authorizer),
 		web.WithCookieManager(cookieManager),
 		web.WithFS(distFS),
-		web.WithFlags(specs.VerificationEnabled, specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.IdentifierFirstEnabled),
+		web.WithFlags(specs.VerificationEnabled, specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.IdentifierFirstEnabled, specs.MultiTenancyEnabled),
 		web.WithBaseURL(specs.BaseURL),
 		web.WithSupportEmail(specs.SupportEmail),
 		web.WithFeatureFlags(specs.FeatureFlags),

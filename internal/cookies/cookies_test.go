@@ -15,7 +15,7 @@ import (
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package cookies -destination ./mock_logger.go -source=../logging/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package cookies -destination ./mock_cookies.go -source=./cookies.go
+//go:generate mockgen -build_flags=--mod=mod -package cookies -destination ./mock_cookies.go -source=./interfaces.go
 
 func findCookie(name string, cookies []*http.Cookie) (*http.Cookie, bool) {
 	for _, cookie := range cookies {

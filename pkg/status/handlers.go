@@ -27,6 +27,7 @@ type DeploymentInfo struct {
 	OidcSequencingEnabled  bool     `json:"oidc_webauthn_sequencing_enabled"`
 	BaseURL                string   `json:"base_url"`
 	IdentifierFirstEnabled bool     `json:"identifier_first_enabled"`
+	MultiTenancyEnabled    bool     `json:"multi_tenancy_enabled"`
 	SupportEmail           string   `json:"support_email"`
 	Flags                  []string `json:"flags"`
 }
@@ -36,6 +37,7 @@ type API struct {
 	supportEmail                  string
 	oidcWebAuthnSequencingEnabled bool
 	identifierFirstEnabled        bool
+	multiTenancyEnabled           bool
 	flags                         []string
 	service                       ServiceInterface
 
@@ -96,6 +98,7 @@ func (a *API) appConfig(w http.ResponseWriter, r *http.Request) {
 	info := new(DeploymentInfo)
 	info.OidcSequencingEnabled = a.oidcWebAuthnSequencingEnabled
 	info.IdentifierFirstEnabled = a.identifierFirstEnabled
+	info.MultiTenancyEnabled = a.multiTenancyEnabled
 	info.BaseURL = a.BaseURL
 	info.SupportEmail = a.supportEmail
 	info.Flags = a.flags
@@ -104,14 +107,15 @@ func (a *API) appConfig(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
-func NewAPI(baseURL, supportEmail string, oidcWebAuthnSequencingEnabled, identifierFirstEnabled bool, flags []string, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
+func NewAPI(baseURL, supportEmail string, oidcWebAuthnSequencingEnabled, identifierFirstEnabled, multiTenancyEnabled bool, flags []string, service ServiceInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *API {
 	a := new(API)
 
 	a.BaseURL = baseURL
 	a.supportEmail = supportEmail
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.identifierFirstEnabled = identifierFirstEnabled
-    a.flags = flags
+	a.multiTenancyEnabled = multiTenancyEnabled
+	a.flags = flags
 	a.service = service
 	a.tracer = tracer
 	a.monitor = monitor
