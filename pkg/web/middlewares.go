@@ -22,9 +22,8 @@ func middlewareCORS(origins []string) func(http.Handler) http.Handler {
 				http.MethodDelete,
 				http.MethodOptions,
 			},
-			AllowedHeaders:   []string{"*"},
-			AllowCredentials: true,
-			MaxAge:           300, // Maximum value not ignored by any of major browsers
+			AllowedHeaders: []string{"*"},
+			MaxAge:         300, // Maximum value not ignored by any of major browsers
 		},
 	)
 }
