@@ -133,7 +133,7 @@ const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
   const existingKeyNames: string[] = [];
 
   const isSequencedFromSignInFlow =
-    flow?.return_to?.includes("/ui/login?") ?? false;
+    flow?.return_to?.includes(`/${router.basePath}/login?`) ?? false;
 
   const webauthnFlow = {
     ...renderFlow,

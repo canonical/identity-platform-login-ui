@@ -17,6 +17,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const isProvider = attributes.name === "provider";
   const provider = attributes.value as string;
   const image = getProviderImage(provider);
+  const router = useRouter();
 
   const getAppearance = () => {
     const appearance = (node.meta.label?.context as { appearance: string })
@@ -51,7 +52,8 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
 
     return (
       <p className="registration-cta">
-        Don&apos;t have an account? <Link href="/ui/register">Register</Link>
+        Don&apos;t have an account?{" "}
+        <Link href={`/${router.basePath}/register`}>Register</Link>
       </p>
     );
   };
@@ -107,7 +109,8 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
       </Button>
       {isRegisterEmailSubmit(node) && (
         <>
-          Already have an account? <a href="/ui/login">Sign in</a>
+          Already have an account?{" "}
+          <a href={`/${router.basePath}/login`}>Sign in</a>
         </>
       )}
       {afterComponent}

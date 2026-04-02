@@ -2,10 +2,12 @@ import { getNodeLabel } from "@ory/integrations/ui";
 import React, { FC, useState, ChangeEvent, KeyboardEvent } from "react";
 import { NodeInputProps } from "./helpers";
 import PasswordToggle from "./PasswordToggle";
+import { useRouter } from "next/router";
 
 function getLoginStartUrl(): string {
   const url = new URL(window.location.href);
-  url.pathname = "/ui/login";
+  const router = useRouter();
+  url.pathname = `${router.basePath}/login`;
   url.searchParams.delete("flow");
   return url.pathname + url.search;
 }
