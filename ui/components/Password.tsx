@@ -1,4 +1,4 @@
-import React, { FC, useCallback } from "react";
+import React, { FC, useCallback, useEffect } from "react";
 import PasswordToggle from "./PasswordToggle";
 import PasswordCheck from "./PasswordCheck";
 
@@ -62,9 +62,11 @@ const Password: FC<Props> = ({
   const isMismatch = hasConfirmBlur && password !== confirmation;
 
   const localValid = hasPassBlur && !isCheckFailed && password === confirmation;
-  if (isValid !== localValid) {
-    setValid(localValid);
-  }
+  useEffect(() => {
+    if (isValid !== localValid) {
+      setValid(localValid);
+    }
+  }, [isValid, localValid, setValid]);
 
   return (
     <>

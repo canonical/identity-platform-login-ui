@@ -28,13 +28,12 @@ const Verification: NextPage = () => {
   const [flow, setFlow] = useState<VerificationFlow>();
   const router = useRouter();
   const {
-    return_to: returnTo,
     flow: flowId,
     code: verificationCode,
     email: queryEmail,
   } = router.query;
 
-  const RESEND_CODE_TIMEOUT = 60000; // 60 seconds
+  const RESEND_CODE_TIMEOUT = 600; // 60 seconds
 
   const [resendDisabled, setResendDisabled] = useState<boolean>(false);
   const disableButtonWithTimeout = () => {
@@ -112,9 +111,7 @@ const Verification: NextPage = () => {
     }
 
     kratos
-      .createBrowserVerificationFlow({
-        returnTo: returnTo ? String(returnTo) : undefined,
-      })
+      .createBrowserVerificationFlow()
       .then(({ data }) => {
         if (queryEmail && data.state === "choose_method") {
           const csrfNode = data.ui.nodes.find(
@@ -162,7 +159,7 @@ const Verification: NextPage = () => {
       })
       .catch(handleFlowError("verification", setFlow))
       .catch(redirectToErrorPage);
-  }, [flowId, router, returnTo, queryEmail, flow, redirectToErrorPage]);
+  }, [flowId, router, queryEmail, flow, redirectToErrorPage]);
 
   const handleSubmit = useCallback(
     (values: UpdateVerificationFlowBody) => {
@@ -179,7 +176,10 @@ const Verification: NextPage = () => {
             console.log(
               "Verification successful, redirecting to secure account page...",
             );
-            redirectTo("http://localhost/ui/secure_account", router);
+            redirectTo(
+              `http://localhost${router.basePath}/secure_account`,
+              router,
+            );
           }
           if ("continue_with" in data) {
             const continue_with: {
@@ -225,7 +225,7 @@ const Verification: NextPage = () => {
           return Promise.reject(err);
         });
     },
-    [flow, returnTo, router],
+    [flow, router],
   );
 
   const userEmail = useMemo(() => {

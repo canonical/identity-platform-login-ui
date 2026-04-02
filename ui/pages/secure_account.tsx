@@ -12,7 +12,10 @@ const secureAccount: NextPage = () => {
       <div
         className="p-card clickable"
         onClick={() => {
-          redirectTo("http://localhost/ui/setup_passkey", router);
+          redirectTo(
+            `http://localhost${router.basePath}/setup_passkey`,
+            router,
+          );
         }}
       >
         <div className="p-card__content d-flex">
@@ -36,7 +39,7 @@ const secureAccount: NextPage = () => {
       <div
         className="p-card clickable"
         onClick={() => {
-          redirectTo("http://localhost/ui/setup_secure", router);
+          redirectTo(`http://localhost${router.basePath}/setup_secure`, router);
         }}
       >
         <div className="p-card__content d-flex">

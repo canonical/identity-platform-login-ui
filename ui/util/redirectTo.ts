@@ -7,6 +7,7 @@ export function redirectTo(url: string, router: NextRouter): void {
   const pathWithoutBase = newUrl.pathname.startsWith(basePath)
     ? newUrl.pathname.slice(basePath.length)
     : newUrl.pathname;
+  console.log(`Redirecting to ${url} (path: ${pathWithoutBase}, params: ${JSON.stringify(kratosParams)})`);
   void router.push({
     pathname: pathWithoutBase,
     query: {

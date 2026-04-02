@@ -145,7 +145,7 @@ const generateContent = ({
   validationId,
   helpId,
   isTickElement,
-}: Partial<Props> & {
+}: Props & {
   labelNode: React.JSX.Element | null;
   validationId: string | undefined;
   helpId: string | undefined;
