@@ -13,7 +13,7 @@ import { handleFlowError } from "../util/handleFlowError";
 import { kratos } from "../api/kratos";
 import { Flow } from "../components/Flow";
 import PageLayout from "../components/PageLayout";
-import { Spinner } from "@canonical/react-components";
+import { Spinner, Notification } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
@@ -28,12 +28,13 @@ const Verification: NextPage = () => {
   const [flow, setFlow] = useState<VerificationFlow>();
   const router = useRouter();
   const {
+    return_to: returnTo,
     flow: flowId,
     code: verificationCode,
     email: queryEmail,
   } = router.query;
 
-  const RESEND_CODE_TIMEOUT = 600; // 60 seconds
+  const RESEND_CODE_TIMEOUT = 60000; // 60 seconds
 
   const [resendDisabled, setResendDisabled] = useState<boolean>(false);
   const disableButtonWithTimeout = () => {
@@ -111,7 +112,9 @@ const Verification: NextPage = () => {
     }
 
     kratos
-      .createBrowserVerificationFlow()
+      .createBrowserVerificationFlow({
+        returnTo: returnTo ? String(returnTo) : undefined,
+      })
       .then(({ data }) => {
         if (queryEmail && data.state === "choose_method") {
           const csrfNode = data.ui.nodes.find(
@@ -173,13 +176,18 @@ const Verification: NextPage = () => {
         })
         .then(({ data }) => {
           if (data.state === "passed_challenge") {
-            console.log(
-              "Verification successful, redirecting to secure account page...",
-            );
-            redirectTo(
-              `http://localhost${router.basePath}/secure_account`,
-              router,
-            );
+            if (flow?.return_to) {
+              redirectTo(flow.return_to, router);
+              return;
+            } else {
+              const timer = setTimeout(() => {
+                clearTimeout(timer);
+                redirectTo(
+                  `http://localhost${router.basePath}/manage_details`,
+                  router,
+                );
+              }, 3000);
+            }
           }
           if ("continue_with" in data) {
             const continue_with: {
@@ -278,6 +286,21 @@ const Verification: NextPage = () => {
 
   if (!flow) {
     return <Spinner />;
+  }
+
+  if (flow.state === "passed_challenge") {
+    return (
+      <PageLayout title="Account setup complete">
+        <Notification severity="positive" inline>
+          Email verification successful
+        </Notification>
+        <Spinner
+          text={`You will be redirected to ${
+            flow.return_to ? flow.return_to.split("?")[0] : "/ui/manage_details"
+          }`}
+        />
+      </PageLayout>
+    );
   }
 
   return (

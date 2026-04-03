@@ -1,9 +1,9 @@
 import React from "react";
 import { NextPage } from "next";
-import PageLayout from "../components/PageLayout";
+import PageLayout from "../../components/PageLayout";
 import { Col, Icon, Row } from "@canonical/react-components";
 import { useRouter } from "next/router";
-import { redirectTo } from "../util/redirectTo";
+import { redirectTo } from "../../util/redirectTo";
 
 const secureAccount: NextPage = () => {
   const router = useRouter();
