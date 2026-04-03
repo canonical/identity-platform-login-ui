@@ -1,5 +1,5 @@
 import React, { FC, useCallback, useEffect } from "react";
-import PasswordToggle from "./PasswordToggle";
+import { PasswordToggle } from "@canonical/react-components";
 import PasswordCheck from "./PasswordCheck";
 
 export type PasswordCheckType = "lowercase" | "uppercase" | "number" | "length";
