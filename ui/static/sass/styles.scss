@@ -270,3 +270,8 @@ hr {
   vertical-align: calc(0.5px + 0.3465em - 0.5rem);
   background-image: url('../../public/logos/qr-code-symbolic.svg');
 }
+
+.password-toggle {
+  display: flex;
+  flex-direction: column-reverse;
+}
