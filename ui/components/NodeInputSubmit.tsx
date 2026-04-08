@@ -6,6 +6,13 @@ import { getProviderImage } from "../util/logos";
 import { isResendVerificationCode } from "../util/constants";
 import { ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN } from "../util/constants";
 
+function getLoginStartUrl(): string {
+  const url = new URL(window.location.href);
+  url.pathname = `/ui/login`;
+  url.searchParams.delete("flow");
+  return url.pathname + url.search;
+}
+
 export const NodeInputSubmit: FC<NodeInputProps> = ({
   node,
   attributes,

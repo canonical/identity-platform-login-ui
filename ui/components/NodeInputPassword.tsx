@@ -3,13 +3,6 @@ import React, { FC, useState, ChangeEvent, KeyboardEvent } from "react";
 import { NodeInputProps } from "./helpers";
 import PasswordToggle from "./PasswordToggleAlt";
 
-function getLoginStartUrl(): string {
-  const url = new URL(window.location.href);
-  url.pathname = `/ui/login`;
-  url.searchParams.delete("flow");
-  return url.pathname + url.search;
-}
-
 export const NodeInputPassword: FC<NodeInputProps> = ({
   node,
   setValue,
@@ -50,13 +43,6 @@ export const NodeInputPassword: FC<NodeInputProps> = ({
       label={
         <div className="password-label">
           <span>{getNodeLabel(node)}</span>
-          <a
-            href={`./reset_email?return_to=${encodeURIComponent(getLoginStartUrl())}`}
-            style={{ float: "right" }}
-            tabIndex={3}
-          >
-            Reset password
-          </a>
         </div>
       }
       value={password}
