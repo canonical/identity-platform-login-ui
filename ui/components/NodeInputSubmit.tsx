@@ -6,9 +6,17 @@ import { getProviderImage } from "../util/logos";
 import {
   isRegisterEmailSubmit,
   isResendVerificationCode,
+  isSignInWithPassword,
 } from "../util/constants";
 import { ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN } from "../util/constants";
 import { useRouter } from "next/router";
+
+function getLoginStartUrl(): string {
+  const url = new URL(window.location.href);
+  url.pathname = `/ui/login`;
+  url.searchParams.delete("flow");
+  return url.pathname + url.search;
+}
 
 export const NodeInputSubmit: FC<NodeInputProps> = ({
   node,
@@ -119,6 +127,15 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
       )}
       {afterComponent}
       {renderRegistrationCta()}
+      {isSignInWithPassword(node) && (
+        <a
+          href={`./reset_email?return_to=${encodeURIComponent(getLoginStartUrl())}`}
+          style={{ float: "right" }}
+          tabIndex={3}
+        >
+          Reset password
+        </a>
+      )}
     </>
   );
 };
