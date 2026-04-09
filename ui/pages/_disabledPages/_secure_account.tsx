@@ -11,9 +11,10 @@ const secureAccount: NextPage = () => {
     <PageLayout title="Secure your account">
       <div
         className="p-card clickable"
+        role="button"
         onClick={() => {
           redirectTo(
-            `http://localhost${router.basePath}/setup_passkey`,
+            `${router.basePath}/setup_passkey`,
             router,
           );
         }}
@@ -38,8 +39,9 @@ const secureAccount: NextPage = () => {
       </div>
       <div
         className="p-card clickable"
+        role="button"
         onClick={() => {
-          redirectTo(`http://localhost${router.basePath}/setup_secure`, router);
+          redirectTo(`${router.basePath}/setup_secure`, router);
         }}
       >
         <div className="p-card__content d-flex">

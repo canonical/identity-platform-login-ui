@@ -162,7 +162,7 @@ const Verification: NextPage = () => {
       })
       .catch(handleFlowError("verification", setFlow))
       .catch(redirectToErrorPage);
-  }, [flowId, router, queryEmail, flow, redirectToErrorPage]);
+  }, [flowId, router, returnTo, queryEmail, flow, redirectToErrorPage]);
 
   const handleSubmit = useCallback(
     (values: UpdateVerificationFlowBody) => {
@@ -182,10 +182,7 @@ const Verification: NextPage = () => {
             } else {
               const timer = setTimeout(() => {
                 clearTimeout(timer);
-                redirectTo(
-                  `http://localhost${router.basePath}/manage_details`,
-                  router,
-                );
+                redirectTo(`${router.basePath}/manage_details`, router);
               }, 3000);
             }
           }
@@ -296,7 +293,9 @@ const Verification: NextPage = () => {
         </Notification>
         <Spinner
           text={`You will be redirected to ${
-            flow.return_to ? flow.return_to.split("?")[0] : "/ui/manage_details"
+            flow.return_to
+              ? flow.return_to.split("?")[0]
+              : `${router.basePath}/manage_details`
           }`}
         />
       </PageLayout>

@@ -1,7 +1,7 @@
 const isDev = process.env.DEV === "true";
 
 module.exports = {
-    basePath: isDev ? '/ui' : '',
+    basePath: '/ui',
     output: 'export',
     distDir: 'dist',
     experimental: {

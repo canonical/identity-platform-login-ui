@@ -30,7 +30,6 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const provider = attributes.value as string;
   const image = getProviderImage(provider);
   const router = useRouter();
-
   const getAppearance = () => {
     const appearance = (node.meta.label?.context as { appearance: string })
       ?.appearance;
@@ -65,7 +64,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     return (
       <p className="registration-cta">
         Don&apos;t have an account?{" "}
-        <Link href={`/${router.basePath}/register`}>Register</Link>
+        <Link href={`${router.basePath}/register`}>Register</Link>
       </p>
     );
   };
@@ -122,19 +121,19 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
       {isRegisterEmailSubmit(node) && (
         <>
           Already have an account?{" "}
-          <a href={`/${router.basePath}/login`}>Sign in</a>
+          <Link href={getLoginStartUrl()}>Sign in</Link>
         </>
       )}
       {afterComponent}
       {renderRegistrationCta()}
       {isSignInWithPassword(node) && (
-        <a
-          href={`./reset_email?return_to=${encodeURIComponent(getLoginStartUrl())}`}
+        <Link
+          href={`${router.basePath}/reset_email?return_to=${encodeURIComponent(getLoginStartUrl())}`}
           style={{ float: "right" }}
           tabIndex={3}
         >
           Reset password
-        </a>
+        </Link>
       )}
     </>
   );
