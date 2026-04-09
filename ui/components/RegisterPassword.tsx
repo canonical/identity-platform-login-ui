@@ -66,7 +66,6 @@ export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
         })
         .then((response) => {
           const result = response.data;
-          console.log(result);
           if (result.continue_with && Array.isArray(result.continue_with)) {
             const verificationAction: ContinueWith | undefined =
               result.continue_with.find(
@@ -104,6 +103,7 @@ export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
           }
           return Promise.reject(error);
         });
+      setIsSubmitting(false);
     },
     [password, CSRFToken, flow, router],
   );

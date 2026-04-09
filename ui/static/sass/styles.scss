@@ -114,7 +114,7 @@ hr {
 
 .p-card {
   background-color: $color-x-light;
-  .clickable {
+  &.clickable {
     cursor: pointer;
     padding: 0;
   }
