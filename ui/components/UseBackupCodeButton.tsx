@@ -14,7 +14,7 @@ export const UseBackupCodeButton: FC = () => {
         const newQuery = { ...router.query, ["use_backup_code"]: "true" };
         void router.push(
           {
-            pathname: router.pathname,
+            pathname: window.location.pathname,
             query: newQuery,
           },
           undefined,

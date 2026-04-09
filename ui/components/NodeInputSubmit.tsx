@@ -3,7 +3,11 @@ import { Button, Link } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
 import React, { FC } from "react";
 import { getProviderImage } from "../util/logos";
-import { isResendVerificationCode } from "../util/constants";
+import {
+  isRegisterEmailSubmit,
+  isResendVerificationCode,
+  isSignInWithPassword,
+} from "../util/constants";
 import { ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN } from "../util/constants";
 
 function getLoginStartUrl(): string {
@@ -24,7 +28,6 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const isProvider = attributes.name === "provider";
   const provider = attributes.value as string;
   const image = getProviderImage(provider);
-  const router = useRouter();
   const getAppearance = () => {
     const appearance = (node.meta.label?.context as { appearance: string })
       ?.appearance;
@@ -58,8 +61,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
 
     return (
       <p className="registration-cta">
-        Don&apos;t have an account?{" "}
-        <Link href={`${router.basePath}/register`}>Register</Link>
+        Don&apos;t have an account? <Link href={`./register`}>Register</Link>
       </p>
     );
   };
@@ -121,6 +123,14 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
       )}
       {afterComponent}
       {renderRegistrationCta()}
+      {isSignInWithPassword(node) && (
+        <Link
+          href={`./reset_email?return_to=${encodeURIComponent(getLoginStartUrl())}`}
+          tabIndex={3}
+        >
+          Reset password
+        </Link>
+      )}
     </>
   );
 };

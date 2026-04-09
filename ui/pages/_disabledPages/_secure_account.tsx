@@ -1,7 +1,7 @@
 import React from "react";
 import { NextPage } from "next";
 import PageLayout from "../../components/PageLayout";
-import { Col, Icon, Row } from "@canonical/react-components";
+import { Button, Col, Icon, Row } from "@canonical/react-components";
 import { useRouter } from "next/router";
 import { redirectTo } from "../../util/redirectTo";
 
@@ -9,11 +9,11 @@ const secureAccount: NextPage = () => {
   const router = useRouter();
   return (
     <PageLayout title="Secure your account">
-      <div
+      <Button
         className="p-card clickable"
         role="button"
         onClick={() => {
-          redirectTo(`${router.basePath}/setup_passkey`, router);
+          redirectTo(`/ui/setup_passkey`, router);
         }}
       >
         <div className="p-card__content d-flex">
@@ -33,12 +33,12 @@ const secureAccount: NextPage = () => {
             </Col>
           </Row>
         </div>
-      </div>
-      <div
+      </Button>
+      <Button
         className="p-card clickable"
         role="button"
         onClick={() => {
-          redirectTo(`${router.basePath}/setup_secure`, router);
+          redirectTo(`/ui/setup_secure`, router);
         }}
       >
         <div className="p-card__content d-flex">
@@ -58,7 +58,7 @@ const secureAccount: NextPage = () => {
             </Col>
           </Row>
         </div>
-      </div>
+      </Button>
     </PageLayout>
   );
 };

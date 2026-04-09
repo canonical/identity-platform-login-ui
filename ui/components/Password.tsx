@@ -21,18 +21,42 @@ const Password: FC<Props> = ({
   setValid,
   label = "Password",
 }) => {
-  const [confirmation, setConfirmation] = useState("");
-  const [hasTouched, setHasTouched] = useState(false);
-  const [hasBlurred, setHasBlurred] = useState(false);
+  const [confirmation, setConfirmation] = React.useState("");
+  const [hasPassBlur, setPasswordBlurred] = React.useState(false);
+  const [hasConfirmBlur, setConfirmationBlurred] = React.useState(false);
+  const [isEditingPass, setIsEditingPass] = React.useState(true);
 
-  const debouncedPassword = useDebounce(password, DEBOUNCE_DURATION);
-  const debouncedConfirmation = useDebounce(confirmation, DEBOUNCE_DURATION);
-
-  const getStatus = (check: PasswordCheckType) => {
-    if (!hasTouched || !debouncedPassword) return "neutral";
-    if (validateCheck(check, debouncedPassword)) return "success";
-    return hasBlurred ? "error" : "neutral";
-  };
+  const getStatus = useCallback(
+    (check: PasswordCheckType) => {
+      switch (check) {
+        case "lowercase":
+          return /[a-z]/.test(password)
+            ? "success"
+            : isEditingPass
+              ? "neutral"
+              : "error";
+        case "uppercase":
+          return /[A-Z]/.test(password)
+            ? "success"
+            : isEditingPass
+              ? "neutral"
+              : "error";
+        case "number":
+          return /[0-9]/.test(password)
+            ? "success"
+            : isEditingPass
+              ? "neutral"
+              : "error";
+        case "length":
+          return password.length >= 8
+            ? "success"
+            : isEditingPass
+              ? "neutral"
+              : "error";
+      }
+    },
+    [password, isEditingPass],
+  );
 
   const isCheckFailed = checks.some((check) => getStatus(check) === "error");
   const isMismatch = hasConfirmBlur && password !== confirmation;
@@ -51,8 +75,12 @@ const Password: FC<Props> = ({
         name="password"
         label={label}
         placeholder="Your password"
-        onBlur={() => setHasBlurred(true)}
-        onChange={handlePasswordChange}
+        onBlur={() => {
+          setPasswordBlurred(true);
+          setIsEditingPass(false);
+        }}
+        onFocus={() => setIsEditingPass(true)}
+        onChange={(e) => setPassword(e.target.value)}
         value={password}
         help={checks.length > 0 && "Password must contain"}
         error={
