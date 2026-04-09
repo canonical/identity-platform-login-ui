@@ -96,14 +96,15 @@ export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
         .catch((error: AxiosError<RegistrationFlow>) => {
           // Handle errors, e.g., display error messages
           console.error("Error submitting registration flow:", error);
-          setIsSubmitting(false);
           if (error.response?.status === 400) {
             setFlow(error.response.data);
             return;
           }
           return Promise.reject(error);
+        })
+        .finally(() => {
+          setIsSubmitting(false);
         });
-      setIsSubmitting(false);
     },
     [password, CSRFToken, flow, router],
   );

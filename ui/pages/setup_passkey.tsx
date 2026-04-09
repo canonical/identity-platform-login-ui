@@ -98,10 +98,7 @@ const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
       .catch(handleFlowError("settings", setFlow))
       .catch(async (err: AxiosError<string>) => {
         if (err.response?.data.trim() === "Failed to create settings flow") {
-          redirectTo(
-            `${router.basePath}/login?return_to=${window.location.pathname}`,
-            router,
-          );
+          redirectTo(`/ui/login?return_to=${window.location.pathname}`, router);
           return;
         }
 
@@ -137,7 +134,7 @@ const SetupPasskey: NextPage<Props> = ({ forceSelfServe }: Props) => {
   const existingKeyNames: string[] = [];
 
   const isSequencedFromSignInFlow =
-    flow?.return_to?.includes(`${router.basePath}/login?`) ?? false;
+    flow?.return_to?.includes(`/login?`) ?? false;
 
   const webauthnFlow = {
     ...renderFlow,

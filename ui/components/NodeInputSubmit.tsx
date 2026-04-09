@@ -9,7 +9,6 @@ import {
   isSignInWithPassword,
 } from "../util/constants";
 import { ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN } from "../util/constants";
-import { useRouter } from "next/router";
 
 function getLoginStartUrl(): string {
   const url = new URL(window.location.href);
@@ -29,7 +28,6 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   const isProvider = attributes.name === "provider";
   const provider = attributes.value as string;
   const image = getProviderImage(provider);
-  const router = useRouter();
   const getAppearance = () => {
     const appearance = (node.meta.label?.context as { appearance: string })
       ?.appearance;
@@ -63,8 +61,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
 
     return (
       <p className="registration-cta">
-        Don&apos;t have an account?{" "}
-        <Link href={`${router.basePath}/register`}>Register</Link>
+        Don&apos;t have an account? <Link href={`./register`}>Register</Link>
       </p>
     );
   };
@@ -128,8 +125,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
       {renderRegistrationCta()}
       {isSignInWithPassword(node) && (
         <Link
-          href={`${router.basePath}/reset_email?return_to=${encodeURIComponent(getLoginStartUrl())}`}
-          style={{ float: "right" }}
+          href={`./reset_email?return_to=${encodeURIComponent(getLoginStartUrl())}`}
           tabIndex={3}
         >
           Reset password

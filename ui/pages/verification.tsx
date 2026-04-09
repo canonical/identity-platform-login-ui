@@ -182,7 +182,7 @@ const Verification: NextPage = () => {
             } else {
               const timer = setTimeout(() => {
                 clearTimeout(timer);
-                redirectTo(`${router.basePath}/manage_details`, router);
+                redirectTo(`/ui/manage_details`, router);
               }, 3000);
             }
           }
@@ -293,9 +293,7 @@ const Verification: NextPage = () => {
         </Notification>
         <Spinner
           text={`You will be redirected to ${
-            flow.return_to
-              ? flow.return_to.split("?")[0]
-              : `${router.basePath}/manage_details`
+            flow.return_to ? flow.return_to.split("?")[0] : `./manage_details`
           }`}
         />
       </PageLayout>
