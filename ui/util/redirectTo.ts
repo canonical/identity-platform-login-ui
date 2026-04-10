@@ -13,11 +13,18 @@ export function redirectTo(url: string, router: NextRouter): void {
   const pathWithoutBase = newUrl.pathname.startsWith(basePath)
     ? newUrl.pathname.slice(basePath.length)
     : newUrl.pathname;
+
+  if (newUrl.origin !== window.location.origin) {
+    window.location.assign(newUrl.toString());
+    return;
+  }
+
   void router.push({
     pathname: pathWithoutBase,
     query: {
       ...router.query,
       ...kratosParams,
     },
+    hash: newUrl.hash,
   });
 }
