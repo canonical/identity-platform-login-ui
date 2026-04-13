@@ -11,8 +11,7 @@ import {
 import { ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN } from "../util/constants";
 
 function getLoginStartUrl(): string {
-  const url = new URL(window.location.href);
-  url.pathname = `/ui/login`;
+  const url = new URL("./login", window.location.href);
   url.searchParams.delete("flow");
   return url.pathname + url.search;
 }

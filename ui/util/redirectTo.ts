@@ -8,16 +8,16 @@ export function redirectTo(url: string, router: NextRouter): void {
     console.error(`Failed to redirect to invalid URL: ${url}`, error);
     return;
   }
+  if (newUrl.origin !== window.location.origin) {
+    window.location.assign(newUrl.toString());
+    return;
+  }
   const kratosParams = Object.fromEntries(newUrl.searchParams.entries());
   const basePath = router.basePath || "";
   const pathWithoutBase = newUrl.pathname.startsWith(basePath)
     ? newUrl.pathname.slice(basePath.length)
     : newUrl.pathname;
 
-  if (newUrl.origin !== window.location.origin) {
-    window.location.assign(newUrl.toString());
-    return;
-  }
 
   void router.push({
     pathname: pathWithoutBase,
