@@ -65,8 +65,8 @@ const SelectTenant: NextPage = () => {
     loader
       .then((result) => {
         setTenants(result);
-        if (result.length === 0) {
-          submitTenantSelection("");
+        if (result.length <= 1) {
+          submitTenantSelection(result.length === 1 ? result[0].id : "");
         }
       })
       .catch((err) => {

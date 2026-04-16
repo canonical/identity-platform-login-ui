@@ -8,6 +8,7 @@ import (
 
 	"github.com/canonical/identity-platform-login-ui/internal/cookies"
 	"github.com/canonical/identity-platform-login-ui/internal/hydra"
+	"github.com/canonical/identity-platform-login-ui/pkg/tenants"
 )
 
 type KratosClientInterface interface {
@@ -41,6 +42,24 @@ type TenantResolverInterface interface {
 	// Used to decide whether to redirect to the tenant selection page or proceed
 	// silently with NoTenantAvailable. Returns false when tenant selection is disabled.
 	HasTenants(ctx context.Context, session *kClient.Session) (bool, error)
+	// IsAuthenticatedForChallenge reports whether the state cookie proves the
+	// user has already authenticated for the given login challenge. When
+	// tenant selection is disabled this always returns true (no gate).
+	IsAuthenticatedForChallenge(cookie cookies.FlowStateCookie, loginChallenge string) bool
+	// NeedsTenantSelection checks whether the user needs to pick a tenant.
+	// Returns needsSelection=true when the user has tenants but none is
+	// selected yet. When the user has no tenants, the sentinel is stored in
+	// the returned cookie. When disabled this always returns false.
+	NeedsTenantSelection(ctx context.Context, session *kClient.Session, cookie cookies.FlowStateCookie, loginChallenge string) (needsSelection bool, updatedCookie cookies.FlowStateCookie, err error)
+	// NeedsTenantSelectionByEmail is like NeedsTenantSelection but works with
+	// an email address instead of a session. Used after the identifier-first
+	// step when the user has entered their email but hasn't authenticated yet.
+	NeedsTenantSelectionByEmail(ctx context.Context, email string, cookie cookies.FlowStateCookie, loginChallenge string) (needsSelection bool, updatedCookie cookies.FlowStateCookie, err error)
+	// InterceptLogin is the main plugin entry-point used by handleCreateFlow.
+	// It returns a single LoginInterception that tells the handler whether to
+	// defer MFA checks, redirect to tenant selection, or accept the login.
+	// When disabled this returns zero-value fields (no intervention).
+	InterceptLogin(ctx context.Context, session *kClient.Session, cookie cookies.FlowStateCookie, loginChallenge string) (tenants.LoginInterception, error)
 }
 
 type ServiceInterface interface {

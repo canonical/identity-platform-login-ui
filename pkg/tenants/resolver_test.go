@@ -15,6 +15,13 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/cookies"
 )
 
+// sessionWithEmail builds a Kratos session whose identity traits contain the given email.
+func sessionWithEmail(email string) *kClient.Session {
+	s := kClient.NewSession("test")
+	s.Identity = kClient.NewIdentity("test-identity", "default", "https://example.com/schema", map[string]interface{}{"email": email})
+	return s
+}
+
 // mockTenantLookup is a hand-built stub of tenantLookupService for tests.
 type mockTenantLookup struct {
 	tenants []Tenant
@@ -158,7 +165,7 @@ func TestCookieTenantResolverStoreTenant(t *testing.T) {
 
 func TestNoOpTenantResolverHasTenants(t *testing.T) {
 	r := NewNoOpTenantResolver()
-	got, err := r.HasTenants(context.Background(), nil)
+	got, err := r.HasTenants(context.Background(), sessionWithEmail("user@example.com"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -167,7 +174,7 @@ func TestNoOpTenantResolverHasTenants(t *testing.T) {
 	}
 }
 
-func TestCookieTenantResolverHasTenantsTrue(t *testing.T) {
+func TestCookieTenantResolverHasTenantsByEmailTrue(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -175,11 +182,7 @@ func TestCookieTenantResolverHasTenantsTrue(t *testing.T) {
 	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(mockCM, svc)
 
-	session := kClient.NewSessionWithDefaults()
-	session.Identity = kClient.NewIdentityWithDefaults()
-	session.Identity.Traits = map[string]interface{}{"email": "user@example.com"}
-
-	got, err := r.HasTenants(context.Background(), session)
+	got, err := r.HasTenants(context.Background(), sessionWithEmail("user@example.com"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -188,7 +191,7 @@ func TestCookieTenantResolverHasTenantsTrue(t *testing.T) {
 	}
 }
 
-func TestCookieTenantResolverHasTenantsFalse(t *testing.T) {
+func TestCookieTenantResolverHasTenantsByEmailFalse(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -196,11 +199,7 @@ func TestCookieTenantResolverHasTenantsFalse(t *testing.T) {
 	svc := &mockTenantLookup{tenants: []Tenant{}}
 	r := NewCookieTenantResolver(mockCM, svc)
 
-	session := kClient.NewSessionWithDefaults()
-	session.Identity = kClient.NewIdentityWithDefaults()
-	session.Identity.Traits = map[string]interface{}{"email": "user@example.com"}
-
-	got, err := r.HasTenants(context.Background(), session)
+	got, err := r.HasTenants(context.Background(), sessionWithEmail("user@example.com"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -209,7 +208,7 @@ func TestCookieTenantResolverHasTenantsFalse(t *testing.T) {
 	}
 }
 
-func TestCookieTenantResolverHasTenantsServiceError(t *testing.T) {
+func TestCookieTenantResolverHasTenantsByEmailServiceError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -217,17 +216,13 @@ func TestCookieTenantResolverHasTenantsServiceError(t *testing.T) {
 	svc := &mockTenantLookup{err: fmt.Errorf("network error")}
 	r := NewCookieTenantResolver(mockCM, svc)
 
-	session := kClient.NewSessionWithDefaults()
-	session.Identity = kClient.NewIdentityWithDefaults()
-	session.Identity.Traits = map[string]interface{}{"email": "user@example.com"}
-
-	_, err := r.HasTenants(context.Background(), session)
+	_, err := r.HasTenants(context.Background(), sessionWithEmail("user@example.com"))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 
-func TestCookieTenantResolverHasTenantsNilSession(t *testing.T) {
+func TestCookieTenantResolverHasTenantsByEmailEmpty(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -241,5 +236,411 @@ func TestCookieTenantResolverHasTenantsNilSession(t *testing.T) {
 	}
 	if got {
 		t.Fatal("expected HasTenants to return false for nil session")
+	}
+}
+
+func TestNoOpIsAuthenticatedForChallenge(t *testing.T) {
+	r := NewNoOpTenantResolver()
+	if !r.IsAuthenticatedForChallenge(cookies.FlowStateCookie{}, "any") {
+		t.Fatal("NoOp should always return true")
+	}
+}
+
+func TestNoOpNeedsTenantSelection(t *testing.T) {
+	r := NewNoOpTenantResolver()
+	need, c, err := r.NeedsTenantSelection(context.Background(), nil, cookies.FlowStateCookie{TenantID: "x"}, "ch")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if need {
+		t.Fatal("NoOp should never need selection")
+	}
+	if c.TenantID != "x" {
+		t.Fatal("NoOp should return cookie unchanged")
+	}
+}
+
+func TestCookieTenantResolverIsAuthenticatedMatching(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	if !r.IsAuthenticatedForChallenge(c, challenge) {
+		t.Fatal("expected true for matching challenge")
+	}
+}
+
+func TestCookieTenantResolverIsAuthenticatedMismatch(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash("ch-1")}
+	if r.IsAuthenticatedForChallenge(c, "ch-2") {
+		t.Fatal("expected false for mismatched challenge")
+	}
+}
+
+func TestCookieTenantResolverIsAuthenticatedEmptyChallenge(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
+	if !r.IsAuthenticatedForChallenge(cookies.FlowStateCookie{}, "") {
+		t.Fatal("expected true for empty challenge")
+	}
+}
+
+func TestNeedsTenantSelectionAlreadySelected(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{
+		TenantID:           "t1",
+		LoginChallengeHash: cookies.ChallengeHash(challenge),
+	}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
+	need, _, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if need {
+		t.Fatal("should not need selection when tenant already selected")
+	}
+}
+
+func TestNeedsTenantSelectionHasTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	need, _, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !need {
+		t.Fatal("expected selection needed when user has tenants")
+	}
+}
+
+func TestNeedsTenantSelectionNoTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	svc := &mockTenantLookup{tenants: []Tenant{}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	need, updated, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if need {
+		t.Fatal("should not need selection when user has no tenants")
+	}
+	if updated.TenantID != cookies.NoTenantAvailable {
+		t.Fatalf("expected sentinel %q, got %q", cookies.NoTenantAvailable, updated.TenantID)
+	}
+}
+
+func TestNeedsTenantSelectionLookupError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	svc := &mockTenantLookup{err: fmt.Errorf("network error")}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	_, _, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+// --- InterceptLogin tests ---
+
+func TestNoOpInterceptLogin(t *testing.T) {
+	r := NewNoOpTenantResolver()
+	result, err := r.InterceptLogin(context.Background(), nil, cookies.FlowStateCookie{TenantID: "x"}, "ch")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.DeferMFAChecks || result.SelectTenant || result.AcceptLogin {
+		t.Fatal("NoOp should return zero-value fields (no intervention)")
+	}
+	if result.Cookie.TenantID != "x" {
+		t.Fatal("NoOp should return cookie unchanged")
+	}
+}
+
+func TestInterceptLoginDefersMFAWhenNotAuthenticated(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{} // no LoginChallengeHash — not authenticated
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
+
+	// No session → identifier-first in progress, defer everything.
+	result, err := r.InterceptLogin(context.Background(), nil, c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.DeferMFAChecks {
+		t.Fatal("expected DeferMFAChecks=true when not authenticated for challenge")
+	}
+	if result.SelectTenant || result.AcceptLogin {
+		t.Fatal("expected SelectTenant=false and AcceptLogin=false")
+	}
+}
+
+func TestInterceptLoginSessionReuseSelectsTenantWhenMultiTenant(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-new" // new challenge, cookie has no matching hash
+	c := cookies.FlowStateCookie{}
+	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	// Existing session + multi-tenant → defer MFA + select tenant.
+	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.DeferMFAChecks {
+		t.Fatal("expected DeferMFAChecks=true on session reuse")
+	}
+	if !result.SelectTenant {
+		t.Fatal("expected SelectTenant=true when session-reuse user has tenants")
+	}
+	if result.AcceptLogin {
+		t.Fatal("expected AcceptLogin=false")
+	}
+}
+
+func TestInterceptLoginSessionReuseAcceptsWhenNoTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-new"
+	c := cookies.FlowStateCookie{}
+	svc := &mockTenantLookup{tenants: []Tenant{}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	// Existing session + zero tenants → defer MFA + accept immediately.
+	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.DeferMFAChecks {
+		t.Fatal("expected DeferMFAChecks=true on session reuse")
+	}
+	if !result.AcceptLogin {
+		t.Fatal("expected AcceptLogin=true when session-reuse user has no tenants")
+	}
+	if result.SelectTenant {
+		t.Fatal("expected SelectTenant=false")
+	}
+	if result.Cookie.TenantID != cookies.NoTenantAvailable {
+		t.Fatalf("expected sentinel %q, got %q", cookies.NoTenantAvailable, result.Cookie.TenantID)
+	}
+	if result.Cookie.LoginChallengeHash != cookies.ChallengeHash(challenge) {
+		t.Fatal("expected cookie to be bound to the new challenge")
+	}
+}
+
+func TestInterceptLoginSelectsTenantWhenHasTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.SelectTenant {
+		t.Fatal("expected SelectTenant=true when user has tenants")
+	}
+	if result.DeferMFAChecks || result.AcceptLogin {
+		t.Fatal("expected DeferMFAChecks=false and AcceptLogin=false")
+	}
+}
+
+func TestInterceptLoginAcceptsWhenTenantAlreadySelected(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(challenge),
+		TenantID:           "t1",
+	}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
+
+	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.AcceptLogin {
+		t.Fatal("expected AcceptLogin=true when tenant already selected")
+	}
+	if result.DeferMFAChecks || result.SelectTenant {
+		t.Fatal("expected DeferMFAChecks=false and SelectTenant=false")
+	}
+}
+
+func TestInterceptLoginAcceptsWithSentinelWhenNoTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	svc := &mockTenantLookup{tenants: []Tenant{}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.AcceptLogin {
+		t.Fatal("expected AcceptLogin=true when user has no tenants")
+	}
+	if result.Cookie.TenantID != cookies.NoTenantAvailable {
+		t.Fatalf("expected sentinel %q, got %q", cookies.NoTenantAvailable, result.Cookie.TenantID)
+	}
+}
+
+func TestInterceptLoginPropagatesLookupError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	svc := &mockTenantLookup{err: fmt.Errorf("network error")}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	_, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+// --- NeedsTenantSelectionByEmail tests ---
+
+func TestNoOpNeedsTenantSelectionByEmail(t *testing.T) {
+	r := NewNoOpTenantResolver()
+	need, c, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", cookies.FlowStateCookie{TenantID: "x"}, "ch")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if need {
+		t.Fatal("NoOp should never need selection")
+	}
+	if c.TenantID != "x" {
+		t.Fatal("NoOp should return cookie unchanged")
+	}
+}
+
+func TestNeedsTenantSelectionByEmailAlreadySelected(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{
+		TenantID:           "t1",
+		LoginChallengeHash: cookies.ChallengeHash(challenge),
+	}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
+	need, _, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if need {
+		t.Fatal("should not need selection when tenant already selected")
+	}
+}
+
+func TestNeedsTenantSelectionByEmailHasTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	need, _, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !need {
+		t.Fatal("expected selection needed when user has tenants")
+	}
+}
+
+func TestNeedsTenantSelectionByEmailNoTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	svc := &mockTenantLookup{tenants: []Tenant{}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	need, updated, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if need {
+		t.Fatal("should not need selection when user has no tenants")
+	}
+	if updated.TenantID != cookies.NoTenantAvailable {
+		t.Fatalf("expected sentinel %q, got %q", cookies.NoTenantAvailable, updated.TenantID)
+	}
+}
+
+func TestNeedsTenantSelectionByEmailEmptyEmail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{tenants: []Tenant{{ID: "t1"}}})
+
+	need, _, err := r.NeedsTenantSelectionByEmail(context.Background(), "", c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if need {
+		t.Fatal("should not need selection when email is empty")
+	}
+}
+
+func TestNeedsTenantSelectionByEmailLookupError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	svc := &mockTenantLookup{err: fmt.Errorf("network error")}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	_, _, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", c, challenge)
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }

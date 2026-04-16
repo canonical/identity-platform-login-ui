@@ -133,83 +133,80 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
-
+		// Ask the tenant resolver plugin whether the login flow needs
+		// special handling (MFA deferral, tenant selection, or immediate
+		// accept). When multi-tenancy is disabled the plugin returns
+		// zero-value fields, so the handler proceeds unchanged.
+		intercept, err := a.tenantMgr.InterceptLogin(r.Context(), session, c, loginChallenge)
 		if err != nil {
-			a.logger.Errorf("failed to check MFA status: %v", err)
-			http.Error(w, "failed to check MFA status", http.StatusInternalServerError)
-			return
-		}
-		if shouldEnforceMfa {
-			a.mfaSettingsRedirect(w, r, returnTo, flowCookie)
+			a.logger.Errorf("failed to evaluate login interception: %v", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		shouldEnforceWebAuthn, err = a.shouldEnforceWebAuthnWithSession(r.Context(), session)
+		if !intercept.DeferMFAChecks {
+			shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
+			if err != nil {
+				a.logger.Errorf("failed to check MFA status: %v", err)
+				http.Error(w, "failed to check MFA status", http.StatusInternalServerError)
+				return
+			}
+			if shouldEnforceMfa {
+				a.mfaSettingsRedirect(w, r, returnTo, flowCookie)
+				return
+			}
 
-		if err != nil {
-			a.logger.Errorf("failed to check WebAuthn status: %v", err)
-			http.Error(w, "failed to check WebAuthn status", http.StatusInternalServerError)
-			return
-		}
-		if shouldEnforceWebAuthn {
-			a.webAuthnSettingsRedirect(w, r, returnTo, flowCookie)
-			return
+			shouldEnforceWebAuthn, err = a.shouldEnforceWebAuthnWithSession(r.Context(), session)
+			if err != nil {
+				a.logger.Errorf("failed to check WebAuthn status: %v", err)
+				http.Error(w, "failed to check WebAuthn status", http.StatusInternalServerError)
+				return
+			}
+			if shouldEnforceWebAuthn {
+				a.webAuthnSettingsRedirect(w, r, returnTo, flowCookie)
+				return
+			}
 		}
 
+		if intercept.SelectTenant || intercept.AcceptLogin {
+			// Before following session-reuse shortcuts, check whether
+			// Hydra requires re-authentication (e.g. max_age=0,
+			// prompt=login, or no remembered Hydra session).
+			forceLogin, forceErr := a.service.MustReAuthenticate(r.Context(), loginChallenge, session, c)
+			if forceErr != nil {
+				a.logger.Errorf("Failed to check re-authentication: %v", forceErr)
+				http.Error(w, "Failed to check re-authentication", http.StatusInternalServerError)
+				return
+			}
+
+			if !forceLogin {
+				if intercept.SelectTenant {
+					a.tenantSelectionRedirect(w, r, loginChallenge)
+					return
+				}
+
+				if intercept.AcceptLogin && loginChallenge != "" {
+					c = intercept.Cookie
+					response, httpCookies, err = a.handleCreateFlowWithSession(w, r, session, loginChallenge, c)
+					if err != nil {
+						a.logger.Errorf("failed to accept login request: %v", err)
+						http.Error(w, "failed to accept login request", http.StatusInternalServerError)
+						return
+					}
+
+					setCookies(w, httpCookies)
+					w.WriteHeader(http.StatusOK)
+					_ = json.NewEncoder(w).Encode(response)
+					return
+				}
+			}
+		}
 	}
 
 	forceLogin, err := a.service.MustReAuthenticate(r.Context(), loginChallenge, session, c)
 	if err != nil {
 		a.logger.Errorf("Failed to fetch hydra flow: %v", err)
 		http.Error(w, "Failed to fetch hydra flow", http.StatusInternalServerError)
-		return
-	}
-
-	// When multi-tenancy is enabled the login_challenge was withheld from
-	// Kratos, so Hydra's skip flag is always false and forceLogin is always
-	// true — making it useless as a re-auth signal. Instead we check that
-	// the cookie's LoginChallengeHash matches the current challenge, which
-	// proves the user already authenticated for *this* specific flow.
-	// On the first visit with a new challenge (including RP-forced re-auth
-	// via max_age=0) the hash won't match, so we fall through to the normal
-	// forceLogin path and the user must authenticate again.
-	if session != nil && loginChallenge != "" && a.tenantMgr.Enabled() &&
-		c.LoginChallengeHash == cookies.ChallengeHash(loginChallenge) {
-		if a.tenantMgr.TenantID(c, loginChallenge) == "" {
-			// No tenant stored yet. Check whether the user has any tenants to
-			// choose from. Users with zero tenants skip the selection screen;
-			// we store the sentinel and proceed directly to Hydra accept.
-			hasTenants, err := a.tenantMgr.HasTenants(r.Context(), session)
-			if err != nil {
-				a.logger.Errorf("failed to look up tenants for session: %v", err)
-				http.Error(w, "failed to look up tenants", http.StatusInternalServerError)
-				return
-			}
-			if hasTenants {
-				a.tenantSelectionRedirect(w, r, loginChallenge)
-				return
-			}
-			// User has no tenants — store the sentinel so that a subsequent
-			// browser back-button does not trigger an unnecessary re-lookup.
-			c.TenantID = cookies.NoTenantAvailable
-			if err := a.cookieManager.SetStateCookie(w, c); err != nil {
-				a.logger.Errorf("failed to store no-tenant sentinel: %v", err)
-				http.Error(w, "internal server error", http.StatusInternalServerError)
-				return
-			}
-		}
-		// Tenant already selected — accept the Hydra login with tenant_id.
-		response, httpCookies, err = a.handleCreateFlowWithSession(w, r, session, loginChallenge, c)
-		if err != nil {
-			a.logger.Errorf("failed to accept login request: %v", err)
-			http.Error(w, "failed to accept login request", http.StatusInternalServerError)
-			return
-		}
-
-		setCookies(w, httpCookies)
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -367,12 +364,12 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 	// hasn't picked a tenant. This handles the browser back-button case:
 	// the user authenticated, was sent to /ui/select_tenant, pressed back,
 	// and the browser re-fetched the login flow.
-	// The cookie hash matching the current challenge proves the user already
-	// went through handleCreateFlow for this specific OAuth2 login — no need
-	// to check the Kratos session separately.
+	// We require a Kratos session cookie to prove the user actually
+	// authenticated — the challenge hash alone is not sufficient.
 	if lc := flow.GetOauth2LoginChallenge(); lc != "" && a.tenantMgr.Enabled() {
+		_, kratosSessionErr := r.Cookie(KRATOS_SESSION_COOKIE_NAME)
 		c, cookieErr := a.cookieManager.GetStateCookie(r)
-		if cookieErr == nil && c.LoginChallengeHash == cookies.ChallengeHash(lc) && a.tenantMgr.TenantID(c, lc) == "" {
+		if kratosSessionErr == nil && cookieErr == nil && a.tenantMgr.IsAuthenticatedForChallenge(c, lc) && a.tenantMgr.TenantID(c, lc) == "" {
 			rt, err := a.tenantSelectionURL(lc)
 			if err != nil {
 				a.logger.Errorf("failed to build tenant-selection redirect: %v", err)
@@ -471,7 +468,7 @@ func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Req
 	q := r.URL.Query()
 	flowId := q.Get("flow")
 
-	body, cookies, err := a.service.ParseIdentifierFirstLoginFlowMethodBody(r)
+	body, httpCookies, err := a.service.ParseIdentifierFirstLoginFlowMethodBody(r)
 	if err != nil {
 		err = fmt.Errorf("error when parsing request body: %w\n", err)
 		a.logger.Errorf(err.Error())
@@ -479,7 +476,7 @@ func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	redirectTo, cookies, err := a.service.UpdateIdentifierFirstLoginFlow(r.Context(), flowId, *body, cookies)
+	redirectTo, httpCookies, err := a.service.UpdateIdentifierFirstLoginFlow(r.Context(), flowId, *body, httpCookies)
 	if err != nil {
 		err = fmt.Errorf("error when updating identifier first login flow: %w\n", err)
 		a.logger.Errorf(err.Error())
@@ -487,7 +484,53 @@ func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	setCookies(w, cookies)
+	setCookies(w, httpCookies)
+
+	// After the identifier-first step succeeds, check whether tenant
+	// selection is required BEFORE the user enters their password (1FA).
+	// This only applies to Hydra-initiated flows with multi-tenancy enabled.
+	if redirectTo != nil && a.tenantMgr.Enabled() {
+		loginFlow, _, flowErr := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
+		if flowErr != nil {
+			a.logger.Errorf("failed to get login flow for tenant check: %v", flowErr)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if lc := loginFlow.GetOauth2LoginChallenge(); lc != "" {
+			stateCookie, cookieErr := a.cookieManager.GetStateCookie(r)
+			if cookieErr != nil {
+				a.logger.Errorf("failed to read state cookie: %v", cookieErr)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			flowCookie := stateCookie.RenewForChallenge(lc)
+			needsSelection, updatedCookie, tenantErr := a.tenantMgr.NeedsTenantSelectionByEmail(
+				r.Context(), body.Identifier, flowCookie, lc,
+			)
+			if tenantErr != nil {
+				a.logger.Errorf("failed to check tenant selection: %v", tenantErr)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			if err := a.cookieManager.SetStateCookie(w, updatedCookie); err != nil {
+				a.logger.Errorf("failed to set state cookie: %v", err)
+			}
+
+			if needsSelection {
+				rt, rtErr := a.tenantSelectionURLWithFlow(lc, flowId)
+				if rtErr != nil {
+					a.logger.Errorf("failed to build tenant selection URL: %v", rtErr)
+					http.Error(w, "internal server error", http.StatusInternalServerError)
+					return
+				}
+				a.redirectResponse(w, r, &BrowserLocationChangeRequired{RedirectTo: &rt})
+				return
+			}
+		}
+	}
 
 	if redirectTo != nil {
 		a.redirectResponse(w, r, redirectTo)
@@ -586,26 +629,55 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 	setCookies(w, httpCookies)
 
+	// When this is a Hydra-initiated flow, the Kratos flow's ReturnTo may
+	// not contain the login_challenge (Kratos strips it because the challenge
+	// is part of the flow's Oauth2LoginChallenge). Build the correct
+	// returnTo URL that includes login_challenge so that after verification/
+	// MFA/backup-code setup the browser returns to handleCreateFlow with the
+	// challenge intact.
+	flowReturnTo := ""
+	if loginFlow.ReturnTo != nil {
+		flowReturnTo = *loginFlow.ReturnTo
+	}
+	if lc != "" {
+		if rt, err := a.returnToUrl(lc); err == nil {
+			flowReturnTo = rt
+		}
+	}
+
 	if shouldEnforceVerification {
 		// redirect to verification ui and pass the original returnTo so the flow continues after verification
-		a.verificationRedirect(w, r, *loginFlow.ReturnTo, flowCookie, unverifiedEmail)
+		a.verificationRedirect(w, r, flowReturnTo, flowCookie, unverifiedEmail)
 		return
 	}
 
 	if shouldRegenerateBackupCodes {
-		a.lookupSecretsSettingsRedirect(w, r, flowId, *loginFlow.ReturnTo, flowCookie)
+		a.lookupSecretsSettingsRedirect(w, r, flowId, flowReturnTo, flowCookie)
 		return
 	}
 
 	if shouldEnforceMfa {
-		a.mfaSettingsRedirect(w, r, *loginFlow.ReturnTo, flowCookie)
+		a.mfaSettingsRedirect(w, r, flowReturnTo, flowCookie)
 		return
 	}
 
-	// If a tenant was selected and all factors are satisfied, re-accept the
-	// Hydra login request to embed tenant_id in context before following
-	// Kratos's redirect.
+	// If this is a Hydra flow with a redirect and a session, check whether
+	// tenant selection is needed before accepting the login.
 	if redirectTo != nil && lc != "" && session != nil && a.tenantMgr.Enabled() {
+		needsSelection, updatedCookie, err := a.tenantMgr.NeedsTenantSelection(r.Context(), session, flowCookie, lc)
+		if err != nil {
+			a.logger.Errorf("failed to check tenant selection: %v", err)
+			http.Error(w, "failed to check tenant selection", http.StatusInternalServerError)
+			return
+		}
+		if needsSelection {
+			// Persist the state cookie so handleCreateFlow recognises the
+			// user already authenticated.
+			a.cookieManager.SetStateCookie(w, flowCookie)
+			a.redirectResponse(w, r, redirectTo)
+			return
+		}
+		flowCookie = updatedCookie
 		response, acceptCookies, err := a.handleCreateFlowWithSession(w, r, session, lc, flowCookie)
 		if err != nil {
 			a.logger.Errorf("failed to re-accept login request with tenant: %v", err)
@@ -626,6 +698,24 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 	// This is a hydra flow with no redirect — Kratos returned a session (200).
 	if lc != "" {
+		needsSelection, updatedCookie, err := a.tenantMgr.NeedsTenantSelection(r.Context(), &flow.Session, flowCookie, lc)
+		if err != nil {
+			a.logger.Errorf("failed to check tenant selection: %v", err)
+			http.Error(w, "failed to check tenant selection", http.StatusInternalServerError)
+			return
+		}
+		if needsSelection {
+			a.cookieManager.SetStateCookie(w, flowCookie)
+			rt, rtErr := a.returnToUrl(lc)
+			if rtErr != nil {
+				a.logger.Errorf("failed to build return URL: %v", rtErr)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+				return
+			}
+			a.redirectResponse(w, r, &BrowserLocationChangeRequired{RedirectTo: &rt})
+			return
+		}
+		flowCookie = updatedCookie
 		// User is authenticated, return the session
 		response, httpCookies, err := a.handleCreateFlowWithSession(w, r, &flow.Session, lc, flowCookie)
 		if err != nil {
@@ -707,6 +797,13 @@ func (a *API) shouldEnforceVerificationWithSession(ctx context.Context, session 
 
 // tenantSelectionURL builds the tenant-selection page URL for the given login challenge.
 func (a *API) tenantSelectionURL(loginChallenge string) (string, error) {
+	return a.tenantSelectionURLWithFlow(loginChallenge, "")
+}
+
+// tenantSelectionURLWithFlow builds the tenant-selection page URL including an
+// optional flow ID. When flowID is non-empty the tenant selection page uses it
+// to look up tenants via the Kratos flow (pre-1FA path).
+func (a *API) tenantSelectionURLWithFlow(loginChallenge, flowID string) (string, error) {
 	redirect, err := url.JoinPath("/", a.contextPath, "/ui/select_tenant")
 	if err != nil {
 		return "", fmt.Errorf("cannot build tenant-selection path: %w", err)
@@ -719,6 +816,9 @@ func (a *API) tenantSelectionURL(loginChallenge string) (string, error) {
 
 	q := redirectTo.Query()
 	q.Set("login_challenge", loginChallenge)
+	if flowID != "" {
+		q.Set("flow", flowID)
+	}
 	redirectTo.RawQuery = q.Encode()
 	return redirectTo.String(), nil
 }

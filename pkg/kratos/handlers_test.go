@@ -767,7 +767,11 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 	}
 }
 
-func TestHandleGetLoginFlowRedirectsToTenantSelection(t *testing.T) {
+// TestHandleCreateFlowRedirectsToTenantSelectionWhenNoTenantSelected verifies
+// that when multi-tenancy is enabled, the user has a session, and no tenant has
+// been selected yet, handleCreateFlow redirects to the tenant selection page.
+// MFA/WebAuthn checks run first (both disabled here), then the tenant check fires.
+func TestHandleCreateFlowRedirectsToTenantSelectionWhenNoTenantSelected(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -778,84 +782,26 @@ func TestHandleGetLoginFlowRedirectsToTenantSelection(t *testing.T) {
 	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
 
 	loginChallenge := "test-challenge"
-	id := "test"
-	flow := kClient.NewLoginFlowWithDefaults()
-	flow.SetId(id)
-	flow.SetOauth2LoginChallenge(loginChallenge)
+	session := kClient.NewSession("test")
 
 	stateCookie := cookies.FlowStateCookie{
 		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
 	}
 
-	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_LOGIN_FLOW_URL, nil)
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
 	values := req.URL.Query()
-	values.Add("id", id)
+	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 
-	mockService.EXPECT().GetLoginFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Cookies(), nil)
-	mockTenantMgr.EXPECT().Enabled().Return(true)
 	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookie, nil)
-	mockTenantMgr.EXPECT().TenantID(stateCookie, loginChallenge).Return("")
-
-	w := httptest.NewRecorder()
-	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
-
-	mux.ServeHTTP(w, req)
-
-	res := w.Result()
-
-	if res.StatusCode != http.StatusUnprocessableEntity {
-		t.Fatalf("Expected HTTP status code 422, got: %d", res.StatusCode)
-	}
-
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		t.Fatalf("Expected error to be nil got %v", err)
-	}
-	var errResp KratosErrorResponse
-	if err := json.Unmarshal(data, &errResp); err != nil {
-		t.Fatalf("Expected error to be nil got %v", err)
-	}
-	if errResp.Error.GetId() != "tenant_selection_required" {
-		t.Fatalf("Expected error id tenant_selection_required, got: %s", errResp.Error.GetId())
-	}
-	if errResp.RedirectTo == "" {
-		t.Fatal("Expected redirect_to to be set")
-	}
-}
-
-func TestHandleGetLoginFlowSkipsRedirectWhenNoTenantAvailable(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockLogger := NewMockLoggerInterface(ctrl)
-	mockService := NewMockServiceInterface(ctrl)
-	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-	mockTracer := NewMockTracingInterface(ctrl)
-	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
-
-	loginChallenge := "test-challenge"
-	id := "test"
-	flow := kClient.NewLoginFlowWithDefaults()
-	flow.SetId(id)
-	flow.SetOauth2LoginChallenge(loginChallenge)
-
-	stateCookie := cookies.FlowStateCookie{
-		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
-		TenantID:           cookies.NoTenantAvailable,
-	}
-
-	req := httptest.NewRequest(http.MethodGet, HANDLE_GET_LOGIN_FLOW_URL, nil)
-	values := req.URL.Query()
-	values.Add("id", id)
-	req.URL.RawQuery = values.Encode()
-
-	mockService.EXPECT().GetLoginFlow(gomock.Any(), id, req.Cookies()).Return(flow, req.Cookies(), nil)
-	mockTenantMgr.EXPECT().Enabled().Return(true)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookie, nil)
-	// TenantID returns the sentinel, not "", so the redirect should NOT trigger
-	mockTenantMgr.EXPECT().TenantID(stateCookie, loginChallenge).Return(cookies.NoTenantAvailable)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
+		Return(tenants.LoginInterception{SelectTenant: true, Cookie: stateCookie}, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(false, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -867,6 +813,90 @@ func TestHandleGetLoginFlowSkipsRedirectWhenNoTenantAvailable(t *testing.T) {
 
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.Error == nil || resp.Error.GetId() != "tenant_selection_required" {
+		t.Fatalf("Expected error id tenant_selection_required, got: %v", resp.Error)
+	}
+	if resp.RedirectTo == nil || *resp.RedirectTo == "" {
+		t.Fatal("Expected redirect_to to be set")
+	}
+}
+
+// TestHandleCreateFlowAcceptsLoginWithExistingTenantID verifies that
+// when the user already has a tenant selected in the state cookie, handleCreateFlow
+// proceeds through the session block (MFA, WebAuthn) then
+// reaches the post-auth block to accept the Hydra login request.
+func TestHandleCreateFlowAcceptsLoginWithExistingTenantID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	loginChallenge := "test-challenge"
+	tenantID := "tenant-123"
+	session := kClient.NewSession("test")
+	redirect := "https://hydra.example.com/oauth2/auth?client_id=x"
+	redirectTo := BrowserLocationChangeRequired{RedirectTo: &redirect}
+
+	stateCookie := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+		TenantID:           tenantID,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookie, nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
+		Return(tenants.LoginInterception{AcceptLogin: true, Cookie: stateCookie}, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(false, nil)
+	// Inside handleCreateFlowWithSession: TenantID is called to extract the ID.
+	mockTenantMgr.EXPECT().TenantID(stateCookie, loginChallenge).Return(tenantID)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, tenantID).Return(&redirectTo, req.Cookies(), nil)
+	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any())
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.RedirectTo == nil || *resp.RedirectTo != redirect {
+		t.Fatalf("Expected redirect_to %s, got: %v", redirect, resp.RedirectTo)
 	}
 }
 
@@ -901,10 +931,9 @@ func TestHandleCreateFlowRedirectsToTenantSelectionWhenHasTenants(t *testing.T) 
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(true, nil)
-	mockTenantMgr.EXPECT().Enabled().Return(true)
-	mockTenantMgr.EXPECT().TenantID(stateCookie, loginChallenge).Return("")
-	mockTenantMgr.EXPECT().HasTenants(gomock.Any(), session).Return(true, nil)
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
+		Return(tenants.LoginInterception{SelectTenant: true, Cookie: stateCookie}, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(false, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -971,11 +1000,10 @@ func TestHandleCreateFlowSkipsTenantSelectionForNoTenantUser(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookieInitial).Return(true, nil)
-	mockTenantMgr.EXPECT().Enabled().Return(true)
-	mockTenantMgr.EXPECT().TenantID(stateCookieInitial, loginChallenge).Return("")
-	mockTenantMgr.EXPECT().HasTenants(gomock.Any(), session).Return(false, nil)
-	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), stateCookieWithSentinel).Return(nil)
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookieInitial, loginChallenge).
+		Return(tenants.LoginInterception{AcceptLogin: true, Cookie: stateCookieWithSentinel}, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookieInitial).Return(false, nil)
+	// Inside handleCreateFlowWithSession: TenantID extracts the sentinel.
 	mockTenantMgr.EXPECT().TenantID(stateCookieWithSentinel, loginChallenge).Return(cookies.NoTenantAvailable)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, cookies.NoTenantAvailable).Return(&redirectTo, req.Cookies(), nil)
 	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any())
@@ -1439,6 +1467,216 @@ func TestHandleUpdateIdentifierFirstFlowFailOnUpdateIdLoginFlow(t *testing.T) {
 
 	if res.StatusCode != http.StatusInternalServerError {
 		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+// TestHandleUpdateIdentifierFirstFlowRedirectsToTenantSelection verifies that
+// after identifier-first step, when the user has tenants and this is a
+// Hydra-initiated flow, the handler redirects to tenant selection before 1FA.
+func TestHandleUpdateIdentifierFirstFlowRedirectsToTenantSelection(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	flowId := "flow-123"
+	loginChallenge := "lc-456"
+	redirectTo := "https://some/path/to/somewhere"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowWithIdentifierFirstMethod)
+	flowBody.SetIdentifier("user@example.com")
+
+	loginFlow := kClient.NewLoginFlowWithDefaults()
+	loginFlow.Id = flowId
+	loginFlow.SetOauth2LoginChallenge(loginChallenge)
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+	mockTenantMgr.EXPECT().Enabled().Return(true)
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
+
+	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
+	mockTenantMgr.EXPECT().NeedsTenantSelectionByEmail(gomock.Any(), "user@example.com", flowCookie, loginChallenge).
+		Return(true, flowCookie, nil)
+	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), flowCookie).Return(nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.RedirectTo == nil || !strings.Contains(*resp.RedirectTo, "select_tenant") {
+		t.Fatalf("Expected redirect to tenant selection page, got: %v", resp.RedirectTo)
+	}
+	if !strings.Contains(*resp.RedirectTo, "flow="+flowId) {
+		t.Fatalf("Expected flow param in redirect URL, got: %s", *resp.RedirectTo)
+	}
+	if !strings.Contains(*resp.RedirectTo, "login_challenge="+loginChallenge) {
+		t.Fatalf("Expected login_challenge param in redirect URL, got: %s", *resp.RedirectTo)
+	}
+}
+
+// TestHandleUpdateIdentifierFirstFlowProceedsWhenNoTenants verifies that
+// when the user has no tenants, the handler stores the sentinel and follows
+// the original redirect (to the password field).
+func TestHandleUpdateIdentifierFirstFlowProceedsWhenNoTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	flowId := "flow-123"
+	loginChallenge := "lc-456"
+	redirectTo := "https://some/path/to/login?flow=flow-123"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowWithIdentifierFirstMethod)
+	flowBody.SetIdentifier("user@example.com")
+
+	loginFlow := kClient.NewLoginFlowWithDefaults()
+	loginFlow.Id = flowId
+	loginFlow.SetOauth2LoginChallenge(loginChallenge)
+
+	// Cookie with NoTenantAvailable sentinel set by NeedsTenantSelectionByEmail
+	sentinelCookie := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+		TenantID:           cookies.NoTenantAvailable,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+	mockTenantMgr.EXPECT().Enabled().Return(true)
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
+
+	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
+	mockTenantMgr.EXPECT().NeedsTenantSelectionByEmail(gomock.Any(), "user@example.com", flowCookie, loginChallenge).
+		Return(false, sentinelCookie, nil)
+	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), sentinelCookie).Return(nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if *resp.RedirectTo != redirectTo {
+		t.Fatalf("Expected redirect to original URL %s, got: %s", redirectTo, *resp.RedirectTo)
+	}
+}
+
+// TestHandleUpdateIdentifierFirstFlowSkipsTenantForNonHydraFlow verifies that
+// when the flow is not Hydra-initiated (no oauth2_login_challenge), tenant
+// selection is skipped even when multi-tenancy is enabled.
+func TestHandleUpdateIdentifierFirstFlowSkipsTenantForNonHydraFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	flowId := "flow-123"
+	redirectTo := "https://some/path/to/login?flow=flow-123"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowWithIdentifierFirstMethod)
+	flowBody.SetIdentifier("user@example.com")
+
+	// Non-Hydra flow (no oauth2_login_challenge)
+	loginFlow := kClient.NewLoginFlowWithDefaults()
+	loginFlow.Id = flowId
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+	mockTenantMgr.EXPECT().Enabled().Return(true)
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
+	// NeedsTenantSelectionByEmail should NOT be called for non-Hydra flows
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if *resp.RedirectTo != redirectTo {
+		t.Fatalf("Expected redirect to original URL, got: %s", *resp.RedirectTo)
 	}
 }
 
