@@ -24,7 +24,7 @@
         "OIDC_WEBAUTHN_SEQUENCING_ENABLED": "false",
         "MFA_ENABLED": "true",
         "SUPPORT_EMAIL": "e@mail.com",
-        "MULTI_TENANCY_ENABLED": "false",
+        "MULTI_TENANCY_ENABLED": "true",
         "TENANTS_SERVICE_URL": "http://localhost:8000",
         "IDENTIFIER_FIRST_ENABLED": "true",
       }

@@ -16,10 +16,15 @@ export async function loginIdentifierFirst(
   flowId: string,
   values: UpdateLoginFlowBody,
   method: string,
-  flow?: { id?: string; return_to?: string }
+  flow?: { id?: string; return_to?: string },
+  loginChallenge?: string,
 ) {
+  const params = new URLSearchParams({ flow: encodeURIComponent(flowId) });
+  if (loginChallenge) {
+    params.set("login_challenge", loginChallenge);
+  }
   const res = await fetch(
-    `/self-service/login/id-first?flow=${encodeURIComponent(flowId)}`,
+    `/self-service/login/id-first?${params.toString()}`,
     {
       method: "POST",
       headers: {

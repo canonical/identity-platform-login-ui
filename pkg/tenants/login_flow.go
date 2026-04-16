@@ -6,8 +6,10 @@ package tenants
 import client "github.com/ory/kratos-client-go/v25"
 
 // InjectTenantPayload sets tenant_id in the transient_payload of every login
-// flow method type that supports it. LookupSecret and Passkey methods do not
-// expose SetTransientPayload in the Kratos client and are intentionally omitted.
+// flow method type that supports it. LookupSecret and Passkey are omitted
+// because Kratos does not include transient_payload in their login schemas
+// (upstream omission — both use the same WebAuthn protocol as webauthn which
+// does support it).
 func InjectTenantPayload(body *client.UpdateLoginFlowBody, tenantID string) {
 	payload := map[string]interface{}{"tenant_id": tenantID}
 	switch {

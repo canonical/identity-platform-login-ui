@@ -20,20 +20,10 @@ import (
 
 // Tenant represents a tenant entry returned by the external tenants API.
 type Tenant struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Enabled bool   `json:"enabled"`
-}
-
-// ResolveResult is the outcome of the tenant resolution decision.
-// When RedirectTo is non-empty, the caller should redirect the user there.
-// When RedirectTo is empty, the caller should proceed with the original flow.
-// TenantID is non-empty when exactly one tenant was found; the handler must
-// store it in the session cookie and build an appropriate redirect itself.
-// It is intentionally excluded from JSON serialisation.
-type ResolveResult struct {
-	RedirectTo string `json:"redirect_to,omitempty"`
-	TenantID   string `json:"-"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	CreatedAt string `json:"created_at"`
+	Enabled   bool   `json:"enabled"`
 }
 
 // Service fetches tenant data from the external tenants API.
@@ -121,41 +111,6 @@ func emailFromFlow(flow *kClient.LoginFlow) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("identifier node not found in flow %s", flow.Id)
-}
-
-// ResolveTenant looks up tenants for the given flow and applies the routing
-// decision: 0 tenants → proceed, 1 tenant → store cookie + redirect to flow,
-// N tenants → redirect to the tenant selection page.
-func (s *Service) ResolveTenant(ctx context.Context, flowID string, loginChallenge string, cookies []*http.Cookie) (*ResolveResult, error) {
-	ctx, span := s.tracer.Start(ctx, "tenants.Service.ResolveTenant")
-	defer span.End()
-
-	tenants, err := s.LookupTenantsByFlow(ctx, flowID, cookies)
-	if err != nil {
-		return nil, fmt.Errorf("failed to look up tenants: %w", err)
-	}
-
-	if len(tenants) == 0 {
-		return &ResolveResult{}, nil
-	}
-
-	if len(tenants) == 1 {
-		// Return the tenant ID; the handler stores it in the cookie and builds
-		// the redirect to avoid an extra round-trip through a callback endpoint.
-		return &ResolveResult{TenantID: tenants[0].ID}, nil
-	}
-
-	return &ResolveResult{
-		RedirectTo: s.multiTenantRedirectURL(flowID, loginChallenge),
-	}, nil
-}
-
-func (s *Service) multiTenantRedirectURL(flowID, loginChallenge string) string {
-	params := url.Values{}
-	params.Set("flow", flowID)
-	params.Set("login_challenge", loginChallenge)
-	base, _ := url.JoinPath(s.baseURL, "/ui/select_tenant")
-	return base + "?" + params.Encode()
 }
 
 func NewService(tenantsAPIURL string, baseURL string, flowFetcher FlowFetcherInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {

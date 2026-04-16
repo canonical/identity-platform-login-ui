@@ -13,6 +13,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
+	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go/v25"
 )
 
@@ -91,13 +92,10 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// sessionRequiredAAL returns the required aal, based on the session's authentication methods.
 // resolveTenantID returns the tenant_id to embed in the token.
 // It reads the value from the Hydra login context, which was set when
 // the login UI called AcceptLoginRequest with the tenant_id.
-func (a *API) resolveTenantID(consent interface {
-	GetContext() interface{}
-}) string {
+func (a *API) resolveTenantID(consent *hClient.OAuth2ConsentRequest) string {
 	if ctx, ok := consent.GetContext().(map[string]interface{}); ok {
 		if v, ok := ctx["tenant_id"].(string); ok && v != "" {
 			return v
@@ -106,6 +104,7 @@ func (a *API) resolveTenantID(consent interface {
 	return ""
 }
 
+// sessionRequiredAAL returns the required aal, based on the session's authentication methods.
 func (a *API) sessionRequiredAAL(session *kClient.Session) kClient.AuthenticatorAssuranceLevel {
 	var authMethod string
 	ret := kClient.AUTHENTICATORASSURANCELEVEL_AAL1
