@@ -19,7 +19,7 @@ export async function loginIdentifierFirst(
   flow?: { id?: string; return_to?: string },
   loginChallenge?: string,
 ) {
-  const params = new URLSearchParams({ flow: encodeURIComponent(flowId) });
+  const params = new URLSearchParams({ flow: flowId });
   if (loginChallenge) {
     params.set("login_challenge", loginChallenge);
   }

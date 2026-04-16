@@ -78,6 +78,41 @@ func (s *Service) LookupTenantsByEmail(ctx context.Context, email string) ([]Ten
 	return s.lookupTenantsByEmail(ctx, email)
 }
 
+// LookupTenantsByIdentityID looks up tenants for the given Kratos identity ID.
+// This skips the Kratos email-to-identity resolution on the tenant-service side,
+// resulting in faster lookups. Used when the caller already knows the identity ID
+// (e.g., from an active Kratos session).
+func (s *Service) LookupTenantsByIdentityID(ctx context.Context, identityID string) ([]Tenant, error) {
+	ctx, span := s.tracer.Start(ctx, "tenants.Service.LookupTenantsByIdentityID")
+	defer span.End()
+
+	requestURL := fmt.Sprintf("%s/api/v0/tenants/lookup?identity_id=%s", s.tenantsAPIURL, url.QueryEscape(identityID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch tenants: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("tenants API returned status %d", resp.StatusCode)
+	}
+
+	var wrapper struct {
+		Tenants []Tenant `json:"tenants"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+		return nil, fmt.Errorf("failed to decode tenants response: %w", err)
+	}
+
+	return wrapper.Tenants, nil
+}
+
 // LookupTenantsByFlow fetches the Kratos login flow, extracts the email from
 // the flow's UI nodes, and looks up tenants for that email.
 func (s *Service) LookupTenantsByFlow(ctx context.Context, flowID string, cookies []*http.Cookie) ([]Tenant, error) {
@@ -105,7 +140,7 @@ func emailFromFlow(flow *kClient.LoginFlow) (string, error) {
 			node.Attributes.UiNodeInputAttributes.Name == "identifier" {
 			val, ok := node.Attributes.UiNodeInputAttributes.Value.(string)
 			if !ok || val == "" {
-				return "", fmt.Errorf("identifier value is not a string in flow %s", flow.Id)
+				return "", fmt.Errorf("identifier value is not a string or is empty in flow %s", flow.Id)
 			}
 			return val, nil
 		}

@@ -18,6 +18,7 @@ import (
 // explicit and to avoid circular imports.
 type tenantLookupService interface {
 	LookupTenantsByEmail(ctx context.Context, email string) ([]Tenant, error)
+	LookupTenantsByIdentityID(ctx context.Context, identityID string) ([]Tenant, error)
 }
 
 // LoginInterception tells handleCreateFlow what to do with the login flow.
@@ -110,11 +111,11 @@ func (c *CookieTenantResolver) StoreTenant(w http.ResponseWriter, r *http.Reques
 }
 
 func (c *CookieTenantResolver) HasTenants(ctx context.Context, session *kClient.Session) (bool, error) {
-	email := emailFromSession(session)
-	if email == "" {
+	identityID := identityIDFromSession(session)
+	if identityID == "" {
 		return false, nil
 	}
-	tenants, err := c.service.LookupTenantsByEmail(ctx, email)
+	tenants, err := c.service.LookupTenantsByIdentityID(ctx, identityID)
 	if err != nil {
 		return false, fmt.Errorf("cannot look up tenants: %w", err)
 	}
@@ -126,18 +127,11 @@ func (c *CookieTenantResolver) IsAuthenticatedForChallenge(cookie cookies.FlowSt
 }
 
 func (c *CookieTenantResolver) NeedsTenantSelection(ctx context.Context, session *kClient.Session, cookie cookies.FlowStateCookie, loginChallenge string) (bool, cookies.FlowStateCookie, error) {
-	if c.TenantID(cookie, loginChallenge) != "" {
-		return false, cookie, nil
+	identityID := identityIDFromSession(session)
+	if identityID != "" {
+		return c.needsTenantSelectionByIdentityID(ctx, identityID, cookie, loginChallenge)
 	}
-	hasTenants, err := c.HasTenants(ctx, session)
-	if err != nil {
-		return false, cookie, err
-	}
-	if hasTenants {
-		return true, cookie, nil
-	}
-	cookie.TenantID = cookies.NoTenantAvailable
-	return false, cookie, nil
+	return c.NeedsTenantSelectionByEmail(ctx, emailFromSession(session), cookie, loginChallenge)
 }
 
 func (c *CookieTenantResolver) NeedsTenantSelectionByEmail(ctx context.Context, email string, cookie cookies.FlowStateCookie, loginChallenge string) (bool, cookies.FlowStateCookie, error) {
@@ -151,7 +145,33 @@ func (c *CookieTenantResolver) NeedsTenantSelectionByEmail(ctx context.Context, 
 	if err != nil {
 		return false, cookie, fmt.Errorf("cannot look up tenants: %w", err)
 	}
-	if len(tenants) > 0 {
+	if len(tenants) == 1 {
+		cookie.TenantID = tenants[0].ID
+		return false, cookie, nil
+	}
+	if len(tenants) > 1 {
+		return true, cookie, nil
+	}
+	cookie.TenantID = cookies.NoTenantAvailable
+	return false, cookie, nil
+}
+
+// needsTenantSelectionByIdentityID is the identity_id-based equivalent of
+// NeedsTenantSelectionByEmail. It skips the Kratos email resolution on the
+// tenant-service side, resulting in faster lookups.
+func (c *CookieTenantResolver) needsTenantSelectionByIdentityID(ctx context.Context, identityID string, cookie cookies.FlowStateCookie, loginChallenge string) (bool, cookies.FlowStateCookie, error) {
+	if c.TenantID(cookie, loginChallenge) != "" {
+		return false, cookie, nil
+	}
+	tenants, err := c.service.LookupTenantsByIdentityID(ctx, identityID)
+	if err != nil {
+		return false, cookie, fmt.Errorf("cannot look up tenants: %w", err)
+	}
+	if len(tenants) == 1 {
+		cookie.TenantID = tenants[0].ID
+		return false, cookie, nil
+	}
+	if len(tenants) > 1 {
 		return true, cookie, nil
 	}
 	cookie.TenantID = cookies.NoTenantAvailable
@@ -170,9 +190,10 @@ func (c *CookieTenantResolver) InterceptLogin(ctx context.Context, session *kCli
 		// Session reuse: the user has a valid Kratos session from a
 		// previous flow. Authentication is skipped, but multi-tenant
 		// users must still select a tenant for this challenge.
-		// Bind the cookie to the new challenge so downstream helpers
-		// (e.g. TenantID) can match it.
+		// Bind the cookie to the new challenge and clear the stale
+		// TenantID so tenant selection is re-evaluated for this flow.
 		cookie.LoginChallengeHash = cookies.ChallengeHash(loginChallenge)
+		cookie.TenantID = ""
 		needsSelection, updatedCookie, err := c.NeedsTenantSelection(ctx, session, cookie, loginChallenge)
 		if err != nil {
 			return LoginInterception{}, err

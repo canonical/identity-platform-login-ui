@@ -1,18 +1,19 @@
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Button, Notification, Spinner } from "@canonical/react-components";
 import {
   Tenant,
   fetchTenantsByFlow,
   fetchTenantsBySession,
 } from "../api/tenants";
+import { useAppConfig } from "../config/useAppConfig";
 import PageLayout from "../components/PageLayout";
 
 const SelectTenant: NextPage = () => {
   const router = useRouter();
   const { flow: flowId } = router.query;
+  const { multiTenancyEnabled, configReady } = useAppConfig();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,6 +23,7 @@ const SelectTenant: NextPage = () => {
       const { flow, login_challenge } = router.query;
 
       if (!login_challenge || typeof login_challenge !== "string") {
+        setError("Login challenge is missing. Please restart the login flow.");
         return;
       }
 
@@ -57,7 +59,15 @@ const SelectTenant: NextPage = () => {
 
   useEffect(() => {
     if (!router.isReady) return;
+
+    if (configReady && !multiTenancyEnabled) {
+      void router.replace("/ui/login");
+      return;
+    }
+
+    if (!configReady) return;
     setLoading(true);
+
     const loader =
       typeof flowId === "string"
         ? fetchTenantsByFlow(flowId)
@@ -76,7 +86,7 @@ const SelectTenant: NextPage = () => {
         );
       })
       .finally(() => setLoading(false));
-  }, [router.isReady, flowId, submitTenantSelection]);
+  }, [router.isReady, flowId, submitTenantSelection, configReady, multiTenancyEnabled]);
 
   if (!router.isReady) return null;
 

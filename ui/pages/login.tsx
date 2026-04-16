@@ -162,6 +162,8 @@ const Login: NextPage = () => {
           return;
         }
 
+        setFlow(data);
+
         await router.replace(
           {
             query: {
@@ -172,8 +174,6 @@ const Login: NextPage = () => {
           undefined,
           { shallow: true },
         );
-
-        setFlow(data);
       })
       .catch(handleFlowError("login", setFlow))
       .catch(redirectToErrorPage);
