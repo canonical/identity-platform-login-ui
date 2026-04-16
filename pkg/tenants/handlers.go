@@ -35,9 +35,9 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 }
 
 // handleLookupTenants accepts an optional ?flow= query parameter. When flow is
-// provided it fetches the Kratos flow to extract the email; otherwise the email
-// is read from the active Kratos session. Email is never accepted as a URL
-// parameter to prevent unauthenticated tenant enumeration.
+// provided it fetches the Kratos flow to extract the email; otherwise the
+// identity ID is read from the active Kratos session. Email is never accepted
+// as a URL parameter to prevent unauthenticated tenant enumeration.
 func (a *API) handleLookupTenants(w http.ResponseWriter, r *http.Request) {
 	flowID := r.URL.Query().Get("flow")
 
@@ -54,12 +54,12 @@ func (a *API) handleLookupTenants(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		email := emailFromSession(session)
-		if email == "" {
-			http.Error(w, "could not determine email from session", http.StatusUnauthorized)
+		identityID := identityIDFromSession(session)
+		if identityID == "" {
+			http.Error(w, "could not determine identity from session", http.StatusUnauthorized)
 			return
 		}
-		tenants, err = a.service.LookupTenantsByEmail(r.Context(), email)
+		tenants, err = a.service.LookupTenantsByIdentityID(r.Context(), identityID)
 	}
 	if err != nil {
 		a.logger.Errorf("failed to look up tenants: %v", err)
@@ -151,7 +151,7 @@ func (a *API) handleTenantSelection(w http.ResponseWriter, r *http.Request) {
 }
 
 // lookupTenants returns the caller's tenant list using the Kratos flow when
-// provided, falling back to the active Kratos session.
+// provided, falling back to the active Kratos session's identity ID.
 func (a *API) lookupTenants(ctx context.Context, flowID string, httpCookies []*http.Cookie) ([]Tenant, error) {
 	if flowID != "" {
 		return a.service.LookupTenantsByFlow(ctx, flowID, httpCookies)
@@ -160,11 +160,11 @@ func (a *API) lookupTenants(ctx context.Context, flowID string, httpCookies []*h
 	if err != nil {
 		return nil, fmt.Errorf("cannot check session: %v", err)
 	}
-	email := emailFromSession(session)
-	if email == "" {
-		return nil, fmt.Errorf("cannot determine email from session")
+	identityID := identityIDFromSession(session)
+	if identityID == "" {
+		return nil, fmt.Errorf("cannot determine identity from session")
 	}
-	return a.service.LookupTenantsByEmail(ctx, email)
+	return a.service.LookupTenantsByIdentityID(ctx, identityID)
 }
 
 // loginChallengeURL builds the /ui/login?login_challenge=<challenge> URL used
@@ -219,4 +219,12 @@ func emailFromSession(session *kClient.Session) string {
 	}
 	email, _ := traits["email"].(string)
 	return email
+}
+
+// identityIDFromSession extracts the Kratos identity ID from a session.
+func identityIDFromSession(session *kClient.Session) string {
+	if session == nil || session.Identity == nil {
+		return ""
+	}
+	return session.Identity.Id
 }

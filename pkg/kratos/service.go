@@ -427,7 +427,7 @@ func passwordPolicyError(flow kClient.RegistrationFlow) error {
 			}
 
 			if err != nil {
-				return fmt.Errorf("Password policy error: %w", err)
+				return fmt.Errorf("password policy error: %w", err)
 			}
 		}
 	}

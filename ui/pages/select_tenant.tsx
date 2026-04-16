@@ -22,6 +22,7 @@ const SelectTenant: NextPage = () => {
       const { flow, login_challenge } = router.query;
 
       if (!login_challenge || typeof login_challenge !== "string") {
+        setError("Login challenge is missing. Please restart the login flow.");
         return;
       }
 

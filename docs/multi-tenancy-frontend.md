@@ -11,13 +11,13 @@ described here is targeted hardening within those files.
 ## Feature flag
 
 Multi-tenancy is optional. It is enabled by the backend environment variable
-`MULTI_TENANCY_ENABLED=true`. When disabled, the `/api/v0/login/challenge/tenant-state`
-and `/api/v0/tenants/lookup` endpoints still exist but the resolver always returns
-`tenant_selected: false`, so the frontend should behave identically to a non-tenant
-deployment.
+`MULTI_TENANCY_ENABLED=true`. When disabled, tenant-related endpoints still exist but
+the resolver always returns empty results, so the frontend should behave identically to a
+non-tenant deployment.
 
-Check `ui/pages/status.tsx` (the `/api/v0/status` response) for the `tenantSelectionEnabled`
-flag before making any tenant API calls. Do not call the lookup API if the flag is `false`.
+Check `ui/config/useAppConfig.tsx` (which fetches `/api/v0/app-config`) for the
+`multiTenancyEnabled` flag (`multi_tenancy_enabled` in the JSON response) before making
+any tenant API calls. Do not call the lookup API if the flag is `false`.
 
 ### Backend consequence: `login_challenge` withholding
 
@@ -38,37 +38,32 @@ rationale.
 
 ### Tenant lookup
 ```
-GET /api/v0/tenants/lookup?email=<url-encoded-email>
+GET /api/v0/tenants
+GET /api/v0/tenants?flow=<flow_id>
 ```
-- **200 OK** — JSON array of tenant objects (may be empty):
+- When `flow` is provided the email is extracted from the Kratos flow; otherwise the
+  identity ID is read from the active Kratos session. Email is never accepted as a URL
+  parameter to prevent unauthenticated tenant enumeration.
+- **200 OK** — JSON object with a `tenants` array (may be empty):
   ```json
-  [{"id": "t1", "name": "Acme Corp", "enabled": true}, ...]
+  {"tenants": [{"id": "t1", "name": "Acme Corp"}, ...]}
   ```
-- **400 Bad Request** — `email` query parameter is missing.
+- **401 Unauthorized** — no `?flow=` provided and no active Kratos session.
 - **500 Internal Server Error** — upstream tenant-service call failed.
 
-> **Note**: The response is a bare array, **not** a `{"tenants": [...]}` wrapper.
-> `ui/api/tenants.ts` already expects this correctly.
-
-### Tenant redirect (store selection in cookie)
+### Tenant selection (store selection in cookie)
 ```
-GET /api/v0/login/challenge/tenant-redirect
-    ?login_challenge=<challenge>
-    &tenant_id=<id>
-    [&flow=<flow_id>]
+POST /api/v0/auth/tenant
+Content-Type: application/json
+{
+  "login_challenge": "<challenge>",
+  "tenant_id": "<id>",  // empty string when the user has no tenants
+  "flow": "<flow_id>"   // optional
+}
 ```
-- **302 Found** — redirects to `/ui/login?flow=<flow_id>` when `flow` is provided,
-  otherwise redirects to `/self-service/login/browser?login_challenge=<challenge>`.
-- **400 Bad Request** — `login_challenge` or `tenant_id` is missing.
-- **500 Internal Server Error** — failed to persist tenant cookie.
-
-### Tenant state
-```
-GET /api/v0/login/challenge/tenant-state?login_challenge=<challenge>
-```
-- **200 OK** — `{"tenant_selected": true|false}`.
+- **200 OK** — `{"redirect_to": "<url>"}` — frontend must follow this redirect.
 - **400 Bad Request** — `login_challenge` is missing.
-- **500 Internal Server Error** — failed to read state cookie.
+- **500 Internal Server Error** — failed to persist tenant cookie.
 
 ---
 
@@ -81,29 +76,21 @@ evaluate tenant membership:
 multiTenancyEnabled == false
   → followData()   // continue normal flow
 
-tenantSelection enabled  →  await fetchTenantsByEmail(email)
+multiTenancyEnabled == true  →  backend handles tenant resolution during identifier-first submit:
 
-  LOOKUP FAILS (network error / 500)
-    → fail closed: show a user-readable error; do NOT silently fall through.
-      The backend is configured fail-closed; the frontend must match this behaviour.
+  0 tenants  → backend stores no-tenant sentinel; redirects to login flow
+  1 tenant   → backend auto-stores the tenant; redirects to login flow
+  2+ tenants → backend redirects to /ui/select_tenant?flow=<flowId>&login_challenge=<challenge>
 
-  tenants.length == 0
-    → followData()   // user has no tenants — allow login without one
+When the user lands on /ui/select_tenant:
 
-  tenants.length == 1
-    → redirect to tenant-redirect immediately (auto-select)
-      Use: /api/v0/login/challenge/tenant-redirect
-             ?login_challenge=<challenge>
-             &tenant_id=<tenants[0].id>
-             [&flow=<flowId>]
-
-  tenants.length > 1
-    → push('/select_tenant?...')   // mandatory selection
+  - On mount: calls GET /api/v0/tenants?flow=<flowId> to get the tenant list.
+  - 0 or 1 result: submitTenantSelection is called automatically.
+  - 2+ results: user picks a tenant; POST /api/v0/auth/tenant is called on click.
+  - On POST success: frontend follows the redirect_to URL.
 ```
 
-The current `ui/pages/login.tsx` implementation already reflects this logic. The key
-change required is **replacing the silent `.catch(() => { followData() })` with an
-error-surface call** so lookup failures fail closed.
+The `ui/pages/select_tenant.tsx` implementation already reflects this logic.
 
 ---
 
@@ -111,64 +98,36 @@ error-surface call** so lookup failures fail closed.
 
 | Condition | Current behaviour | Required behaviour |
 |---|---|---|
-| Lookup 500 / network error | `.catch()` → `followData()` (silent fallback) | Show user-facing error: "Unable to determine your tenants. Please try again." |
-| Lookup returns 0 tenants | `followData()` | No change — correct |
-| Lookup returns 1 tenant | Redirect | No change — correct |
-| Lookup returns >1 tenants | Push to select_tenant | No change — correct |
-| tenant-redirect 500 | Browser lands on error page | Catch redirect failure; show error to user |
+| Tenant lookup fails (network / 500) | `setError(...)` shown on page | Correct — no change needed |
+| Lookup returns 0 tenants | Auto-submits with empty `tenant_id` | Correct — no change needed |
+| Lookup returns 1 tenant | Auto-submits with `tenant_id` | Correct — no change needed |
+| Lookup returns >1 tenants | Shows tenant selection list | Correct — no change needed |
+| `POST /api/v0/auth/tenant` fails | `setError(...)` shown on page | Correct — no change needed |
+| Missing `login_challenge` in URL | `setError(...)` shown on page | Correct — no change needed |
 
 ---
 
-## `ui/api/tenants.ts` changes
+## `ui/api/tenants.ts`
 
-Minimal changes needed:
-
-1. Export a typed error class so callers can distinguish lookup failures from empty results:
-   ```ts
-   export class TenantLookupError extends Error {}
-   ```
-2. In `fetchTenantsByEmail`, throw `TenantLookupError` (not a generic `Error`) on non-ok
-   responses so callers can narrow the type.
+Exports `fetchTenantsByFlow(flowId)` and `fetchTenantsBySession()`, both returning
+`Promise<Tenant[]>`. Non-ok responses throw a generic `Error` with the HTTP status,
+which the caller in `select_tenant.tsx` catches and surfaces via `setError`.
 
 ---
 
-## `ui/pages/login.tsx` changes
+## `ui/pages/select_tenant.tsx`
 
-Replace the silent catch in the identifier-first flow branch with an explicit error handler:
-
-```ts
-// Before (existing — do not ship this to production)
-fetchTenantsByEmail(email).then(handleTenants).catch(() => followData())
-
-// After
-fetchTenantsByEmail(email).then(handleTenants).catch((err) => {
-  if (err instanceof TenantLookupError) {
-    setError("Unable to determine your tenants. Please try again.")
-    return
-  }
-  throw err   // unexpected — rethrow
-})
-```
-
-The `setError` call should use the same error state that renders beneath the identifier
-field (consistent with how other flow errors are displayed using `@canonical/react-components`).
-
-Do **not** change any other part of the multi-step identifier-first flow.
-
----
-
-## `ui/pages/select_tenant.tsx` — no changes required
-
-The page already handles loading state, re-fetches on mount, and redirects to
-`tenant-redirect` on selection. No changes are required — only verify it inherits the
-error surfacing improvements in `ui/api/tenants.ts`.
+Handles the multi-tenant selection page. On mount it calls `fetchTenantsByFlow` (when
+`?flow=` is present) or `fetchTenantsBySession`. Auto-submits when 0 or 1 tenant is
+returned. Surfaces all errors (lookup failure, missing `login_challenge`, POST failure)
+via `setError`.
 
 ---
 
 ## Testing guidance
 
-- **Unit**: mock `fetchTenantsByEmail` to reject with `TenantLookupError` and assert the
-  error message is rendered (not `followData()` called).
+- **Unit**: mock `fetchTenantsByFlow` / `fetchTenantsBySession` to reject and assert
+  the `setError` message is rendered on the page.
 - **E2E (Playwright)**: The `ui/tests/` directory has existing login flow tests. Add a
   test fixture that registers a user under a tenant via the tenant-service API, then
   walks the full OIDC flow through `http://localhost:4446/` verifying auto-select

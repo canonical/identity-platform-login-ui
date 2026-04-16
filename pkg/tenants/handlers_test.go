@@ -53,16 +53,17 @@ func TestHandleLookupTenantsBySessionSuccess(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 	mockSessionChecker := NewMockSessionCheckerInterface(ctrl)
 
-	email := "user@example.com"
+	identityID := "identity-123"
 	session := &kClient.Session{
 		Identity: &kClient.Identity{
-			Traits: map[string]interface{}{"email": email},
+			Id:     identityID,
+			Traits: map[string]interface{}{"email": "user@example.com"},
 		},
 	}
 	expected := []Tenant{{ID: "t1", Name: "Acme", Enabled: true}}
 
 	mockSessionChecker.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
-	mockService.EXPECT().LookupTenantsByEmail(gomock.Any(), email).Return(expected, nil)
+	mockService.EXPECT().LookupTenantsByIdentityID(gomock.Any(), identityID).Return(expected, nil)
 
 	mux := chi.NewMux()
 	NewAPI(mockService, nil, mockSessionChecker, "", mockTracer, mockLogger).RegisterEndpoints(mux)
@@ -160,16 +161,17 @@ func TestHandleTenantSelectionEmptyVerifiedNoTenants(t *testing.T) {
 	mockSessionChecker := NewMockSessionCheckerInterface(ctrl)
 	mockStorer := NewMockTenantStorerInterface(ctrl)
 
-	email := "user@example.com"
+	identityID := "identity-123"
 	session := &kClient.Session{
 		Identity: &kClient.Identity{
-			Traits: map[string]interface{}{"email": email},
+			Id:     identityID,
+			Traits: map[string]interface{}{"email": "user@example.com"},
 		},
 	}
 
 	// No flow provided → falls back to session lookup.
 	mockSessionChecker.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
-	mockService.EXPECT().LookupTenantsByEmail(gomock.Any(), email).Return([]Tenant{}, nil)
+	mockService.EXPECT().LookupTenantsByIdentityID(gomock.Any(), identityID).Return([]Tenant{}, nil)
 	mockStorer.EXPECT().StoreTenant(gomock.Any(), gomock.Any(), "_none", "lc-1").Return(nil)
 
 	mux := chi.NewMux()
@@ -195,15 +197,16 @@ func TestHandleTenantSelectionEmptyRejectedWhenTenantsExist(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 	mockSessionChecker := NewMockSessionCheckerInterface(ctrl)
 
-	email := "user@example.com"
+	identityID := "identity-123"
 	session := &kClient.Session{
 		Identity: &kClient.Identity{
-			Traits: map[string]interface{}{"email": email},
+			Id:     identityID,
+			Traits: map[string]interface{}{"email": "user@example.com"},
 		},
 	}
 
 	mockSessionChecker.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
-	mockService.EXPECT().LookupTenantsByEmail(gomock.Any(), email).Return([]Tenant{{ID: "t1", Name: "Acme", Enabled: true}}, nil)
+	mockService.EXPECT().LookupTenantsByIdentityID(gomock.Any(), identityID).Return([]Tenant{{ID: "t1", Name: "Acme", Enabled: true}}, nil)
 
 	mux := chi.NewMux()
 	NewAPI(mockService, nil, mockSessionChecker, "", mockTracer, mockLogger).RegisterEndpoints(mux)

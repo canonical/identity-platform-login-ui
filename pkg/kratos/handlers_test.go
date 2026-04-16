@@ -801,7 +801,6 @@ func TestHandleCreateFlowRedirectsToTenantSelectionWhenNoTenantSelected(t *testi
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
 		Return(tenants.LoginInterception{SelectTenant: true, Cookie: stateCookie}, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(false, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -869,7 +868,6 @@ func TestHandleCreateFlowAcceptsLoginWithExistingTenantID(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
 		Return(tenants.LoginInterception{AcceptLogin: true, Cookie: stateCookie}, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(false, nil)
 	// Inside handleCreateFlowWithSession: TenantID is called to extract the ID.
 	mockTenantMgr.EXPECT().TenantID(stateCookie, loginChallenge).Return(tenantID)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, tenantID).Return(&redirectTo, req.Cookies(), nil)
@@ -933,7 +931,6 @@ func TestHandleCreateFlowRedirectsToTenantSelectionWhenHasTenants(t *testing.T) 
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
 		Return(tenants.LoginInterception{SelectTenant: true, Cookie: stateCookie}, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(false, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -1002,9 +999,84 @@ func TestHandleCreateFlowSkipsTenantSelectionForNoTenantUser(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookieInitial, loginChallenge).
 		Return(tenants.LoginInterception{AcceptLogin: true, Cookie: stateCookieWithSentinel}, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookieInitial).Return(false, nil)
 	// Inside handleCreateFlowWithSession: TenantID extracts the sentinel.
 	mockTenantMgr.EXPECT().TenantID(stateCookieWithSentinel, loginChallenge).Return(cookies.NoTenantAvailable)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, cookies.NoTenantAvailable).Return(&redirectTo, req.Cookies(), nil)
+	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any())
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.RedirectTo == nil || *resp.RedirectTo != redirect {
+		t.Fatalf("Expected redirect_to %s, got: %v", redirect, resp.RedirectTo)
+	}
+}
+
+// TestHandleCreateFlowAcceptsLoginAfterOIDCAuth verifies that when the user
+// returns from OIDC authentication (e.g. Dex) with a valid session but the
+// state cookie's challenge hash doesn't match (because it was never set during
+// the OIDC redirect), InterceptLogin correctly returns AcceptLogin=true and
+// the login is accepted without calling MustReAuthenticate.
+// This is the fix for the OIDC redirect-back-to-login-page loop.
+func TestHandleCreateFlowAcceptsLoginAfterOIDCAuth(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	loginChallenge := "oidc-challenge"
+	session := kClient.NewSession("oidc-session")
+	redirect := "https://hydra.example.com/oauth2/auth?client_id=x"
+	redirectTo := BrowserLocationChangeRequired{RedirectTo: &redirect}
+
+	// State cookie has NO LoginChallengeHash — simulates the OIDC flow
+	// where the cookie was never bound to this challenge.
+	stateCookie := cookies.FlowStateCookie{}
+
+	// InterceptLogin returns the cookie updated for the challenge.
+	updatedCookie := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+		TenantID:           cookies.NoTenantAvailable,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookie, nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	// DeferMFAChecks=true → MFA/WebAuthn checks are skipped
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
+		Return(tenants.LoginInterception{DeferMFAChecks: true, AcceptLogin: true, Cookie: updatedCookie}, nil)
+	// DeferMFAChecks=true means the cookie doesn't match this challenge,
+	// so MustReAuthenticate is called. Hydra says skip=true (user just
+	// authenticated via OIDC), so forceLogin=false and AcceptLogin proceeds.
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(false, nil)
+	mockTenantMgr.EXPECT().TenantID(updatedCookie, loginChallenge).Return(cookies.NoTenantAvailable)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, cookies.NoTenantAvailable).Return(&redirectTo, req.Cookies(), nil)
 	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any())
 

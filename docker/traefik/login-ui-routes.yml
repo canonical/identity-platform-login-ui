@@ -40,7 +40,7 @@ http:
       rule: "Path(`/api/v0/app-config`)"
       service: login-ui-public-api-service
 
-    # /api/v0/tenants (tenant lookup by email)
+    # /api/v0/tenants (tenant lookup by flow or active session)
     login-ui-public-api-router-api-tenants:
       entryPoints:
         - web
