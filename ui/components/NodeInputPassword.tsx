@@ -1,14 +1,7 @@
 import { getNodeLabel } from "@ory/integrations/ui";
 import React, { FC, useState, ChangeEvent, KeyboardEvent } from "react";
 import { NodeInputProps } from "./helpers";
-import PasswordToggle from "./PasswordToggle";
-
-function getLoginStartUrl(): string {
-  const url = new URL(window.location.href);
-  url.pathname = "/ui/login";
-  url.searchParams.delete("flow");
-  return url.pathname + url.search;
-}
+import PasswordToggle from "./PasswordToggleAlt";
 
 export const NodeInputPassword: FC<NodeInputProps> = ({
   node,
@@ -45,20 +38,13 @@ export const NodeInputPassword: FC<NodeInputProps> = ({
 
   return (
     <PasswordToggle
+      id="password"
       tabIndex={2}
       label={
-        <>
+        <div className="password-label">
           <span>{getNodeLabel(node)}</span>
-          <a
-            href={`./reset_email?return_to=${encodeURIComponent(getLoginStartUrl())}`}
-            style={{ float: "right" }}
-            tabIndex={3}
-          >
-            Reset password
-          </a>
-        </>
+        </div>
       }
-      labelClassName="password-label"
       value={password}
       disabled={disabled}
       placeholder="Your Password"

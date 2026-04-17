@@ -13,7 +13,7 @@ import { handleFlowError } from "../util/handleFlowError";
 import { kratos } from "../api/kratos";
 import { Flow } from "../components/Flow";
 import PageLayout from "../components/PageLayout";
-import { Notification, Spinner } from "@canonical/react-components";
+import { Spinner, Notification } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { EmailVerificationPrompt } from "../components/EmailVerificationPrompt";
@@ -22,6 +22,7 @@ import {
   isVerificationCodeInput,
 } from "../util/constants";
 import CountDownText from "../components/CountDownText";
+import { redirectTo } from "../util/redirectTo";
 
 const Verification: NextPage = () => {
   const [flow, setFlow] = useState<VerificationFlow>();
@@ -175,13 +176,13 @@ const Verification: NextPage = () => {
         })
         .then(({ data }) => {
           if (data.state === "passed_challenge") {
-            // If verification is successful, redirect to return_to URL or home page
-            if (returnTo && typeof returnTo === "string") {
-              window.location.href = returnTo;
+            if (flow?.return_to) {
+              redirectTo(flow.return_to, router);
+              return;
             } else {
               const timer = setTimeout(() => {
                 clearTimeout(timer);
-                window.location.href = "/ui/manage_details";
+                redirectTo(`/ui/manage_details`, router);
               }, 3000);
             }
           }
@@ -229,7 +230,7 @@ const Verification: NextPage = () => {
           return Promise.reject(err);
         });
     },
-    [flow, returnTo, router],
+    [flow, router],
   );
 
   const userEmail = useMemo(() => {
@@ -292,7 +293,7 @@ const Verification: NextPage = () => {
         </Notification>
         <Spinner
           text={`You will be redirected to ${
-            returnTo ? (returnTo as string).split("?")[0] : "/ui/manage_details"
+            flow.return_to ? flow.return_to.split("?")[0] : `./manage_details`
           }`}
         />
       </PageLayout>

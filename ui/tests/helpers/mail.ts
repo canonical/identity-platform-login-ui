@@ -14,8 +14,11 @@ export const getRecoveryCodeFromMailSlurp = async (context: BrowserContext) => {
   await expect(firstMail).toBeVisible();
   await firstMail.click();
 
-  const text = await mailSlurp.locator("#mailDetails").textContent();
-  const cleanText = text?.replace(/\n+/g, " ").replace("/  +/g", " ");
+  const mailDetails = mailSlurp.locator("#mailDetails");
+  await expect(mailDetails).toContainText("code");
+
+  const text = await mailDetails.textContent();
+  const cleanText = text?.replace(/\n+/g, " ").replace(/  +/g, " ");
   const code = cleanText?.match(/code: (\d+)/)?.[1];
   if (!code) {
     throw new Error("Code not found");

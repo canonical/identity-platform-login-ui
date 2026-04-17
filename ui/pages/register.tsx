@@ -9,17 +9,21 @@ import { Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
 import { NextRouter, useRouter } from "next/router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import {
+  UiNode,
   UpdateRegistrationFlowWithOidcMethod,
   UpdateRegistrationFlowWithPasswordMethod,
   UpdateRegistrationFlowWithProfileMethod,
 } from "@ory/client/api";
 import { setFlowIDQueryParam } from "../util/flowHelper";
+import { RegisterPassword } from "../components/RegisterPassword";
+import { isRegisterPasswordInput } from "../util/constants";
+import { redirectTo } from "../util/redirectTo";
 
 type FlowPreparer = (values: any) => UpdateRegistrationFlowBody;
 type SupportedFlowMethods = "oidc" | "password" | "profile";
@@ -43,19 +47,6 @@ function buildTraits(values: any): Traits {
   };
 }
 
-function redirectTo(url: string, router: NextRouter): void {
-  const newUrl = new URL(url);
-  const kratosParams = Object.fromEntries(newUrl.searchParams.entries());
-
-  void router.push({
-    pathname: newUrl.pathname,
-    query: {
-      ...router.query,
-      ...kratosParams,
-    },
-  });
-}
-
 const flowPreparerMap: PreparerMap = {
   oidc: (values: any): UpdateRegistrationFlowBody => ({
     ...(values as UpdateRegistrationFlowWithOidcMethod),
@@ -73,7 +64,7 @@ const flowPreparerMap: PreparerMap = {
   }),
 };
 
-function getFlowMethod(values: any): SupportedFlowMethods {
+export function getFlowMethod(values: any): SupportedFlowMethods {
   if ((values as UpdateRegistrationFlowWithOidcMethod).provider) {
     return "oidc";
   } else if ((values as UpdateRegistrationFlowWithPasswordMethod).password) {
@@ -82,6 +73,8 @@ function getFlowMethod(values: any): SupportedFlowMethods {
     return "profile";
   }
 }
+
+const nodeOrder = ["default", "profile", "oidc"];
 
 const Registration: NextPage = () => {
   const [flow, setFlow] = useState<RegistrationFlow>();
@@ -127,7 +120,6 @@ const Registration: NextPage = () => {
     (values: UpdateRegistrationFlowBody) => {
       const method = getFlowMethod(values);
       const body: UpdateRegistrationFlowBody = flowPreparerMap[method](values);
-
       return kratos
         .updateRegistrationFlow({
           flow: String(flow?.id),
@@ -136,7 +128,7 @@ const Registration: NextPage = () => {
         .then(({ data }: any) => {
           if (data.continue_with && Array.isArray(data.continue_with)) {
             const verificationAction = data.continue_with.find(
-              (item: any) => item.action === "show_verification_ui"
+              (item: any) => item.action === "show_verification_ui",
             );
 
             if (verificationAction) {
@@ -146,7 +138,7 @@ const Registration: NextPage = () => {
 
             // fallback to redirect_browser_to
             const redirectAction = data.continue_with.find(
-              (item: any) => item.action === "redirect_browser_to"
+              (item: any) => item.action === "redirect_browser_to",
             );
 
             if (redirectAction) {
@@ -169,14 +161,12 @@ const Registration: NextPage = () => {
     [flow, router],
   );
 
-  if (!flow) {
-    return null;
-  }
-
   const noShowFields = [
+    "name",
     "given_name",
     "family_name",
     "middle_name",
+    "last_name",
     "nickname",
     "preferred_username",
     "profile",
@@ -190,20 +180,39 @@ const Registration: NextPage = () => {
     "address",
   ].map((name) => `traits.${name}`);
 
-  flow.ui.nodes = flow.ui.nodes.filter((node) => {
-    if (node.group === "webauthn") return false;
-
-    const name = (node.attributes as UiNodeInputAttributes)["name"];
-    if (!name) {
-      return true;
+  const lookupFlow = useMemo(() => {
+    if (!flow) {
+      return flow;
     }
+    const filteredNodes = flow.ui.nodes.filter((node) => {
+      if (node.group === "webauthn") return false;
 
-    return !noShowFields.includes(name);
-  });
+      const name = (node.attributes as UiNodeInputAttributes)["name"];
+      if (!name) {
+        return true;
+      }
+
+      return !noShowFields.includes(name);
+    });
+    const reorderedNodes: UiNode[] = filteredNodes.sort(
+      (a: UiNode, b: UiNode) => {
+        return nodeOrder.indexOf(a.group) - nodeOrder.indexOf(b.group);
+      },
+    );
+
+    return { ...flow, ui: { ...flow.ui, nodes: reorderedNodes } };
+  }, [flow]);
+
+  if (
+    flow?.state === "choose_method" &&
+    flow.ui.nodes.some(isRegisterPasswordInput)
+  ) {
+    return <RegisterPassword flow={lookupFlow} setFlow={setFlow} />;
+  }
 
   return (
-    <PageLayout title="Create an account">
-      {flow ? <Flow onSubmit={handleSubmit} flow={flow} /> : <Spinner />}
+    <PageLayout title="Create your account">
+      {flow ? <Flow onSubmit={handleSubmit} flow={lookupFlow} /> : <Spinner />}
     </PageLayout>
   );
 };
