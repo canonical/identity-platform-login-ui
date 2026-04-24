@@ -173,6 +173,13 @@ func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Sessi
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.AcceptLoginRequest")
 	defer span.End()
 
+	if session == nil || session.Identity == nil {
+		err := fmt.Errorf("session is required to accept login request")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, nil, err
+	}
+
 	accept := hClient.NewAcceptOAuth2LoginRequest(session.Identity.Id)
 	accept.SetRemember(true)
 	accept.Amr = []string{}

@@ -179,6 +179,14 @@ func (c *CookieTenantResolver) needsTenantSelectionByIdentityID(ctx context.Cont
 }
 
 func (c *CookieTenantResolver) InterceptLogin(ctx context.Context, session *kClient.Session, cookie cookies.FlowStateCookie, loginChallenge string) (LoginInterception, error) {
+	// No Hydra challenge present. This happens on the aal2 continuation
+	// redirect from Kratos after OIDC callback (challenge is encoded inside
+	// return_to, not a top-level query param). Do not attempt to accept a
+	// Hydra login with an empty challenge — that would cause a 502.
+	if loginChallenge == "" {
+		return LoginInterception{Cookie: cookie}, nil
+	}
+
 	if !c.IsAuthenticatedForChallenge(cookie, loginChallenge) {
 		// The cookie's challenge hash doesn't match the current challenge.
 		// If there is no existing session the user is still authenticating
@@ -202,6 +210,10 @@ func (c *CookieTenantResolver) InterceptLogin(ctx context.Context, session *kCli
 			return LoginInterception{DeferMFAChecks: true, SelectTenant: true, Cookie: cookie}, nil
 		}
 		return LoginInterception{DeferMFAChecks: true, AcceptLogin: true, Cookie: updatedCookie}, nil
+	}
+
+	if session == nil {
+		return LoginInterception{Cookie: cookie}, nil
 	}
 
 	needsSelection, updatedCookie, err := c.NeedsTenantSelection(ctx, session, cookie, loginChallenge)

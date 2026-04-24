@@ -234,6 +234,35 @@ func TestAcceptLoginRequestFails(t *testing.T) {
 	}
 }
 
+func TestAcceptLoginRequestFailsWithoutSession(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	ctx := context.Background()
+
+	mockTracer.EXPECT().Start(ctx, gomock.Any()).Times(1).Return(ctx, trace.SpanFromContext(ctx))
+
+	rt, c, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, false, mockTracer, mockMonitor, mockLogger).AcceptLoginRequest(ctx, nil, "challenge", "")
+
+	if rt != nil {
+		t.Fatalf("expected redirect to be %v not %v", nil, rt)
+	}
+	if c != nil {
+		t.Fatalf("expected cookies to be %v not %v", nil, c)
+	}
+	if err == nil {
+		t.Fatal("expected error not nil")
+	}
+}
+
 func TestAcceptLoginRequestWithPopForWebAuthn(t *testing.T) {
 	tests := []struct {
 		name                          string
