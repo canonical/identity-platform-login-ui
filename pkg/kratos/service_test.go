@@ -1269,9 +1269,13 @@ func TestService_tryProcessingRegistration(t *testing.T) {
 	})
 
 	t.Run("Status 400 - session already available", func(t *testing.T) {
-		errBody := kClient.GenericError{}
-		errBody.SetId("session_already_available")
-		data, _ := json.Marshal(errBody)
+		// Create the structure expected by isSessionAlreadyAvailableError
+		errorBody := map[string]interface{}{
+			"error": map[string]interface{}{
+				"id": "session_already_available",
+			},
+		}
+		data, _ := json.Marshal(errorBody)
 		resp := &http.Response{
 			StatusCode: http.StatusBadRequest,
 			Body:       io.NopCloser(bytes.NewReader(data)),
