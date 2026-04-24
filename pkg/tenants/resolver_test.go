@@ -428,6 +428,54 @@ func TestInterceptLoginDefersMFAWhenNotAuthenticated(t *testing.T) {
 	}
 }
 
+func TestInterceptLoginDoesNotAcceptWithoutSessionEvenWhenChallengeMatches(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
+
+	result, err := r.InterceptLogin(context.Background(), nil, c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.DeferMFAChecks || result.SelectTenant || result.AcceptLogin {
+		t.Fatal("expected no intervention when challenge matches but session is nil")
+	}
+	if result.Cookie != c {
+		t.Fatal("expected cookie to be returned unchanged")
+	}
+}
+
+// TestInterceptLoginNoOpWhenChallengeEmpty verifies that when loginChallenge is
+// empty (aal2 continuation from Kratos where the challenge is encoded inside
+// return_to) InterceptLogin always returns a zero-intervention result. This
+// prevents AcceptLoginRequest from being called with an empty challenge, which
+// would cause Hydra to return a 502.
+func TestInterceptLoginNoOpWhenChallengeEmpty(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	session := sessionWithEmail("u@example.com")
+	// Cookie has a stored challenge hash that would match "" via the wildcard.
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash("some-previous-challenge")}
+	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	// Service must NOT be called — early return before any tenant lookup.
+	result, err := r.InterceptLogin(context.Background(), session, c, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.AcceptLogin || result.SelectTenant || result.DeferMFAChecks {
+		t.Fatal("expected zero-intervention result when loginChallenge is empty")
+	}
+	if result.Cookie != c {
+		t.Fatal("expected cookie returned unchanged")
+	}
+}
+
 func TestInterceptLoginSessionReuseAutoSelectsSingleTenant(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
