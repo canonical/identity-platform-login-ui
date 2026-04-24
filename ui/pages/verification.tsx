@@ -34,7 +34,7 @@ const Verification: NextPage = () => {
     email: queryEmail,
   } = router.query;
 
-  const RESEND_CODE_TIMEOUT = 60000; // 60 seconds
+  const RESEND_CODE_TIMEOUT = 90; // seconds
 
   const [resendDisabled, setResendDisabled] = useState<boolean>(false);
   const disableButtonWithTimeout = () => {
@@ -52,7 +52,7 @@ const Verification: NextPage = () => {
       flowData.ui.messages?.find((msg) => msg.type === "error") === undefined
     ) {
       // Check if email is sent and there is no error message
-      // If no error message, add success message and disable resend button for 60 seconds
+      // If no error message, add success message and disable resend button for RESEND_CODE_TIMEOUT seconds
       const codeUiNode = flowData.ui.nodes.find(
         isVerificationCodeInput,
       ) as UiNode;
@@ -65,7 +65,7 @@ const Verification: NextPage = () => {
               ...codeUiNode.meta.label?.context,
               afterComponent: (
                 <CountDownText
-                  initialSeconds={RESEND_CODE_TIMEOUT / 1000}
+                  initialSeconds={RESEND_CODE_TIMEOUT}
                   wrapperText="Code sent. You can request again in "
                   key={new Date().toISOString()}
                 />
@@ -74,7 +74,7 @@ const Verification: NextPage = () => {
           },
         } as UiNodeMeta;
       }
-      // Disable resend button for 60 seconds
+      // Disable resend button for RESEND_CODE_TIMEOUT seconds
       disableButtonWithTimeout();
     }
   };
