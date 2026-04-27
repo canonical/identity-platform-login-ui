@@ -430,12 +430,16 @@ func passwordPolicyError(flow kClient.RegistrationFlow) error {
 }
 
 func isSessionAlreadyAvailableError(responseBody []byte) bool {
-	var errorBody kClient.GenericError
+	var errorBody struct {
+		Error struct {
+			Id string `json:"id"`
+		} `json:"error"`
+	}
 	if err := json.Unmarshal(responseBody, &errorBody); err != nil {
 		return false
 	}
 
-	if errorBody.GetId() == "session_already_available" {
+	if errorBody.Error.Id == "session_already_available" {
 		return true
 	}
 
