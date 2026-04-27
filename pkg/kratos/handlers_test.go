@@ -3573,7 +3573,7 @@ func TestShouldEnforceMFA(t *testing.T) {
 
 			tt.setupMocks(mockService, mockLogger)
 
-			api := NewAPI(mockService, false, tt.mfaEnabled, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
+			api := NewAPI(mockService, false, tt.mfaEnabled, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger)
 			result, err := api.shouldEnforceMFA(context.Background(), []*http.Cookie{})
 
 			if tt.expectedErrMsg != "" {

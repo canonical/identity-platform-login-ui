@@ -60,7 +60,7 @@ func TestHandleLookupTenantsBySessionSuccess(t *testing.T) {
 			Traits: map[string]interface{}{"email": "user@example.com"},
 		},
 	}
-	expected := []Tenant{{ID: "t1", Name: "Acme", Enabled: true}}
+	expected := []*Tenant{{ID: "t1", Name: "Acme", Enabled: true}}
 
 	mockSessionChecker.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
 	mockService.EXPECT().LookupTenantsByIdentityID(gomock.Any(), identityID).Return(expected, nil)
@@ -86,7 +86,7 @@ func TestHandleLookupTenantsSuccess(t *testing.T) {
 	mockService := NewMockServiceInterface(ctrl)
 
 	flowID := "flow-123"
-	expected := []Tenant{{ID: "t1", Name: "Acme", Enabled: true}}
+	expected := []*Tenant{{ID: "t1", Name: "Acme", Enabled: true}}
 
 	mockService.EXPECT().LookupTenantsByFlow(gomock.Any(), flowID, gomock.Any()).Return(expected, nil)
 
@@ -171,7 +171,7 @@ func TestHandleTenantSelectionEmptyVerifiedNoTenants(t *testing.T) {
 
 	// No flow provided → falls back to session lookup.
 	mockSessionChecker.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
-	mockService.EXPECT().LookupTenantsByIdentityID(gomock.Any(), identityID).Return([]Tenant{}, nil)
+	mockService.EXPECT().LookupTenantsByIdentityID(gomock.Any(), identityID).Return([]*Tenant{}, nil)
 	mockStorer.EXPECT().StoreTenant(gomock.Any(), gomock.Any(), "_none", "lc-1").Return(nil)
 
 	mux := chi.NewMux()
@@ -206,7 +206,7 @@ func TestHandleTenantSelectionEmptyRejectedWhenTenantsExist(t *testing.T) {
 	}
 
 	mockSessionChecker.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
-	mockService.EXPECT().LookupTenantsByIdentityID(gomock.Any(), identityID).Return([]Tenant{{ID: "t1", Name: "Acme", Enabled: true}}, nil)
+	mockService.EXPECT().LookupTenantsByIdentityID(gomock.Any(), identityID).Return([]*Tenant{{ID: "t1", Name: "Acme", Enabled: true}}, nil)
 
 	mux := chi.NewMux()
 	NewAPI(mockService, nil, mockSessionChecker, "", mockTracer, mockLogger).RegisterEndpoints(mux)

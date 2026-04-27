@@ -27,9 +27,9 @@ type TenantStorerInterface interface {
 }
 
 type ServiceInterface interface {
-	LookupTenantsByFlow(ctx context.Context, flowID string, cookies []*http.Cookie) ([]Tenant, error)
-	LookupTenantsByEmail(ctx context.Context, email string) ([]Tenant, error)
-	LookupTenantsByIdentityID(ctx context.Context, identityID string) ([]Tenant, error)
+	LookupTenantsByFlow(ctx context.Context, flowID string, cookies []*http.Cookie) ([]*Tenant, error)
+	LookupTenantsByEmail(ctx context.Context, email string) ([]*Tenant, error)
+	LookupTenantsByIdentityID(ctx context.Context, identityID string) ([]*Tenant, error)
 }
 
 // FlowFetcherInterface is the subset of kratos.ServiceInterface needed by the

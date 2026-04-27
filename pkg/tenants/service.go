@@ -31,7 +31,6 @@ type Tenant struct {
 // tenant service exposes a gRPC endpoint.
 type Service struct {
 	tenantsAPIURL string
-	baseURL       string
 	httpClient    *http.Client
 	flowFetcher   FlowFetcherInterface
 
@@ -40,7 +39,7 @@ type Service struct {
 	logger  logging.LoggerInterface
 }
 
-func (s *Service) lookupTenantsByEmail(ctx context.Context, email string) ([]Tenant, error) {
+func (s *Service) lookupTenantsByEmail(ctx context.Context, email string) ([]*Tenant, error) {
 	ctx, span := s.tracer.Start(ctx, "tenants.Service.lookupTenantsByEmail")
 	defer span.End()
 
@@ -62,7 +61,7 @@ func (s *Service) lookupTenantsByEmail(ctx context.Context, email string) ([]Ten
 	}
 
 	var wrapper struct {
-		Tenants []Tenant `json:"tenants"`
+		Tenants []*Tenant `json:"tenants"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
 		return nil, fmt.Errorf("failed to decode tenants response: %w", err)
@@ -74,7 +73,7 @@ func (s *Service) lookupTenantsByEmail(ctx context.Context, email string) ([]Ten
 // LookupTenantsByEmail looks up tenants for the given email address directly,
 // without requiring a Kratos login flow. This is used when the user already
 // has an active Kratos session and a flow has not yet been created.
-func (s *Service) LookupTenantsByEmail(ctx context.Context, email string) ([]Tenant, error) {
+func (s *Service) LookupTenantsByEmail(ctx context.Context, email string) ([]*Tenant, error) {
 	return s.lookupTenantsByEmail(ctx, email)
 }
 
@@ -82,7 +81,7 @@ func (s *Service) LookupTenantsByEmail(ctx context.Context, email string) ([]Ten
 // This skips the Kratos email-to-identity resolution on the tenant-service side,
 // resulting in faster lookups. Used when the caller already knows the identity ID
 // (e.g., from an active Kratos session).
-func (s *Service) LookupTenantsByIdentityID(ctx context.Context, identityID string) ([]Tenant, error) {
+func (s *Service) LookupTenantsByIdentityID(ctx context.Context, identityID string) ([]*Tenant, error) {
 	ctx, span := s.tracer.Start(ctx, "tenants.Service.LookupTenantsByIdentityID")
 	defer span.End()
 
@@ -104,7 +103,7 @@ func (s *Service) LookupTenantsByIdentityID(ctx context.Context, identityID stri
 	}
 
 	var wrapper struct {
-		Tenants []Tenant `json:"tenants"`
+		Tenants []*Tenant `json:"tenants"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
 		return nil, fmt.Errorf("failed to decode tenants response: %w", err)
@@ -115,7 +114,7 @@ func (s *Service) LookupTenantsByIdentityID(ctx context.Context, identityID stri
 
 // LookupTenantsByFlow fetches the Kratos login flow, extracts the email from
 // the flow's UI nodes, and looks up tenants for that email.
-func (s *Service) LookupTenantsByFlow(ctx context.Context, flowID string, cookies []*http.Cookie) ([]Tenant, error) {
+func (s *Service) LookupTenantsByFlow(ctx context.Context, flowID string, cookies []*http.Cookie) ([]*Tenant, error) {
 	ctx, span := s.tracer.Start(ctx, "tenants.Service.LookupTenantsByFlow")
 	defer span.End()
 
@@ -148,10 +147,9 @@ func emailFromFlow(flow *kClient.LoginFlow) (string, error) {
 	return "", fmt.Errorf("identifier node not found in flow %s", flow.Id)
 }
 
-func NewService(tenantsAPIURL string, baseURL string, flowFetcher FlowFetcherInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(tenantsAPIURL string, flowFetcher FlowFetcherInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	return &Service{
 		tenantsAPIURL: tenantsAPIURL,
-		baseURL:       baseURL,
 		httpClient:    &http.Client{Timeout: 30 * time.Second},
 		flowFetcher:   flowFetcher,
 		tracer:        tracer,

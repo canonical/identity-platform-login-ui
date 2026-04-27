@@ -17,8 +17,8 @@ import (
 // whether a user has any tenants. Defined locally to keep dependencies
 // explicit and to avoid circular imports.
 type tenantLookupService interface {
-	LookupTenantsByEmail(ctx context.Context, email string) ([]Tenant, error)
-	LookupTenantsByIdentityID(ctx context.Context, identityID string) ([]Tenant, error)
+	LookupTenantsByEmail(ctx context.Context, email string) ([]*Tenant, error)
+	LookupTenantsByIdentityID(ctx context.Context, identityID string) ([]*Tenant, error)
 }
 
 // LoginInterception tells handleCreateFlow what to do with the login flow.
