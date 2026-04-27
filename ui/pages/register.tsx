@@ -87,7 +87,11 @@ const Registration: NextPage = () => {
   };
 
   useEffect(() => {
-    if (!router.isReady || flow) {
+    if (!router.isReady) {
+      return;
+    }
+
+    if (flow && (!flowId || flow.id === String(flowId))) {
       return;
     }
 

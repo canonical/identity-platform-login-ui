@@ -2,13 +2,14 @@ import {
   LoginFlow,
   UiNode,
   UiNodeInputAttributes,
+  UiText,
   UpdateLoginFlowBody,
 } from "@ory/client";
 import { CheckboxInput, Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
@@ -120,7 +121,7 @@ const Login: NextPage = () => {
       return;
     }
 
-    if (flowId && flow) {
+    if (flow && (!flowId || flow.id === String(flowId))) {
       return;
     }
 
@@ -295,72 +296,60 @@ const Login: NextPage = () => {
   const titleSuffix = getTitleSuffix(reqName, reqDomain);
   const title = resolveLoginTitle(isIdentifierFirst, isAuthCode, titleSuffix);
 
-  const filterFlow = (flow: LoginFlow | undefined): LoginFlow => {
+  const { renderFlow, isWebauthn } = useMemo(() => {
     if (!flow) {
-      return flow as unknown as LoginFlow;
+      return { renderFlow: undefined, isWebauthn: false };
     }
 
-    return {
-      ...flow,
-      ui: {
-        ...flow.ui,
-        nodes: flow.ui.nodes.filter(({ group }) => {
-          return useBackupCode
-            ? group !== "totp" && group !== "webauthn"
-            : group !== "lookup_secret";
-        }),
-      },
-    };
-  };
+    // Check original (unmutated) nodes for webauthn support
+    const supportsWebauthn = flow.ui.nodes.some(
+      (node) => node.group === "webauthn",
+    );
 
-  let isWebauthn = false;
-  const supportsWebauthn = flow?.ui.nodes.some(
-    (node) => node.group === "webauthn",
-  );
-
-  const renderFlow: LoginFlow | undefined = flow
-    ? isIdentifierFirst
-      ? {
-          ...flow,
-          ui: {
-            ...flow.ui,
-            nodes: flow.ui.nodes.filter((n: UiNode) => {
-              if (
-                n.attributes.node_type === "input" &&
-                typeof (n.attributes as UiNodeInputAttributes).name === "string"
-              ) {
-                const name = (n.attributes as UiNodeInputAttributes).name;
-                return (
-                  name === "identifier" ||
-                  name === "csrf_token" ||
-                  name === "method"
-                );
-              }
-              return false;
-            }),
-          },
+    // Build base nodes according to flow type
+    let nodes: UiNode[];
+    if (isIdentifierFirst) {
+      nodes = flow.ui.nodes.filter((n: UiNode) => {
+        if (
+          n.attributes.node_type === "input" &&
+          typeof (n.attributes as UiNodeInputAttributes).name === "string"
+        ) {
+          const name = (n.attributes as UiNodeInputAttributes).name;
+          return (
+            name === "identifier" || name === "csrf_token" || name === "method"
+          );
         }
-      : isAuthCode || is2FaWebauthn
-        ? filterFlow(replaceAuthLabel(flow))
-        : flow
-    : undefined;
+        return false;
+      });
+    } else if (isAuthCode || is2FaWebauthn) {
+      const relabeled = replaceAuthLabel(flow);
+      nodes =
+        relabeled?.ui.nodes.filter(({ group }) =>
+          useBackupCode
+            ? group !== "totp" && group !== "webauthn"
+            : group !== "lookup_secret",
+        ) ?? [];
+    } else {
+      nodes = [...flow.ui.nodes];
+    }
 
-  if (renderFlow?.ui) {
+    // Determine isWebauthn from URL params
     const urlParams = new URLSearchParams(window.location.search);
     const hasWebauthnInUrlParam = urlParams.get("webauthn") === "true";
     const hasOnlyWebauthnNodes =
-      renderFlow.ui.nodes.filter(
+      nodes.filter(
         (node) => node.group !== "webauthn" && node.group !== "default",
       ).length === 0;
 
-    isWebauthn =
+    const resolvedIsWebauthn =
       (hasWebauthnInUrlParam || hasOnlyWebauthnNodes || is2FaWebauthn) &&
       !invalid_method &&
       !useBackupCode;
 
-    renderFlow.ui.nodes = renderFlow?.ui.nodes.filter((node) => {
+    // Filter webauthn nodes based on whether we're in the webauthn step
+    nodes = nodes.filter((node) => {
       // show webauthn elements in dedicated step after it is selected
-      if (isWebauthn) {
+      if (resolvedIsWebauthn) {
         return node.group === "webauthn" || node.group === "default";
       }
       // hide webauthn everywhere else
@@ -368,40 +357,117 @@ const Login: NextPage = () => {
     });
 
     // add security key option that looks like an oidc input
-    if (!isWebauthn && !isAuthCode && !useBackupCode && supportsWebauthn) {
-      renderFlow.ui.nodes.push({
-        attributes: {
-          type: "url",
-          node_type: "input",
-          name: "",
-          disabled: false,
-        },
-        group: "webauthn",
-        type: "input",
-        messages: [],
-        meta: {
-          label: {
-            id: 1,
-            text: "Sign in with Security key",
-            type: "info",
+    if (
+      !resolvedIsWebauthn &&
+      !isAuthCode &&
+      !useBackupCode &&
+      supportsWebauthn
+    ) {
+      nodes = [
+        ...nodes,
+        {
+          attributes: {
+            type: "url",
+            node_type: "input",
+            name: "",
+            disabled: false,
           },
-        },
-      });
+          group: "webauthn",
+          type: "input",
+          messages: [],
+          meta: {
+            label: {
+              id: 1,
+              text: "Sign in with Security key",
+              type: "info",
+            },
+          },
+        } as UiNode,
+      ];
     }
 
     // ensure oidc options are presented after username/password inputs
-    renderFlow.ui.nodes.sort((a, b) => {
+    nodes = [...nodes].sort((a, b) => {
       const toValue = (node: UiNode) => (node.group === "oidc" ? 1 : -1);
       return toValue(a) - toValue(b);
     });
 
-    // autosubmit webauthn in case email is provided
-    const email = urlParams.get("email");
-    if (isWebauthn && email) {
+    // Apply label and message updates without mutating original nodes
+    nodes = nodes.map((node) => {
+      let updated = node;
+      if (isSignInWithPassword(updated)) {
+        updated = {
+          ...updated,
+          meta: {
+            ...updated.meta,
+            label: { ...(updated.meta.label as UiText), text: "Sign in" },
+          },
+        };
+      }
+      if (isSignInEmailInput(updated)) {
+        updated = {
+          ...updated,
+          meta: {
+            ...updated.meta,
+            label: { ...(updated.meta.label as UiText), text: "Email" },
+          },
+        };
+      }
+      if (isSignInEmailInput(updated) && email && invalid_method) {
+        updated = {
+          ...updated,
+          attributes: {
+            ...updated.attributes,
+            value: typeof email === "string" ? email : email[email.length - 1],
+          } as typeof updated.attributes,
+          messages: [
+            ...updated.messages,
+            { id: 1, type: "error" as const, text: "Invalid login method" },
+          ],
+        };
+      }
+      if (isSignInWithHardwareKey(updated) && isSequencedLogin) {
+        updated = {
+          ...updated,
+          meta: {
+            ...updated.meta,
+            label: {
+              ...(updated.meta.label as UiText),
+              text: "Sign in using Security key",
+              context: {
+                ...(updated.meta.label as UiText).context,
+                icon: "lock-locked",
+              },
+            },
+          },
+        };
+      }
+      return updated;
+    });
+
+    return {
+      renderFlow: { ...flow, ui: { ...flow.ui, nodes } },
+      isWebauthn: resolvedIsWebauthn,
+    };
+  }, [
+    flow,
+    isIdentifierFirst,
+    isAuthCode,
+    is2FaWebauthn,
+    useBackupCode,
+    isSequencedLogin,
+    email,
+    invalid_method,
+  ]);
+
+  if (renderFlow?.ui) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const emailForAutoSubmit = urlParams.get("email");
+    if (isWebauthn && emailForAutoSubmit) {
       void handleSubmit({
         method: "webauthn",
-        identifier: email,
-        csrf_token: getCsrfToken(renderFlow?.ui.nodes),
+        identifier: emailForAutoSubmit,
+        csrf_token: getCsrfToken(renderFlow.ui.nodes),
       }).catch(() => {
         if (flow?.return_to) {
           window.location.href = flow.return_to;
@@ -415,32 +481,6 @@ const Login: NextPage = () => {
   if (!flow) {
     return;
   }
-
-  renderFlow?.ui.nodes.map((node) => {
-    if (isSignInWithPassword(node)) {
-      node.meta.label.text = "Sign in";
-    }
-    if (isSignInEmailInput(node)) {
-      node.meta.label.text = "Email";
-    }
-    if (isSignInEmailInput(node) && email && invalid_method) {
-      (node.attributes as unknown as { value: string }).value =
-        typeof email === "string" ? email : email[email.length - 1];
-      node.messages.push({
-        id: 1,
-        type: "error",
-        text: "Invalid login method",
-      });
-    }
-    if (isSignInWithHardwareKey(node) && isSequencedLogin) {
-      node.meta.label.text = "Sign in using Security key";
-      node.meta.label.context = {
-        ...node.meta.label.context,
-        icon: "lock-locked",
-      };
-    }
-    return node;
-  });
 
   // automatically forward to single oidc provider if it is the only option
   const csrfNode = getCsrfNode(renderFlow?.ui.nodes);
