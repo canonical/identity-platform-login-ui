@@ -39,15 +39,14 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 // identity ID is read from the active Kratos session. Email is never accepted
 // as a URL parameter to prevent unauthenticated tenant enumeration.
 func (a *API) handleLookupTenants(w http.ResponseWriter, r *http.Request) {
-	flowID := r.URL.Query().Get("flow")
-
 	var (
-		tenants []Tenant
+		tenants []*Tenant
 		err     error
 	)
-	if flowID != "" {
-		tenants, err = a.service.LookupTenantsByFlow(r.Context(), flowID, r.Cookies())
-	} else {
+
+	flowID := r.URL.Query().Get("flow")
+
+	if flowID == "" {
 		var session *kClient.Session
 		session, _, err = a.sessionChecker.CheckSession(r.Context(), r.Cookies())
 		if err != nil {
@@ -60,7 +59,10 @@ func (a *API) handleLookupTenants(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		tenants, err = a.service.LookupTenantsByIdentityID(r.Context(), identityID)
+	} else {
+		tenants, err = a.service.LookupTenantsByFlow(r.Context(), flowID, r.Cookies())
 	}
+
 	if err != nil {
 		a.logger.Errorf("failed to look up tenants: %v", err)
 		http.Error(w, "failed to look up tenants", http.StatusInternalServerError)
@@ -122,6 +124,7 @@ func (a *API) handleTenantSelection(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to verify tenant list", http.StatusInternalServerError)
 			return
 		}
+
 		if len(tenants) != 0 {
 			http.Error(w, "tenant_id is required", http.StatusBadRequest)
 			return
@@ -152,18 +155,21 @@ func (a *API) handleTenantSelection(w http.ResponseWriter, r *http.Request) {
 
 // lookupTenants returns the caller's tenant list using the Kratos flow when
 // provided, falling back to the active Kratos session's identity ID.
-func (a *API) lookupTenants(ctx context.Context, flowID string, httpCookies []*http.Cookie) ([]Tenant, error) {
+func (a *API) lookupTenants(ctx context.Context, flowID string, httpCookies []*http.Cookie) ([]*Tenant, error) {
 	if flowID != "" {
 		return a.service.LookupTenantsByFlow(ctx, flowID, httpCookies)
 	}
+
 	session, _, err := a.sessionChecker.CheckSession(ctx, httpCookies)
 	if err != nil {
 		return nil, fmt.Errorf("cannot check session: %v", err)
 	}
+
 	identityID := identityIDFromSession(session)
 	if identityID == "" {
 		return nil, fmt.Errorf("cannot determine identity from session")
 	}
+
 	return a.service.LookupTenantsByIdentityID(ctx, identityID)
 }
 

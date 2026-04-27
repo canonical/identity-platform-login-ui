@@ -837,6 +837,8 @@ func (a *API) checkTenantSelectionByEmail(w http.ResponseWriter, r *http.Request
 
 	if setErr := a.cookieManager.SetStateCookie(w, updatedCookie); setErr != nil {
 		a.logger.Errorf("failed to set state cookie: %v", setErr)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return setErr
 	}
 
 	if needsSelection {

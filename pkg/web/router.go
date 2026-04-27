@@ -183,7 +183,7 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 
 	var resolver kratos.TenantResolverInterface = tenants.NewNoOpTenantResolver()
 	if config.multiTenancyEnabled {
-		tenantsService := tenants.NewService(config.tenantsServiceURL, config.baseURL, kratosService, config.tracer, config.monitor, config.logger)
+		tenantsService := tenants.NewService(config.tenantsServiceURL, kratosService, config.tracer, config.monitor, config.logger)
 		resolver = tenants.NewCookieTenantResolver(config.cookieManager, tenantsService)
 		tenants.NewAPI(tenantsService, resolver, kratosService, config.baseURL, config.tracer, config.logger).RegisterEndpoints(router)
 	}

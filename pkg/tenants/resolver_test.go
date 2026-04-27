@@ -24,15 +24,15 @@ func sessionWithEmail(email string) *kClient.Session {
 
 // mockTenantLookup is a hand-built stub of tenantLookupService for tests.
 type mockTenantLookup struct {
-	tenants []Tenant
+	tenants []*Tenant
 	err     error
 }
 
-func (m *mockTenantLookup) LookupTenantsByEmail(_ context.Context, _ string) ([]Tenant, error) {
+func (m *mockTenantLookup) LookupTenantsByEmail(_ context.Context, _ string) ([]*Tenant, error) {
 	return m.tenants, m.err
 }
 
-func (m *mockTenantLookup) LookupTenantsByIdentityID(_ context.Context, _ string) ([]Tenant, error) {
+func (m *mockTenantLookup) LookupTenantsByIdentityID(_ context.Context, _ string) ([]*Tenant, error) {
 	return m.tenants, m.err
 }
 
@@ -183,7 +183,7 @@ func TestCookieTenantResolverHasTenantsByEmailTrue(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockCM := NewMockCookieManagerInterface(ctrl)
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(mockCM, svc)
 
 	got, err := r.HasTenants(context.Background(), sessionWithEmail("user@example.com"))
@@ -200,7 +200,7 @@ func TestCookieTenantResolverHasTenantsByEmailFalse(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockCM := NewMockCookieManagerInterface(ctrl)
-	svc := &mockTenantLookup{tenants: []Tenant{}}
+	svc := &mockTenantLookup{tenants: []*Tenant{}}
 	r := NewCookieTenantResolver(mockCM, svc)
 
 	got, err := r.HasTenants(context.Background(), sessionWithEmail("user@example.com"))
@@ -231,7 +231,7 @@ func TestCookieTenantResolverHasTenantsByEmailEmpty(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockCM := NewMockCookieManagerInterface(ctrl)
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(mockCM, svc)
 
 	got, err := r.HasTenants(context.Background(), nil)
@@ -322,7 +322,7 @@ func TestNeedsTenantSelectionAutoSelectsSingleTenant(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	need, updated, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
@@ -343,7 +343,7 @@ func TestNeedsTenantSelectionMultipleTenants(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	need, _, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
@@ -361,7 +361,7 @@ func TestNeedsTenantSelectionNoTenants(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	svc := &mockTenantLookup{tenants: []Tenant{}}
+	svc := &mockTenantLookup{tenants: []*Tenant{}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	need, updated, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
@@ -460,7 +460,7 @@ func TestInterceptLoginNoOpWhenChallengeEmpty(t *testing.T) {
 	session := sessionWithEmail("u@example.com")
 	// Cookie has a stored challenge hash that would match "" via the wildcard.
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash("some-previous-challenge")}
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	// Service must NOT be called — early return before any tenant lookup.
@@ -482,7 +482,7 @@ func TestInterceptLoginSessionReuseAutoSelectsSingleTenant(t *testing.T) {
 
 	challenge := "ch-new" // new challenge, cookie has no matching hash
 	c := cookies.FlowStateCookie{}
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	// Existing session + single tenant → defer MFA + accept (auto-select).
@@ -510,7 +510,7 @@ func TestInterceptLoginSessionReuseSelectsTenantWhenMultiTenant(t *testing.T) {
 
 	challenge := "ch-new"
 	c := cookies.FlowStateCookie{}
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	// Existing session + multi-tenant → defer MFA + select tenant.
@@ -535,7 +535,7 @@ func TestInterceptLoginSessionReuseAcceptsWhenNoTenants(t *testing.T) {
 
 	challenge := "ch-new"
 	c := cookies.FlowStateCookie{}
-	svc := &mockTenantLookup{tenants: []Tenant{}}
+	svc := &mockTenantLookup{tenants: []*Tenant{}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	// Existing session + zero tenants → defer MFA + accept immediately.
@@ -566,7 +566,7 @@ func TestInterceptLoginAutoSelectsSingleTenant(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
@@ -590,7 +590,7 @@ func TestInterceptLoginSelectsTenantWhenMultipleTenants(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
@@ -634,7 +634,7 @@ func TestInterceptLoginAcceptsWithSentinelWhenNoTenants(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	svc := &mockTenantLookup{tenants: []Tenant{}}
+	svc := &mockTenantLookup{tenants: []*Tenant{}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
@@ -677,7 +677,7 @@ func TestInterceptLoginSessionReuseClearsStaleTenantIDSingleTenant(t *testing.T)
 		TenantID:           cookies.NoTenantAvailable,
 	}
 	// User has since been provisioned into exactly one tenant → auto-select.
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, newChallenge)
@@ -708,7 +708,7 @@ func TestInterceptLoginSessionReuseClearsStaleTenantIDMultipleTenants(t *testing
 		TenantID:           cookies.NoTenantAvailable,
 	}
 	// User has since been provisioned into multiple tenants → needs selection.
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, newChallenge)
@@ -764,7 +764,7 @@ func TestNeedsTenantSelectionByEmailAutoSelectsSingleTenant(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	need, updated, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", c, challenge)
@@ -785,7 +785,7 @@ func TestNeedsTenantSelectionByEmailMultipleTenants(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	svc := &mockTenantLookup{tenants: []Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	need, _, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", c, challenge)
@@ -803,7 +803,7 @@ func TestNeedsTenantSelectionByEmailNoTenants(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	svc := &mockTenantLookup{tenants: []Tenant{}}
+	svc := &mockTenantLookup{tenants: []*Tenant{}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	need, updated, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", c, challenge)
@@ -824,7 +824,7 @@ func TestNeedsTenantSelectionByEmailEmptyEmail(t *testing.T) {
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
-	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{tenants: []Tenant{{ID: "t1"}}})
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{tenants: []*Tenant{{ID: "t1"}}})
 
 	need, _, err := r.NeedsTenantSelectionByEmail(context.Background(), "", c, challenge)
 	if err != nil {
