@@ -162,6 +162,8 @@ const Login: NextPage = () => {
           return;
         }
 
+        setFlow(data);
+
         await router.replace(
           {
             query: {
@@ -172,8 +174,6 @@ const Login: NextPage = () => {
           undefined,
           { shallow: true },
         );
-
-        setFlow(data);
       })
       .catch(handleFlowError("login", setFlow))
       .catch(redirectToErrorPage);
@@ -224,17 +224,21 @@ const Login: NextPage = () => {
       if (method === "identifier_first") {
         const flowId = String(flow?.id);
 
-        return loginIdentifierFirst(flowId, values, method, flow)
+        return loginIdentifierFirst(
+          flowId,
+          values,
+          method,
+          flow,
+          typeof login_challenge === "string"
+            ? login_challenge
+            : flow?.oauth2_login_challenge,
+        )
           .then((data) => {
             if ("redirect_to" in data) {
               window.location.href = data.redirect_to;
-              return;
+            } else {
+              setFlow(data);
             }
-            if (flow?.return_to) {
-              window.location.href = flow.return_to;
-              return;
-            }
-            setFlow(data);
           })
           .catch(redirectToErrorPage);
       }
@@ -286,7 +290,7 @@ const Login: NextPage = () => {
           return Promise.reject(err);
         });
     },
-    [flow, router],
+    [flow, router, login_challenge],
   );
   const reqName = flow?.oauth2_login_request?.client?.client_name ?? "";
   const reqDomain = flow?.oauth2_login_request?.client?.client_uri

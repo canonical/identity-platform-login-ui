@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 
+	"github.com/canonical/identity-platform-login-ui/internal/cookies"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
@@ -53,6 +54,7 @@ type Service struct {
 	authz       AuthorizerInterface
 
 	oidcWebAuthnSequencingEnabled bool
+	multiTenancyEnabled           bool
 
 	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
@@ -167,13 +169,24 @@ func (s *Service) CheckSession(ctx context.Context, cookies []*http.Cookie) (*kC
 	return session, resp.Cookies(), nil
 }
 
-func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Session, lc string) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
+func (s *Service) AcceptLoginRequest(ctx context.Context, session *kClient.Session, lc string, tenantID string) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.AcceptLoginRequest")
 	defer span.End()
+
+	if session == nil || session.Identity == nil {
+		err := fmt.Errorf("session is required to accept login request")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, nil, err
+	}
 
 	accept := hClient.NewAcceptOAuth2LoginRequest(session.Identity.Id)
 	accept.SetRemember(true)
 	accept.Amr = []string{}
+
+	if tenantID != "" && tenantID != cookies.NoTenantAvailable {
+		accept.SetContext(map[string]interface{}{"tenant_id": tenantID})
+	}
 
 	for _, r := range session.AuthenticationMethods {
 		method := r.GetMethod()
@@ -236,7 +249,7 @@ func (s *Service) GetLoginRequest(ctx context.Context, loginChallenge string) (*
 	return redirectTo, resp.Cookies(), nil
 }
 
-func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge string, session *kClient.Session, c FlowStateCookie) (bool, error) {
+func (s *Service) MustReAuthenticate(ctx context.Context, hydraLoginChallenge string, session *kClient.Session, c cookies.FlowStateCookie) (bool, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.MustReAuthenticate")
 	defer span.End()
 
@@ -277,7 +290,7 @@ func (s *Service) CreateBrowserLoginFlow(
 		Refresh(refresh).
 		Cookie(httpHelpers.CookiesToString(cookies))
 
-	if !s.oidcWebAuthnSequencingEnabled {
+	if !s.oidcWebAuthnSequencingEnabled && !s.multiTenancyEnabled {
 		if loginChallenge != "" {
 			request = request.LoginChallenge(loginChallenge)
 		} else if loginChallenge == "" && returnTo == "" {
@@ -416,13 +429,13 @@ func passwordPolicyError(flow kClient.RegistrationFlow) error {
 	for _, node := range ui.GetNodes() {
 		if node.GetGroup() == "password" && node.GetType() == "input" && node.GetAttributes().UiNodeInputAttributes.Name == "password" {
 			for _, msg := range node.GetMessages() {
-                // grab and build all errors related to password policy
+				// grab and build all errors related to password policy
 				err = fmt.Errorf("%w ", errors.New(msg.GetText()))
 			}
 
-            if err != nil {
-                return fmt.Errorf("Password policy error: %w", err)
-            }
+			if err != nil {
+				return fmt.Errorf("password policy error: %w", err)
+			}
 		}
 	}
 
@@ -538,66 +551,66 @@ func (s *Service) CreateBrowserSettingsFlow(ctx context.Context, returnTo string
 }
 
 func (s *Service) CreateBrowserVerificationFlow(ctx context.Context, cookies []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error) {
-    ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserVerificationFlow")
-    defer span.End()
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserVerificationFlow")
+	defer span.End()
 
-    flow, resp, err := s.kratos.FrontendApi().
-        CreateBrowserVerificationFlow(ctx).
-        Execute()
+	flow, resp, err := s.kratos.FrontendApi().
+		CreateBrowserVerificationFlow(ctx).
+		Execute()
 
-    if err != nil {
-        s.logger.Errorf("unable to create verification flow: %s", err)
-        return nil, nil, fmt.Errorf("unable to create verification flow: %w", err)
-    }
+	if err != nil {
+		s.logger.Errorf("unable to create verification flow: %s", err)
+		return nil, nil, fmt.Errorf("unable to create verification flow: %w", err)
+	}
 
-    if resp != nil {
-        cookies = resp.Cookies()
-    }
+	if resp != nil {
+		cookies = resp.Cookies()
+	}
 
-    return flow, cookies, nil
+	return flow, cookies, nil
 }
 
 func (s *Service) GetVerificationFlow(ctx context.Context, flowId string, cookies []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error) {
-    ctx, span := s.tracer.Start(ctx, "kratos.Service.GetVerificationFlow")
-    defer span.End()
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.GetVerificationFlow")
+	defer span.End()
 
-    req := s.kratos.FrontendApi().GetVerificationFlow(ctx).
-        Id(flowId).
-        Cookie(httpHelpers.CookiesToString(cookies))
+	req := s.kratos.FrontendApi().GetVerificationFlow(ctx).
+		Id(flowId).
+		Cookie(httpHelpers.CookiesToString(cookies))
 
-    flow, response, err := s.kratos.FrontendApi().GetVerificationFlowExecute(req)
-    if err != nil {
-        return nil, nil, fmt.Errorf("unable to fetch verification flow: %w", err)
-    }
+	flow, response, err := s.kratos.FrontendApi().GetVerificationFlowExecute(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to fetch verification flow: %w", err)
+	}
 
-    if response != nil {
-        cookies = response.Cookies()
-    }
+	if response != nil {
+		cookies = response.Cookies()
+	}
 
-    return flow, cookies, nil
+	return flow, cookies, nil
 }
 
 func (s *Service) UpdateVerificationFlow(ctx context.Context, flowId string, body kClient.UpdateVerificationFlowBody, cookies []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error) {
-    ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateVerificationFlow")
-    defer span.End()
+	ctx, span := s.tracer.Start(ctx, "kratos.Service.UpdateVerificationFlow")
+	defer span.End()
 
-    req := s.kratos.FrontendApi().UpdateVerificationFlow(ctx).
-        Flow(flowId).
-        Cookie(httpHelpers.CookiesToString(cookies)).
-        UpdateVerificationFlowBody(body)
+	req := s.kratos.FrontendApi().UpdateVerificationFlow(ctx).
+		Flow(flowId).
+		Cookie(httpHelpers.CookiesToString(cookies)).
+		UpdateVerificationFlowBody(body)
 
-    flow, resp, err := s.kratos.FrontendApi().UpdateVerificationFlowExecute(req)
+	flow, resp, err := s.kratos.FrontendApi().UpdateVerificationFlowExecute(req)
 
-    if err != nil {
-        s.logger.Errorf("unable to update verification flow: %s", err)
-        return nil, nil, fmt.Errorf("unable to update verification flow: %w", err)
-    }
+	if err != nil {
+		s.logger.Errorf("unable to update verification flow: %s", err)
+		return nil, nil, fmt.Errorf("unable to update verification flow: %w", err)
+	}
 
-    if resp != nil {
-        cookies = resp.Cookies()
-    }
+	if resp != nil {
+		cookies = resp.Cookies()
+	}
 
-    return flow, cookies, err
+	return flow, cookies, err
 }
 
 func (s *Service) GetLoginFlow(ctx context.Context, id string, cookies []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error) {
@@ -1669,7 +1682,7 @@ func (s *Service) parseKratosRedirectResponse(ctx context.Context, resp *http.Re
 	}, nil
 }
 
-func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInterface, hydra HydraClientInterface, authzClient AuthorizerInterface, oidcWebAuthnSequencingEnabled, multiTenancyEnabled bool, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos
@@ -1678,6 +1691,7 @@ func NewService(kratos KratosClientInterface, kratosAdmin KratosAdminClientInter
 	s.authz = authzClient
 
 	s.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
+	s.multiTenancyEnabled = multiTenancyEnabled
 
 	s.monitor = monitor
 	s.tracer = tracer

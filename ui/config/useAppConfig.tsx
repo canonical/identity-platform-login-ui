@@ -6,6 +6,7 @@ interface AppConfig {
   oidcSequencingEnabled: boolean;
   baseURL: string;
   identifierFirstEnabled: boolean;
+  multiTenancyEnabled: boolean;
   supportEmail: string;
   flags: FeatureFlags;
 }
@@ -14,6 +15,7 @@ const defaultAppConfig: AppConfig = {
   oidcSequencingEnabled: false,
   baseURL: "",
   identifierFirstEnabled: false,
+  multiTenancyEnabled: false,
   supportEmail: "",
   flags: [],
 };
@@ -66,7 +68,25 @@ function AppConfigProvider({
   useEffect(() => {
     fetch("../api/v0/app-config", { cache: "no-store" })
       .then((value) => value.json())
-      .then((value) => setContextValue({ ...value, configReady: true }))
+      .then(
+        (value: {
+          oidc_webauthn_sequencing_enabled: boolean;
+          base_url: string;
+          identifier_first_enabled: boolean;
+          multi_tenancy_enabled: boolean;
+          support_email: string;
+          flags: FeatureFlags;
+        }) =>
+          setContextValue({
+            oidcSequencingEnabled: value.oidc_webauthn_sequencing_enabled,
+            baseURL: value.base_url,
+            identifierFirstEnabled: value.identifier_first_enabled,
+            multiTenancyEnabled: value.multi_tenancy_enabled,
+            supportEmail: value.support_email,
+            flags: value.flags,
+            configReady: true,
+          }),
+      )
       .catch(() => setContextValue(defaultAppContextValue));
   }, []);
 

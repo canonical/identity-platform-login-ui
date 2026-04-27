@@ -8,6 +8,7 @@ import (
 	middleware "github.com/go-chi/chi/v5/middleware"
 
 	authz "github.com/canonical/identity-platform-login-ui/internal/authorization"
+	"github.com/canonical/identity-platform-login-ui/internal/cookies"
 	ih "github.com/canonical/identity-platform-login-ui/internal/hydra"
 	ik "github.com/canonical/identity-platform-login-ui/internal/kratos"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
@@ -19,6 +20,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
 	"github.com/canonical/identity-platform-login-ui/pkg/metrics"
 	"github.com/canonical/identity-platform-login-ui/pkg/status"
+	"github.com/canonical/identity-platform-login-ui/pkg/tenants"
 	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
@@ -43,7 +45,7 @@ func WithAuthzClient(a authz.AuthorizerInterface) Option {
 	}
 }
 
-func WithCookieManager(cm *kratos.AuthCookieManager) Option {
+func WithCookieManager(cm *cookies.AuthCookieManager) Option {
 	return func(r *routerConfig) {
 		r.cookieManager = cm
 	}
@@ -55,12 +57,13 @@ func WithFS(fsys fs.FS) Option {
 	}
 }
 
-func WithFlags(verification, mfa, oidcSeq, identifierFirst bool) Option {
+func WithFlags(verification, mfa, oidcSeq, identifierFirst, multiTenancy bool) Option {
 	return func(r *routerConfig) {
 		r.verificationEnabled = verification
 		r.mfaEnabled = mfa
 		r.oidcWebAuthnSequencingEnabled = oidcSeq
 		r.identifierFirstEnabled = identifierFirst
+		r.multiTenancyEnabled = multiTenancy
 	}
 }
 
@@ -88,6 +91,12 @@ func WithKratosPublicURL(url string) Option {
 	}
 }
 
+func WithTenantsServiceURL(url string) Option {
+	return func(r *routerConfig) {
+		r.tenantsServiceURL = url
+	}
+}
+
 func WithTracing(t tracing.TracingInterface) Option {
 	return func(r *routerConfig) {
 		r.tracer = t
@@ -111,12 +120,13 @@ type routerConfig struct {
 	kratosAdminClient             *ik.Client
 	hydraClient                   *ih.Client
 	authzClient                   authz.AuthorizerInterface
-	cookieManager                 *kratos.AuthCookieManager
+	cookieManager                 *cookies.AuthCookieManager
 	distFS                        fs.FS
 	verificationEnabled           bool
 	mfaEnabled                    bool
 	oidcWebAuthnSequencingEnabled bool
 	identifierFirstEnabled        bool
+	multiTenancyEnabled           bool
 	baseURL                       string
 	supportEmail                  string
 	featureFlags                  []string
@@ -124,6 +134,7 @@ type routerConfig struct {
 	tracer                        tracing.TracingInterface
 	monitor                       monitoring.MonitorInterface
 	logger                        logging.LoggerInterface
+	tenantsServiceURL             string
 }
 
 func NewRouter(opts ...Option) http.Handler {
@@ -168,12 +179,21 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		config.logger,
 	).RegisterEndpoints(router)
 
-	kratosService := kratos.NewService(config.kratosClient, config.kratosAdminClient, config.hydraClient, config.authzClient, config.oidcWebAuthnSequencingEnabled, config.tracer, config.monitor, config.logger)
+	kratosService := kratos.NewService(config.kratosClient, config.kratosAdminClient, config.hydraClient, config.authzClient, config.oidcWebAuthnSequencingEnabled, config.multiTenancyEnabled, config.tracer, config.monitor, config.logger)
+
+	var resolver kratos.TenantResolverInterface = tenants.NewNoOpTenantResolver()
+	if config.multiTenancyEnabled {
+		tenantsService := tenants.NewService(config.tenantsServiceURL, kratosService, config.tracer, config.monitor, config.logger)
+		resolver = tenants.NewCookieTenantResolver(config.cookieManager, tenantsService)
+		tenants.NewAPI(tenantsService, resolver, kratosService, config.baseURL, config.tracer, config.logger).RegisterEndpoints(router)
+	}
+
 	kratos.NewAPI(
 		kratosService,
 		config.verificationEnabled,
 		config.mfaEnabled,
 		config.oidcWebAuthnSequencingEnabled,
+		resolver,
 		config.baseURL,
 		config.cookieManager,
 		config.tracer,
@@ -195,6 +215,7 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		config.supportEmail,
 		config.oidcWebAuthnSequencingEnabled,
 		config.identifierFirstEnabled,
+		config.multiTenancyEnabled,
 		config.featureFlags,
 		status.NewService(config.kratosClient.MetadataApi(), config.hydraClient.MetadataAPI(), config.tracer, config.monitor, config.logger),
 		config.tracer,

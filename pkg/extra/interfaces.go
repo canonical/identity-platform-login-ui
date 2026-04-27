@@ -15,5 +15,5 @@ type HydraClientInterface interface {
 
 type ServiceInterface interface {
 	GetConsent(context.Context, string) (*hClient.OAuth2ConsentRequest, error)
-	AcceptConsent(context.Context, kClient.Identity, *hClient.OAuth2ConsentRequest) (*hClient.OAuth2RedirectTo, error)
+	AcceptConsent(context.Context, kClient.Identity, *hClient.OAuth2ConsentRequest, string) (*hClient.OAuth2RedirectTo, error)
 }

@@ -40,6 +40,22 @@ http:
       rule: "Path(`/api/v0/app-config`)"
       service: login-ui-public-api-service
 
+    # /api/v0/tenants (tenant lookup by flow or active session)
+    login-ui-public-api-router-api-tenants:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/api/v0/tenants`)"
+      service: login-ui-public-api-service
+
+    # /api/v0/auth/tenant (tenant selection)
+    login-ui-public-api-router-api-auth-tenant:
+      entryPoints:
+        - web
+        - websecure
+      rule: "Path(`/api/v0/auth/tenant`)"
+      service: login-ui-public-api-service
+
     # /ui (e.g., /ui/login)
     login-ui-public-api-router-ui:
       entryPoints:

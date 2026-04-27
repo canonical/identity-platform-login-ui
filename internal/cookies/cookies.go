@@ -1,9 +1,14 @@
-// Copyright 2024 Canonical Ltd.
+// Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0
 
-package kratos
+// Package cookies provides the shared FlowStateCookie type, the
+// AuthCookieManagerInterface, and the production AuthCookieManager
+// implementation. It is shared between the kratos and tenants packages.
+package cookies
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -14,24 +19,52 @@ import (
 const (
 	defaultCookiePath = "/"
 	stateCookieName   = "login_ui_state"
+
+	// NoTenantAvailable is a sentinel TenantID stored in FlowStateCookie
+	// when multi-tenancy is enabled but the user has no tenants to choose
+	// from. It distinguishes "selection completed with zero results" from
+	// "selection not yet attempted" (empty string).
+	NoTenantAvailable = "_none"
 )
 
-var (
-	epoch = time.Unix(0, 0).UTC()
-)
+var epoch = time.Unix(0, 0).UTC()
 
-type AuthCookieManager struct {
-	cookieTTL time.Duration
-	encrypt   EncryptInterface
-
-	logger logging.LoggerInterface
+// ChallengeHash returns the SHA-256 hex digest of loginChallenge.
+// It is the canonical way to compute LoginChallengeHash values stored in
+// FlowStateCookie, used by both the kratos and tenants packages.
+func ChallengeHash(loginChallenge string) string {
+	h := sha256.Sum256([]byte(loginChallenge))
+	return hex.EncodeToString(h[:])
 }
 
+// FlowStateCookie holds per-flow UI state persisted across redirects in an
+// encrypted browser cookie.
 type FlowStateCookie struct {
 	LoginChallengeHash string `json:"lc,omitempty"`
 	TotpSetup          bool   `json:"t,omitempty"`
 	WebauthnSetup      bool   `json:"w,omitempty"`
 	BackupCodeUsed     bool   `json:"bc,omitempty"`
+	TenantID           string `json:"tid,omitempty"`
+}
+
+// AuthCookieManager is the production implementation of AuthCookieManagerInterface.
+type AuthCookieManager struct {
+	cookieTTL time.Duration
+	encrypt   EncryptInterface
+	logger    logging.LoggerInterface
+}
+
+// RenewForChallenge returns a new FlowStateCookie with LoginChallengeHash set
+// for the given loginChallenge. TenantID is carried forward only when the
+// existing cookie was stored for the same challenge, preventing state
+// pollution across different flows.
+func (c FlowStateCookie) RenewForChallenge(loginChallenge string) FlowStateCookie {
+	lcHash := ChallengeHash(loginChallenge)
+	next := FlowStateCookie{LoginChallengeHash: lcHash}
+	if c.LoginChallengeHash == lcHash {
+		next.TenantID = c.TenantID
+	}
+	return next
 }
 
 func (a *AuthCookieManager) SetStateCookie(w http.ResponseWriter, state FlowStateCookie) error {
@@ -65,7 +98,7 @@ func (a *AuthCookieManager) setCookie(w http.ResponseWriter, name, value string,
 
 	encrypted, err := a.encrypt.Encrypt(value)
 	if err != nil {
-		a.logger.Errorf("can't encrypt cookie value, %v", err)
+		a.logger.Errorf("cannot encrypt cookie value: %v", err)
 		return err
 	}
 
@@ -105,12 +138,14 @@ func (a *AuthCookieManager) getCookie(r *http.Request, name string) (string, err
 
 	value, err := a.encrypt.Decrypt(cookie.Value)
 	if err != nil {
-		a.logger.Errorf("can't decrypt cookie value, %v", err)
+		a.logger.Errorf("cannot decrypt cookie value: %v", err)
 		return "", err
 	}
 	return value, nil
 }
 
+// NewAuthCookieManager constructs an AuthCookieManager with the given TTL,
+// encryption backend, and logger.
 func NewAuthCookieManager(
 	cookieTTLSeconds int,
 	encrypt EncryptInterface,
@@ -119,8 +154,6 @@ func NewAuthCookieManager(
 	a := new(AuthCookieManager)
 	a.cookieTTL = time.Duration(cookieTTLSeconds) * time.Second
 	a.encrypt = encrypt
-
 	a.logger = logger
 	return a
-
 }

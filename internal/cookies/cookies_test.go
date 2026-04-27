@@ -1,7 +1,7 @@
-// Copyright 2024 Canonical Ltd.
+// Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0
 
-package kratos
+package cookies
 
 import (
 	"encoding/json"
@@ -9,14 +9,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"go.uber.org/mock/gomock"
 )
 
-//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_interfaces.go -source=./interfaces.go
-//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_tracing.go go.opentelemetry.io/otel/trace Tracer
-//go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
+//go:generate mockgen -build_flags=--mod=mod -package cookies -destination ./mock_logger.go -source=../logging/interfaces.go
+//go:generate mockgen -build_flags=--mod=mod -package cookies -destination ./mock_cookies.go -source=./interfaces.go
 
 func findCookie(name string, cookies []*http.Cookie) (*http.Cookie, bool) {
 	for _, cookie := range cookies {
@@ -24,7 +23,6 @@ func findCookie(name string, cookies []*http.Cookie) (*http.Cookie, bool) {
 			return cookie, true
 		}
 	}
-
 	return nil, false
 }
 
@@ -44,7 +42,7 @@ func TestAuthCookieManager_ClearStateCookie(t *testing.T) {
 
 	c, _ := findCookie("login_ui_state", mockResponse.Result().Cookies())
 
-	if c.Expires != epoch {
+	if c.Expires != time.Unix(0, 0).UTC() {
 		t.Fatal("did not clear state cookie")
 	}
 }
@@ -99,8 +97,7 @@ func TestAuthCookieManager_GetStateCookieDecryptFailure(t *testing.T) {
 	mockError := errors.New("mock-error")
 
 	mockLogger := NewMockLoggerInterface(ctrl)
-	mockLogger.EXPECT().Errorf("can't decrypt cookie value, %v", mockError).Times(1)
-
+	mockLogger.EXPECT().Errorf("cannot decrypt cookie value: %v", mockError).Times(1)
 	mockEncrypt := NewMockEncryptInterface(ctrl)
 	mockEncrypt.EXPECT().Decrypt("mock-state").Return("", mockError)
 
@@ -137,7 +134,6 @@ func TestAuthCookieManager_SetStateCookie(t *testing.T) {
 	err := manager.SetStateCookie(mockResponse, state)
 
 	c, found := findCookie("login_ui_state", mockResponse.Result().Cookies())
-
 	if !found {
 		t.Fatal("did not set state cookie")
 	}
@@ -159,8 +155,7 @@ func TestAuthCookieManager_SetStateCookieFailure(t *testing.T) {
 	js, _ := json.Marshal(state)
 
 	mockLogger := NewMockLoggerInterface(ctrl)
-	mockLogger.EXPECT().Errorf("can't encrypt cookie value, %v", mockError).Times(1)
-
+	mockLogger.EXPECT().Errorf("cannot encrypt cookie value: %v", mockError).Times(1)
 	mockEncrypt := NewMockEncryptInterface(ctrl)
 	mockEncrypt.EXPECT().Encrypt(string(js)).Return("", mockError)
 
