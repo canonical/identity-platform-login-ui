@@ -26,6 +26,10 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     }
   }, []);
 
+  useEffect(() => {
+    setError(upstreamError);
+  }, [upstreamError]);
+
   const getError = useCallback(() => {
     const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
     const localError = isInvalid ? "Incorrect email address" : undefined;
@@ -56,7 +60,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     }
   }, [upstreamError, value]);
 
-  const submitOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const submitOnEnter = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
@@ -69,7 +73,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
         void dispatchSubmit(e, "code");
       }
     }
-  };
+  }, [value, upstreamError, dispatchSubmit]);
 
   return (
     <Input
