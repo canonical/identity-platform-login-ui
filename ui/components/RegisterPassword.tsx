@@ -26,6 +26,7 @@ export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
   const [password, setPassword] = useState("");
   const [isPassValid, setPassValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
   const router = useRouter();
 
   const CSRFToken = useMemo(() => {
@@ -102,6 +103,13 @@ export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
           }
           return Promise.reject(error);
         })
+        .catch((err: AxiosError<string>) => {
+          console.error("Error after handling flow error:", err);
+          setFlowError(
+            err.response?.data ||
+              "An unexpected error occurred. Please try again.",
+          );
+        })
         .finally(() => {
           setIsSubmitting(false);
         });
@@ -120,6 +128,11 @@ export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
           isValid={isPassValid}
           setValid={setPassValid}
         />
+        {flowError && (
+          <div className="p-form-validation is-error">
+            <p className="p-form-validation__message">{flowError}</p>
+          </div>
+        )}
         <Button
           type="submit"
           appearance="positive"
