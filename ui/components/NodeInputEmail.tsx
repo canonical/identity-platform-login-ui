@@ -27,7 +27,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
   }, []);
 
   useEffect(() => {
-    setError(upstreamError);
+    setError(getError());
   }, [upstreamError]);
 
   const getError = useCallback(() => {
@@ -48,7 +48,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     } else {
       submitBtn?.removeAttribute("disabled");
     }
-  }, [value, upstreamError]);
+  }, [value, upstreamError, getError]);
 
   useEffect(() => {
     const error = getError();
@@ -75,7 +75,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
         }
       }
     },
-    [value, upstreamError, dispatchSubmit],
+    [value, upstreamError, dispatchSubmit, getError],
   );
 
   return (

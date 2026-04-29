@@ -45,6 +45,7 @@ export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
       if (!flow) return;
       e.preventDefault();
       setIsSubmitting(true);
+      setFlowError(null);
       const emailNode: UiNode = flow?.ui.nodes.find(
         (node: UiNode) =>
           (node.attributes as UiNodeInputAttributes).name === "traits.email",
