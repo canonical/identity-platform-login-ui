@@ -51,7 +51,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
     if (isVerificationCodeInput(node)) {
       setIsDirty(false);
     }
-  }, [node.messages]);
+  }, [node.messages, error]);
 
   const beforeComponent = (
     node.meta.label?.context as {
@@ -127,7 +127,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
       return ucFirst(error);
     }
 
-    return undefined;
+    return error;
   }, [
     message,
     node.messages,
