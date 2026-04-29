@@ -50,6 +50,34 @@ interface State<T> {
   error?: string;
 }
 
+function dedupeUiNodes(nodes: UiNode[]): UiNode[] {
+  // Set keeps the order of insertion so UINodes don't get scrambled
+  const seen = new Set<string>();
+
+  return nodes.filter((node) => {
+    const attrs = node.attributes as any;
+    const attrName = attrs.name || "";
+    const attrValue = attrs.value || "";
+    const attrType = attrs.type || "";
+    const labelId = node.meta.label?.id || "";
+    const labelText = node.meta.label?.text || "";
+    const group = node.group;
+    const type = node.type;
+
+    if (attrs.type === "hidden") {
+      return true;
+    }
+
+    const key = `${group}-${type}-${attrName}-${attrValue}-${attrType}-${labelId}-${labelText}`;
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
   constructor(props: Props<T>) {
     super(props);
@@ -99,12 +127,14 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
     if (!flow || !flow.ui.nodes) {
       return [];
     }
-    return flow.ui.nodes.filter(({ group }) => {
+    const filteredNodes = flow.ui.nodes.filter(({ group }) => {
       if (!only) {
         return true;
       }
       return group === "default" || group === only;
     });
+
+    return dedupeUiNodes(filteredNodes);
   };
 
   // Handles form submission
