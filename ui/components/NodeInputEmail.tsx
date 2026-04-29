@@ -60,20 +60,23 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     }
   }, [upstreamError, value]);
 
-  const submitOnEnter = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      e.stopPropagation();
-      const error = getError();
-      const submitBtn =
-        document.getElementsByClassName("p-button--positive")?.[0];
-      submitBtn?.setAttribute("disabled", "");
-      setError(error);
-      if (!error) {
-        void dispatchSubmit(e, "code");
+  const submitOnEnter = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        const error = getError();
+        const submitBtn =
+          document.getElementsByClassName("p-button--positive")?.[0];
+        submitBtn?.setAttribute("disabled", "");
+        setError(error);
+        if (!error) {
+          void dispatchSubmit(e, "code");
+        }
       }
-    }
-  }, [value, upstreamError, dispatchSubmit]);
+    },
+    [value, upstreamError, dispatchSubmit],
+  );
 
   return (
     <Input
