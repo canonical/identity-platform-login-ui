@@ -26,6 +26,10 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     }
   }, []);
 
+  useEffect(() => {
+    setError(getError());
+  }, [upstreamError]);
+
   const getError = useCallback(() => {
     const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
     const localError = isInvalid ? "Incorrect email address" : undefined;
@@ -44,7 +48,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     } else {
       submitBtn?.removeAttribute("disabled");
     }
-  }, [value, upstreamError]);
+  }, [value, upstreamError, getError]);
 
   useEffect(() => {
     const error = getError();
@@ -56,20 +60,23 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     }
   }, [upstreamError, value]);
 
-  const submitOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      e.stopPropagation();
-      const error = getError();
-      const submitBtn =
-        document.getElementsByClassName("p-button--positive")?.[0];
-      submitBtn?.setAttribute("disabled", "");
-      setError(error);
-      if (!error) {
-        void dispatchSubmit(e, "code");
+  const submitOnEnter = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        const error = getError();
+        const submitBtn =
+          document.getElementsByClassName("p-button--positive")?.[0];
+        submitBtn?.setAttribute("disabled", "");
+        setError(error);
+        if (!error) {
+          void dispatchSubmit(e, "code");
+        }
       }
-    }
-  };
+    },
+    [value, upstreamError, dispatchSubmit, getError],
+  );
 
   return (
     <Input
