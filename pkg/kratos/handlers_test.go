@@ -35,9 +35,9 @@ const (
 	HANDLE_CREATE_SETTINGS_FLOW_URL               = BASE_URL + "/api/kratos/self-service/settings/browser"
 	HANDLE_UPDATE_SETTINGS_FLOW_URL               = BASE_URL + "/api/kratos/self-service/settings"
 	HANDLE_GET_SETTINGS_FLOW_URL                  = BASE_URL + "/api/kratos/self-service/settings/flows"
-    HANDLE_CREATE_VERIFICATION_FLOW_URL = BASE_URL + "/api/kratos/self-service/verification/browser"
-    HANDLE_UPDATE_VERIFICATION_FLOW_URL = BASE_URL + "/api/kratos/self-service/verification"
-    HANDLE_GET_VERIFICATION_FLOW_URL = BASE_URL + "/api/kratos/self-service/verification/flows"
+	HANDLE_CREATE_VERIFICATION_FLOW_URL           = BASE_URL + "/api/kratos/self-service/verification/browser"
+	HANDLE_UPDATE_VERIFICATION_FLOW_URL           = BASE_URL + "/api/kratos/self-service/verification"
+	HANDLE_GET_VERIFICATION_FLOW_URL              = BASE_URL + "/api/kratos/self-service/verification/flows"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
@@ -670,7 +670,7 @@ func TestHandleCreateFlowRequireVerificationError(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	
+
 	if !strings.Contains(string(data), "Failed check for verification") {
 		t.Errorf("expected response body to contain failure message, got %s", string(data))
 	}
@@ -757,320 +757,317 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 }
 
 func TestHandleCreateRegistrationFlow(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    defer ctrl.Finish()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-    mockLogger := NewMockLoggerInterface(ctrl)
-    mockService := NewMockServiceInterface(ctrl)
-    mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-    mockTracer := NewMockTracingInterface(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
-    api := NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
+	api := NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
 
-    t.Run("service.CreateBrowserRegistrationFlow returns error", func(t *testing.T) {
-        req := httptest.NewRequest(http.MethodGet, "/registration/create?return_to=/error", nil)
-        w := httptest.NewRecorder()
+	t.Run("service.CreateBrowserRegistrationFlow returns error", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/registration/create?return_to=/error", nil)
+		w := httptest.NewRecorder()
 
-        mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/error").
-            Return(nil, nil, errors.New("create failed"))
-        mockLogger.EXPECT().Errorf("Failed to create registration flow: %v", gomock.Any())
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/error").
+			Return(nil, nil, errors.New("create failed"))
+		mockLogger.EXPECT().Errorf("Failed to create registration flow: %v", gomock.Any())
 
-        api.handleCreateRegistrationFlow(w, req)
+		api.handleCreateRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusInternalServerError {
-            t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
+		}
 
-        data, _ := io.ReadAll(res.Body)
-        if !strings.Contains(string(data), "Failed to create registration flow") {
-            t.Fatalf("expected failure message, got %q", string(data))
-        }
-    })
+		data, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(data), "Failed to create registration flow") {
+			t.Fatalf("expected failure message, got %q", string(data))
+		}
+	})
 
-    t.Run("success - custom return_to", func(t *testing.T) {
-        flowID := "flow-abc-123"
-        req := httptest.NewRequest(http.MethodGet, "/registration/create?return_to=/welcome", nil)
-        w := httptest.NewRecorder()
+	t.Run("success - custom return_to", func(t *testing.T) {
+		flowID := "flow-abc-123"
+		req := httptest.NewRequest(http.MethodGet, "/registration/create?return_to=/welcome", nil)
+		w := httptest.NewRecorder()
 
-        flow := kClient.NewRegistrationFlowWithDefaults()
-        flow.SetId(flowID)
-        cookies := []*http.Cookie{{Name: "session", Value: "xyz"}}
+		flow := kClient.NewRegistrationFlowWithDefaults()
+		flow.SetId(flowID)
+		cookies := []*http.Cookie{{Name: "session", Value: "xyz"}}
 
-        mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/welcome").
-            Return(flow, cookies, nil)
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/welcome").
+			Return(flow, cookies, nil)
 
-        api.handleCreateRegistrationFlow(w, req)
+		api.handleCreateRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusOK {
-            t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
 
-        foundCookie := false
-        for _, c := range res.Cookies() {
-            if c.Name == "session" && c.Value == "xyz" {
-                foundCookie = true
-            }
-        }
-        if !foundCookie {
-            t.Fatalf("expected cookie 'session=xyz' to be set")
-        }
+		foundCookie := false
+		for _, c := range res.Cookies() {
+			if c.Name == "session" && c.Value == "xyz" {
+				foundCookie = true
+			}
+		}
+		if !foundCookie {
+			t.Fatalf("expected cookie 'session=xyz' to be set")
+		}
 
-        var body map[string]interface{}
-        if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-            t.Fatalf("unexpected decode error: %v", err)
-        }
-        if body["id"] != flowID {
-            t.Fatalf("expected id %s, got %v", flowID, body["id"])
-        }
-    })
+		var body map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+			t.Fatalf("unexpected decode error: %v", err)
+		}
+		if body["id"] != flowID {
+			t.Fatalf("expected id %s, got %v", flowID, body["id"])
+		}
+	})
 
-    t.Run("success - no return_to", func(t *testing.T) {
-        flowID := "flow-789"
-        req := httptest.NewRequest(http.MethodGet, "/registration/create", nil)
-        w := httptest.NewRecorder()
+	t.Run("success - no return_to", func(t *testing.T) {
+		flowID := "flow-789"
+		req := httptest.NewRequest(http.MethodGet, "/registration/create", nil)
+		w := httptest.NewRecorder()
 
-        flow := kClient.NewRegistrationFlowWithDefaults()
-        flow.SetId(flowID)
-        cookies := []*http.Cookie{{Name: "def", Value: "ok"}}
+		flow := kClient.NewRegistrationFlowWithDefaults()
+		flow.SetId(flowID)
+		cookies := []*http.Cookie{{Name: "def", Value: "ok"}}
 
-        mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "").
-            Return(flow, cookies, nil)
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "").
+			Return(flow, cookies, nil)
 
-        api.handleCreateRegistrationFlow(w, req)
+		api.handleCreateRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusOK {
-            t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
 
-        foundCookie := false
-        for _, c := range res.Cookies() {
-            if c.Name == "def" && c.Value == "ok" {
-                foundCookie = true
-            }
-        }
-        if !foundCookie {
-            t.Fatalf("expected cookie 'def=ok' to be set")
-        }
+		foundCookie := false
+		for _, c := range res.Cookies() {
+			if c.Name == "def" && c.Value == "ok" {
+				foundCookie = true
+			}
+		}
+		if !foundCookie {
+			t.Fatalf("expected cookie 'def=ok' to be set")
+		}
 
-        var body map[string]interface{}
-        if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-            t.Fatalf("unexpected decode error: %v", err)
-        }
-        if body["id"] != flowID {
-            t.Fatalf("expected id %s, got %v", flowID, body["id"])
-        }
-    })
+		var body map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+			t.Fatalf("unexpected decode error: %v", err)
+		}
+		if body["id"] != flowID {
+			t.Fatalf("expected id %s, got %v", flowID, body["id"])
+		}
+	})
 }
 
-
 func TestHandleGetRegistrationFlow(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    defer ctrl.Finish()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-    mockLogger := NewMockLoggerInterface(ctrl)
-    mockService := NewMockServiceInterface(ctrl)
-    mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-    mockTracer := NewMockTracingInterface(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
-    api := NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
+	api := NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
 
-    t.Run("Missing id parameter", func(t *testing.T) {
-        req := httptest.NewRequest(http.MethodGet, "/registration", nil)
-        w := httptest.NewRecorder()
+	t.Run("Missing id parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/registration", nil)
+		w := httptest.NewRecorder()
 
-        mockLogger.EXPECT().Errorf("ID parameter not present")
+		mockLogger.EXPECT().Errorf("ID parameter not present")
 
-        api.handleGetRegistrationFlow(w, req)
+		api.handleGetRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusBadRequest {
-            t.Fatalf("expected %d, got %d", http.StatusBadRequest, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, res.StatusCode)
+		}
 
-        var body string
-        if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-            t.Fatalf("unexpected decode error: %v", err)
-        }
-        if body != "ID parameter not present" {
-            t.Fatalf("expected error message 'ID parameter not present', got %q", body)
-        }
-    })
+		var body string
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+			t.Fatalf("unexpected decode error: %v", err)
+		}
+		if body != "ID parameter not present" {
+			t.Fatalf("expected error message 'ID parameter not present', got %q", body)
+		}
+	})
 
-    t.Run("GetRegistrationFlow returns error", func(t *testing.T) {
-        id := "flow123"
-        req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
-        w := httptest.NewRecorder()
+	t.Run("GetRegistrationFlow returns error", func(t *testing.T) {
+		id := "flow123"
+		req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
+		w := httptest.NewRecorder()
 
-        mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
-            Return(nil, nil, errors.New("some error"))
-        mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any())
+		mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
+			Return(nil, nil, errors.New("some error"))
+		mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any())
 
-        api.handleGetRegistrationFlow(w, req)
+		api.handleGetRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusInternalServerError {
-            t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
+		}
 
-        data, _ := io.ReadAll(res.Body)
-        if !strings.Contains(string(data), "Failed to get registration flow") {
-            t.Fatalf("expected failure message, got %q", string(data))
-        }
-    })
+		data, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(data), "Failed to get registration flow") {
+			t.Fatalf("expected failure message, got %q", string(data))
+		}
+	})
 
-    t.Run("Success", func(t *testing.T) {
-        id := "flow456"
-        req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
-        w := httptest.NewRecorder()
+	t.Run("Success", func(t *testing.T) {
+		id := "flow456"
+		req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
+		w := httptest.NewRecorder()
 
-        flow := kClient.NewRegistrationFlowWithDefaults()
-        flow.SetId(id)
-        cookies := []*http.Cookie{{Name: "test", Value: "ok"}}
+		flow := kClient.NewRegistrationFlowWithDefaults()
+		flow.SetId(id)
+		cookies := []*http.Cookie{{Name: "test", Value: "ok"}}
 
-        mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
-            Return(flow, cookies, nil)
+		mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
+			Return(flow, cookies, nil)
 
-        api.handleGetRegistrationFlow(w, req)
+		api.handleGetRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusOK {
-            t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
 
-        foundCookie := false
-        for _, c := range res.Cookies() {
-            if c.Name == "test" && c.Value == "ok" {
-                foundCookie = true
-            }
-        }
-        if !foundCookie {
-            t.Fatalf("expected cookie 'test=ok' to be set")
-        }
+		foundCookie := false
+		for _, c := range res.Cookies() {
+			if c.Name == "test" && c.Value == "ok" {
+				foundCookie = true
+			}
+		}
+		if !foundCookie {
+			t.Fatalf("expected cookie 'test=ok' to be set")
+		}
 
-        var body map[string]interface{}
-        if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-            t.Fatalf("unexpected decode error: %v", err)
-        }
+		var body map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+			t.Fatalf("unexpected decode error: %v", err)
+		}
 
-        if body["id"] != id {
-            t.Fatalf("expected id %s, got %v", id, body["id"])
-        }
-    })
+		if body["id"] != id {
+			t.Fatalf("expected id %s, got %v", id, body["id"])
+		}
+	})
 }
 
 func TestHandleUpdateRegistrationFlow(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    defer ctrl.Finish()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-    mockLogger := NewMockLoggerInterface(ctrl)
-    mockService := NewMockServiceInterface(ctrl)
-    mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-    mockTracer := NewMockTracingInterface(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
-    api := NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
+	api := NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
 
-    t.Run("ParseRegistrationFlowMethodBody returns error", func(t *testing.T) {
-        req := httptest.NewRequest(http.MethodPost, "/registration/update?flow=e2c802141dc51a06676974687562", nil)
-        w := httptest.NewRecorder()
+	t.Run("ParseRegistrationFlowMethodBody returns error", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/registration/update?flow=e2c802141dc51a06676974687562", nil)
+		w := httptest.NewRecorder()
 
-        mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
-            Return(nil, errors.New("parse error"))
-        mockLogger.EXPECT().Errorf("Error when parsing request body: %v\n", gomock.Any())
+		mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
+			Return(nil, errors.New("parse error"))
+		mockLogger.EXPECT().Errorf("Error when parsing request body: %v\n", gomock.Any())
 
-        api.handleUpdateRegistrationFlow(w, req)
+		api.handleUpdateRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusInternalServerError {
-            t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
+		}
 
-        data, _ := io.ReadAll(res.Body)
-        if !strings.Contains(string(data), "Failed to parse registration flow") {
-            t.Fatalf("expected parse failure message, got %q", string(data))
-        }
-    })
+		data, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(data), "Failed to parse registration flow") {
+			t.Fatalf("expected parse failure message, got %q", string(data))
+		}
+	})
 
-    t.Run("UpdateRegistrationFlow returns error", func(t *testing.T) {
-        req := httptest.NewRequest(http.MethodPost, "/registration/update?flow=e2c802141dc51a06676974687562", nil)
-        w := httptest.NewRecorder()
+	t.Run("UpdateRegistrationFlow returns error", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/registration/update?flow=e2c802141dc51a06676974687562", nil)
+		w := httptest.NewRecorder()
 
-        body := &kClient.UpdateRegistrationFlowBody{}
-        mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
-            Return(body, nil)
-        mockService.EXPECT().UpdateRegistrationFlow(gomock.Any(), "e2c802141dc51a06676974687562", *body, req.Cookies()).
-            Return(nil, nil, errors.New("update failed"))
-        mockLogger.EXPECT().Errorf("Error when updating registration flow: %v\n", gomock.Any())
+		body := &kClient.UpdateRegistrationFlowBody{}
+		mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
+			Return(body, nil)
+		mockService.EXPECT().UpdateRegistrationFlow(gomock.Any(), "e2c802141dc51a06676974687562", *body, req.Cookies()).
+			Return(nil, nil, errors.New("update failed"))
+		mockLogger.EXPECT().Errorf("Error when updating registration flow: %v\n", gomock.Any())
 
-        api.handleUpdateRegistrationFlow(w, req)
+		api.handleUpdateRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusInternalServerError {
-            t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
+		}
 
-        data, _ := io.ReadAll(res.Body)
-        if !strings.Contains(string(data), "update failed") {
-            t.Fatalf("expected update failure message, got %q", string(data))
-        }
-    })
+		data, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(data), "update failed") {
+			t.Fatalf("expected update failure message, got %q", string(data))
+		}
+	})
 
-    t.Run("success", func(t *testing.T) {
-        flowID := "e2c802141dc51a06676974687562"
-        req := httptest.NewRequest(http.MethodPost, "/registration/update?flow="+flowID, nil)
-        w := httptest.NewRecorder()
+	t.Run("success", func(t *testing.T) {
+		flowID := "e2c802141dc51a06676974687562"
+		req := httptest.NewRequest(http.MethodPost, "/registration/update?flow="+flowID, nil)
+		w := httptest.NewRecorder()
 
-        body := &kClient.UpdateRegistrationFlowBody{}
-        mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
-            Return(body, nil)
+		body := &kClient.UpdateRegistrationFlowBody{}
+		mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
+			Return(body, nil)
 
-        mockRegistration := &RegistrationFlowResponse{changeRequired: &BrowserLocationChangeRequired{}}
+		mockRegistration := &RegistrationFlowResponse{changeRequired: &BrowserLocationChangeRequired{}}
 
-        cookies := []*http.Cookie{{Name: "updated", Value: "ok"}}
+		cookies := []*http.Cookie{{Name: "updated", Value: "ok"}}
 
-        mockService.EXPECT().UpdateRegistrationFlow(gomock.Any(), flowID, *body, req.Cookies()).
-            Return(mockRegistration, cookies, nil)
+		mockService.EXPECT().UpdateRegistrationFlow(gomock.Any(), flowID, *body, req.Cookies()).
+			Return(mockRegistration, cookies, nil)
 
-        api.handleUpdateRegistrationFlow(w, req)
+		api.handleUpdateRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusUnprocessableEntity {
-            t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusUnprocessableEntity {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
 
-        foundCookie := false
-        for _, c := range res.Cookies() {
-            if c.Name == "updated" && c.Value == "ok" {
-                foundCookie = true
-            }
-        }
-        if !foundCookie {
-            t.Fatalf("expected cookie 'updated=ok' to be set")
-        }
-    })
+		foundCookie := false
+		for _, c := range res.Cookies() {
+			if c.Name == "updated" && c.Value == "ok" {
+				foundCookie = true
+			}
+		}
+		if !foundCookie {
+			t.Fatalf("expected cookie 'updated=ok' to be set")
+		}
+	})
 }
-
-
 
 func TestHandleUpdateIdentifierFirstFlow(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -1494,7 +1491,7 @@ func TestHandleUpdateFlowRedirectToVerification(t *testing.T) {
 	flowId := "test"
 	identityId := "test"
 	unverifiedEmail := "unverified@example.com"
-	
+
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = flowId
 	returnToUrl := "https://some/return/url"
@@ -1536,7 +1533,7 @@ func TestHandleUpdateFlowRedirectToVerification(t *testing.T) {
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("expected HTTP status code 200 got %v", res.StatusCode)
 	}
-	
+
 	loginFlow := BrowserLocationChangeRequired{}
 	if err := json.Unmarshal(data, &loginFlow); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -2439,459 +2436,457 @@ func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T)
 }
 
 func TestHandleCreateVerificationFlow(t *testing.T) {
-    tests := []struct {
-        name           string
-        setupMocks     func(
-            service *MockServiceInterface,
-            logger *MockLoggerInterface,
-            req *http.Request,
-        )
-        expectedStatus int
-        expectBody     bool
-    }{
-        {
-            name: "service error",
-            setupMocks: func(
-                service *MockServiceInterface,
-                logger *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                service.
-                    EXPECT().
-                    CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
-                    Return(nil, nil, errors.New("service error"))
+	tests := []struct {
+		name       string
+		setupMocks func(
+			service *MockServiceInterface,
+			logger *MockLoggerInterface,
+			req *http.Request,
+		)
+		expectedStatus int
+		expectBody     bool
+	}{
+		{
+			name: "service error",
+			setupMocks: func(
+				service *MockServiceInterface,
+				logger *MockLoggerInterface,
+				req *http.Request,
+			) {
+				service.
+					EXPECT().
+					CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
+					Return(nil, nil, errors.New("service error"))
 
-                logger.
-                    EXPECT().
-                    Errorf(gomock.Any(), gomock.Any())
-            },
-            expectedStatus: http.StatusInternalServerError,
-            expectBody:     false,
-        },
-        {
-            name: "success",
-            setupMocks: func(
-                service *MockServiceInterface,
-                _ *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                flow := kClient.VerificationFlow{
-                    Id: "verification-flow-id",
-                    State: "mock-state",
-                }
+				logger.
+					EXPECT().
+					Errorf(gomock.Any(), gomock.Any())
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+		},
+		{
+			name: "success",
+			setupMocks: func(
+				service *MockServiceInterface,
+				_ *MockLoggerInterface,
+				req *http.Request,
+			) {
+				flow := kClient.VerificationFlow{
+					Id:    "verification-flow-id",
+					State: "mock-state",
+				}
 
-                service.
-                    EXPECT().
-                    CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
-                    Return(&flow, nil, nil)
-            },
-            expectedStatus: http.StatusOK,
-            expectBody:     true,
-        },
-    }
+				service.
+					EXPECT().
+					CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
+					Return(&flow, nil, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+		},
+	}
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            ctrl := gomock.NewController(t)
-            defer ctrl.Finish()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-            mockLogger := NewMockLoggerInterface(ctrl)
-            mockService := NewMockServiceInterface(ctrl)
-            mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-            mockTracer := NewMockTracingInterface(ctrl)
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockService := NewMockServiceInterface(ctrl)
+			mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
 
-            req := httptest.NewRequest(
-                http.MethodGet,
-                HANDLE_CREATE_VERIFICATION_FLOW_URL,
-                nil,
-            )
+			req := httptest.NewRequest(
+				http.MethodGet,
+				HANDLE_CREATE_VERIFICATION_FLOW_URL,
+				nil,
+			)
 
-            if tt.setupMocks != nil {
-                tt.setupMocks(mockService, mockLogger, req)
-            }
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockService, mockLogger, req)
+			}
 
-            w := httptest.NewRecorder()
-            mux := chi.NewMux()
-            NewAPI(
-                mockService,
+			w := httptest.NewRecorder()
+			mux := chi.NewMux()
+			NewAPI(
+				mockService,
 				false,
-                false,
-                false,
-                BASE_URL,
-                mockCookieManager,
-                mockTracer,
-                mockLogger,
-            ).RegisterEndpoints(mux)
+				false,
+				false,
+				BASE_URL,
+				mockCookieManager,
+				mockTracer,
+				mockLogger,
+			).RegisterEndpoints(mux)
 
-            mux.ServeHTTP(w, req)
+			mux.ServeHTTP(w, req)
 
-            res := w.Result()
+			res := w.Result()
 
-            if res.StatusCode != tt.expectedStatus {
-                t.Fatalf(
-                    "Expected status %d, got %d",
-                    tt.expectedStatus,
-                    res.StatusCode,
-                )
-            }
+			if res.StatusCode != tt.expectedStatus {
+				t.Fatalf(
+					"Expected status %d, got %d",
+					tt.expectedStatus,
+					res.StatusCode,
+				)
+			}
 
-            if tt.expectBody {
-                data, err := io.ReadAll(res.Body)
-                if err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+			if tt.expectBody {
+				data, err := io.ReadAll(res.Body)
+				if err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                var flow kClient.VerificationFlow
-                if err := json.Unmarshal(data, &flow); err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+				var flow kClient.VerificationFlow
+				if err := json.Unmarshal(data, &flow); err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                if flow.Id == "" {
-                    t.Fatalf("Expected flow Id to be set")
-                }
-            }
-        })
-    }
+				if flow.Id == "" {
+					t.Fatalf("Expected flow Id to be set")
+				}
+			}
+		})
+	}
 }
-
 
 func TestHandleGetVerificationFlow(t *testing.T) {
-    tests := []struct {
-        name           string
-        queryFlowID    string
-        setupMocks     func(
-            service *MockServiceInterface,
-            logger *MockLoggerInterface,
-            req *http.Request,
-        )
-        expectedStatus int
-        expectBody     bool
-    }{
-        {
-            name:        "missing flow id",
-            queryFlowID: "",
-            setupMocks: func(
-                _ *MockServiceInterface,
-                logger *MockLoggerInterface,
-                _ *http.Request,
-            ) {
-                logger.
-                    EXPECT().
-                    Debug(gomock.Any())
-            },
-            expectedStatus: http.StatusBadRequest,
-            expectBody:     false,
-        },
-        {
-            name:        "service error",
-            queryFlowID: "flow-id",
-            setupMocks: func(
-                service *MockServiceInterface,
-                logger *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                service.
-                    EXPECT().
-                    GetVerificationFlow(
-                        gomock.Any(),
-                        "flow-id",
-                        req.Cookies(),
-                    ).
-                    Return(nil, nil, errors.New("service error"))
+	tests := []struct {
+		name        string
+		queryFlowID string
+		setupMocks  func(
+			service *MockServiceInterface,
+			logger *MockLoggerInterface,
+			req *http.Request,
+		)
+		expectedStatus int
+		expectBody     bool
+	}{
+		{
+			name:        "missing flow id",
+			queryFlowID: "",
+			setupMocks: func(
+				_ *MockServiceInterface,
+				logger *MockLoggerInterface,
+				_ *http.Request,
+			) {
+				logger.
+					EXPECT().
+					Debug(gomock.Any())
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+		},
+		{
+			name:        "service error",
+			queryFlowID: "flow-id",
+			setupMocks: func(
+				service *MockServiceInterface,
+				logger *MockLoggerInterface,
+				req *http.Request,
+			) {
+				service.
+					EXPECT().
+					GetVerificationFlow(
+						gomock.Any(),
+						"flow-id",
+						req.Cookies(),
+					).
+					Return(nil, nil, errors.New("service error"))
 
-                logger.
-                    EXPECT().
-                    Errorf(gomock.Any(), gomock.Any())
-            },
-            expectedStatus: http.StatusInternalServerError,
-            expectBody:     false,
-        },
-        {
-            name:        "success",
-            queryFlowID: "flow-id",
-            setupMocks: func(
-                service *MockServiceInterface,
-                _ *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                flow := kClient.VerificationFlow{
-                    Id: "flow-id",
-                    State: "mock-state",
-                }
+				logger.
+					EXPECT().
+					Errorf(gomock.Any(), gomock.Any())
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+		},
+		{
+			name:        "success",
+			queryFlowID: "flow-id",
+			setupMocks: func(
+				service *MockServiceInterface,
+				_ *MockLoggerInterface,
+				req *http.Request,
+			) {
+				flow := kClient.VerificationFlow{
+					Id:    "flow-id",
+					State: "mock-state",
+				}
 
-                service.
-                    EXPECT().
-                    GetVerificationFlow(
-                        gomock.Any(),
-                        "flow-id",
-                        req.Cookies(),
-                    ).
-                    Return(&flow, nil, nil)
-            },
-            expectedStatus: http.StatusOK,
-            expectBody:     true,
-        },
-    }
+				service.
+					EXPECT().
+					GetVerificationFlow(
+						gomock.Any(),
+						"flow-id",
+						req.Cookies(),
+					).
+					Return(&flow, nil, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+		},
+	}
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            ctrl := gomock.NewController(t)
-            defer ctrl.Finish()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-            mockLogger := NewMockLoggerInterface(ctrl)
-            mockService := NewMockServiceInterface(ctrl)
-            mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-            mockTracer := NewMockTracingInterface(ctrl)
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockService := NewMockServiceInterface(ctrl)
+			mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
 
-            req := httptest.NewRequest(
-                http.MethodGet,
-                HANDLE_GET_VERIFICATION_FLOW_URL,
-                nil,
-            )
+			req := httptest.NewRequest(
+				http.MethodGet,
+				HANDLE_GET_VERIFICATION_FLOW_URL,
+				nil,
+			)
 
-            if tt.queryFlowID != "" {
-                q := req.URL.Query()
-                q.Set("id", tt.queryFlowID)
-                req.URL.RawQuery = q.Encode()
-            }
+			if tt.queryFlowID != "" {
+				q := req.URL.Query()
+				q.Set("id", tt.queryFlowID)
+				req.URL.RawQuery = q.Encode()
+			}
 
-            if tt.setupMocks != nil {
-                tt.setupMocks(mockService, mockLogger, req)
-            }
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockService, mockLogger, req)
+			}
 
-            w := httptest.NewRecorder()
-            mux := chi.NewMux()
-            NewAPI(
-                mockService,
+			w := httptest.NewRecorder()
+			mux := chi.NewMux()
+			NewAPI(
+				mockService,
 				false,
-                false,
-                false,
-                BASE_URL,
-                mockCookieManager,
-                mockTracer,
-                mockLogger,
-            ).RegisterEndpoints(mux)
+				false,
+				false,
+				BASE_URL,
+				mockCookieManager,
+				mockTracer,
+				mockLogger,
+			).RegisterEndpoints(mux)
 
-            mux.ServeHTTP(w, req)
+			mux.ServeHTTP(w, req)
 
-            res := w.Result()
+			res := w.Result()
 
-            if res.StatusCode != tt.expectedStatus {
-                t.Fatalf(
-                    "Expected status %d, got %d",
-                    tt.expectedStatus,
-                    res.StatusCode,
-                )
-            }
+			if res.StatusCode != tt.expectedStatus {
+				t.Fatalf(
+					"Expected status %d, got %d",
+					tt.expectedStatus,
+					res.StatusCode,
+				)
+			}
 
-            if tt.expectBody {
-                data, err := io.ReadAll(res.Body)
-                if err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+			if tt.expectBody {
+				data, err := io.ReadAll(res.Body)
+				if err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                var flow kClient.VerificationFlow
-                if err := json.Unmarshal(data, &flow); err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+				var flow kClient.VerificationFlow
+				if err := json.Unmarshal(data, &flow); err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                if flow.Id != "flow-id" {
-                    t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
-                }
-            }
-        })
-    }
+				if flow.Id != "flow-id" {
+					t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
+				}
+			}
+		})
+	}
 }
 
-
 func TestHandleUpdateVerificationFlow(t *testing.T) {
-    code := "123456"
+	code := "123456"
 
-    tests := []struct {
-        name           string
-        queryFlowID    string
-        body           any
-        setupMocks     func(
-            service *MockServiceInterface,
-            logger *MockLoggerInterface,
-            req *http.Request,
-        )
-        expectedStatus int
-        expectBody     bool
-    }{
-        {
-            name:        "missing flow id",
-            queryFlowID: "",
-            body:        nil,
-            setupMocks: func(
-                _ *MockServiceInterface,
-                logger *MockLoggerInterface,
-                _ *http.Request,
-            ) {
-                logger.
-                    EXPECT().
-                    Debug(gomock.Any())
-            },
-            expectedStatus: http.StatusBadRequest,
-            expectBody:     false,
-        },
-        {
-            name:        "invalid json body",
-            queryFlowID: "flow-id",
-            body:        make(chan int),
-            setupMocks: func(
-                _ *MockServiceInterface,
-                logger *MockLoggerInterface,
-                _ *http.Request,
-            ) {
-                logger.
-                    EXPECT().
-                    Errorf(gomock.Any(), gomock.Any())
-            },
-            expectedStatus: http.StatusInternalServerError,
-            expectBody:     false,
-        },
-        {
-            name:        "service returns error",
-            queryFlowID: "flow-id",
-            body: kClient.UpdateVerificationFlowBody{
-                UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
-                    Method: "code",
-                    Code:   &code,
-                },
-            },
-            setupMocks: func(
-                service *MockServiceInterface,
-                logger *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                service.
-                    EXPECT().
-                    UpdateVerificationFlow(
-                        gomock.Any(),
-                        "flow-id",
-                        gomock.Any(),
-                        req.Cookies(),
-                    ).
-                    Return(nil, nil, errors.New("service error"))
+	tests := []struct {
+		name        string
+		queryFlowID string
+		body        any
+		setupMocks  func(
+			service *MockServiceInterface,
+			logger *MockLoggerInterface,
+			req *http.Request,
+		)
+		expectedStatus int
+		expectBody     bool
+	}{
+		{
+			name:        "missing flow id",
+			queryFlowID: "",
+			body:        nil,
+			setupMocks: func(
+				_ *MockServiceInterface,
+				logger *MockLoggerInterface,
+				_ *http.Request,
+			) {
+				logger.
+					EXPECT().
+					Debug(gomock.Any())
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+		},
+		{
+			name:        "invalid json body",
+			queryFlowID: "flow-id",
+			body:        make(chan int),
+			setupMocks: func(
+				_ *MockServiceInterface,
+				logger *MockLoggerInterface,
+				_ *http.Request,
+			) {
+				logger.
+					EXPECT().
+					Errorf(gomock.Any(), gomock.Any())
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+		},
+		{
+			name:        "service returns error",
+			queryFlowID: "flow-id",
+			body: kClient.UpdateVerificationFlowBody{
+				UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
+					Method: "code",
+					Code:   &code,
+				},
+			},
+			setupMocks: func(
+				service *MockServiceInterface,
+				logger *MockLoggerInterface,
+				req *http.Request,
+			) {
+				service.
+					EXPECT().
+					UpdateVerificationFlow(
+						gomock.Any(),
+						"flow-id",
+						gomock.Any(),
+						req.Cookies(),
+					).
+					Return(nil, nil, errors.New("service error"))
 
-                logger.
-                    EXPECT().
-                    Errorf(gomock.Any(), gomock.Any())
-            },
-            expectedStatus: http.StatusInternalServerError,
-            expectBody:     false,
-        },
-        {
-            name:        "success",
-            queryFlowID: "flow-id",
-            body: kClient.UpdateVerificationFlowBody{
-                UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
-                    Method: "code",
-                    Code:   &code,
-                },
-            },
-            setupMocks: func(
-                service *MockServiceInterface,
-                _ *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                flow := kClient.VerificationFlow{
-                    Id: "flow-id",
-                    State: "mock-state",
-                }
+				logger.
+					EXPECT().
+					Errorf(gomock.Any(), gomock.Any())
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+		},
+		{
+			name:        "success",
+			queryFlowID: "flow-id",
+			body: kClient.UpdateVerificationFlowBody{
+				UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
+					Method: "code",
+					Code:   &code,
+				},
+			},
+			setupMocks: func(
+				service *MockServiceInterface,
+				_ *MockLoggerInterface,
+				req *http.Request,
+			) {
+				flow := kClient.VerificationFlow{
+					Id:    "flow-id",
+					State: "mock-state",
+				}
 
-                service.
-                    EXPECT().
-                    UpdateVerificationFlow(
-                        gomock.Any(),
-                        "flow-id",
-                        gomock.Any(),
-                        req.Cookies(),
-                    ).
-                    Return(&flow, nil, nil)
-            },
-            expectedStatus: http.StatusOK,
-            expectBody:     true,
-        },
-    }
+				service.
+					EXPECT().
+					UpdateVerificationFlow(
+						gomock.Any(),
+						"flow-id",
+						gomock.Any(),
+						req.Cookies(),
+					).
+					Return(&flow, nil, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+		},
+	}
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            ctrl := gomock.NewController(t)
-            defer ctrl.Finish()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-            mockLogger := NewMockLoggerInterface(ctrl)
-            mockService := NewMockServiceInterface(ctrl)
-            mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-            mockTracer := NewMockTracingInterface(ctrl)
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockService := NewMockServiceInterface(ctrl)
+			mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
 
-            var bodyReader io.Reader
-            if tt.body != nil {
-                data, err := json.Marshal(tt.body)
-                if err != nil {
-                    bodyReader = bytes.NewReader([]byte("{"))
-                } else {
-                    bodyReader = bytes.NewReader(data)
-                }
-            }
+			var bodyReader io.Reader
+			if tt.body != nil {
+				data, err := json.Marshal(tt.body)
+				if err != nil {
+					bodyReader = bytes.NewReader([]byte("{"))
+				} else {
+					bodyReader = bytes.NewReader(data)
+				}
+			}
 
-            req := httptest.NewRequest(
-                http.MethodPost,
-                HANDLE_UPDATE_VERIFICATION_FLOW_URL,
-                bodyReader,
-            )
+			req := httptest.NewRequest(
+				http.MethodPost,
+				HANDLE_UPDATE_VERIFICATION_FLOW_URL,
+				bodyReader,
+			)
 
-            if tt.queryFlowID != "" {
-                q := req.URL.Query()
-                q.Set("flow", tt.queryFlowID)
-                req.URL.RawQuery = q.Encode()
-            }
+			if tt.queryFlowID != "" {
+				q := req.URL.Query()
+				q.Set("flow", tt.queryFlowID)
+				req.URL.RawQuery = q.Encode()
+			}
 
-            if tt.setupMocks != nil {
-                tt.setupMocks(mockService, mockLogger, req)
-            }
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockService, mockLogger, req)
+			}
 
-            w := httptest.NewRecorder()
-            mux := chi.NewMux()
-            NewAPI(
-                mockService,
+			w := httptest.NewRecorder()
+			mux := chi.NewMux()
+			NewAPI(
+				mockService,
 				false,
-                false,
-                false,
-                BASE_URL,
-                mockCookieManager,
-                mockTracer,
-                mockLogger,
-            ).RegisterEndpoints(mux)
+				false,
+				false,
+				BASE_URL,
+				mockCookieManager,
+				mockTracer,
+				mockLogger,
+			).RegisterEndpoints(mux)
 
-            mux.ServeHTTP(w, req)
+			mux.ServeHTTP(w, req)
 
-            res := w.Result()
+			res := w.Result()
 
-            if res.StatusCode != tt.expectedStatus {
-                t.Fatalf(
-                    "Expected status %d, got %d",
-                    tt.expectedStatus,
-                    res.StatusCode,
-                )
-            }
+			if res.StatusCode != tt.expectedStatus {
+				t.Fatalf(
+					"Expected status %d, got %d",
+					tt.expectedStatus,
+					res.StatusCode,
+				)
+			}
 
-            if tt.expectBody {
-                data, err := io.ReadAll(res.Body)
-                if err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+			if tt.expectBody {
+				data, err := io.ReadAll(res.Body)
+				if err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                var flow = kClient.NewVerificationFlowWithDefaults()
-                if err := json.Unmarshal(data, &flow); err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+				var flow = kClient.NewVerificationFlowWithDefaults()
+				if err := json.Unmarshal(data, &flow); err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                if flow.Id != "flow-id" {
-                    t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
-                }
-            }
-        })
-    }
+				if flow.Id != "flow-id" {
+					t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
+				}
+			}
+		})
+	}
 }
