@@ -1211,7 +1211,7 @@ func (s *Service) ParseIdentifierFirstLoginFlowMethodBody(r *http.Request) (*kCl
 	return &body, cookies, nil
 }
 
-func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLoginFlowBody, []*http.Cookie, error) {
+func (s *Service) ParseLoginFlowMethodBody(r *http.Request, requestedAAL string) (*kClient.UpdateLoginFlowBody, []*http.Cookie, error) {
 	defer r.Body.Close()
 
 	cookies := r.Cookies()
@@ -1284,8 +1284,10 @@ func (s *Service) ParseLoginFlowMethodBody(r *http.Request) (*kClient.UpdateLogi
 		ret = kClient.UpdateLoginFlowWithOidcMethodAsUpdateLoginFlowBody(&body)
 	}
 
-	// Remove session cookie if this is a 1FA method
-	if s.is1FAMethod(methodPayload.Method) {
+	// Remove session cookie if this is a 1FA method.
+	// When webauthn is used as a 2FA method (requestedAAL == "aal2"), the session
+	// cookie MUST be preserved so Kratos can upgrade the AAL level.
+	if s.is1FAMethod(methodPayload.Method, requestedAAL) {
 		cookies = httpHelpers.FilterCookies(cookies, KRATOS_SESSION_COOKIE_NAME)
 	}
 
@@ -1609,12 +1611,14 @@ func (s *Service) RequireVerificationForEmail(ctx context.Context, session *kCli
 	return false, "", nil
 }
 
-func (s *Service) is1FAMethod(method string) bool {
+func (s *Service) is1FAMethod(method, aal string) bool {
 	switch method {
 	case "password", "oidc":
 		return true
 	case "webauthn":
-		return !s.oidcWebAuthnSequencingEnabled
+		// webauthn is a 2FA method when the flow requests aal2; in that case the
+		// session cookie must NOT be stripped so Kratos can upgrade the AAL level.
+		return aal != "aal2"
 	default:
 		return false
 	}

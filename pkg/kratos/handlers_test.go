@@ -1789,7 +1789,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
 	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
-	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, nil, req.Cookies(), nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
@@ -1840,7 +1840,7 @@ func TestHandleUpdateFlowWhenProviderNotAllowed(t *testing.T) {
 	values.Add("flow", flowId)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 
@@ -1871,12 +1871,16 @@ func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
 	flowBody := new(kClient.UpdateLoginFlowBody)
 	flowBody.UpdateLoginFlowWithOidcMethod = kClient.NewUpdateLoginFlowWithOidcMethod("oidc", "oidc")
 
+	loginFlow := kClient.NewLoginFlowWithDefaults()
+	loginFlow.SetRequestedAal("aal1")
+
 	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_LOGIN_FLOW_URL, nil)
 	values := req.URL.Query()
 	values.Add("flow", flowId)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, nil, fmt.Errorf("error"))
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, gomock.Any()).Return(loginFlow, nil, nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, nil, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
@@ -1931,7 +1935,7 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 	values.Add("flow", flowId)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, nil, req.Cookies(), nil)
@@ -1986,12 +1990,12 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 	values.Add("flow", flowId)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, nil, fmt.Errorf("error"))
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
@@ -2027,7 +2031,7 @@ func TestHandleUpdateFlowFailOnCheckAllowedProvider(t *testing.T) {
 	values.Add("flow", flowId)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, fmt.Errorf("error"))
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
@@ -2073,7 +2077,7 @@ func TestHandleUpdateFlowRedirectToVerification(t *testing.T) {
 	values.Add("flow", flowId)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, req.Cookies(), nil)
@@ -2138,7 +2142,7 @@ func TestHandleUpdateFlowRequireVerificationError(t *testing.T) {
 	values.Add("flow", flowId)
 	req.URL.RawQuery = values.Encode()
 
-	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, req.Cookies(), nil)
@@ -3135,12 +3139,6 @@ func TestHandleGetVerificationFlow(t *testing.T) {
 		{
 			name:        "missing flow id",
 			queryFlowID: "",
-			setupMocks: func(
-				_ *MockServiceInterface,
-				logger *MockLoggerInterface,
-				_ *http.Request,
-			) {
-			},
 			expectedStatus: http.StatusBadRequest,
 			expectBody:     false,
 		},
@@ -3282,15 +3280,9 @@ func TestHandleUpdateVerificationFlow(t *testing.T) {
 		expectBody     bool
 	}{
 		{
-			name:        "missing flow id",
-			queryFlowID: "",
-			body:        nil,
-			setupMocks: func(
-				_ *MockServiceInterface,
-				logger *MockLoggerInterface,
-				_ *http.Request,
-			) {
-			},
+			name:           "missing flow id",
+			queryFlowID:    "",
+			body:           nil,
 			expectedStatus: http.StatusBadRequest,
 			expectBody:     false,
 		},

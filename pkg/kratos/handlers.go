@@ -516,17 +516,25 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
 
-	body, httpCookies, err := a.service.ParseLoginFlowMethodBody(r)
-	if err != nil {
-		a.logger.Errorf("Error when parsing request body: %v\n", err)
-		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
+	if flowId == "" {
+		http.Error(w, "Missing flow ID", http.StatusBadRequest)
 		return
 	}
 
+	// Fetch the login flow first so we know the requested AAL before parsing
+	// the body. The AAL is needed to decide whether the session cookie should be
+	// stripped (1FA restart) or preserved.
 	loginFlow, _, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
+		return
+	}
+
+	body, httpCookies, err := a.service.ParseLoginFlowMethodBody(r, string(loginFlow.GetRequestedAal()))
+	if err != nil {
+		a.logger.Errorf("Error when parsing request body: %v\n", err)
+		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
 		return
 	}
 
