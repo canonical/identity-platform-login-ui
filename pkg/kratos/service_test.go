@@ -2385,7 +2385,7 @@ func TestParseLoginFlowOidcMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2418,7 +2418,7 @@ func TestParseLoginFlowPasswordMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2452,7 +2452,7 @@ func TestParseLoginFlowTotpMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2486,7 +2486,7 @@ func TestParseLoginFlowLookupSecretMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2520,7 +2520,7 @@ func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2530,6 +2530,53 @@ func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+// TestParseLoginFlowWebAuthnMethodBodyPreservesSessionCookieForAAL2 is a regression
+// test for issue #839: when webauthn is used as a 2FA method (alongside TOTP), the
+// Kratos session cookie must NOT be stripped, because Kratos needs it to associate
+// the webauthn authentication with the existing AAL1 session.
+// With oidcWebAuthnSequencingEnabled=false the old code treated webauthn as 1FA and
+// therefore incorrectly filtered the session cookie.
+func TestParseLoginFlowWebAuthnMethodBodyPreservesSessionCookieForAAL2(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateLoginFlowWithWebAuthnMethodWithDefaults()
+	flow.SetMethod("webauthn")
+
+	body := kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(flow)
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+	req.AddCookie(&http.Cookie{Name: KRATOS_SESSION_COOKIE_NAME, Value: "session_token"})
+
+	// oidcWebAuthnSequencingEnabled=false (standard MFA mode), requestedAAL="aal2" (2FA step)
+	_, cookies, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal2")
+
+	if err != nil {
+		t.Fatalf("expected error to be nil not %v", err)
+	}
+
+	sessionCookiePresent := false
+	for _, c := range cookies {
+		if c.Name == KRATOS_SESSION_COOKIE_NAME {
+			sessionCookiePresent = true
+			break
+		}
+	}
+
+	if !sessionCookiePresent {
+		t.Fatal("bug #839: session cookie was incorrectly stripped for webauthn 2FA when oidcWebAuthnSequencingEnabled=false")
 	}
 }
 
@@ -2565,7 +2612,7 @@ func TestGetProviderNameOidc(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, _ := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, _ := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actualProviderName := b.UpdateLoginFlowWithOidcMethod.Provider
 	if expectedProviderName != actualProviderName {
