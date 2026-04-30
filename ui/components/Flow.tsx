@@ -127,11 +127,23 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
     if (!flow || !flow.ui.nodes) {
       return [];
     }
-    const filteredNodes = flow.ui.nodes.filter(({ group }) => {
-      if (!only) {
-        return true;
+
+    const filteredNodes = flow.ui.nodes.filter((node) => {
+      const { group } = node;
+
+      if (only && group !== "default" && group !== only) {
+        return false;
       }
-      return group === "default" || group === only;
+
+      // Exclude buttons with label text "Back" until Kratos solves the multiple button issue
+      if (node.type === "input" && node.meta?.label?.text === "Back") {
+        const attrs = node.attributes as any;
+        if (attrs?.type === "button" || attrs?.type === "submit") {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     return dedupeUiNodes(filteredNodes);
