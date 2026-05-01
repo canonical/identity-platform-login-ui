@@ -18,6 +18,30 @@ const Content: FC<Props> = ({ attributes }) => {
     void navigator.clipboard.writeText(codes);
   }, []);
 
+  const downloadCodes = useCallback((secrets: string[]) => {
+    const content = [
+      "Backup Codes",
+      "============",
+      `Service:   ${window.location.origin}`,
+      `Generated: ${new Date().toISOString().slice(0, 10)}`,
+      "",
+      "Each backup code can be used once.",
+      "Store these in a secure place.",
+      "",
+      ...secrets.map((code, i) => `${i + 1}. ${code}`),
+    ].join("\n");
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "backup-codes.txt";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }, []);
+
   switch (attributes.text.id) {
     case 1050015:
       // This text node contains lookup secrets. Let's make them a bit more beautiful!
@@ -35,6 +59,13 @@ const Content: FC<Props> = ({ attributes }) => {
         >
           <div className="row">
             <div className="u-sv1 u-no-print">
+              <Button
+                type="button"
+                className="u-no-margin--bottom"
+                onClick={() => downloadCodes(secrets)}
+              >
+                Download
+              </Button>
               <Button
                 type="button"
                 className="u-no-margin--bottom"
