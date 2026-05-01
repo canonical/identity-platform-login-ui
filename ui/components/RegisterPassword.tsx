@@ -15,7 +15,7 @@ import { AxiosError } from "axios";
 import { kratos } from "../api/kratos";
 import { redirectTo } from "../util/redirectTo";
 import { useRouter } from "next/router";
-import { handleFlowError } from "../util/handleFlowError";
+import { capitalize, handleFlowError } from "../util/handleFlowError";
 
 interface RegisterPasswordProps {
   flow: RegistrationFlow | undefined;
@@ -107,7 +107,7 @@ export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
         .catch((err: AxiosError<string>) => {
           console.error("Error after handling flow error:", err);
           setFlowError(
-            err.response?.data ||
+            capitalize(err.response?.data) ||
               "An unexpected error occurred. Please try again.",
           );
         })

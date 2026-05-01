@@ -14,6 +14,7 @@ import { getNodeId, isUiNodeInputAttributes } from "@ory/integrations/ui";
 import React, { Component, FormEvent } from "react";
 import { Node } from "./Node";
 import { FlowContext } from "../context/FlowContext";
+import { capitalize } from "../util/handleFlowError";
 
 export type Values = Partial<
   | UpdateLoginFlowBody
@@ -219,7 +220,7 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
               <Node
                 key={`${id}-${k}`}
                 disabled={isLoading}
-                error={error}
+                error={capitalize(error)}
                 node={node}
                 value={values[id]}
                 dispatchSubmit={this.handleSubmit}

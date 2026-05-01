@@ -13,6 +13,11 @@ const getRedirectToFromError = (err: KratosErrorResponse) => (
   window.location.href = err.redirect_browser_to? err.redirect_browser_to: err.redirect_to
 );
 
+export function capitalize(str?: string){
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
 // deal with errors coming from initializing a flow.
 export const handleFlowError =
   <S>(
