@@ -177,12 +177,12 @@ const Verification: NextPage = () => {
         .then(({ data }) => {
           if (data.state === "passed_challenge") {
             if (flow?.return_to) {
-              redirectTo(flow.return_to, router);
+              redirectTo(flow.return_to, router, false);
               return;
             } else {
               const timer = setTimeout(() => {
                 clearTimeout(timer);
-                redirectTo(`/ui/manage_details`, router);
+                redirectTo(`/ui/manage_details`, router, false);
               }, 3000);
             }
           }
