@@ -670,7 +670,7 @@ func TestHandleCreateFlowRequireVerificationError(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected error to be nil got %v", err)
 	}
-	
+
 	if !strings.Contains(string(data), "Failed check for verification") {
 		t.Errorf("expected response body to contain failure message, got %s", string(data))
 	}
@@ -2891,3 +2891,123 @@ func TestHandleUpdateVerificationFlow(t *testing.T) {
         })
     }
 }
+
+func TestShouldEnforceMFA(t *testing.T) {
+	identityId := "identity-test"
+	identity := kClient.NewIdentity(identityId, "test.json", "https://test.com/test.json", map[string]string{})
+
+	oidcMethod := "oidc"
+	pwdMethod := "password"
+
+	tests := []struct {
+		name           string
+		mfaEnabled     bool
+		setupMocks     func(mockService *MockServiceInterface, mockLogger *MockLoggerInterface)
+		expectedResult bool
+		expectedErrMsg string
+	}{
+		{
+			name:           "mfa disabled returns false immediately",
+			mfaEnabled:     false,
+			setupMocks:     func(mockService *MockServiceInterface, mockLogger *MockLoggerInterface) {},
+			expectedResult: false,
+		},
+		{
+			name:       "check session returns error propagates error",
+			mfaEnabled: true,
+			setupMocks: func(mockService *MockServiceInterface, mockLogger *MockLoggerInterface) {
+				mockService.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(nil, nil, fmt.Errorf("session unavailable"))
+			},
+			expectedResult: false,
+			expectedErrMsg: "session unavailable",
+		},
+		{
+			name:       "session with oidc method skips mfa enforcement",
+			mfaEnabled: true,
+			setupMocks: func(mockService *MockServiceInterface, mockLogger *MockLoggerInterface) {
+				session := kClient.NewSession(identityId)
+				session.Identity = identity
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{{Method: &oidcMethod}}
+				mockService.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
+			},
+			expectedResult: false,
+		},
+		{
+			name:       "session without oidc and totp available does not enforce mfa",
+			mfaEnabled: true,
+			setupMocks: func(mockService *MockServiceInterface, mockLogger *MockLoggerInterface) {
+				session := kClient.NewSession(identityId)
+				session.Identity = identity
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{{Method: &pwdMethod}}
+				mockService.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
+				mockService.EXPECT().HasTOTPAvailable(gomock.Any(), identityId).Return(true, nil)
+			},
+			expectedResult: false,
+		},
+		{
+			name:       "session without oidc and totp not available enforces mfa",
+			mfaEnabled: true,
+			setupMocks: func(mockService *MockServiceInterface, mockLogger *MockLoggerInterface) {
+				session := kClient.NewSession(identityId)
+				session.Identity = identity
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{{Method: &pwdMethod}}
+				mockService.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
+				mockService.EXPECT().HasTOTPAvailable(gomock.Any(), identityId).Return(false, nil)
+			},
+			expectedResult: true,
+		},
+		{
+			name:       "has totp available returns error propagates error",
+			mfaEnabled: true,
+			setupMocks: func(mockService *MockServiceInterface, mockLogger *MockLoggerInterface) {
+				session := kClient.NewSession(identityId)
+				session.Identity = identity
+				session.AuthenticationMethods = []kClient.SessionAuthenticationMethod{{Method: &pwdMethod}}
+				mockService.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
+				mockService.EXPECT().HasTOTPAvailable(gomock.Any(), identityId).Return(false, fmt.Errorf("totp check failed"))
+			},
+			expectedResult: false,
+			expectedErrMsg: "totp check failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockService := NewMockServiceInterface(ctrl)
+			mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
+
+			mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFA").Return(
+				context.Background(), trace.SpanFromContext(context.Background()),
+			)
+			mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(
+				context.Background(), trace.SpanFromContext(context.Background()),
+			).AnyTimes()
+
+			tt.setupMocks(mockService, mockLogger)
+
+			api := NewAPI(mockService, false, tt.mfaEnabled, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
+			result, err := api.shouldEnforceMFA(context.Background(), []*http.Cookie{})
+
+			if tt.expectedErrMsg != "" {
+				if err == nil {
+					t.Fatalf("expected error containing %q, got nil", tt.expectedErrMsg)
+				}
+				if !strings.Contains(err.Error(), tt.expectedErrMsg) {
+					t.Fatalf("expected error %q, got %q", tt.expectedErrMsg, err.Error())
+				}
+			} else if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			if result != tt.expectedResult {
+				t.Fatalf("expected result %v, got %v", tt.expectedResult, result)
+			}
+		})
+	}
+}
+
