@@ -2,6 +2,7 @@ import { getNodeLabel } from "@ory/integrations/ui";
 import { Input } from "@canonical/react-components";
 import React, { FC, useCallback, useEffect } from "react";
 import { NodeInputProps } from "./helpers";
+import { capitalize } from "../util/handleFlowError";
 
 export const NodeInputEmail: FC<NodeInputProps> = ({
   node,
@@ -34,7 +35,7 @@ export const NodeInputEmail: FC<NodeInputProps> = ({
     const isInvalid = !emailRegex.test((value as string) ?? "") && value !== "";
     const localError = isInvalid ? "Incorrect email address" : undefined;
     const error = localError ?? upstreamError;
-    return error;
+    return capitalize(error);
   }, [value, upstreamError]);
 
   const emailValidationOnBlur = useCallback(() => {

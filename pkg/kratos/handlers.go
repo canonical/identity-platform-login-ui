@@ -12,9 +12,10 @@ import (
 	"strconv"
 	"time"
 
-	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 	"github.com/go-chi/chi/v5"
 	client "github.com/ory/kratos-client-go/v25"
+
+	httpHelpers "github.com/canonical/identity-platform-login-ui/internal/misc/http"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
@@ -861,7 +862,7 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	id := q.Get("id")
 
-	flowError, cookies, err := a.service.GetFlowError(context.Background(), id)
+	flowError, cookies, err := a.service.GetFlowError(r.Context(), id)
 	if err != nil {
 		a.logger.Errorf("Error when getting flow error: %v\n", err)
 		http.Error(w, "Failed to get flow error", http.StatusInternalServerError)
@@ -882,7 +883,15 @@ func (a *API) handleKratosError(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleGetRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	flow, cookies, err := a.service.GetRecoveryFlow(context.Background(), q.Get("id"), r.Cookies())
+	flowId := q.Get("id")
+	if flowId == "" {
+		a.logger.Errorf("ID parameter not present")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode("ID parameter not present")
+		return
+	}
+
+	flow, cookies, err := a.service.GetRecoveryFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting recovery flow: %v\n", err)
 		http.Error(w, "Failed to get recovery flow", http.StatusInternalServerError)
@@ -943,7 +952,7 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	flow, cookies, err := a.service.CreateBrowserRecoveryFlow(context.Background(), returnTo)
+	flow, cookies, err := a.service.CreateBrowserRecoveryFlow(r.Context(), returnTo)
 	if err != nil {
 		a.logger.Errorf("Failed to create recovery flow: %v\n", err)
 		http.Error(w, "Failed to create recovery flow", http.StatusInternalServerError)
@@ -970,7 +979,15 @@ func (a *API) handleCreateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	flow, response, err := a.service.GetSettingsFlow(context.Background(), q.Get("id"), r.Cookies())
+	flowId := q.Get("id")
+	if flowId == "" {
+		a.logger.Errorf("ID parameter not present")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode("ID parameter not present")
+		return
+	}
+
+	flow, response, err := a.service.GetSettingsFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting settings flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1008,7 +1025,7 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flow, redirectInfo, cookies, err := a.service.UpdateSettingsFlow(context.Background(), flowId, *body, r.Cookies())
+	flow, redirectInfo, cookies, err := a.service.UpdateSettingsFlow(r.Context(), flowId, *body, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when updating settings flow: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1110,7 +1127,7 @@ func (a *API) settingsReturnToURL(r *http.Request, flowId string) (string, error
 func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	returnTo := r.URL.Query().Get("return_to")
 
-	flow, response, err := a.service.CreateBrowserSettingsFlow(context.Background(), returnTo, r.Cookies())
+	flow, response, err := a.service.CreateBrowserSettingsFlow(r.Context(), returnTo, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Failed to create settings flow: %v", err)
 		http.Error(w, "Failed to create settings flow", http.StatusInternalServerError)

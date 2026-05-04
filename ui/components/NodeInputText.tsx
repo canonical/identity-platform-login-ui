@@ -9,6 +9,7 @@ import {
 } from "../util/constants";
 import { UiNodeInputAttributes } from "@ory/client/api";
 import { ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD } from "../util/constants";
+import { capitalize } from "../util/handleFlowError";
 
 export const NodeInputText: FC<NodeInputProps> = ({
   attributes,
@@ -30,9 +31,6 @@ export const NodeInputText: FC<NodeInputProps> = ({
   const isWebauthn = urlParams.get("webauthn") === "true";
   const isIdentifierFirstGroup = node.group === "identifier_first";
   const isEmailInput = node.meta?.label?.text?.toLowerCase?.() === "email";
-
-  const ucFirst = (s?: string) =>
-    s ? String(s[0]).toUpperCase() + String(s).slice(1) : s;
 
   let deduplicateValues: string[] = [];
   if (node.meta.label?.context) {
@@ -124,7 +122,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
       attributes.name === "lookup_secret" ||
       (isWebauthn && attributes.name === "identifier")
     ) {
-      return ucFirst(error);
+      return capitalize(error);
     }
 
     return error;
@@ -216,7 +214,7 @@ export const NodeInputText: FC<NodeInputProps> = ({
         disabled={disabled}
         placeholder={getPlaceholderText()}
         value={inputValue}
-        error={getError}
+        error={capitalize(getError)}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         maxLength={isVerificationCodeInput(node) ? 6 : undefined}
