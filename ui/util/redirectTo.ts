@@ -1,6 +1,6 @@
 import { NextRouter } from "next/router";
 
-export function redirectTo(url: string, router: NextRouter): void {
+export function redirectTo(url: string, router: NextRouter, passQuery: boolean = true): void {
   let newUrl: URL;
   try {
     newUrl = new URL(url, window.location.origin);
@@ -22,7 +22,7 @@ export function redirectTo(url: string, router: NextRouter): void {
   void router.push({
     pathname: pathWithoutBase,
     query: {
-      ...router.query,
+      ...(passQuery ? router.query : {}),
       ...kratosParams,
     },
     hash: newUrl.hash,
