@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/go-chi/chi/v5"
 	"go.opentelemetry.io/otel/trace"
@@ -2920,6 +2922,25 @@ func TestShouldEnforceMFA(t *testing.T) {
 			},
 			expectedResult: false,
 			expectedErrMsg: "session unavailable",
+		},
+		{
+			name:       "check session returns unauthorized error does not enforce mfa",
+			mfaEnabled: true,
+			setupMocks: func(mockService *MockServiceInterface, mockLogger *MockLoggerInterface) {
+				statusCode := int64(http.StatusUnauthorized)
+				genericErr := kClient.GenericError{Code: &statusCode, Message: "Unauthorized"}
+				errorModel := kClient.ErrorGeneric{Error: genericErr}
+
+				openAPIErr := &kClient.GenericOpenAPIError{}
+				v := reflect.ValueOf(openAPIErr).Elem()
+				f := v.FieldByName("model")
+				rf := reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem()
+				rf.Set(reflect.ValueOf(errorModel))
+
+				mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any())
+				mockService.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(nil, nil, openAPIErr)
+			},
+			expectedResult: false,
 		},
 		{
 			name:       "session with oidc method skips mfa enforcement",
