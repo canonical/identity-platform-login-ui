@@ -59,9 +59,9 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 	mux.Get("/api/kratos/self-service/registration/browser", a.handleCreateRegistrationFlow)
 	mux.Get("/api/kratos/self-service/registration/flows", a.handleGetRegistrationFlow)
 	mux.Get("/api/kratos/self-service/errors", a.handleKratosError)
-    mux.Post("/api/kratos/self-service/verification", a.handleUpdateVerificationFlow)
-    mux.Get("/api/kratos/self-service/verification/browser", a.handleCreateVerificationFlow)
-    mux.Get("/api/kratos/self-service/verification/flows", a.handleGetVerificationFlow)
+	mux.Post("/api/kratos/self-service/verification", a.handleUpdateVerificationFlow)
+	mux.Get("/api/kratos/self-service/verification/browser", a.handleCreateVerificationFlow)
+	mux.Get("/api/kratos/self-service/verification/flows", a.handleGetVerificationFlow)
 	mux.Post("/api/kratos/self-service/recovery", a.handleUpdateRecoveryFlow)
 	mux.Get("/api/kratos/self-service/recovery/browser", a.handleCreateRecoveryFlow)
 	mux.Get("/api/kratos/self-service/recovery/flows", a.handleGetRecoveryFlow)
@@ -416,18 +416,25 @@ func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Req
 func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
-
-	body, cookies, err := a.service.ParseLoginFlowMethodBody(r)
-	if err != nil {
-		a.logger.Errorf("Error when parsing request body: %v\n", err)
-		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
+	if flowId == "" {
+		http.Error(w, "Missing flow ID", http.StatusBadRequest)
 		return
 	}
 
+	// Fetch the login flow first so we know the requested AAL before parsing
+	// the body. The AAL is needed to decide whether the session cookie should be
+	// stripped (1FA restart) or preserved.
 	loginFlow, _, err := a.service.GetLoginFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
+		return
+	}
+
+	body, cookies, err := a.service.ParseLoginFlowMethodBody(r, string(loginFlow.GetRequestedAal()))
+	if err != nil {
+		a.logger.Errorf("Error when parsing request body: %v\n", err)
+		http.Error(w, "Failed to parse login flow", http.StatusInternalServerError)
 		return
 	}
 
@@ -1155,68 +1162,68 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleUpdateVerificationFlow(w http.ResponseWriter, r *http.Request) {
-    q := r.URL.Query()
+	q := r.URL.Query()
 
-    flowId := q.Get("flow")
-    if flowId == "" {
-        a.logger.Debug("no flow id provided")
-        http.Error(w, "no flow id provided", http.StatusBadRequest)
-        return
-    }
+	flowId := q.Get("flow")
+	if flowId == "" {
+		a.logger.Debug("no flow id provided")
+		http.Error(w, "no flow id provided", http.StatusBadRequest)
+		return
+	}
 
-    var body client.UpdateVerificationFlowBody
-    if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-        a.logger.Errorf("Error when parsing request body: %v\n", err)
-        http.Error(w, "Failed to parse verification flow", http.StatusInternalServerError)
-        return
-    }
+	var body client.UpdateVerificationFlowBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		a.logger.Errorf("Error when parsing request body: %v\n", err)
+		http.Error(w, "Failed to parse verification flow", http.StatusInternalServerError)
+		return
+	}
 
-    flow, cookies, err := a.service.UpdateVerificationFlow(r.Context(), flowId, body, r.Cookies())
-    if err != nil {
-        a.logger.Errorf("Error when updating verification flow: %v\n", err)
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	flow, cookies, err := a.service.UpdateVerificationFlow(r.Context(), flowId, body, r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Error when updating verification flow: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    setCookies(w, cookies)
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(flow)
+	setCookies(w, cookies)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(flow)
 }
 
 func (a *API) handleCreateVerificationFlow(w http.ResponseWriter, r *http.Request) {
-    flow, cookies, err := a.service.CreateBrowserVerificationFlow(r.Context(), r.Cookies())
-    if err != nil {
-        a.logger.Errorf("Failed to create verification flow: %v\n", err)
-        http.Error(w, "Failed to create verification flow", http.StatusInternalServerError)
-        return
-    }
+	flow, cookies, err := a.service.CreateBrowserVerificationFlow(r.Context(), r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Failed to create verification flow: %v\n", err)
+		http.Error(w, "Failed to create verification flow", http.StatusInternalServerError)
+		return
+	}
 
-    setCookies(w, cookies)
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(flow)
+	setCookies(w, cookies)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(flow)
 }
 
 func (a *API) handleGetVerificationFlow(w http.ResponseWriter, r *http.Request) {
-    q := r.URL.Query()
+	q := r.URL.Query()
 
-    flowId := q.Get("id")
-    if flowId == "" {
-        a.logger.Debug("no flow id provided")
-        http.Error(w, "no flow id provided", http.StatusBadRequest)
-        return
-    }
+	flowId := q.Get("id")
+	if flowId == "" {
+		a.logger.Debug("no flow id provided")
+		http.Error(w, "no flow id provided", http.StatusBadRequest)
+		return
+	}
 
-    flow, cookies, err := a.service.GetVerificationFlow(r.Context(), flowId, r.Cookies())
-    if err != nil {
-        a.logger.Errorf("Error when getting verification flow: %v\n", err)
-        http.Error(w, "Failed to get verification flow", http.StatusInternalServerError)
-        return
-    }
+	flow, cookies, err := a.service.GetVerificationFlow(r.Context(), flowId, r.Cookies())
+	if err != nil {
+		a.logger.Errorf("Error when getting verification flow: %v\n", err)
+		http.Error(w, "Failed to get verification flow", http.StatusInternalServerError)
+		return
+	}
 
-    setCookies(w, cookies)
+	setCookies(w, cookies)
 
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(flow)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(flow)
 }
 
 func (a *API) isHTMLRequest(r *http.Request) bool {

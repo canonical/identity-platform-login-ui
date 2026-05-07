@@ -68,8 +68,14 @@ const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
   const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
+  // Only auto-select the WebAuthn form when WebAuthn is the *sole* 2FA method.
+  // When TOTP is also registered the selection page must show both options so the
+  // user can choose either; forcing WebAuthn directly would hide TOTP and, when
+  // the ceremony fails, clicking "I want to use another method" restarts the
+  // entire login at the identifier page (see issue #839).
   const is2FaWebauthn =
     flow?.requested_aal === "aal2" &&
+    !isAuthCode &&
     flow?.ui.nodes.find((node) => node.group === "webauthn") !== undefined;
 
   const isIdentifierFirst =
@@ -368,7 +374,7 @@ const Login: NextPage = () => {
     });
 
     // add security key option that looks like an oidc input
-    if (!isWebauthn && !isAuthCode && !useBackupCode && supportsWebauthn) {
+    if (!isWebauthn && !useBackupCode && supportsWebauthn) {
       renderFlow.ui.nodes.push({
         attributes: {
           type: "url",
@@ -395,9 +401,10 @@ const Login: NextPage = () => {
       return toValue(a) - toValue(b);
     });
 
-    // autosubmit webauthn in case email is provided
+    // autosubmit webauthn in case email is provided (1FA only — in AAL2 the
+    // identity is already known from the session, so skip auto-submit)
     const email = urlParams.get("email");
-    if (isWebauthn && email) {
+    if (isWebauthn && email && flow?.requested_aal !== "aal2") {
       void handleSubmit({
         method: "webauthn",
         identifier: email,
@@ -415,6 +422,19 @@ const Login: NextPage = () => {
   if (!flow) {
     return;
   }
+
+  // When WebAuthn is shown but TOTP is also registered, "I want to use another
+  // method" should return to the TOTP selection page (strip ?webauthn=true and
+  // ?email= from the URL).  When WebAuthn is the sole 2FA method there is no
+  // other method to fall back to, so point at flow.return_to instead.
+  const anotherMethodUrl = isAuthCode
+    ? (() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("webauthn");
+        url.searchParams.delete("email");
+        return url.toString();
+      })()
+    : flow?.return_to;
 
   renderFlow?.ui.nodes.map((node) => {
     if (isSignInWithPassword(node)) {
@@ -481,7 +501,7 @@ const Login: NextPage = () => {
             <Spinner />
           )}
           {isWebauthn && !isSequencedLogin && (
-            <a href={flow?.return_to}>I want to use another method</a>
+            <a href={anotherMethodUrl}>I want to use another method</a>
           )}
           {isWebauthn && isSequencedLogin && (
             <CheckboxInput

@@ -49,7 +49,7 @@ type ServiceInterface interface {
     GetFlowError(context.Context, string) (*kClient.FlowError, []*http.Cookie, error)
 	CheckAllowedProvider(context.Context, *kClient.LoginFlow, *kClient.UpdateLoginFlowBody) (bool, error)
 	FilterFlowProviderList(context.Context, *kClient.LoginFlow) (*kClient.LoginFlow, error)
-	ParseLoginFlowMethodBody(*http.Request) (*kClient.UpdateLoginFlowBody, []*http.Cookie, error)
+	ParseLoginFlowMethodBody(*http.Request, string) (*kClient.UpdateLoginFlowBody, []*http.Cookie, error)
 	ParseIdentifierFirstLoginFlowMethodBody(*http.Request) (*kClient.UpdateLoginFlowWithIdentifierFirstMethod, []*http.Cookie, error)
 	ParseRegistrationFlowMethodBody(*http.Request) (*kClient.UpdateRegistrationFlowBody, error)
 	ParseRecoveryFlowMethodBody(*http.Request) (*kClient.UpdateRecoveryFlowBody, error)

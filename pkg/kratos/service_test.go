@@ -2385,7 +2385,7 @@ func TestParseLoginFlowOidcMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2418,7 +2418,7 @@ func TestParseLoginFlowPasswordMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2452,7 +2452,7 @@ func TestParseLoginFlowTotpMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2486,7 +2486,7 @@ func TestParseLoginFlowLookupSecretMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2520,7 +2520,7 @@ func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actual, _ := b.MarshalJSON()
 	expected, _ := body.MarshalJSON()
@@ -2530,6 +2530,53 @@ func TestParseLoginFlowWebAuthnMethodBody(t *testing.T) {
 	}
 	if err != nil {
 		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+// TestParseLoginFlowWebAuthnMethodBodyPreservesSessionCookieForAAL2 is a regression
+// test for issue #839: when webauthn is used as a 2FA method (alongside TOTP), the
+// Kratos session cookie must NOT be stripped, because Kratos needs it to associate
+// the webauthn authentication with the existing AAL1 session.
+// With oidcWebAuthnSequencingEnabled=false the old code treated webauthn as 1FA and
+// therefore incorrectly filtered the session cookie.
+func TestParseLoginFlowWebAuthnMethodBodyPreservesSessionCookieForAAL2(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+
+	flow := kClient.NewUpdateLoginFlowWithWebAuthnMethodWithDefaults()
+	flow.SetMethod("webauthn")
+
+	body := kClient.UpdateLoginFlowWithWebAuthnMethodAsUpdateLoginFlowBody(flow)
+	jsonBody, _ := body.MarshalJSON()
+
+	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
+	req.AddCookie(&http.Cookie{Name: KRATOS_SESSION_COOKIE_NAME, Value: "session_token"})
+
+	// oidcWebAuthnSequencingEnabled=false (standard MFA mode), requestedAAL="aal2" (2FA step)
+	_, cookies, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal2")
+
+	if err != nil {
+		t.Fatalf("expected error to be nil not %v", err)
+	}
+
+	sessionCookiePresent := false
+	for _, c := range cookies {
+		if c.Name == KRATOS_SESSION_COOKIE_NAME {
+			sessionCookiePresent = true
+			break
+		}
+	}
+
+	if !sessionCookiePresent {
+		t.Fatal("bug #839: session cookie was incorrectly stripped for webauthn 2FA when oidcWebAuthnSequencingEnabled=false")
 	}
 }
 
@@ -2565,7 +2612,7 @@ func TestGetProviderNameOidc(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "http://some/path", io.NopCloser(bytes.NewBuffer(jsonBody)))
 
-	b, _, _ := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req)
+	b, _, _ := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, mockTracer, mockMonitor, mockLogger).ParseLoginFlowMethodBody(req, "aal1")
 
 	actualProviderName := b.UpdateLoginFlowWithOidcMethod.Provider
 	if expectedProviderName != actualProviderName {
@@ -3793,12 +3840,12 @@ func TestRequireVerificationForEmail(t *testing.T) {
 	oidcMethod := "oidc"
 
 	tests := []struct {
-		name              string
-		setupSession      func() *kClient.Session
-		expectEnforce     bool
-		expectEmail       string
-		expectError       bool
-		expectDebugLog    bool
+		name           string
+		setupSession   func() *kClient.Session
+		expectEnforce  bool
+		expectEmail    string
+		expectError    bool
+		expectDebugLog bool
 	}{
 		{
 			name: "Nil session returns false",
@@ -4063,573 +4110,573 @@ func TestHasWebAuthnAvailableFailOnGetIdentityExecute(t *testing.T) {
 }
 
 func TestCreateVerificationFlowSuccess(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    defer ctrl.Finish()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-    mockLogger := NewMockLoggerInterface(ctrl)
-    mockKratos := NewMockKratosClientInterface(ctrl)
-    mockTracer := NewMockTracingInterface(ctrl)
-    mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-    mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
 
-    ctx := context.Background()
+	ctx := context.Background()
 
-    // input cookies
-    cookies := make([]*http.Cookie, 0)
-    cookie := &http.Cookie{Name: "test", Value: "test"}
-    cookies = append(cookies, cookie)
+	// input cookies
+	cookies := make([]*http.Cookie, 0)
+	cookie := &http.Cookie{Name: "test", Value: "test"}
+	cookies = append(cookies, cookie)
 
-    // expected flow
-    flow := kClient.NewVerificationFlowWithDefaults()
+	// expected flow
+	flow := kClient.NewVerificationFlowWithDefaults()
 
-    // kratos request
-    request := kClient.FrontendAPICreateBrowserVerificationFlowRequest{
-        ApiService: mockKratosFrontendApi,
-    }
+	// kratos request
+	request := kClient.FrontendAPICreateBrowserVerificationFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
 
-    // http response with cookies
-    resp := http.Response{
-        Header: http.Header{
-            "Set-Cookie": []string{cookie.Raw},
-        },
-    }
+	// http response with cookies
+	resp := http.Response{
+		Header: http.Header{
+			"Set-Cookie": []string{cookie.Raw},
+		},
+	}
 
-    mockTracer.
-        EXPECT().
-        Start(ctx, "kratos.Service.CreateBrowserVerificationFlow").
-        Times(1).
-        Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.
+		EXPECT().
+		Start(ctx, "kratos.Service.CreateBrowserVerificationFlow").
+		Times(1).
+		Return(ctx, trace.SpanFromContext(ctx))
 
-    mockKratos.
-        EXPECT().
-        FrontendApi().
-        Times(1).
-        Return(mockKratosFrontendApi)
+	mockKratos.
+		EXPECT().
+		FrontendApi().
+		Times(1).
+		Return(mockKratosFrontendApi)
 
-    mockKratosFrontendApi.
-        EXPECT().
-        CreateBrowserVerificationFlow(ctx).
-        Times(1).
-        Return(request)
+	mockKratosFrontendApi.
+		EXPECT().
+		CreateBrowserVerificationFlow(ctx).
+		Times(1).
+		Return(request)
 
-    mockKratosFrontendApi.
-        EXPECT().
-        CreateBrowserVerificationFlowExecute(gomock.Any()).
-        Times(1).
-        DoAndReturn(func(
-            r kClient.FrontendAPICreateBrowserVerificationFlowRequest,
-        ) (*kClient.VerificationFlow, *http.Response, error) {
-            return flow, &resp, nil
-        })
+	mockKratosFrontendApi.
+		EXPECT().
+		CreateBrowserVerificationFlowExecute(gomock.Any()).
+		Times(1).
+		DoAndReturn(func(
+			r kClient.FrontendAPICreateBrowserVerificationFlowRequest,
+		) (*kClient.VerificationFlow, *http.Response, error) {
+			return flow, &resp, nil
+		})
 
-    f, c, err := NewService(
-        mockKratos,
-        nil, // admin kratos
-        nil, // hydra
-        nil, // authz
-        false,
-        mockTracer,
-        mockMonitor,
-        mockLogger,
-    ).CreateBrowserVerificationFlow(ctx, cookies)
+	f, c, err := NewService(
+		mockKratos,
+		nil, // admin kratos
+		nil, // hydra
+		nil, // authz
+		false,
+		mockTracer,
+		mockMonitor,
+		mockLogger,
+	).CreateBrowserVerificationFlow(ctx, cookies)
 
-    if f != flow {
-        t.Fatalf("expected flow to be %v, got %v", flow, f)
-    }
+	if f != flow {
+		t.Fatalf("expected flow to be %v, got %v", flow, f)
+	}
 
-    if !reflect.DeepEqual(c, resp.Cookies()) {
-        t.Fatalf("expected cookies to be %v, got %v", resp.Cookies(), c)
-    }
+	if !reflect.DeepEqual(c, resp.Cookies()) {
+		t.Fatalf("expected cookies to be %v, got %v", resp.Cookies(), c)
+	}
 
-    if err != nil {
-        t.Fatalf("expected error to be nil, got %v", err)
-    }
+	if err != nil {
+		t.Fatalf("expected error to be nil, got %v", err)
+	}
 }
 
 func TestCreateVerificationFlowError(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    defer ctrl.Finish()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-    mockLogger := NewMockLoggerInterface(ctrl)
-    mockKratos := NewMockKratosClientInterface(ctrl)
-    mockTracer := NewMockTracingInterface(ctrl)
-    mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-    mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
 
-    ctx := context.Background()
+	ctx := context.Background()
 
-    request := kClient.FrontendAPICreateBrowserVerificationFlowRequest{
-        ApiService: mockKratosFrontendApi,
-    }
+	request := kClient.FrontendAPICreateBrowserVerificationFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
 
-    mockTracer.
-        EXPECT().
-        Start(ctx, "kratos.Service.CreateBrowserVerificationFlow").
-        Times(1).
-        Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.
+		EXPECT().
+		Start(ctx, "kratos.Service.CreateBrowserVerificationFlow").
+		Times(1).
+		Return(ctx, trace.SpanFromContext(ctx))
 
-    mockKratos.
-        EXPECT().
-        FrontendApi().
-        Times(1).
-        Return(mockKratosFrontendApi)
+	mockKratos.
+		EXPECT().
+		FrontendApi().
+		Times(1).
+		Return(mockKratosFrontendApi)
 
-    mockKratosFrontendApi.
-        EXPECT().
-        CreateBrowserVerificationFlow(ctx).
-        Times(1).
-        Return(request)
+	mockKratosFrontendApi.
+		EXPECT().
+		CreateBrowserVerificationFlow(ctx).
+		Times(1).
+		Return(request)
 
-    mockKratosFrontendApi.
-        EXPECT().
-        CreateBrowserVerificationFlowExecute(gomock.Any()).
-        Times(1).
-        Return(nil, nil, fmt.Errorf("kratos error"))
+	mockKratosFrontendApi.
+		EXPECT().
+		CreateBrowserVerificationFlowExecute(gomock.Any()).
+		Times(1).
+		Return(nil, nil, fmt.Errorf("kratos error"))
 
-    mockLogger.
-        EXPECT().
-        Errorf(gomock.Any(), gomock.Any()).
-        Times(1)
+	mockLogger.
+		EXPECT().
+		Errorf(gomock.Any(), gomock.Any()).
+		Times(1)
 
-    f, c, err := NewService(
-        mockKratos,
-        nil,
-        nil,
-        nil,
-        false,
-        mockTracer,
-        mockMonitor,
-        mockLogger,
-    ).CreateBrowserVerificationFlow(ctx, nil)
+	f, c, err := NewService(
+		mockKratos,
+		nil,
+		nil,
+		nil,
+		false,
+		mockTracer,
+		mockMonitor,
+		mockLogger,
+	).CreateBrowserVerificationFlow(ctx, nil)
 
-    if f != nil {
-        t.Fatalf("expected flow to be nil, got %v", f)
-    }
+	if f != nil {
+		t.Fatalf("expected flow to be nil, got %v", f)
+	}
 
-    if c != nil {
-        t.Fatalf("expected cookies to be nil, got %v", c)
-    }
+	if c != nil {
+		t.Fatalf("expected cookies to be nil, got %v", c)
+	}
 
-    if err == nil {
-        t.Fatalf("expected error, got nil")
-    }
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
 }
 
 func TestService_GetVerificationFlow(t *testing.T) {
 
-    t.Run("kratos returns error", func(t *testing.T) {
-        ctrl := gomock.NewController(t)
-        defer ctrl.Finish()
+	t.Run("kratos returns error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-        ctx := context.Background()
+		ctx := context.Background()
 
-        mockTracer := NewMockTracingInterface(ctrl)
-        mockLogger := NewMockLoggerInterface(ctrl)
-        mockKratos := NewMockKratosClientInterface(ctrl)
-        mockFrontend := NewMockFrontendAPI(ctrl)
-        mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+		mockTracer := NewMockTracingInterface(ctrl)
+		mockLogger := NewMockLoggerInterface(ctrl)
+		mockKratos := NewMockKratosClientInterface(ctrl)
+		mockFrontend := NewMockFrontendAPI(ctrl)
+		mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
-        flowID := "flow-id"
+		flowID := "flow-id"
 
-        mockTracer.
-            EXPECT().
-            Start(ctx, "kratos.Service.GetVerificationFlow").
-            Times(1).
-            Return(ctx, trace.SpanFromContext(ctx))
+		mockTracer.
+			EXPECT().
+			Start(ctx, "kratos.Service.GetVerificationFlow").
+			Times(1).
+			Return(ctx, trace.SpanFromContext(ctx))
 
-        mockKratos.
-            EXPECT().
-            FrontendApi().
-            Times(2).
-            Return(mockFrontend)
+		mockKratos.
+			EXPECT().
+			FrontendApi().
+			Times(2).
+			Return(mockFrontend)
 
-        req := kClient.FrontendAPIGetVerificationFlowRequest{
-            ApiService: mockFrontend,
-        }
+		req := kClient.FrontendAPIGetVerificationFlowRequest{
+			ApiService: mockFrontend,
+		}
 
-        mockFrontend.
-            EXPECT().
-            GetVerificationFlow(ctx).
-            Times(1).
-            Return(req)
+		mockFrontend.
+			EXPECT().
+			GetVerificationFlow(ctx).
+			Times(1).
+			Return(req)
 
-        mockFrontend.
-            EXPECT().
-            GetVerificationFlowExecute(gomock.Any()).
-            Times(1).
-            Return(nil, nil, fmt.Errorf("kratos error"))
+		mockFrontend.
+			EXPECT().
+			GetVerificationFlowExecute(gomock.Any()).
+			Times(1).
+			Return(nil, nil, fmt.Errorf("kratos error"))
 
-        svc := NewService(
-            mockKratos,
-            nil,
-            nil,
-            nil,
-            false,
-            mockTracer,
-            mockMonitor,
-            mockLogger,
-        )
+		svc := NewService(
+			mockKratos,
+			nil,
+			nil,
+			nil,
+			false,
+			mockTracer,
+			mockMonitor,
+			mockLogger,
+		)
 
-        f, c, err := svc.GetVerificationFlow(ctx, flowID, nil)
+		f, c, err := svc.GetVerificationFlow(ctx, flowID, nil)
 
-        if f != nil {
-            t.Fatalf("expected flow to be nil, got %v", f)
-        }
+		if f != nil {
+			t.Fatalf("expected flow to be nil, got %v", f)
+		}
 
-        if c != nil {
-            t.Fatalf("expected cookies to be nil, got %v", c)
-        }
+		if c != nil {
+			t.Fatalf("expected cookies to be nil, got %v", c)
+		}
 
-        if err == nil {
-            t.Fatalf("expected error, got nil")
-        }
-    })
+		if err == nil {
+			t.Fatalf("expected error, got nil")
+		}
+	})
 
-    t.Run("success without response cookies", func(t *testing.T) {
-        ctrl := gomock.NewController(t)
-        defer ctrl.Finish()
+	t.Run("success without response cookies", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-        ctx := context.Background()
+		ctx := context.Background()
 
-        mockTracer := NewMockTracingInterface(ctrl)
-        mockLogger := NewMockLoggerInterface(ctrl)
-        mockKratos := NewMockKratosClientInterface(ctrl)
-        mockFrontend := NewMockFrontendAPI(ctrl)
-        mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+		mockTracer := NewMockTracingInterface(ctrl)
+		mockLogger := NewMockLoggerInterface(ctrl)
+		mockKratos := NewMockKratosClientInterface(ctrl)
+		mockFrontend := NewMockFrontendAPI(ctrl)
+		mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
-        flowID := "flow-id"
+		flowID := "flow-id"
 
-        mockTracer.
-            EXPECT().
-            Start(ctx, "kratos.Service.GetVerificationFlow").
-            Times(1).
-            Return(ctx, trace.SpanFromContext(ctx))
+		mockTracer.
+			EXPECT().
+			Start(ctx, "kratos.Service.GetVerificationFlow").
+			Times(1).
+			Return(ctx, trace.SpanFromContext(ctx))
 
-        mockKratos.
-            EXPECT().
-            FrontendApi().
-            Times(2).
-            Return(mockFrontend)
+		mockKratos.
+			EXPECT().
+			FrontendApi().
+			Times(2).
+			Return(mockFrontend)
 
-        req := kClient.FrontendAPIGetVerificationFlowRequest{
-            ApiService: mockFrontend,
-        }
+		req := kClient.FrontendAPIGetVerificationFlowRequest{
+			ApiService: mockFrontend,
+		}
 
-        mockFrontend.
-            EXPECT().
-            GetVerificationFlow(ctx).
-            Times(1).
-            Return(req)
+		mockFrontend.
+			EXPECT().
+			GetVerificationFlow(ctx).
+			Times(1).
+			Return(req)
 
-        flow := &kClient.VerificationFlow{
-            Id: flowID,
-        }
+		flow := &kClient.VerificationFlow{
+			Id: flowID,
+		}
 
-        mockFrontend.
-            EXPECT().
-            GetVerificationFlowExecute(gomock.Any()).
-            Times(1).
-            Return(flow, nil, nil)
+		mockFrontend.
+			EXPECT().
+			GetVerificationFlowExecute(gomock.Any()).
+			Times(1).
+			Return(flow, nil, nil)
 
-        svc := NewService(
-            mockKratos,
-            nil,
-            nil,
-            nil,
-            false,
-            mockTracer,
-            mockMonitor,
-            mockLogger,
-        )
+		svc := NewService(
+			mockKratos,
+			nil,
+			nil,
+			nil,
+			false,
+			mockTracer,
+			mockMonitor,
+			mockLogger,
+		)
 
-        f, c, err := svc.GetVerificationFlow(ctx, flowID, nil)
+		f, c, err := svc.GetVerificationFlow(ctx, flowID, nil)
 
-        if err != nil {
-            t.Fatalf("expected error to be nil, got %v", err)
-        }
+		if err != nil {
+			t.Fatalf("expected error to be nil, got %v", err)
+		}
 
-        if f != flow {
-            t.Fatalf("expected flow %v, got %v", flow, f)
-        }
+		if f != flow {
+			t.Fatalf("expected flow %v, got %v", flow, f)
+		}
 
-        if c != nil {
-            t.Fatalf("expected cookies to be nil, got %v", c)
-        }
-    })
+		if c != nil {
+			t.Fatalf("expected cookies to be nil, got %v", c)
+		}
+	})
 
-    t.Run("success with response cookies", func(t *testing.T) {
-        ctrl := gomock.NewController(t)
-        defer ctrl.Finish()
+	t.Run("success with response cookies", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-        ctx := context.Background()
+		ctx := context.Background()
 
-        mockTracer := NewMockTracingInterface(ctrl)
-        mockLogger := NewMockLoggerInterface(ctrl)
-        mockKratos := NewMockKratosClientInterface(ctrl)
-        mockFrontend := NewMockFrontendAPI(ctrl)
-        mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+		mockTracer := NewMockTracingInterface(ctrl)
+		mockLogger := NewMockLoggerInterface(ctrl)
+		mockKratos := NewMockKratosClientInterface(ctrl)
+		mockFrontend := NewMockFrontendAPI(ctrl)
+		mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
-        flowID := "flow-id"
+		flowID := "flow-id"
 
-        mockTracer.
-            EXPECT().
-            Start(ctx, "kratos.Service.GetVerificationFlow").
-            Times(1).
-            Return(ctx, trace.SpanFromContext(ctx))
+		mockTracer.
+			EXPECT().
+			Start(ctx, "kratos.Service.GetVerificationFlow").
+			Times(1).
+			Return(ctx, trace.SpanFromContext(ctx))
 
-        mockKratos.
-            EXPECT().
-            FrontendApi().
-            Times(2).
-            Return(mockFrontend)
+		mockKratos.
+			EXPECT().
+			FrontendApi().
+			Times(2).
+			Return(mockFrontend)
 
-        req := kClient.FrontendAPIGetVerificationFlowRequest{
-            ApiService: mockFrontend,
-        }
+		req := kClient.FrontendAPIGetVerificationFlowRequest{
+			ApiService: mockFrontend,
+		}
 
-        mockFrontend.
-            EXPECT().
-            GetVerificationFlow(ctx).
-            Times(1).
-            Return(req)
+		mockFrontend.
+			EXPECT().
+			GetVerificationFlow(ctx).
+			Times(1).
+			Return(req)
 
-        flow := &kClient.VerificationFlow{
-            Id: flowID,
-        }
+		flow := &kClient.VerificationFlow{
+			Id: flowID,
+		}
 
-        cookie := &http.Cookie{
-            Name:  "kratos",
-            Value: "test",
-        }
+		cookie := &http.Cookie{
+			Name:  "kratos",
+			Value: "test",
+		}
 
-        resp := &http.Response{
-            Header: http.Header{
-                "Set-Cookie": []string{cookie.Raw},
-            },
-        }
+		resp := &http.Response{
+			Header: http.Header{
+				"Set-Cookie": []string{cookie.Raw},
+			},
+		}
 
-        mockFrontend.
-            EXPECT().
-            GetVerificationFlowExecute(gomock.Any()).
-            Times(1).
-            Return(flow, resp, nil)
+		mockFrontend.
+			EXPECT().
+			GetVerificationFlowExecute(gomock.Any()).
+			Times(1).
+			Return(flow, resp, nil)
 
-        svc := NewService(
-            mockKratos,
-            nil,
-            nil,
-            nil,
-            false,
-            mockTracer,
-            mockMonitor,
-            mockLogger,
-        )
+		svc := NewService(
+			mockKratos,
+			nil,
+			nil,
+			nil,
+			false,
+			mockTracer,
+			mockMonitor,
+			mockLogger,
+		)
 
-        f, c, err := svc.GetVerificationFlow(ctx, flowID, nil)
+		f, c, err := svc.GetVerificationFlow(ctx, flowID, nil)
 
-        if err != nil {
-            t.Fatalf("expected error to be nil, got %v", err)
-        }
+		if err != nil {
+			t.Fatalf("expected error to be nil, got %v", err)
+		}
 
-        if f != flow {
-            t.Fatalf("expected flow %v, got %v", flow, f)
-        }
+		if f != flow {
+			t.Fatalf("expected flow %v, got %v", flow, f)
+		}
 
-        if !reflect.DeepEqual(c, resp.Cookies()) {
-            t.Fatalf("expected cookies %v, got %v", resp.Cookies(), c)
-        }
-    })
+		if !reflect.DeepEqual(c, resp.Cookies()) {
+			t.Fatalf("expected cookies %v, got %v", resp.Cookies(), c)
+		}
+	})
 }
 
 func TestService_UpdateVerificationFlow(t *testing.T) {
 
-    code := "123456"
-    body := kClient.UpdateVerificationFlowBody{
-        UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
-            Method: "code",
-            Code:   &code,
-        },
-    }
+	code := "123456"
+	body := kClient.UpdateVerificationFlowBody{
+		UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
+			Method: "code",
+			Code:   &code,
+		},
+	}
 
-    t.Run("kratos returns error", func(t *testing.T) {
-        ctrl := gomock.NewController(t)
-        defer ctrl.Finish()
+	t.Run("kratos returns error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-        ctx := context.Background()
-        mockTracer := NewMockTracingInterface(ctrl)
-        mockLogger := NewMockLoggerInterface(ctrl)
-        mockKratos := NewMockKratosClientInterface(ctrl)
-        mockFrontend := NewMockFrontendAPI(ctrl)
-        mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+		ctx := context.Background()
+		mockTracer := NewMockTracingInterface(ctrl)
+		mockLogger := NewMockLoggerInterface(ctrl)
+		mockKratos := NewMockKratosClientInterface(ctrl)
+		mockFrontend := NewMockFrontendAPI(ctrl)
+		mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
-        flowID := "flow-id"
+		flowID := "flow-id"
 
-        mockTracer.
-            EXPECT().
-            Start(ctx, "kratos.Service.UpdateVerificationFlow").
-            Times(1).
-            Return(ctx, trace.SpanFromContext(ctx))
+		mockTracer.
+			EXPECT().
+			Start(ctx, "kratos.Service.UpdateVerificationFlow").
+			Times(1).
+			Return(ctx, trace.SpanFromContext(ctx))
 
-        mockKratos.
-            EXPECT().
-            FrontendApi().
-            Times(2).
-            Return(mockFrontend)
+		mockKratos.
+			EXPECT().
+			FrontendApi().
+			Times(2).
+			Return(mockFrontend)
 
-        req := kClient.FrontendAPIUpdateVerificationFlowRequest{
-            ApiService: mockFrontend,
-        }
+		req := kClient.FrontendAPIUpdateVerificationFlowRequest{
+			ApiService: mockFrontend,
+		}
 
-        mockFrontend.
-            EXPECT().
-            UpdateVerificationFlow(ctx).
-            Times(1).
-            Return(req)
+		mockFrontend.
+			EXPECT().
+			UpdateVerificationFlow(ctx).
+			Times(1).
+			Return(req)
 
-        mockFrontend.
-            EXPECT().
-            UpdateVerificationFlowExecute(gomock.Any()).
-            Times(1).
-            Return(nil, nil, fmt.Errorf("kratos error"))
+		mockFrontend.
+			EXPECT().
+			UpdateVerificationFlowExecute(gomock.Any()).
+			Times(1).
+			Return(nil, nil, fmt.Errorf("kratos error"))
 
-        mockLogger.
-            EXPECT().
-            Errorf(gomock.Any(), gomock.Any()).
-            Times(1)
+		mockLogger.
+			EXPECT().
+			Errorf(gomock.Any(), gomock.Any()).
+			Times(1)
 
-        svc := NewService(mockKratos, nil, nil, nil, false, mockTracer, mockMonitor, mockLogger)
+		svc := NewService(mockKratos, nil, nil, nil, false, mockTracer, mockMonitor, mockLogger)
 
-        f, c, err := svc.UpdateVerificationFlow(ctx, flowID, body, nil)
+		f, c, err := svc.UpdateVerificationFlow(ctx, flowID, body, nil)
 
-        if f != nil {
-            t.Fatalf("expected flow nil, got %v", f)
-        }
-        if c != nil {
-            t.Fatalf("expected cookies nil, got %v", c)
-        }
-        if err == nil {
-            t.Fatalf("expected error, got nil")
-        }
-    })
+		if f != nil {
+			t.Fatalf("expected flow nil, got %v", f)
+		}
+		if c != nil {
+			t.Fatalf("expected cookies nil, got %v", c)
+		}
+		if err == nil {
+			t.Fatalf("expected error, got nil")
+		}
+	})
 
-    t.Run("success without response cookies", func(t *testing.T) {
-        ctrl := gomock.NewController(t)
-        defer ctrl.Finish()
+	t.Run("success without response cookies", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-        ctx := context.Background()
-        mockTracer := NewMockTracingInterface(ctrl)
-        mockLogger := NewMockLoggerInterface(ctrl)
-        mockKratos := NewMockKratosClientInterface(ctrl)
-        mockFrontend := NewMockFrontendAPI(ctrl)
-        mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+		ctx := context.Background()
+		mockTracer := NewMockTracingInterface(ctrl)
+		mockLogger := NewMockLoggerInterface(ctrl)
+		mockKratos := NewMockKratosClientInterface(ctrl)
+		mockFrontend := NewMockFrontendAPI(ctrl)
+		mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
-        flowID := "flow-id"
+		flowID := "flow-id"
 
-        mockTracer.
-            EXPECT().
-            Start(ctx, "kratos.Service.UpdateVerificationFlow").
-            Times(1).
-            Return(ctx, trace.SpanFromContext(ctx))
+		mockTracer.
+			EXPECT().
+			Start(ctx, "kratos.Service.UpdateVerificationFlow").
+			Times(1).
+			Return(ctx, trace.SpanFromContext(ctx))
 
-        mockKratos.
-            EXPECT().
-            FrontendApi().
-            Times(2).
-            Return(mockFrontend)
+		mockKratos.
+			EXPECT().
+			FrontendApi().
+			Times(2).
+			Return(mockFrontend)
 
-        req := kClient.FrontendAPIUpdateVerificationFlowRequest{
-            ApiService: mockFrontend,
-        }
+		req := kClient.FrontendAPIUpdateVerificationFlowRequest{
+			ApiService: mockFrontend,
+		}
 
-        mockFrontend.
-            EXPECT().
-            UpdateVerificationFlow(ctx).
-            Times(1).
-            Return(req)
+		mockFrontend.
+			EXPECT().
+			UpdateVerificationFlow(ctx).
+			Times(1).
+			Return(req)
 
-        flow := &kClient.VerificationFlow{Id: flowID}
+		flow := &kClient.VerificationFlow{Id: flowID}
 
-        mockFrontend.
-            EXPECT().
-            UpdateVerificationFlowExecute(gomock.Any()).
-            Times(1).
-            Return(flow, nil, nil)
+		mockFrontend.
+			EXPECT().
+			UpdateVerificationFlowExecute(gomock.Any()).
+			Times(1).
+			Return(flow, nil, nil)
 
-        svc := NewService(mockKratos, nil, nil, nil, false, mockTracer, mockMonitor, mockLogger)
+		svc := NewService(mockKratos, nil, nil, nil, false, mockTracer, mockMonitor, mockLogger)
 
-        f, c, err := svc.UpdateVerificationFlow(ctx, flowID, body, nil)
+		f, c, err := svc.UpdateVerificationFlow(ctx, flowID, body, nil)
 
-        if err != nil {
-            t.Fatalf("expected nil error, got %v", err)
-        }
-        if f != flow {
-            t.Fatalf("expected flow %v, got %v", flow, f)
-        }
-        if c != nil {
-            t.Fatalf("expected cookies nil, got %v", c)
-        }
-    })
+		if err != nil {
+			t.Fatalf("expected nil error, got %v", err)
+		}
+		if f != flow {
+			t.Fatalf("expected flow %v, got %v", flow, f)
+		}
+		if c != nil {
+			t.Fatalf("expected cookies nil, got %v", c)
+		}
+	})
 
-    t.Run("success with response cookies", func(t *testing.T) {
-        ctrl := gomock.NewController(t)
-        defer ctrl.Finish()
+	t.Run("success with response cookies", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-        ctx := context.Background()
-        mockTracer := NewMockTracingInterface(ctrl)
-        mockLogger := NewMockLoggerInterface(ctrl)
-        mockKratos := NewMockKratosClientInterface(ctrl)
-        mockFrontend := NewMockFrontendAPI(ctrl)
-        mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+		ctx := context.Background()
+		mockTracer := NewMockTracingInterface(ctrl)
+		mockLogger := NewMockLoggerInterface(ctrl)
+		mockKratos := NewMockKratosClientInterface(ctrl)
+		mockFrontend := NewMockFrontendAPI(ctrl)
+		mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
 
-        flowID := "flow-id"
+		flowID := "flow-id"
 
-        mockTracer.
-            EXPECT().
-            Start(ctx, "kratos.Service.UpdateVerificationFlow").
-            Times(1).
-            Return(ctx, trace.SpanFromContext(ctx))
+		mockTracer.
+			EXPECT().
+			Start(ctx, "kratos.Service.UpdateVerificationFlow").
+			Times(1).
+			Return(ctx, trace.SpanFromContext(ctx))
 
-        mockKratos.
-            EXPECT().
-            FrontendApi().
-            Times(2).
-            Return(mockFrontend)
+		mockKratos.
+			EXPECT().
+			FrontendApi().
+			Times(2).
+			Return(mockFrontend)
 
-        req := kClient.FrontendAPIUpdateVerificationFlowRequest{
-            ApiService: mockFrontend,
-        }
+		req := kClient.FrontendAPIUpdateVerificationFlowRequest{
+			ApiService: mockFrontend,
+		}
 
-        mockFrontend.
-            EXPECT().
-            UpdateVerificationFlow(ctx).
-            Times(1).
-            Return(req)
+		mockFrontend.
+			EXPECT().
+			UpdateVerificationFlow(ctx).
+			Times(1).
+			Return(req)
 
-        flow := &kClient.VerificationFlow{Id: flowID}
+		flow := &kClient.VerificationFlow{Id: flowID}
 
-        cookie := &http.Cookie{Name: "kratos", Value: "test"}
-        resp := &http.Response{
-            Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
-        }
+		cookie := &http.Cookie{Name: "kratos", Value: "test"}
+		resp := &http.Response{
+			Header: http.Header{"Set-Cookie": []string{cookie.Raw}},
+		}
 
-        mockFrontend.
-            EXPECT().
-            UpdateVerificationFlowExecute(gomock.Any()).
-            Times(1).
-            Return(flow, resp, nil)
+		mockFrontend.
+			EXPECT().
+			UpdateVerificationFlowExecute(gomock.Any()).
+			Times(1).
+			Return(flow, resp, nil)
 
-        svc := NewService(mockKratos, nil, nil, nil, false, mockTracer, mockMonitor, mockLogger)
+		svc := NewService(mockKratos, nil, nil, nil, false, mockTracer, mockMonitor, mockLogger)
 
-        f, c, err := svc.UpdateVerificationFlow(ctx, flowID, body, nil)
+		f, c, err := svc.UpdateVerificationFlow(ctx, flowID, body, nil)
 
-        if err != nil {
-            t.Fatalf("expected nil error, got %v", err)
-        }
-        if f != flow {
-            t.Fatalf("expected flow %v, got %v", flow, f)
-        }
-        if !reflect.DeepEqual(c, resp.Cookies()) {
-            t.Fatalf("expected cookies %v, got %v", resp.Cookies(), c)
-        }
-    })
+		if err != nil {
+			t.Fatalf("expected nil error, got %v", err)
+		}
+		if f != flow {
+			t.Fatalf("expected flow %v, got %v", flow, f)
+		}
+		if !reflect.DeepEqual(c, resp.Cookies()) {
+			t.Fatalf("expected cookies %v, got %v", resp.Cookies(), c)
+		}
+	})
 }

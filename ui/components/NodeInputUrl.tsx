@@ -25,6 +25,7 @@ export const NodeInputUrl: FC<NodeInputProps> = ({ node }) => {
       onClick={isWebauthnLogin ? handleWebauthnLogin : undefined}
       className={isWebauthnLogin ? "oidc-login-button" : ""}
       tabIndex={4}
+      type="button"
     >
       <img
         src="logos/Fallback.svg"
