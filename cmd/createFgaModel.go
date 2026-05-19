@@ -1,6 +1,6 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
+// Copyright 2026 Canonical Ltd
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
