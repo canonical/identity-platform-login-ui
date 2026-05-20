@@ -72,7 +72,11 @@ make npm-build build  # Full build (frontend must precede Go binary)
 
 ### Go
 
-- **File header**: New files need the standard Canonical AGPL-3.0 header — see existing files for the format.
+- **File header**: Every Go source file must start with:
+  ```go
+  // Copyright <year> Canonical Ltd.
+  // SPDX-License-Identifier: AGPL-3.0-only
+  ```
 - **Error messages**: lowercase verbs — `"cannot fetch flow"` not `"Cannot Fetch Flow"`.
   Use `%w` only if the caller needs to inspect the error type; otherwise `%v`.
 - **Logging**: log errors in handlers only, never in services.
