@@ -215,7 +215,7 @@ services:
     labels:
       - "traefik.enable=false"
   migrateopenfga:
-    image: openfga/openfga:v1.9.0
+    image: openfga/openfga:v1.9.5
     container_name: migrateopenfga
     command: migrate --datastore-engine postgres --datastore-uri 'postgresql://openfga:openfga@postgres/openfga?sslmode=disable'
     depends_on:
@@ -237,7 +237,7 @@ services:
     labels:
       - "traefik.enable=false"
   openfga:
-    image: openfga/openfga:v1.9.0
+    image: openfga/openfga:v1.9.5
     environment:
       OPENFGA_DATASTORE_ENGINE: "postgres"
       OPENFGA_DATASTORE_URI: "postgresql://openfga:openfga@postgres/openfga?sslmode=disable"
