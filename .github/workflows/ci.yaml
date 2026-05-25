@@ -13,6 +13,7 @@ on:
     branches:
       - "*"
 
+
 jobs:
   unit-test:
     uses: ./.github/workflows/unittest.yaml
@@ -35,7 +36,7 @@ jobs:
     with:
       eol-stable-release: "6 month"
     secrets:
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}      
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
   scan:
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: gh-publish
@@ -45,8 +46,11 @@ jobs:
   oci-update-pr:
     needs: [gh-publish, scan]
     if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+      pull-requests: write
     uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@2a4ae518f9c792dcdf14d05f8d86e3d72e160d96 # v1.9.0
-    with: 
+    with:
         oci-image: ${{ needs.gh-publish.outputs.image }}
         repository: canonical/identity-platform-login-ui-operator
     secrets:
