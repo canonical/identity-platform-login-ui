@@ -61,7 +61,7 @@ const SelectTenant: NextPage = () => {
     if (!router.isReady) return;
 
     if (configReady && !multiTenancyEnabled) {
-      void router.replace("/ui/login");
+      void router.replace("./login");
       return;
     }
 
@@ -86,7 +86,13 @@ const SelectTenant: NextPage = () => {
         );
       })
       .finally(() => setLoading(false));
-  }, [router.isReady, flowId, submitTenantSelection, configReady, multiTenancyEnabled]);
+  }, [
+    router.isReady,
+    flowId,
+    submitTenantSelection,
+    configReady,
+    multiTenancyEnabled,
+  ]);
 
   if (!router.isReady) return null;
 
