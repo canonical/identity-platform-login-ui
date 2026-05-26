@@ -23,7 +23,7 @@ any tenant API calls. Do not call the lookup API if the flag is `false`.
 
 When `MULTI_TENANCY_ENABLED=true`, the backend withholds the Hydra `login_challenge` from
 Kratos when creating browser login flows. This is the same pattern used by
-`OIDC_WEBAUTHN_SEQUENCING_ENABLED` (see [docs/sequencing.md](docs/sequencing.md)). Without
+`OIDC_WEBAUTHN_SEQUENCING_ENABLED` (see [./sequencing.md](docs/sequencing.md)). Without
 this, Kratos auto-accepts the Hydra login request internally during OIDC authentication,
 bypassing the Login UI and losing the `tenant_id` context. Withholding the challenge forces
 Kratos to redirect back to the Login UI after authentication, allowing it to call
