@@ -22,6 +22,9 @@ jobs:
   build:
     uses: canonical/identity-team/.github/workflows/_rock-build.yaml@2a4ae518f9c792dcdf14d05f8d86e3d72e160d96 # v1.9.0
   gh-publish:
+    permissions:
+      packages: write
+      contents: read
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: [ build, unit-test ]
     uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@2a4ae518f9c792dcdf14d05f8d86e3d72e160d96 # v1.9.0
@@ -38,6 +41,11 @@ jobs:
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
   scan:
+    permissions:
+      packages: read
+      contents: read
+      security-events: write
+      actions: read
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: gh-publish
     uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@2a4ae518f9c792dcdf14d05f8d86e3d72e160d96 # v1.9.0
