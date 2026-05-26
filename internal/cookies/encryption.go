@@ -1,7 +1,7 @@
 // Copyright 2024 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package kratos
+package cookies
 
 import (
 	"crypto/aes"

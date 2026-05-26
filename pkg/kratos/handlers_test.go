@@ -25,6 +25,9 @@ import (
 
 	hClient "github.com/ory/hydra-client-go/v2"
 	kClient "github.com/ory/kratos-client-go/v25"
+
+	"github.com/canonical/identity-platform-login-ui/internal/cookies"
+	"github.com/canonical/identity-platform-login-ui/pkg/tenants"
 )
 
 const (
@@ -40,9 +43,9 @@ const (
 	HANDLE_CREATE_SETTINGS_FLOW_URL               = BASE_URL + "/api/kratos/self-service/settings/browser"
 	HANDLE_UPDATE_SETTINGS_FLOW_URL               = BASE_URL + "/api/kratos/self-service/settings"
 	HANDLE_GET_SETTINGS_FLOW_URL                  = BASE_URL + "/api/kratos/self-service/settings/flows"
-    HANDLE_CREATE_VERIFICATION_FLOW_URL = BASE_URL + "/api/kratos/self-service/verification/browser"
-    HANDLE_UPDATE_VERIFICATION_FLOW_URL = BASE_URL + "/api/kratos/self-service/verification"
-    HANDLE_GET_VERIFICATION_FLOW_URL = BASE_URL + "/api/kratos/self-service/verification/flows"
+	HANDLE_CREATE_VERIFICATION_FLOW_URL           = BASE_URL + "/api/kratos/self-service/verification/browser"
+	HANDLE_UPDATE_VERIFICATION_FLOW_URL           = BASE_URL + "/api/kratos/self-service/verification"
+	HANDLE_GET_VERIFICATION_FLOW_URL              = BASE_URL + "/api/kratos/self-service/verification/flows"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -package kratos -destination ./mock_logger.go -source=../../internal/logging/interfaces.go
@@ -64,7 +67,7 @@ func TestHandleCreateFlowWithoutParams(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -99,14 +102,14 @@ func TestHandleCreateFlowWithoutSessionAcceptJSON(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, cookies.FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -153,14 +156,14 @@ func TestHandleCreateFlowWithoutSessionNotAcceptJSON(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 	req.Header.Set("Accept", "application/x-www-form-urlencoded")
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, cookies.FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -199,15 +202,15 @@ func TestHandleCreateFlowWithoutSessionFailOnCreateBrowserLoginFlow(t *testing.T
 	values.Add("login_challenge", loginChallenge)
 	req.URL.RawQuery = values.Encode()
 
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockLogger.EXPECT().Errorf("failed to create login flow, err: error")
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, cookies.FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(nil, nil, fmt.Errorf("error"))
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -241,15 +244,15 @@ func TestHandleCreateFlowWithoutSessionFailOnFilterProviders(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, cookies.FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(nil, fmt.Errorf("oh no"))
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -285,14 +288,14 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowedAcceptJSON(t *testi
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, cookies.FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -340,14 +343,14 @@ func TestHandleCreateFlowWithoutSessionWhenNoProvidersAllowedNotAcceptJSON(t *te
 	req.Header.Set("Accept", "application/x-www-form-urlencoded")
 
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, FlowStateCookie{}).Return(true, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, nil, cookies.FlowStateCookie{}).Return(true, nil)
 	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), returnTo, loginChallenge, gomock.Any(), req.Cookies()).Return(flow, req.Cookies(), nil)
 	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -374,6 +377,7 @@ func TestHandleCreateFlowRedirectToSetupWebauthn(t *testing.T) {
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = "test"
 	flow.State = "passed_challenge"
@@ -397,11 +401,12 @@ func TestHandleCreateFlowRedirectToSetupWebauthn(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().HasWebAuthnAvailable(gomock.Any(), session.Id).Return(false, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, true, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, true, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -433,6 +438,7 @@ func TestHandleCreateFlowWithSessionAcceptJSON(t *testing.T) {
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 	session := kClient.NewSession("test")
 	redirect := "https://some/path/to/somewhere"
 	redirectTo := BrowserLocationChangeRequired{RedirectTo: &redirect}
@@ -449,14 +455,14 @@ func TestHandleCreateFlowWithSessionAcceptJSON(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
-	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(&redirectTo, req.Cookies(), nil)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, cookies.FlowStateCookie{}).Return(false, nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, gomock.Any()).Return(&redirectTo, req.Cookies(), nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil).Times(1)
 	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any()).Return()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -487,6 +493,7 @@ func TestHandleCreateFlowWithSessionNotAcceptJSON(t *testing.T) {
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 	session := kClient.NewSession("test")
 	redirect := "https://some/path/to/somewhere"
 	redirectTo := BrowserLocationChangeRequired{RedirectTo: &redirect}
@@ -503,14 +510,14 @@ func TestHandleCreateFlowWithSessionNotAcceptJSON(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
-	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(&redirectTo, req.Cookies(), nil)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, cookies.FlowStateCookie{}).Return(false, nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, gomock.Any()).Return(&redirectTo, req.Cookies(), nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil).Times(1)
 	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any()).Return()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -541,6 +548,7 @@ func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 	session := kClient.NewSession("test")
 
 	loginChallenge := "login_challenge_2341235123231"
@@ -554,14 +562,14 @@ func TestHandleCreateFlowWithSessionFailOnAcceptLoginRequest(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, FlowStateCookie{}).Return(false, nil)
-	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge).Return(nil, nil, fmt.Errorf("error"))
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(FlowStateCookie{}, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, cookies.FlowStateCookie{}).Return(false, nil)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, gomock.Any()).Return(nil, nil, fmt.Errorf("error"))
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil).Times(1)
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -581,6 +589,7 @@ func TestHandleCreateFlowRedirectToVerification(t *testing.T) {
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 	loginChallenge := "login_challenge_2341235123231"
 	identityId := "test"
 	unverifiedEmail := "unverified@example.com"
@@ -596,12 +605,13 @@ func TestHandleCreateFlowRedirectToVerification(t *testing.T) {
 	mockService.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerification").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().RequireVerificationForEmail(gomock.Any(), gomock.Any()).Return(true, unverifiedEmail, nil).Times(1)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
 	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, true, false, true, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, false, true, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -653,6 +663,7 @@ func TestHandleCreateFlowRequireVerificationError(t *testing.T) {
 
 	mockService.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil).AnyTimes()
 	mockService.EXPECT().RequireVerificationForEmail(gomock.Any(), gomock.Any()).Return(false, "", fmt.Errorf("failed check for verification")).Times(1)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 
@@ -660,7 +671,7 @@ func TestHandleCreateFlowRequireVerificationError(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, true, false, true, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, false, true, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -676,7 +687,7 @@ func TestHandleCreateFlowRequireVerificationError(t *testing.T) {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 
-	if !strings.Contains(string(data), "Failed check for verification") {
+	if !strings.Contains(string(data), "failed to check verification status") {
 		t.Errorf("expected response body to contain failure message, got %s", string(data))
 	}
 }
@@ -704,7 +715,7 @@ func TestHandleGetLoginFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -750,7 +761,7 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -761,321 +772,656 @@ func TestHandleGetLoginFlowFail(t *testing.T) {
 	}
 }
 
-func TestHandleCreateRegistrationFlow(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    defer ctrl.Finish()
+// TestHandleCreateFlowRedirectsToTenantSelectionWhenNoTenantSelected verifies
+// that when multi-tenancy is enabled, the user has a session, and no tenant has
+// been selected yet, handleCreateFlow redirects to the tenant selection page.
+// MFA/WebAuthn checks run first (both disabled here), then the tenant check fires.
+func TestHandleCreateFlowRedirectsToTenantSelectionWhenNoTenantSelected(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-    mockLogger := NewMockLoggerInterface(ctrl)
-    mockService := NewMockServiceInterface(ctrl)
-    mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-    mockTracer := NewMockTracingInterface(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
 
-    api := NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
+	loginChallenge := "test-challenge"
+	session := kClient.NewSession("test")
 
-    t.Run("service.CreateBrowserRegistrationFlow returns error", func(t *testing.T) {
-        req := httptest.NewRequest(http.MethodGet, "/registration/create?return_to=/error", nil)
-        w := httptest.NewRecorder()
+	stateCookie := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+	}
 
-        mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/error").
-            Return(nil, nil, errors.New("create failed"))
-        mockLogger.EXPECT().Errorf("Failed to create registration flow: %v", gomock.Any())
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 
-        api.handleCreateRegistrationFlow(w, req)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookie, nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
+		Return(tenants.LoginInterception{SelectTenant: true, Cookie: stateCookie}, nil)
 
-        res := w.Result()
-        defer res.Body.Close()
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
-        if res.StatusCode != http.StatusInternalServerError {
-            t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
-        }
+	mux.ServeHTTP(w, req)
 
-        data, _ := io.ReadAll(res.Body)
-        if !strings.Contains(string(data), "Failed to create registration flow") {
-            t.Fatalf("expected failure message, got %q", string(data))
-        }
-    })
+	res := w.Result()
 
-    t.Run("success - custom return_to", func(t *testing.T) {
-        flowID := "flow-abc-123"
-        req := httptest.NewRequest(http.MethodGet, "/registration/create?return_to=/welcome", nil)
-        w := httptest.NewRecorder()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
 
-        flow := kClient.NewRegistrationFlowWithDefaults()
-        flow.SetId(flowID)
-        cookies := []*http.Cookie{{Name: "session", Value: "xyz"}}
-
-        mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/welcome").
-            Return(flow, cookies, nil)
-
-        api.handleCreateRegistrationFlow(w, req)
-
-        res := w.Result()
-        defer res.Body.Close()
-
-        if res.StatusCode != http.StatusOK {
-            t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
-        }
-
-        foundCookie := false
-        for _, c := range res.Cookies() {
-            if c.Name == "session" && c.Value == "xyz" {
-                foundCookie = true
-            }
-        }
-        if !foundCookie {
-            t.Fatalf("expected cookie 'session=xyz' to be set")
-        }
-
-        var body map[string]interface{}
-        if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-            t.Fatalf("unexpected decode error: %v", err)
-        }
-        if body["id"] != flowID {
-            t.Fatalf("expected id %s, got %v", flowID, body["id"])
-        }
-    })
-
-    t.Run("success - no return_to", func(t *testing.T) {
-        flowID := "flow-789"
-        req := httptest.NewRequest(http.MethodGet, "/registration/create", nil)
-        w := httptest.NewRecorder()
-
-        flow := kClient.NewRegistrationFlowWithDefaults()
-        flow.SetId(flowID)
-        cookies := []*http.Cookie{{Name: "def", Value: "ok"}}
-
-        mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "").
-            Return(flow, cookies, nil)
-
-        api.handleCreateRegistrationFlow(w, req)
-
-        res := w.Result()
-        defer res.Body.Close()
-
-        if res.StatusCode != http.StatusOK {
-            t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
-        }
-
-        foundCookie := false
-        for _, c := range res.Cookies() {
-            if c.Name == "def" && c.Value == "ok" {
-                foundCookie = true
-            }
-        }
-        if !foundCookie {
-            t.Fatalf("expected cookie 'def=ok' to be set")
-        }
-
-        var body map[string]interface{}
-        if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-            t.Fatalf("unexpected decode error: %v", err)
-        }
-        if body["id"] != flowID {
-            t.Fatalf("expected id %s, got %v", flowID, body["id"])
-        }
-    })
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.Error == nil || resp.Error.GetId() != "tenant_selection_required" {
+		t.Fatalf("Expected error id tenant_selection_required, got: %v", resp.Error)
+	}
+	if resp.RedirectTo == nil || *resp.RedirectTo == "" {
+		t.Fatal("Expected redirect_to to be set")
+	}
 }
 
+// TestHandleCreateFlowAcceptsLoginWithExistingTenantID verifies that
+// when the user already has a tenant selected in the state cookie, handleCreateFlow
+// proceeds through the session block (MFA, WebAuthn) then
+// reaches the post-auth block to accept the Hydra login request.
+func TestHandleCreateFlowAcceptsLoginWithExistingTenantID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	loginChallenge := "test-challenge"
+	tenantID := "tenant-123"
+	session := kClient.NewSession("test")
+	redirect := "https://hydra.example.com/oauth2/auth?client_id=x"
+	redirectTo := BrowserLocationChangeRequired{RedirectTo: &redirect}
+
+	stateCookie := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+		TenantID:           tenantID,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookie, nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
+		Return(tenants.LoginInterception{AcceptLogin: true, Cookie: stateCookie}, nil)
+	// Inside handleCreateFlowWithSession: TenantID is called to extract the ID.
+	mockTenantMgr.EXPECT().TenantID(stateCookie, loginChallenge).Return(tenantID)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, tenantID).Return(&redirectTo, req.Cookies(), nil)
+	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any())
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.RedirectTo == nil || *resp.RedirectTo != redirect {
+		t.Fatalf("Expected redirect_to %s, got: %v", redirect, resp.RedirectTo)
+	}
+}
+
+// TestHandleCreateFlowRedirectsToTenantSelectionWhenHasTenants verifies that
+// when the user has tenants but none is selected yet, handleCreateFlow redirects
+// to the tenant selection page.
+func TestHandleCreateFlowRedirectsToTenantSelectionWhenHasTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	loginChallenge := "test-challenge"
+	session := kClient.NewSession("test")
+
+	stateCookie := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+	}
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookie, nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
+		Return(tenants.LoginInterception{SelectTenant: true, Cookie: stateCookie}, nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.Error == nil || resp.Error.GetId() != "tenant_selection_required" {
+		t.Fatalf("Expected error id tenant_selection_required, got: %v", resp.Error)
+	}
+	if resp.RedirectTo == nil || *resp.RedirectTo == "" {
+		t.Fatal("Expected redirect_to to be set")
+	}
+}
+
+// TestHandleCreateFlowSkipsTenantSelectionForNoTenantUser verifies that
+// when the user has no tenants, handleCreateFlow stores the NoTenantAvailable
+// sentinel and proceeds directly to accept the Hydra login request.
+func TestHandleCreateFlowSkipsTenantSelectionForNoTenantUser(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	loginChallenge := "test-challenge"
+	session := kClient.NewSession("test")
+	redirect := "https://hydra.example.com/oauth2/auth?client_id=x"
+	redirectTo := BrowserLocationChangeRequired{RedirectTo: &redirect}
+
+	stateCookieInitial := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+	}
+	stateCookieWithSentinel := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+		TenantID:           cookies.NoTenantAvailable,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookieInitial, nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceWebAuthnWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookieInitial, loginChallenge).
+		Return(tenants.LoginInterception{AcceptLogin: true, Cookie: stateCookieWithSentinel}, nil)
+	// Inside handleCreateFlowWithSession: TenantID extracts the sentinel.
+	mockTenantMgr.EXPECT().TenantID(stateCookieWithSentinel, loginChallenge).Return(cookies.NoTenantAvailable)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, cookies.NoTenantAvailable).Return(&redirectTo, req.Cookies(), nil)
+	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any())
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.RedirectTo == nil || *resp.RedirectTo != redirect {
+		t.Fatalf("Expected redirect_to %s, got: %v", redirect, resp.RedirectTo)
+	}
+}
+
+// TestHandleCreateFlowAcceptsLoginAfterOIDCAuth verifies that when the user
+// returns from OIDC authentication (e.g. Dex) with a valid session but the
+// state cookie's challenge hash doesn't match (because it was never set during
+// the OIDC redirect), InterceptLogin correctly returns AcceptLogin=true and
+// the login is accepted without calling MustReAuthenticate.
+// This is the fix for the OIDC redirect-back-to-login-page loop.
+func TestHandleCreateFlowAcceptsLoginAfterOIDCAuth(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	loginChallenge := "oidc-challenge"
+	session := kClient.NewSession("oidc-session")
+	redirect := "https://hydra.example.com/oauth2/auth?client_id=x"
+	redirectTo := BrowserLocationChangeRequired{RedirectTo: &redirect}
+
+	// State cookie has NO LoginChallengeHash — simulates the OIDC flow
+	// where the cookie was never bound to this challenge.
+	stateCookie := cookies.FlowStateCookie{}
+
+	// InterceptLogin returns the cookie updated for the challenge.
+	updatedCookie := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+		TenantID:           cookies.NoTenantAvailable,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookie, nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	// DeferMFAChecks=true → MFA/WebAuthn checks are skipped
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
+		Return(tenants.LoginInterception{DeferMFAChecks: true, AcceptLogin: true, Cookie: updatedCookie}, nil)
+	// DeferMFAChecks=true means the cookie doesn't match this challenge,
+	// so MustReAuthenticate is called. Hydra says skip=true (user just
+	// authenticated via OIDC), so forceLogin=false and AcceptLogin proceeds.
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(false, nil)
+	mockTenantMgr.EXPECT().TenantID(updatedCookie, loginChallenge).Return(cookies.NoTenantAvailable)
+	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, cookies.NoTenantAvailable).Return(&redirectTo, req.Cookies(), nil)
+	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any())
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.RedirectTo == nil || *resp.RedirectTo != redirect {
+		t.Fatalf("Expected redirect_to %s, got: %v", redirect, resp.RedirectTo)
+	}
+}
+
+func TestHandleCreateRegistrationFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+
+	api := NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger)
+
+	t.Run("service.CreateBrowserRegistrationFlow returns error", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/registration/create?return_to=/error", nil)
+		w := httptest.NewRecorder()
+
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/error").
+			Return(nil, nil, errors.New("create failed"))
+		mockLogger.EXPECT().Errorf("Failed to create registration flow: %v", gomock.Any())
+
+		api.handleCreateRegistrationFlow(w, req)
+
+		res := w.Result()
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
+		}
+
+		data, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(data), "Failed to create registration flow") {
+			t.Fatalf("expected failure message, got %q", string(data))
+		}
+	})
+
+	t.Run("success - custom return_to", func(t *testing.T) {
+		flowID := "flow-abc-123"
+		req := httptest.NewRequest(http.MethodGet, "/registration/create?return_to=/welcome", nil)
+		w := httptest.NewRecorder()
+
+		flow := kClient.NewRegistrationFlowWithDefaults()
+		flow.SetId(flowID)
+		cookies := []*http.Cookie{{Name: "session", Value: "xyz"}}
+
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/welcome").
+			Return(flow, cookies, nil)
+
+		api.handleCreateRegistrationFlow(w, req)
+
+		res := w.Result()
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
+
+		foundCookie := false
+		for _, c := range res.Cookies() {
+			if c.Name == "session" && c.Value == "xyz" {
+				foundCookie = true
+			}
+		}
+		if !foundCookie {
+			t.Fatalf("expected cookie 'session=xyz' to be set")
+		}
+
+		var body map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+			t.Fatalf("unexpected decode error: %v", err)
+		}
+		if body["id"] != flowID {
+			t.Fatalf("expected id %s, got %v", flowID, body["id"])
+		}
+	})
+
+	t.Run("success - no return_to", func(t *testing.T) {
+		flowID := "flow-789"
+		req := httptest.NewRequest(http.MethodGet, "/registration/create", nil)
+		w := httptest.NewRecorder()
+
+		flow := kClient.NewRegistrationFlowWithDefaults()
+		flow.SetId(flowID)
+		cookies := []*http.Cookie{{Name: "def", Value: "ok"}}
+
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "").
+			Return(flow, cookies, nil)
+
+		api.handleCreateRegistrationFlow(w, req)
+
+		res := w.Result()
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
+
+		foundCookie := false
+		for _, c := range res.Cookies() {
+			if c.Name == "def" && c.Value == "ok" {
+				foundCookie = true
+			}
+		}
+		if !foundCookie {
+			t.Fatalf("expected cookie 'def=ok' to be set")
+		}
+
+		var body map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+			t.Fatalf("unexpected decode error: %v", err)
+		}
+		if body["id"] != flowID {
+			t.Fatalf("expected id %s, got %v", flowID, body["id"])
+		}
+	})
+}
 
 func TestHandleGetRegistrationFlow(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    defer ctrl.Finish()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-    mockLogger := NewMockLoggerInterface(ctrl)
-    mockService := NewMockServiceInterface(ctrl)
-    mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-    mockTracer := NewMockTracingInterface(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
-    api := NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
+	api := NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger)
 
-    t.Run("Missing id parameter", func(t *testing.T) {
-        req := httptest.NewRequest(http.MethodGet, "/registration", nil)
-        w := httptest.NewRecorder()
+	t.Run("Missing id parameter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/registration", nil)
+		w := httptest.NewRecorder()
 
-        mockLogger.EXPECT().Errorf("ID parameter not present")
+		mockLogger.EXPECT().Errorf("ID parameter not present")
 
-        api.handleGetRegistrationFlow(w, req)
+		api.handleGetRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusBadRequest {
-            t.Fatalf("expected %d, got %d", http.StatusBadRequest, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected %d, got %d", http.StatusBadRequest, res.StatusCode)
+		}
 
-        var body string
-        if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-            t.Fatalf("unexpected decode error: %v", err)
-        }
-        if body != "ID parameter not present" {
-            t.Fatalf("expected error message 'ID parameter not present', got %q", body)
-        }
-    })
+		var body string
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+			t.Fatalf("unexpected decode error: %v", err)
+		}
+		if body != "ID parameter not present" {
+			t.Fatalf("expected error message 'ID parameter not present', got %q", body)
+		}
+	})
 
-    t.Run("GetRegistrationFlow returns error", func(t *testing.T) {
-        id := "flow123"
-        req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
-        w := httptest.NewRecorder()
+	t.Run("GetRegistrationFlow returns error", func(t *testing.T) {
+		id := "flow123"
+		req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
+		w := httptest.NewRecorder()
 
-        mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
-            Return(nil, nil, errors.New("some error"))
-        mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any())
+		mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
+			Return(nil, nil, errors.New("some error"))
+		mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any())
 
-        api.handleGetRegistrationFlow(w, req)
+		api.handleGetRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusInternalServerError {
-            t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
+		}
 
-        data, _ := io.ReadAll(res.Body)
-        if !strings.Contains(string(data), "Failed to get registration flow") {
-            t.Fatalf("expected failure message, got %q", string(data))
-        }
-    })
+		data, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(data), "Failed to get registration flow") {
+			t.Fatalf("expected failure message, got %q", string(data))
+		}
+	})
 
-    t.Run("Success", func(t *testing.T) {
-        id := "flow456"
-        req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
-        w := httptest.NewRecorder()
+	t.Run("Success", func(t *testing.T) {
+		id := "flow456"
+		req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
+		w := httptest.NewRecorder()
 
-        flow := kClient.NewRegistrationFlowWithDefaults()
-        flow.SetId(id)
-        cookies := []*http.Cookie{{Name: "test", Value: "ok"}}
+		flow := kClient.NewRegistrationFlowWithDefaults()
+		flow.SetId(id)
+		cookies := []*http.Cookie{{Name: "test", Value: "ok"}}
 
-        mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
-            Return(flow, cookies, nil)
+		mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
+			Return(flow, cookies, nil)
 
-        api.handleGetRegistrationFlow(w, req)
+		api.handleGetRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusOK {
-            t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
 
-        foundCookie := false
-        for _, c := range res.Cookies() {
-            if c.Name == "test" && c.Value == "ok" {
-                foundCookie = true
-            }
-        }
-        if !foundCookie {
-            t.Fatalf("expected cookie 'test=ok' to be set")
-        }
+		foundCookie := false
+		for _, c := range res.Cookies() {
+			if c.Name == "test" && c.Value == "ok" {
+				foundCookie = true
+			}
+		}
+		if !foundCookie {
+			t.Fatalf("expected cookie 'test=ok' to be set")
+		}
 
-        var body map[string]interface{}
-        if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-            t.Fatalf("unexpected decode error: %v", err)
-        }
+		var body map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+			t.Fatalf("unexpected decode error: %v", err)
+		}
 
-        if body["id"] != id {
-            t.Fatalf("expected id %s, got %v", id, body["id"])
-        }
-    })
+		if body["id"] != id {
+			t.Fatalf("expected id %s, got %v", id, body["id"])
+		}
+	})
 }
 
 func TestHandleUpdateRegistrationFlow(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    defer ctrl.Finish()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-    mockLogger := NewMockLoggerInterface(ctrl)
-    mockService := NewMockServiceInterface(ctrl)
-    mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-    mockTracer := NewMockTracingInterface(ctrl)
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
 
-    api := NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
+	api := NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger)
 
-    t.Run("ParseRegistrationFlowMethodBody returns error", func(t *testing.T) {
-        req := httptest.NewRequest(http.MethodPost, "/registration/update?flow=e2c802141dc51a06676974687562", nil)
-        w := httptest.NewRecorder()
+	t.Run("ParseRegistrationFlowMethodBody returns error", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/registration/update?flow=e2c802141dc51a06676974687562", nil)
+		w := httptest.NewRecorder()
 
-        mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
-            Return(nil, errors.New("parse error"))
-        mockLogger.EXPECT().Errorf("Error when parsing request body: %v\n", gomock.Any())
+		mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
+			Return(nil, errors.New("parse error"))
+		mockLogger.EXPECT().Errorf("Error when parsing request body: %v\n", gomock.Any())
 
-        api.handleUpdateRegistrationFlow(w, req)
+		api.handleUpdateRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusInternalServerError {
-            t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
+		}
 
-        data, _ := io.ReadAll(res.Body)
-        if !strings.Contains(string(data), "Failed to parse registration flow") {
-            t.Fatalf("expected parse failure message, got %q", string(data))
-        }
-    })
+		data, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(data), "Failed to parse registration flow") {
+			t.Fatalf("expected parse failure message, got %q", string(data))
+		}
+	})
 
-    t.Run("UpdateRegistrationFlow returns error", func(t *testing.T) {
-        req := httptest.NewRequest(http.MethodPost, "/registration/update?flow=e2c802141dc51a06676974687562", nil)
-        w := httptest.NewRecorder()
+	t.Run("UpdateRegistrationFlow returns error", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/registration/update?flow=e2c802141dc51a06676974687562", nil)
+		w := httptest.NewRecorder()
 
-        body := &kClient.UpdateRegistrationFlowBody{}
-        mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
-            Return(body, nil)
-        mockService.EXPECT().UpdateRegistrationFlow(gomock.Any(), "e2c802141dc51a06676974687562", *body, req.Cookies()).
-            Return(nil, nil, errors.New("update failed"))
-        mockLogger.EXPECT().Errorf("Error when updating registration flow: %v\n", gomock.Any())
+		body := &kClient.UpdateRegistrationFlowBody{}
+		mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
+			Return(body, nil)
+		mockService.EXPECT().UpdateRegistrationFlow(gomock.Any(), "e2c802141dc51a06676974687562", *body, req.Cookies()).
+			Return(nil, nil, errors.New("update failed"))
+		mockLogger.EXPECT().Errorf("Error when updating registration flow: %v\n", gomock.Any())
 
-        api.handleUpdateRegistrationFlow(w, req)
+		api.handleUpdateRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusInternalServerError {
-            t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected %d, got %d", http.StatusInternalServerError, res.StatusCode)
+		}
 
-        data, _ := io.ReadAll(res.Body)
-        if !strings.Contains(string(data), "update failed") {
-            t.Fatalf("expected update failure message, got %q", string(data))
-        }
-    })
+		data, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(data), "update failed") {
+			t.Fatalf("expected update failure message, got %q", string(data))
+		}
+	})
 
-    t.Run("success", func(t *testing.T) {
-        flowID := "e2c802141dc51a06676974687562"
-        req := httptest.NewRequest(http.MethodPost, "/registration/update?flow="+flowID, nil)
-        w := httptest.NewRecorder()
+	t.Run("success", func(t *testing.T) {
+		flowID := "e2c802141dc51a06676974687562"
+		req := httptest.NewRequest(http.MethodPost, "/registration/update?flow="+flowID, nil)
+		w := httptest.NewRecorder()
 
-        body := &kClient.UpdateRegistrationFlowBody{}
-        mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
-            Return(body, nil)
+		body := &kClient.UpdateRegistrationFlowBody{}
+		mockService.EXPECT().ParseRegistrationFlowMethodBody(req).
+			Return(body, nil)
 
-        mockRegistration := &RegistrationFlowResponse{changeRequired: &BrowserLocationChangeRequired{}}
+		mockRegistration := &RegistrationFlowResponse{changeRequired: &BrowserLocationChangeRequired{}}
 
-        cookies := []*http.Cookie{{Name: "updated", Value: "ok"}}
+		cookies := []*http.Cookie{{Name: "updated", Value: "ok"}}
 
-        mockService.EXPECT().UpdateRegistrationFlow(gomock.Any(), flowID, *body, req.Cookies()).
-            Return(mockRegistration, cookies, nil)
+		mockService.EXPECT().UpdateRegistrationFlow(gomock.Any(), flowID, *body, req.Cookies()).
+			Return(mockRegistration, cookies, nil)
 
-        api.handleUpdateRegistrationFlow(w, req)
+		api.handleUpdateRegistrationFlow(w, req)
 
-        res := w.Result()
-        defer res.Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-        if res.StatusCode != http.StatusUnprocessableEntity {
-            t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
-        }
+		if res.StatusCode != http.StatusUnprocessableEntity {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
 
-        foundCookie := false
-        for _, c := range res.Cookies() {
-            if c.Name == "updated" && c.Value == "ok" {
-                foundCookie = true
-            }
-        }
-        if !foundCookie {
-            t.Fatalf("expected cookie 'updated=ok' to be set")
-        }
-    })
+		foundCookie := false
+		for _, c := range res.Cookies() {
+			if c.Name == "updated" && c.Value == "ok" {
+				foundCookie = true
+			}
+		}
+		if !foundCookie {
+			t.Fatalf("expected cookie 'updated=ok' to be set")
+		}
+	})
 }
-
-
 
 func TestHandleUpdateIdentifierFirstFlow(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -1105,7 +1451,7 @@ func TestHandleUpdateIdentifierFirstFlow(t *testing.T) {
 	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1152,7 +1498,7 @@ func TestHandleUpdateIdentifierFirstFlowFailOnParseLoginFlowMethodBody(t *testin
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1190,7 +1536,7 @@ func TestHandleUpdateIdentifierFirstFlowFailOnUpdateIdLoginFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1198,6 +1544,216 @@ func TestHandleUpdateIdentifierFirstFlowFailOnUpdateIdLoginFlow(t *testing.T) {
 
 	if res.StatusCode != http.StatusInternalServerError {
 		t.Fatal("Expected HTTP status code 500, got: ", res.Status)
+	}
+}
+
+// TestHandleUpdateIdentifierFirstFlowRedirectsToTenantSelection verifies that
+// after identifier-first step, when the user has tenants and this is a
+// Hydra-initiated flow, the handler redirects to tenant selection before 1FA.
+func TestHandleUpdateIdentifierFirstFlowRedirectsToTenantSelection(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	flowId := "flow-123"
+	loginChallenge := "lc-456"
+	redirectTo := "https://some/path/to/somewhere"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowWithIdentifierFirstMethod)
+	flowBody.SetIdentifier("user@example.com")
+
+	loginFlow := kClient.NewLoginFlowWithDefaults()
+	loginFlow.Id = flowId
+	loginFlow.SetOauth2LoginChallenge(loginChallenge)
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+	mockTenantMgr.EXPECT().Enabled().Return(true)
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
+
+	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
+	mockTenantMgr.EXPECT().NeedsTenantSelectionByEmail(gomock.Any(), "user@example.com", flowCookie, loginChallenge).
+		Return(true, flowCookie, nil)
+	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), flowCookie).Return(nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if resp.RedirectTo == nil || !strings.Contains(*resp.RedirectTo, "select_tenant") {
+		t.Fatalf("Expected redirect to tenant selection page, got: %v", resp.RedirectTo)
+	}
+	if !strings.Contains(*resp.RedirectTo, "flow="+flowId) {
+		t.Fatalf("Expected flow param in redirect URL, got: %s", *resp.RedirectTo)
+	}
+	if !strings.Contains(*resp.RedirectTo, "login_challenge="+loginChallenge) {
+		t.Fatalf("Expected login_challenge param in redirect URL, got: %s", *resp.RedirectTo)
+	}
+}
+
+// TestHandleUpdateIdentifierFirstFlowProceedsWhenNoTenants verifies that
+// when the user has no tenants, the handler stores the sentinel and follows
+// the original redirect (to the password field).
+func TestHandleUpdateIdentifierFirstFlowProceedsWhenNoTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	flowId := "flow-123"
+	loginChallenge := "lc-456"
+	redirectTo := "https://some/path/to/login?flow=flow-123"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowWithIdentifierFirstMethod)
+	flowBody.SetIdentifier("user@example.com")
+
+	loginFlow := kClient.NewLoginFlowWithDefaults()
+	loginFlow.Id = flowId
+	loginFlow.SetOauth2LoginChallenge(loginChallenge)
+
+	// Cookie with NoTenantAvailable sentinel set by NeedsTenantSelectionByEmail
+	sentinelCookie := cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+		TenantID:           cookies.NoTenantAvailable,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+	mockTenantMgr.EXPECT().Enabled().Return(true)
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
+
+	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
+	mockTenantMgr.EXPECT().NeedsTenantSelectionByEmail(gomock.Any(), "user@example.com", flowCookie, loginChallenge).
+		Return(false, sentinelCookie, nil)
+	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), sentinelCookie).Return(nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if *resp.RedirectTo != redirectTo {
+		t.Fatalf("Expected redirect to original URL %s, got: %s", redirectTo, *resp.RedirectTo)
+	}
+}
+
+// TestHandleUpdateIdentifierFirstFlowSkipsTenantForNonHydraFlow verifies that
+// when the flow is not Hydra-initiated (no oauth2_login_challenge), tenant
+// selection is skipped even when multi-tenancy is enabled.
+func TestHandleUpdateIdentifierFirstFlowSkipsTenantForNonHydraFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	flowId := "flow-123"
+	redirectTo := "https://some/path/to/login?flow=flow-123"
+	redirectFlow := new(BrowserLocationChangeRequired)
+	redirectFlow.RedirectTo = &redirectTo
+
+	flowBody := new(kClient.UpdateLoginFlowWithIdentifierFirstMethod)
+	flowBody.SetIdentifier("user@example.com")
+
+	// Non-Hydra flow (no oauth2_login_challenge)
+	loginFlow := kClient.NewLoginFlowWithDefaults()
+	loginFlow.Id = flowId
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_IDENTIFIER_FIRST_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockService.EXPECT().ParseIdentifierFirstLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
+	mockTenantMgr.EXPECT().Enabled().Return(true)
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
+	// NeedsTenantSelectionByEmail should NOT be called for non-Hydra flows
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	var resp BrowserLocationChangeRequired
+	if err := json.Unmarshal(data, &resp); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if *resp.RedirectTo != redirectTo {
+		t.Fatalf("Expected redirect to original URL, got: %s", *resp.RedirectTo)
 	}
 }
 
@@ -1210,6 +1766,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 	flowId := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = flowId
@@ -1226,9 +1783,11 @@ func TestHandleUpdateFlow(t *testing.T) {
 	values.Add("flow", flowId)
 	req.URL.RawQuery = values.Encode()
 
-	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerification").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
-	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFA").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
-	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldRegenerateBackupCodes").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldRegenerateBackupCodesWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
 	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, nil, req.Cookies(), nil)
@@ -1237,7 +1796,7 @@ func TestHandleUpdateFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1287,7 +1846,7 @@ func TestHandleUpdateFlowWhenProviderNotAllowed(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1322,7 +1881,7 @@ func TestHandleUpdateFlowFailOnParseLoginFlowMethodBody(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1342,6 +1901,7 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 	session := kClient.NewSession("test")
 
 	lookupMethod := kClient.NewSessionAuthenticationMethodWithDefaults()
@@ -1376,21 +1936,21 @@ func TestHandleUpdateLoginFlowRedirectToRegenerateBackupCodes(t *testing.T) {
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, nil, req.Cookies(), nil)
 
-	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerification").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceVerificationWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFA").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldEnforceMFAWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.Service.HasTOTPAvailable").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().HasTOTPAvailable(gomock.Any(), gomock.Any()).Return(true, nil)
 
-	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldRegenerateBackupCodes").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
-	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldRegenerateBackupCodesWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockService.EXPECT().HasNotEnoughLookupSecretsLeft(gomock.Any(), session.Identity.GetId()).Return(true, nil)
 	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, true, true, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, true, true, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1413,6 +1973,7 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
 	mockTracer := NewMockTracingInterface(ctrl)
 
+	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
 	flowId := "test"
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = flowId
@@ -1426,6 +1987,7 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 	req.URL.RawQuery = values.Encode()
 
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, nil, fmt.Errorf("error"))
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
@@ -1433,7 +1995,7 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1472,7 +2034,7 @@ func TestHandleUpdateFlowFailOnCheckAllowedProvider(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1495,7 +2057,7 @@ func TestHandleUpdateFlowRedirectToVerification(t *testing.T) {
 	flowId := "test"
 	identityId := "test"
 	unverifiedEmail := "unverified@example.com"
-	
+
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = flowId
 	returnToUrl := "https://some/return/url"
@@ -1515,6 +2077,7 @@ func TestHandleUpdateFlowRedirectToVerification(t *testing.T) {
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, req.Cookies(), nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().RequireVerificationForEmail(gomock.Any(), session).Return(true, unverifiedEmail, nil).Times(1)
 	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
@@ -1523,7 +2086,7 @@ func TestHandleUpdateFlowRedirectToVerification(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, true, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1537,7 +2100,7 @@ func TestHandleUpdateFlowRedirectToVerification(t *testing.T) {
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("expected HTTP status code 200 got %v", res.StatusCode)
 	}
-	
+
 	loginFlow := BrowserLocationChangeRequired{}
 	if err := json.Unmarshal(data, &loginFlow); err != nil {
 		t.Errorf("expected error to be nil got %v", err)
@@ -1579,15 +2142,16 @@ func TestHandleUpdateFlowRequireVerificationError(t *testing.T) {
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
 	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, req.Cookies(), nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
 	mockService.EXPECT().RequireVerificationForEmail(gomock.Any(), session).Return(false, "", fmt.Errorf("verification enforce check error")).Times(1)
 	mockLogger.EXPECT().Debugf(gomock.Any(), gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
 	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, true, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, true, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1603,7 +2167,7 @@ func TestHandleUpdateFlowRequireVerificationError(t *testing.T) {
 		t.Errorf("expected error to be nil got %v", err)
 	}
 
-	if !strings.Contains(string(data), "server error") && !strings.Contains(string(data), "verification enforce check error") {
+	if !strings.Contains(string(data), "server error") {
 		t.Errorf("expected response body to contain failure message, got %s", string(data))
 	}
 }
@@ -1628,7 +2192,7 @@ func TestHandleCreateRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1671,7 +2235,7 @@ func TestHandleCreateRecoveryFlowWithSession(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1718,7 +2282,7 @@ func TestHandleCreateRecoveryFlowFailOnCreateBrowserRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1752,7 +2316,7 @@ func TestHandleGetRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1798,7 +2362,7 @@ func TestHandleGetRecoveryFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1840,7 +2404,7 @@ func TestHandleUpdateRecoveryFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1884,7 +2448,7 @@ func TestHandleUpdateRecoveryFlowFailOnParseRecoveryFlowMethodBody(t *testing.T)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1916,7 +2480,7 @@ func TestHandleCreateSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1959,7 +2523,7 @@ func TestHandleCreateSettingsFlowWithRedirect(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -1994,7 +2558,7 @@ func TestHandleCreateSettingsFlowFailOnCreateBrowserSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2029,7 +2593,7 @@ func TestHandleGetSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2082,7 +2646,7 @@ func TestHandleGetSettingsFlowWithRedirect(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2120,7 +2684,7 @@ func TestHandleGetSettingsFlowFail(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2160,7 +2724,7 @@ func TestHandleUpdateSettingsFlow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2220,7 +2784,7 @@ func TestHandleUpdateSettingsFlowPrivilegedSessionRequired(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2278,7 +2842,7 @@ func TestHandleUpdateSettingsFlowWithRedirect(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2333,7 +2897,7 @@ func TestHandleUpdateWebAuthnSettingsFlowWithReturnTo(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2388,7 +2952,7 @@ func TestHandleUpdateWebAuthnSettingsFlowWithoutReturnTo(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2428,7 +2992,7 @@ func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T)
 
 	w := httptest.NewRecorder()
 	mux := chi.NewMux()
-	NewAPI(mockService, false, false, false, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
 
 	mux.ServeHTTP(w, req)
 
@@ -2440,461 +3004,456 @@ func TestHandleUpdateSettingsFlowFailOnParseSettingsFlowMethodBody(t *testing.T)
 }
 
 func TestHandleCreateVerificationFlow(t *testing.T) {
-    tests := []struct {
-        name           string
-        setupMocks     func(
-            service *MockServiceInterface,
-            logger *MockLoggerInterface,
-            req *http.Request,
-        )
-        expectedStatus int
-        expectBody     bool
-    }{
-        {
-            name: "service error",
-            setupMocks: func(
-                service *MockServiceInterface,
-                logger *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                service.
-                    EXPECT().
-                    CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
-                    Return(nil, nil, errors.New("service error"))
+	tests := []struct {
+		name       string
+		setupMocks func(
+			service *MockServiceInterface,
+			logger *MockLoggerInterface,
+			req *http.Request,
+		)
+		expectedStatus int
+		expectBody     bool
+	}{
+		{
+			name: "service error",
+			setupMocks: func(
+				service *MockServiceInterface,
+				logger *MockLoggerInterface,
+				req *http.Request,
+			) {
+				service.
+					EXPECT().
+					CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
+					Return(nil, nil, errors.New("service error"))
 
-                logger.
-                    EXPECT().
-                    Errorf(gomock.Any(), gomock.Any())
-            },
-            expectedStatus: http.StatusInternalServerError,
-            expectBody:     false,
-        },
-        {
-            name: "success",
-            setupMocks: func(
-                service *MockServiceInterface,
-                _ *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                flow := kClient.VerificationFlow{
-                    Id: "verification-flow-id",
-                    State: "mock-state",
-                }
+				logger.
+					EXPECT().
+					Errorf(gomock.Any(), gomock.Any())
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+		},
+		{
+			name: "success",
+			setupMocks: func(
+				service *MockServiceInterface,
+				_ *MockLoggerInterface,
+				req *http.Request,
+			) {
+				flow := kClient.VerificationFlow{
+					Id:    "verification-flow-id",
+					State: "mock-state",
+				}
 
-                service.
-                    EXPECT().
-                    CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
-                    Return(&flow, nil, nil)
-            },
-            expectedStatus: http.StatusOK,
-            expectBody:     true,
-        },
-    }
+				service.
+					EXPECT().
+					CreateBrowserVerificationFlow(gomock.Any(), req.Cookies()).
+					Return(&flow, nil, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+		},
+	}
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            ctrl := gomock.NewController(t)
-            defer ctrl.Finish()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-            mockLogger := NewMockLoggerInterface(ctrl)
-            mockService := NewMockServiceInterface(ctrl)
-            mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-            mockTracer := NewMockTracingInterface(ctrl)
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockService := NewMockServiceInterface(ctrl)
+			mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
 
-            req := httptest.NewRequest(
-                http.MethodGet,
-                HANDLE_CREATE_VERIFICATION_FLOW_URL,
-                nil,
-            )
+			req := httptest.NewRequest(
+				http.MethodGet,
+				HANDLE_CREATE_VERIFICATION_FLOW_URL,
+				nil,
+			)
 
-            if tt.setupMocks != nil {
-                tt.setupMocks(mockService, mockLogger, req)
-            }
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockService, mockLogger, req)
+			}
 
-            w := httptest.NewRecorder()
-            mux := chi.NewMux()
-            NewAPI(
-                mockService,
+			w := httptest.NewRecorder()
+			mux := chi.NewMux()
+			NewAPI(
+				mockService,
 				false,
-                false,
-                false,
-                BASE_URL,
-                mockCookieManager,
-                mockTracer,
-                mockLogger,
-            ).RegisterEndpoints(mux)
+				false,
+				false,
+				tenants.NewNoOpTenantResolver(),
+				BASE_URL,
+				mockCookieManager,
+				mockTracer,
+				mockLogger,
+			).RegisterEndpoints(mux)
 
-            mux.ServeHTTP(w, req)
+			mux.ServeHTTP(w, req)
 
-            res := w.Result()
+			res := w.Result()
 
-            if res.StatusCode != tt.expectedStatus {
-                t.Fatalf(
-                    "Expected status %d, got %d",
-                    tt.expectedStatus,
-                    res.StatusCode,
-                )
-            }
+			if res.StatusCode != tt.expectedStatus {
+				t.Fatalf(
+					"Expected status %d, got %d",
+					tt.expectedStatus,
+					res.StatusCode,
+				)
+			}
 
-            if tt.expectBody {
-                data, err := io.ReadAll(res.Body)
-                if err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+			if tt.expectBody {
+				data, err := io.ReadAll(res.Body)
+				if err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                var flow kClient.VerificationFlow
-                if err := json.Unmarshal(data, &flow); err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+				var flow kClient.VerificationFlow
+				if err := json.Unmarshal(data, &flow); err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                if flow.Id == "" {
-                    t.Fatalf("Expected flow Id to be set")
-                }
-            }
-        })
-    }
+				if flow.Id == "" {
+					t.Fatalf("Expected flow Id to be set")
+				}
+			}
+		})
+	}
 }
-
 
 func TestHandleGetVerificationFlow(t *testing.T) {
-    tests := []struct {
-        name           string
-        queryFlowID    string
-        setupMocks     func(
-            service *MockServiceInterface,
-            logger *MockLoggerInterface,
-            req *http.Request,
-        )
-        expectedStatus int
-        expectBody     bool
-    }{
-        {
-            name:        "missing flow id",
-            queryFlowID: "",
-            setupMocks: func(
-                _ *MockServiceInterface,
-                logger *MockLoggerInterface,
-                _ *http.Request,
-            ) {
-                logger.
-                    EXPECT().
-                    Debug(gomock.Any())
-            },
-            expectedStatus: http.StatusBadRequest,
-            expectBody:     false,
-        },
-        {
-            name:        "service error",
-            queryFlowID: "flow-id",
-            setupMocks: func(
-                service *MockServiceInterface,
-                logger *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                service.
-                    EXPECT().
-                    GetVerificationFlow(
-                        gomock.Any(),
-                        "flow-id",
-                        req.Cookies(),
-                    ).
-                    Return(nil, nil, errors.New("service error"))
+	tests := []struct {
+		name        string
+		queryFlowID string
+		setupMocks  func(
+			service *MockServiceInterface,
+			logger *MockLoggerInterface,
+			req *http.Request,
+		)
+		expectedStatus int
+		expectBody     bool
+	}{
+		{
+			name:        "missing flow id",
+			queryFlowID: "",
+			setupMocks: func(
+				_ *MockServiceInterface,
+				logger *MockLoggerInterface,
+				_ *http.Request,
+			) {
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+		},
+		{
+			name:        "service error",
+			queryFlowID: "flow-id",
+			setupMocks: func(
+				service *MockServiceInterface,
+				logger *MockLoggerInterface,
+				req *http.Request,
+			) {
+				service.
+					EXPECT().
+					GetVerificationFlow(
+						gomock.Any(),
+						"flow-id",
+						req.Cookies(),
+					).
+					Return(nil, nil, errors.New("service error"))
 
-                logger.
-                    EXPECT().
-                    Errorf(gomock.Any(), gomock.Any())
-            },
-            expectedStatus: http.StatusInternalServerError,
-            expectBody:     false,
-        },
-        {
-            name:        "success",
-            queryFlowID: "flow-id",
-            setupMocks: func(
-                service *MockServiceInterface,
-                _ *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                flow := kClient.VerificationFlow{
-                    Id: "flow-id",
-                    State: "mock-state",
-                }
+				logger.
+					EXPECT().
+					Errorf(gomock.Any(), gomock.Any())
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+		},
+		{
+			name:        "success",
+			queryFlowID: "flow-id",
+			setupMocks: func(
+				service *MockServiceInterface,
+				_ *MockLoggerInterface,
+				req *http.Request,
+			) {
+				flow := kClient.VerificationFlow{
+					Id:    "flow-id",
+					State: "mock-state",
+				}
 
-                service.
-                    EXPECT().
-                    GetVerificationFlow(
-                        gomock.Any(),
-                        "flow-id",
-                        req.Cookies(),
-                    ).
-                    Return(&flow, nil, nil)
-            },
-            expectedStatus: http.StatusOK,
-            expectBody:     true,
-        },
-    }
+				service.
+					EXPECT().
+					GetVerificationFlow(
+						gomock.Any(),
+						"flow-id",
+						req.Cookies(),
+					).
+					Return(&flow, nil, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+		},
+	}
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            ctrl := gomock.NewController(t)
-            defer ctrl.Finish()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-            mockLogger := NewMockLoggerInterface(ctrl)
-            mockService := NewMockServiceInterface(ctrl)
-            mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-            mockTracer := NewMockTracingInterface(ctrl)
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockService := NewMockServiceInterface(ctrl)
+			mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
 
-            req := httptest.NewRequest(
-                http.MethodGet,
-                HANDLE_GET_VERIFICATION_FLOW_URL,
-                nil,
-            )
+			req := httptest.NewRequest(
+				http.MethodGet,
+				HANDLE_GET_VERIFICATION_FLOW_URL,
+				nil,
+			)
 
-            if tt.queryFlowID != "" {
-                q := req.URL.Query()
-                q.Set("id", tt.queryFlowID)
-                req.URL.RawQuery = q.Encode()
-            }
+			if tt.queryFlowID != "" {
+				q := req.URL.Query()
+				q.Set("id", tt.queryFlowID)
+				req.URL.RawQuery = q.Encode()
+			}
 
-            if tt.setupMocks != nil {
-                tt.setupMocks(mockService, mockLogger, req)
-            }
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockService, mockLogger, req)
+			}
 
-            w := httptest.NewRecorder()
-            mux := chi.NewMux()
-            NewAPI(
-                mockService,
+			w := httptest.NewRecorder()
+			mux := chi.NewMux()
+			NewAPI(
+				mockService,
 				false,
-                false,
-                false,
-                BASE_URL,
-                mockCookieManager,
-                mockTracer,
-                mockLogger,
-            ).RegisterEndpoints(mux)
+				false,
+				false,
+				tenants.NewNoOpTenantResolver(),
+				BASE_URL,
+				mockCookieManager,
+				mockTracer,
+				mockLogger,
+			).RegisterEndpoints(mux)
 
-            mux.ServeHTTP(w, req)
+			mux.ServeHTTP(w, req)
 
-            res := w.Result()
+			res := w.Result()
 
-            if res.StatusCode != tt.expectedStatus {
-                t.Fatalf(
-                    "Expected status %d, got %d",
-                    tt.expectedStatus,
-                    res.StatusCode,
-                )
-            }
+			if res.StatusCode != tt.expectedStatus {
+				t.Fatalf(
+					"Expected status %d, got %d",
+					tt.expectedStatus,
+					res.StatusCode,
+				)
+			}
 
-            if tt.expectBody {
-                data, err := io.ReadAll(res.Body)
-                if err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+			if tt.expectBody {
+				data, err := io.ReadAll(res.Body)
+				if err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                var flow kClient.VerificationFlow
-                if err := json.Unmarshal(data, &flow); err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+				var flow kClient.VerificationFlow
+				if err := json.Unmarshal(data, &flow); err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                if flow.Id != "flow-id" {
-                    t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
-                }
-            }
-        })
-    }
+				if flow.Id != "flow-id" {
+					t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
+				}
+			}
+		})
+	}
 }
 
-
 func TestHandleUpdateVerificationFlow(t *testing.T) {
-    code := "123456"
+	code := "123456"
 
-    tests := []struct {
-        name           string
-        queryFlowID    string
-        body           any
-        setupMocks     func(
-            service *MockServiceInterface,
-            logger *MockLoggerInterface,
-            req *http.Request,
-        )
-        expectedStatus int
-        expectBody     bool
-    }{
-        {
-            name:        "missing flow id",
-            queryFlowID: "",
-            body:        nil,
-            setupMocks: func(
-                _ *MockServiceInterface,
-                logger *MockLoggerInterface,
-                _ *http.Request,
-            ) {
-                logger.
-                    EXPECT().
-                    Debug(gomock.Any())
-            },
-            expectedStatus: http.StatusBadRequest,
-            expectBody:     false,
-        },
-        {
-            name:        "invalid json body",
-            queryFlowID: "flow-id",
-            body:        make(chan int),
-            setupMocks: func(
-                _ *MockServiceInterface,
-                logger *MockLoggerInterface,
-                _ *http.Request,
-            ) {
-                logger.
-                    EXPECT().
-                    Errorf(gomock.Any(), gomock.Any())
-            },
-            expectedStatus: http.StatusInternalServerError,
-            expectBody:     false,
-        },
-        {
-            name:        "service returns error",
-            queryFlowID: "flow-id",
-            body: kClient.UpdateVerificationFlowBody{
-                UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
-                    Method: "code",
-                    Code:   &code,
-                },
-            },
-            setupMocks: func(
-                service *MockServiceInterface,
-                logger *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                service.
-                    EXPECT().
-                    UpdateVerificationFlow(
-                        gomock.Any(),
-                        "flow-id",
-                        gomock.Any(),
-                        req.Cookies(),
-                    ).
-                    Return(nil, nil, errors.New("service error"))
+	tests := []struct {
+		name        string
+		queryFlowID string
+		body        any
+		setupMocks  func(
+			service *MockServiceInterface,
+			logger *MockLoggerInterface,
+			req *http.Request,
+		)
+		expectedStatus int
+		expectBody     bool
+	}{
+		{
+			name:        "missing flow id",
+			queryFlowID: "",
+			body:        nil,
+			setupMocks: func(
+				_ *MockServiceInterface,
+				logger *MockLoggerInterface,
+				_ *http.Request,
+			) {
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectBody:     false,
+		},
+		{
+			name:        "invalid json body",
+			queryFlowID: "flow-id",
+			body:        make(chan int),
+			setupMocks: func(
+				_ *MockServiceInterface,
+				logger *MockLoggerInterface,
+				_ *http.Request,
+			) {
+				logger.
+					EXPECT().
+					Errorf(gomock.Any(), gomock.Any())
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+		},
+		{
+			name:        "service returns error",
+			queryFlowID: "flow-id",
+			body: kClient.UpdateVerificationFlowBody{
+				UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
+					Method: "code",
+					Code:   &code,
+				},
+			},
+			setupMocks: func(
+				service *MockServiceInterface,
+				logger *MockLoggerInterface,
+				req *http.Request,
+			) {
+				service.
+					EXPECT().
+					UpdateVerificationFlow(
+						gomock.Any(),
+						"flow-id",
+						gomock.Any(),
+						req.Cookies(),
+					).
+					Return(nil, nil, errors.New("service error"))
 
-                logger.
-                    EXPECT().
-                    Errorf(gomock.Any(), gomock.Any())
-            },
-            expectedStatus: http.StatusInternalServerError,
-            expectBody:     false,
-        },
-        {
-            name:        "success",
-            queryFlowID: "flow-id",
-            body: kClient.UpdateVerificationFlowBody{
-                UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
-                    Method: "code",
-                    Code:   &code,
-                },
-            },
-            setupMocks: func(
-                service *MockServiceInterface,
-                _ *MockLoggerInterface,
-                req *http.Request,
-            ) {
-                flow := kClient.VerificationFlow{
-                    Id: "flow-id",
-                    State: "mock-state",
-                }
+				logger.
+					EXPECT().
+					Errorf(gomock.Any(), gomock.Any())
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     false,
+		},
+		{
+			name:        "success",
+			queryFlowID: "flow-id",
+			body: kClient.UpdateVerificationFlowBody{
+				UpdateVerificationFlowWithCodeMethod: &kClient.UpdateVerificationFlowWithCodeMethod{
+					Method: "code",
+					Code:   &code,
+				},
+			},
+			setupMocks: func(
+				service *MockServiceInterface,
+				_ *MockLoggerInterface,
+				req *http.Request,
+			) {
+				flow := kClient.VerificationFlow{
+					Id:    "flow-id",
+					State: "mock-state",
+				}
 
-                service.
-                    EXPECT().
-                    UpdateVerificationFlow(
-                        gomock.Any(),
-                        "flow-id",
-                        gomock.Any(),
-                        req.Cookies(),
-                    ).
-                    Return(&flow, nil, nil)
-            },
-            expectedStatus: http.StatusOK,
-            expectBody:     true,
-        },
-    }
+				service.
+					EXPECT().
+					UpdateVerificationFlow(
+						gomock.Any(),
+						"flow-id",
+						gomock.Any(),
+						req.Cookies(),
+					).
+					Return(&flow, nil, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectBody:     true,
+		},
+	}
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            ctrl := gomock.NewController(t)
-            defer ctrl.Finish()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-            mockLogger := NewMockLoggerInterface(ctrl)
-            mockService := NewMockServiceInterface(ctrl)
-            mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
-            mockTracer := NewMockTracingInterface(ctrl)
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockService := NewMockServiceInterface(ctrl)
+			mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
 
-            var bodyReader io.Reader
-            if tt.body != nil {
-                data, err := json.Marshal(tt.body)
-                if err != nil {
-                    bodyReader = bytes.NewReader([]byte("{"))
-                } else {
-                    bodyReader = bytes.NewReader(data)
-                }
-            }
+			var bodyReader io.Reader
+			if tt.body != nil {
+				data, err := json.Marshal(tt.body)
+				if err != nil {
+					bodyReader = bytes.NewReader([]byte("{"))
+				} else {
+					bodyReader = bytes.NewReader(data)
+				}
+			}
 
-            req := httptest.NewRequest(
-                http.MethodPost,
-                HANDLE_UPDATE_VERIFICATION_FLOW_URL,
-                bodyReader,
-            )
+			req := httptest.NewRequest(
+				http.MethodPost,
+				HANDLE_UPDATE_VERIFICATION_FLOW_URL,
+				bodyReader,
+			)
 
-            if tt.queryFlowID != "" {
-                q := req.URL.Query()
-                q.Set("flow", tt.queryFlowID)
-                req.URL.RawQuery = q.Encode()
-            }
+			if tt.queryFlowID != "" {
+				q := req.URL.Query()
+				q.Set("flow", tt.queryFlowID)
+				req.URL.RawQuery = q.Encode()
+			}
 
-            if tt.setupMocks != nil {
-                tt.setupMocks(mockService, mockLogger, req)
-            }
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockService, mockLogger, req)
+			}
 
-            w := httptest.NewRecorder()
-            mux := chi.NewMux()
-            NewAPI(
-                mockService,
+			w := httptest.NewRecorder()
+			mux := chi.NewMux()
+			NewAPI(
+				mockService,
 				false,
-                false,
-                false,
-                BASE_URL,
-                mockCookieManager,
-                mockTracer,
-                mockLogger,
-            ).RegisterEndpoints(mux)
+				false,
+				false,
+				tenants.NewNoOpTenantResolver(),
+				BASE_URL,
+				mockCookieManager,
+				mockTracer,
+				mockLogger,
+			).RegisterEndpoints(mux)
 
-            mux.ServeHTTP(w, req)
+			mux.ServeHTTP(w, req)
 
-            res := w.Result()
+			res := w.Result()
 
-            if res.StatusCode != tt.expectedStatus {
-                t.Fatalf(
-                    "Expected status %d, got %d",
-                    tt.expectedStatus,
-                    res.StatusCode,
-                )
-            }
+			if res.StatusCode != tt.expectedStatus {
+				t.Fatalf(
+					"Expected status %d, got %d",
+					tt.expectedStatus,
+					res.StatusCode,
+				)
+			}
 
-            if tt.expectBody {
-                data, err := io.ReadAll(res.Body)
-                if err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+			if tt.expectBody {
+				data, err := io.ReadAll(res.Body)
+				if err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                var flow = kClient.NewVerificationFlowWithDefaults()
-                if err := json.Unmarshal(data, &flow); err != nil {
-                    t.Fatalf("Expected error to be nil, got %v", err)
-                }
+				var flow = kClient.NewVerificationFlowWithDefaults()
+				if err := json.Unmarshal(data, &flow); err != nil {
+					t.Fatalf("Expected error to be nil, got %v", err)
+				}
 
-                if flow.Id != "flow-id" {
-                    t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
-                }
-            }
-        })
-    }
+				if flow.Id != "flow-id" {
+					t.Fatalf("Expected flow Id to be 'flow-id', got %q", flow.Id)
+				}
+			}
+		})
+	}
 }
 
 func TestShouldEnforceMFA(t *testing.T) {
@@ -3014,7 +3573,7 @@ func TestShouldEnforceMFA(t *testing.T) {
 
 			tt.setupMocks(mockService, mockLogger)
 
-			api := NewAPI(mockService, false, tt.mfaEnabled, false, BASE_URL, mockCookieManager, mockTracer, mockLogger)
+			api := NewAPI(mockService, false, tt.mfaEnabled, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger)
 			result, err := api.shouldEnforceMFA(context.Background(), []*http.Cookie{})
 
 			if tt.expectedErrMsg != "" {
@@ -3034,4 +3593,3 @@ func TestShouldEnforceMFA(t *testing.T) {
 		})
 	}
 }
-
