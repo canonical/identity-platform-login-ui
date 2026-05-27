@@ -7,7 +7,7 @@ import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { Spinner } from "@canonical/react-components";
-import { BackButton } from "../components/BackButton";
+import { ResetEmailBackButton } from "../components/NavigationButtons";
 import { isContinueWithPasswordReset } from "../util/constants";
 
 const ResetEmail: NextPage = () => {
@@ -108,7 +108,7 @@ const ResetEmail: NextPage = () => {
                   text: "Reset password",
                   context: {
                     ...node.meta.label.context,
-                    beforeComponent: <BackButton />,
+                    beforeComponent: <ResetEmailBackButton />,
                   },
                 },
               },
