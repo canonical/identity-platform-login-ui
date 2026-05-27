@@ -24,16 +24,40 @@ export const ResetEmailBackButton: FC<ResetEmailBackButtonProps> = ({
   );
 };
 
-export const BackButton: FC = () => {
+type FlowBackButtonProps<T> = {
+  setFlow?: React.Dispatch<React.SetStateAction<T | undefined>>;
+  type?: "submit" | "reset" | "button";
+  appearance?: string;
+  disabled?: boolean;
+  className?: string;
+  tabIndex?: number;
+  text?: string;
+};
+
+export const FlowBackButton = <T,>({
+  setFlow,
+  ...props
+}: FlowBackButtonProps<T>) => {
+  const router = useRouter();
+
+  const onBack = useCallback(async () => {
+    const { flow: _flow, ...noFlowQueryParams } = router.query;
+    void _flow; // ignoring the flow id to "restart" the flow
+
+    await router.replace({ query: noFlowQueryParams });
+    if (setFlow) setFlow(undefined);
+  }, [router, setFlow]);
+
   return (
     <Button
-      tabIndex={3}
-      type="button"
-      onClick={() => {
-        void window.history.back();
-      }}
+      tabIndex={props.tabIndex}
+      type={props.type ?? "button"}
+      onClick={onBack}
+      disabled={props.disabled ?? false}
+      className={props.className ?? ""}
+      appearance={props.appearance ?? "secondary"}
     >
-      Back
+      {props.text ?? "Back"}
     </Button>
   );
 };

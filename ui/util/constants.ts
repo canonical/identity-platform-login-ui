@@ -1,4 +1,4 @@
-import { UiNode } from "@ory/client";
+import {UiNode, UiNodeMeta} from "@ory/client";
 
 // see https://www.ory.sh/docs/kratos/concepts/ui-messages
 const ORY_LABEL_SECURITY_KEY_ADD = 1050012;
@@ -17,6 +17,7 @@ const ORY_LABEL_CONTINUE_PASSWORD_RESET = 1070009;
 const ORY_LABEL_SIGN_IN_WITH_HARDWARE_KEY = 1010008;
 const ORY_LABEL_RESEND_VERIFICATION_CODE = 1070008;
 const ORY_LABEL_VERIFICATION_CODE_INPUT = 1070011;
+const ORY_LABEL_BACK_INPUT = 1040008;
 
 const ORY_LABEL_REGISTER_EMAIL_INPUT = 1070002;
 const ORY_LABEL_REGISTER_EMAIL_SUBMIT = 1040001;
@@ -89,3 +90,11 @@ export const isRegisterPasswordInput = (node: UiNode): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_REGISTER_PASSWORD_INPUT;
 
 export const ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD = 4000037;
+
+export function isUiNodeBackButton(meta: UiNodeMeta) {
+  return (
+    meta.label?.id === ORY_LABEL_BACK_INPUT &&
+    meta.label?.type === "info" &&
+    meta.label?.text === "Back"
+  );
+}

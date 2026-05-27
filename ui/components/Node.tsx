@@ -1,4 +1,4 @@
-import React from "react";
+import React, { FC } from "react";
 import {
   isUiNodeAnchorAttributes,
   isUiNodeImageAttributes,
@@ -10,7 +10,9 @@ import { NodeImage } from "./NodeImage";
 import { NodeInput } from "./NodeInput";
 import { NodeText } from "./NodeText";
 import { NodeInputProps } from "./helpers";
-import { FC } from "react";
+import { FlowBackButton } from "./NavigationButtons";
+import { UiNodeInputAttributes } from "@ory/client";
+import { isUiNodeBackButton } from "../util/constants";
 
 export const Node: FC<Omit<NodeInputProps, "attributes">> = ({
   node,
@@ -30,6 +32,13 @@ export const Node: FC<Omit<NodeInputProps, "attributes">> = ({
 
   if (isUiNodeAnchorAttributes(node.attributes)) {
     return <NodeAnchor node={node} attributes={node.attributes} />;
+  }
+
+  if (isUiNodeBackButton(node.meta)) {
+    const attrs = node.attributes as UiNodeInputAttributes;
+    return (
+      <FlowBackButton disabled={attrs.disabled} text={node.meta.label?.text} />
+    );
   }
 
   if (isUiNodeInputAttributes(node.attributes)) {
