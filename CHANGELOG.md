@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.27.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.26.0...v0.27.0) (2026-05-27)
+
+
+### Features
+
+* **tenants:** implement multi-tenancy login flow ([bc90476](https://github.com/canonical/identity-platform-login-ui/commit/bc90476b833a7b093914ba50c787d27b73c4670d))
+
+
+### Bug Fixes
+
+* enforce routing in the backend ([e6a7579](https://github.com/canonical/identity-platform-login-ui/commit/e6a757956b6c17f7adf3fd6f5c12ab2e8216bd47))
+* fix frontend formatting ([e3adf3a](https://github.com/canonical/identity-platform-login-ui/commit/e3adf3aacb20c3ff2a999a3b5231f792512567e6))
+* fix oidc sequencing ([a79f684](https://github.com/canonical/identity-platform-login-ui/commit/a79f6848f719b87b3c6820c00c7a8e8e1dfa5d78))
+* simplify kratos handler logic ([944fe0a](https://github.com/canonical/identity-platform-login-ui/commit/944fe0a04073343bb293eb5d1fa688790f92b92d))
+
+
+### Reverts
+
+* restore go.mod baseline to 1.25.0 ([aa322ad](https://github.com/canonical/identity-platform-login-ui/commit/aa322ad3ee7b64443227ac7dfcbc06c483015df8))
+
 ## [0.26.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.25.0...v0.26.0) (2026-05-05)
 
 
