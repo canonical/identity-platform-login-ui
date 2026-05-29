@@ -41,10 +41,18 @@ export const FlowBackButton = <T,>({
   const router = useRouter();
 
   const onBack = useCallback(async () => {
-    const { flow: _flow, ...noFlowQueryParams } = router.query;
-    void _flow; // ignoring the flow id to "restart" the flow
+    const { flow: _, ...noFlowQueryParams } = router.query;
+    void _; // ignoring the flow id to "restart" the flow
 
-    await router.replace({ query: noFlowQueryParams });
+    try {
+      await router.replace({
+        query: noFlowQueryParams,
+      });
+    } catch (e) {
+      console.error("Error replacing route:", e);
+      throw e;
+    }
+
     if (setFlow) setFlow(undefined);
   }, [router, setFlow]);
 
