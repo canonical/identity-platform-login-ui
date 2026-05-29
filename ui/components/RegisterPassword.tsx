@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Button } from "@canonical/react-components";
 import PageLayout from "./PageLayout";
 import Password from "./Password";
-import { useCallback, useMemo, useState } from "react";
 import {
   ContinueWith,
   ContinueWithVerificationUi,
@@ -16,6 +15,7 @@ import { kratos } from "../api/kratos";
 import { redirectTo } from "../util/redirectTo";
 import { useRouter } from "next/router";
 import { capitalize, handleFlowError } from "../util/handleFlowError";
+import { FlowBackButton } from "./NavigationButtons";
 
 interface RegisterPasswordProps {
   flow: RegistrationFlow | undefined;
@@ -134,6 +134,7 @@ export const RegisterPassword = ({ flow, setFlow }: RegisterPasswordProps) => {
             <p className="p-form-validation__message">{flowError}</p>
           </div>
         )}
+        <FlowBackButton setFlow={setFlow} />
         <Button
           type="submit"
           appearance="positive"
