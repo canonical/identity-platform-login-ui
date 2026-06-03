@@ -136,14 +136,6 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
         return false;
       }
 
-      // Exclude buttons with label text "Back" until Kratos solves the multiple button issue
-      if (node.type === "input" && node.meta?.label?.text === "Back") {
-        const attrs = node.attributes as any;
-        if (attrs?.type === "button" || attrs?.type === "submit") {
-          return false;
-        }
-      }
-
       return true;
     });
 
@@ -199,10 +191,7 @@ export class Flow<T extends Values> extends Component<Props<T>, State<T>> {
     const nodes = this.filterNodes();
 
     if (!flow) {
-      // No flow was set yet? It's probably still loading...
-      //
-      // Nodes have only one element? It is probably just the CSRF Token
-      // and the filter did not match any elements!
+      // No flow was set yet? It's probably still loading
       return null;
     }
 

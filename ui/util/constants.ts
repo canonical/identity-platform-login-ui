@@ -1,4 +1,4 @@
-import { UiNode } from "@ory/client";
+import {UiNode, UiNodeMeta} from "@ory/client";
 
 // see https://www.ory.sh/docs/kratos/concepts/ui-messages
 const ORY_LABEL_SECURITY_KEY_ADD = 1050012;
@@ -89,3 +89,10 @@ export const isRegisterPasswordInput = (node: UiNode): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_REGISTER_PASSWORD_INPUT;
 
 export const ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD = 4000037;
+
+export function isUiNodeBackButton(meta: UiNodeMeta) {
+  return (
+    meta.label?.type === "info" &&
+    meta.label?.text === "Back"
+  );
+}
