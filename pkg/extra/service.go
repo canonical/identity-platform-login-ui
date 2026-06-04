@@ -58,7 +58,7 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 	// endpoint returns the correct claims for both the initial access token and
 	// any refreshed tokens.  Without this, Hydra only carries over the access
 	// token extra-claims on refresh, leaving the UserInfo response empty.
-	accessTokenClaims := make(map[string]interface{}, len(userClaims)+1)
+	accessTokenClaims := make(map[string]interface{}, len(userClaims))
 	for k, v := range userClaims {
 		accessTokenClaims[k] = v
 	}
