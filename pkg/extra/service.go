@@ -49,17 +49,28 @@ func (s *Service) GetConsent(ctx context.Context, challenge string) (*hClient.OA
 }
 
 func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, consent *hClient.OAuth2ConsentRequest, tenantID string) (*hClient.OAuth2RedirectTo, error) {
-	session := hClient.NewAcceptOAuth2ConsentRequestSession()
-	session.SetIdToken(misc.GetUserClaims(identity, *consent))
+	userClaims := misc.GetUserClaims(identity, *consent)
 
+	session := hClient.NewAcceptOAuth2ConsentRequestSession()
+	session.SetIdToken(userClaims)
+
+	// Also store user claims in the access token session so that the UserInfo
+	// endpoint returns the correct claims for both the initial access token and
+	// any refreshed tokens.  Without this, Hydra only carries over the access
+	// token extra-claims on refresh, leaving the UserInfo response empty.
+	accessTokenClaims := make(map[string]interface{}, len(userClaims)+1)
+	for k, v := range userClaims {
+		accessTokenClaims[k] = v
+	}
 	if tenantID != "" {
 		// Embed the tenant ID into the access token session under "_tenant_id".
 		// The leading underscore signals that this is an internal field: it is
 		// deliberately absent from allowed_top_level_claims in the Hydra config
 		// so it is never exposed in the issued token. The hook reads "_tenant_id"
 		// and maps it to the public "tenant_id" claim.
-		session.SetAccessToken(map[string]interface{}{"_tenant_id": tenantID})
+		accessTokenClaims["_tenant_id"] = tenantID
 	}
+	session.SetAccessToken(accessTokenClaims)
 
 	r := hClient.NewAcceptOAuth2ConsentRequest()
 	r.SetGrantScope(consent.RequestedScope)
