@@ -8,9 +8,18 @@ import (
 	"net/http"
 
 	kClient "github.com/ory/kratos-client-go/v25"
+	"google.golang.org/grpc"
+
+	tenant "github.com/canonical/identity-platform-api/v0/tenant"
 
 	"github.com/canonical/identity-platform-login-ui/internal/cookies"
 )
+
+// TenantServiceClientInterface is the subset of the generated gRPC TenantServiceClient
+// needed by Service. Only LookupTenants is required.
+type TenantServiceClientInterface interface {
+	LookupTenants(ctx context.Context, in *tenant.LookupTenantsRequest, opts ...grpc.CallOption) (*tenant.LookupTenantsResponse, error)
+}
 
 // CookieManagerInterface is the subset of the cookie manager this package needs.
 // Re-defined locally to avoid a hard dependency on internal/cookies interfaces

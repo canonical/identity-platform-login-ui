@@ -29,7 +29,11 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus"
 	fga "github.com/canonical/identity-platform-login-ui/internal/openfga"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
+	"github.com/canonical/identity-platform-login-ui/pkg/tenants"
 	"github.com/canonical/identity-platform-login-ui/pkg/web"
+
+	tenant "github.com/canonical/identity-platform-api/v0/tenant"
+	"google.golang.org/grpc"
 )
 
 //go:embed ui/dist
@@ -64,8 +68,8 @@ func serve() error {
 		return fmt.Errorf("issues with environment variables validation: %w", err)
 	}
 
-	if specs.MultiTenancyEnabled && specs.TenantsServiceURL == "" {
-		return fmt.Errorf("cannot enable multi-tenancy without TENANTS_SERVICE_URL")
+	if specs.MultiTenancyEnabled && specs.TenantServiceGRPCAddress == "" {
+		return fmt.Errorf("cannot enable multi-tenancy without TENANT_SERVICE_GRPC_ADDRESS")
 	}
 
 	logger := logging.NewLogger(specs.LogLevel)
@@ -78,7 +82,18 @@ func serve() error {
 		return fmt.Errorf("issue with js distribution files: %w", err)
 	}
 
-	router, err := buildRouter(specs, distFS, logger)
+	var grpcConn *grpc.ClientConn
+	if specs.MultiTenancyEnabled {
+		conn, err := tenants.NewGRPCConn(specs.TenantServiceGRPCAddress, specs.TenantServiceTLSEnabled)
+		if err != nil {
+			return err
+		}
+		grpcConn = conn
+		defer grpcConn.Close()
+		logger.Infof("Tenant validation enabled (tenant-service: %s, tls: %v, timeout: %s)", specs.TenantServiceGRPCAddress, specs.TenantServiceTLSEnabled, specs.TenantServiceGRPCTimeout)
+	}
+
+	router, err := buildRouter(specs, distFS, logger, grpcConn)
 	if err != nil {
 		return err
 	}
@@ -95,7 +110,7 @@ func serve() error {
 	return handleServeAndShutdown(srv, logger.Security())
 }
 
-func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) (http.Handler, error) {
+func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger, grpcConn *grpc.ClientConn) (http.Handler, error) {
 	monitor := prometheus.NewMonitor("identity-login-ui", logger)
 	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.OtelGRPCEndpoint, specs.OtelHTTPEndpoint, logger))
 
@@ -125,14 +140,15 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger) (h
 		return nil, fmt.Errorf("invalid authorization model provided: %w", err)
 	}
 
-	var tenantsServiceURL string
-	if specs.MultiTenancyEnabled {
-		tenantsServiceURL = specs.TenantsServiceURL
+	var tenantsServiceClient tenants.TenantServiceClientInterface
+	if grpcConn != nil {
+		tenantsServiceClient = tenant.NewTenantServiceClient(grpcConn)
 	}
 
 	router := web.NewRouter(
 		web.WithKratosClients(kClient, kAdminClient),
-		web.WithTenantsServiceURL(tenantsServiceURL),
+		web.WithTenantsServiceClient(tenantsServiceClient),
+		web.WithTenantsGRPCTimeout(specs.TenantServiceGRPCTimeout),
 		web.WithHydraClient(hClient),
 		web.WithAuthzClient(authorizer),
 		web.WithCookieManager(cookieManager),

@@ -3,7 +3,10 @@
 
 package config
 
-import "flag"
+import (
+	"flag"
+	"time"
+)
 
 // EnvSpec is the basic environment configuration setup needed for the app to start
 type EnvSpec struct {
@@ -20,10 +23,12 @@ type EnvSpec struct {
 	CookiesEncryptionKey string `envconfig:"cookies_encryption_key" required:"true" validate:"required,min=32,max=32"`
 	CookieTTL            int    `envconfig:"cookie_ttl" default:"300"`
 
-	KratosPublicURL   string `envconfig:"kratos_public_url"`
-	KratosAdminURL    string `envconfig:"kratos_admin_url"`
-	HydraAdminURL     string `envconfig:"hydra_admin_url"`
-	TenantsServiceURL string `envconfig:"tenants_service_url"`
+	KratosPublicURL          string `envconfig:"kratos_public_url"`
+	KratosAdminURL           string `envconfig:"kratos_admin_url"`
+	HydraAdminURL            string `envconfig:"hydra_admin_url"`
+	TenantServiceGRPCAddress string        `envconfig:"tenant_service_grpc_address"`
+	TenantServiceGRPCTimeout time.Duration `envconfig:"tenant_service_grpc_timeout" default:"5s"`
+	TenantServiceTLSEnabled  bool          `envconfig:"tenant_service_tls_enabled" default:"false"`
 
 	ApiScheme            string `envconfig:"openfga_api_scheme" default:""`
 	ApiHost              string `envconfig:"openfga_api_host"`

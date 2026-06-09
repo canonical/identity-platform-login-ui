@@ -6,6 +6,7 @@ package web
 import (
 	"io/fs"
 	"net/http"
+	"time"
 
 	chi "github.com/go-chi/chi/v5"
 	middleware "github.com/go-chi/chi/v5/middleware"
@@ -94,9 +95,15 @@ func WithKratosPublicURL(url string) Option {
 	}
 }
 
-func WithTenantsServiceURL(url string) Option {
+func WithTenantsServiceClient(client tenants.TenantServiceClientInterface) Option {
 	return func(r *routerConfig) {
-		r.tenantsServiceURL = url
+		r.tenantsServiceClient = client
+	}
+}
+
+func WithTenantsGRPCTimeout(d time.Duration) Option {
+	return func(r *routerConfig) {
+		r.tenantsGRPCTimeout = d
 	}
 }
 
@@ -137,7 +144,8 @@ type routerConfig struct {
 	tracer                        tracing.TracingInterface
 	monitor                       monitoring.MonitorInterface
 	logger                        logging.LoggerInterface
-	tenantsServiceURL             string
+	tenantsServiceClient          tenants.TenantServiceClientInterface
+	tenantsGRPCTimeout            time.Duration
 }
 
 func NewRouter(opts ...Option) http.Handler {
@@ -186,9 +194,13 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 
 	var resolver kratos.TenantResolverInterface = tenants.NewNoOpTenantResolver()
 	if config.multiTenancyEnabled {
-		tenantsService := tenants.NewService(config.tenantsServiceURL, kratosService, config.tracer, config.monitor, config.logger)
-		resolver = tenants.NewCookieTenantResolver(config.cookieManager, tenantsService)
-		tenants.NewAPI(tenantsService, resolver, kratosService, config.baseURL, config.tracer, config.logger).RegisterEndpoints(router)
+		if config.tenantsServiceClient == nil {
+			config.logger.Warn("multi-tenancy enabled but tenant gRPC client is not configured; falling back to no-op resolver")
+		} else {
+			tenantsService := tenants.NewService(config.tenantsServiceClient, kratosService, config.tenantsGRPCTimeout, config.tracer, config.monitor, config.logger)
+			resolver = tenants.NewCookieTenantResolver(config.cookieManager, tenantsService)
+			tenants.NewAPI(tenantsService, resolver, kratosService, config.baseURL, config.tracer, config.logger).RegisterEndpoints(router)
+		}
 	}
 
 	kratos.NewAPI(
