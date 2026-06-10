@@ -15,7 +15,7 @@ export const UseOtherButton: FC<{ method: string }> = ({ method }) => {
         delete newQuery.use_backup_code;
         void router.push(
           {
-            pathname: window.location.pathname,
+            pathname: router.pathname,
             query: newQuery,
           },
           undefined,
