@@ -35,7 +35,7 @@ The application SHALL accept a gRPC target address for the tenant service via co
 
 #### Scenario: Default is empty / feature is disabled when address is unset
 - **WHEN** no gRPC address is configured
-- **THEN** the multi-tenancy feature behaves as if the tenant service is unavailable (no-op resolver), consistent with current behaviour when `TENANTS_URL` is unset
+- **THEN** the multi-tenancy feature behaves as if the tenant service is unavailable (no-op resolver), consistent with current behaviour when `TENANT_SERVICE_GRPC_ADDRESS` is unset
 
 ### Requirement: Mock regeneration
 After changing `interfaces.go`, the generated mock for `TenantServiceClientInterface` SHALL be updated via `make mocks` so that unit tests continue to compile.

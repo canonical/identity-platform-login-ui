@@ -68,5 +68,7 @@
 
 ## Open Questions
 
-- Will TLS/mTLS be required for the gRPC connection in staging/production, or is in-cluster plaintext acceptable long-term?
-- Should the gRPC dial timeout be configurable, or is a fixed `30s` sufficient (matching the current HTTP client timeout)?
+_None — all questions resolved during review._
+
+- **TLS/mTLS for gRPC**: not required for now; in-cluster plaintext is acceptable. TLS can be added as a follow-up when the service is deployed with mTLS.
+- **gRPC timeout**: configurable via `TENANT_SERVICE_GRPC_TIMEOUT` (default **5 s**). 5 s matches the desired fast-path latency target and is consistent with the default enforced by `NewService`.

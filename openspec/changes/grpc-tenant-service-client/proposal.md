@@ -7,7 +7,7 @@ The tenant service lookup in `pkg/tenants` is currently implemented with a hand-
 - Add `github.com/canonical/identity-platform-api` (branch `IAM-1998`, switching to `main` after merge) as a Go module dependency.
 - Replace the `pkg/tenants.Service` HTTP client fields (`tenantsAPIURL`, `httpClient`) with a `tenant.TenantServiceClient` gRPC client from the SDK.
 - Rewrite `LookupTenantsByEmail` and `LookupTenantsByIdentityID` to call `TenantService.LookupTenants` via gRPC instead of crafting HTTP requests.
-- Remove the local `Tenant` struct — use `tenant.Tenant` from the SDK instead (or map it at the boundary).
+- Keep the local `Tenant` struct and map `*tenant.Tenant` proto responses at the service boundary, so the rest of the codebase remains decoupled from protobuf-generated types.
 - Update `NewService` constructor: accept a `tenant.TenantServiceClient` (or a `grpc.ClientConn` + address) instead of a raw URL and `*http.Client`.
 - Update `cmd/serve.go` wiring to create the gRPC connection and inject it.
 - Update `interfaces.go` local interface definition and mocks.
@@ -28,4 +28,4 @@ The tenant service lookup in `pkg/tenants` is currently implemented with a hand-
 - **Backend Go**: `pkg/tenants/service.go`, `pkg/tenants/interfaces.go`, `cmd/serve.go`, `internal/config/specs.go` (config field rename/add).
 - **Dependencies**: new Go module `github.com/canonical/identity-platform-api` + transitive gRPC deps (`google.golang.org/grpc`, protobuf).
 - **Tests**: `pkg/tenants` unit tests — mocks need to be regenerated; test setup changes from HTTP mock server to gomock gRPC client.
-- **No Kratos, Hydra, OpenFGA, or frontend changes required.**
+- **No Kratos, Hydra, or OpenFGA changes required.** Frontend changes (WebAuthn/TOTP flow selection on the login page) are also included in this PR, tracked separately under issue #839.

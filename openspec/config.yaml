@@ -19,6 +19,7 @@ rules:
     - Write normative requirements as clear MUST/SHOULD statements.
     - Cover security-sensitive behavior (authentication flow, cookies, redirects, token handling).
     - Include user-visible behavior and API/contract expectations.
+    - Include a "Purpose" section for each spec explaining the rationale behind the requirements, so that openspec validate can surface the motivation alongside the normative text.
   design:
     - Reference concrete modules and paths (for example pkg/, internal/, ui/pages, ui/components).
     - Describe data and control flow through Login UI, Kratos, Hydra, and OpenFGA when applicable.
