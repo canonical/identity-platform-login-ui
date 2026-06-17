@@ -2,7 +2,7 @@ import { expect, Page } from "@playwright/test";
 import { execSync } from "child_process";
 
 export const enterTotpCode = async (page: Page, setupKey: string) => {
-  await expect(page.getByText("Verify your identity")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Verify your identity" })).toBeVisible();
   const code = getTotpCode(setupKey);
   await page.getByLabel("Authentication code").fill(code);
   await page.getByRole("button", { name: "Sign in" }).click();

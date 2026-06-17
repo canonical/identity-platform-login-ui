@@ -1,0 +1,30 @@
+schema: spec-driven
+
+context: |
+  Project: Canonical Identity Platform Login UI
+  Domain: authentication and OAuth2/OIDC login UX for the Canonical Identity Platform
+
+  Tech stack:
+  - Backend: Go (chi router), OpenTelemetry, Prometheus, Zap
+  - Frontend: Next.js 15 (Pages Router, static export), TypeScript, React, Vanilla Framework, @canonical/react-components
+  - Integrations: Ory Kratos (identity/self-service flows), Ory Hydra (OAuth2/OIDC), OpenFGA (optional authorization)
+  - Testing: Go unit tests with gomock, Playwright E2E in ui/tests
+
+rules:
+  proposal:
+    - Include sections for problem statement, scope, non-goals, and success criteria.
+    - Describe impact across backend (Go) and frontend (Next.js) when relevant.
+    - Explicitly call out changes affecting Kratos, Hydra, cookies, or OpenFGA behavior.
+  specs:
+    - Write normative requirements as clear MUST/SHOULD statements.
+    - Cover security-sensitive behavior (authentication flow, cookies, redirects, token handling).
+    - Include user-visible behavior and API/contract expectations.
+    - Include a "Purpose" section for each spec explaining the rationale behind the requirements, so that openspec validate can surface the motivation alongside the normative text.
+  design:
+    - Reference concrete modules and paths (for example pkg/, internal/, ui/pages, ui/components).
+    - Describe data and control flow through Login UI, Kratos, Hydra, and OpenFGA when applicable.
+    - Include rollout, observability, and failure-handling considerations.
+  tasks:
+    - Break implementation into small, verifiable steps with explicit file targets.
+    - Include tests for changed behavior (Go unit tests and/or Playwright where relevant).
+    - Include validation commands and completion criteria for each major step.
