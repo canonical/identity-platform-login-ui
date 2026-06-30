@@ -7,7 +7,8 @@ description: |
   This is the Canonical Identity platform login UI used for connecting
   Ory Kratos with Ory Hydra.
 platforms:
-  amd64: null
+  amd64:
+  arm64:
 services:
   login-ui:
     override: replace
@@ -24,11 +25,11 @@ parts:
     build-packages:
       - make
       - git
-    override-build: >
+    override-build: |
+      export GOARCH="${CRAFT_ARCH_BUILD_FOR}"
       make npm-build build
 
-      install -D -m755 app
-      ${CRAFT_PART_INSTALL}/opt/identity-platform-login-ui/bin/app
+      install -D -m755 app ${CRAFT_PART_INSTALL}/opt/identity-platform-login-ui/bin/app
     organize:
       opt/identity-platform-login-ui/bin/app: usr/bin/identity-platform-login-ui
     stage-packages:
