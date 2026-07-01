@@ -5,7 +5,7 @@ import { resetIdentities } from "./helpers/kratosIdentities";
 import { userPassLogin } from "./helpers/login";
 import { clickButton, verifyBackupCode } from "./helpers/backupCode";
 
-test("backup recovery code setup and usage", async ({ browser, context, page }) => {
+test("backup recovery code setup and usage", async ({ browser, page }) => {
   resetIdentities();
   await startNewAuthFlow(page);
   await userPassLogin(page);

@@ -1,4 +1,9 @@
-import { Configuration, FrontendApi, UpdateLoginFlowBody, LoginFlow } from "@ory/client";
+import {
+  Configuration,
+  FrontendApi,
+  UpdateLoginFlowBody,
+  LoginFlow,
+} from "@ory/client";
 
 export const kratos = new FrontendApi(
   new Configuration({
@@ -7,7 +12,7 @@ export const kratos = new FrontendApi(
     baseOptions: {
       withCredentials: true,
     },
-  })
+  }),
 );
 
 type IdentifierFirstResponse = { redirect_to: string } | LoginFlow;
@@ -23,20 +28,17 @@ export async function loginIdentifierFirst(
   if (loginChallenge) {
     params.set("login_challenge", loginChallenge);
   }
-  const res = await fetch(
-    `/self-service/login/id-first?${params.toString()}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...values,
-        method,
-        flow: String(flow?.id),
-      }),
+  const res = await fetch(`/self-service/login/id-first?${params.toString()}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({
+      ...values,
+      method,
+      flow: String(flow?.id),
+    }),
+  });
 
   if (!res.ok) {
     throw new Error(await res.text());

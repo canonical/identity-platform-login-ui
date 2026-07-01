@@ -13,7 +13,9 @@ const parseTenants = (r: Response): Promise<Tenant[]> => {
 };
 
 export const fetchTenantsByFlow = (flowId: string): Promise<Tenant[]> =>
-  fetch(`/api/v0/tenants?flow=${encodeURIComponent(flowId)}`).then(parseTenants);
+  fetch(`/api/v0/tenants?flow=${encodeURIComponent(flowId)}`).then(
+    parseTenants,
+  );
 
 export const fetchTenantsBySession = (): Promise<Tenant[]> =>
   fetch("/api/v0/tenants").then(parseTenants);

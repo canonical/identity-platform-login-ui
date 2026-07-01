@@ -1,6 +1,10 @@
 import { NextRouter } from "next/router";
 
-export function redirectTo(url: string, router: NextRouter, passQuery: boolean = true): void {
+export function redirectTo(
+  url: string,
+  router: NextRouter,
+  passQuery: boolean = true,
+): void {
   let newUrl: URL;
   try {
     newUrl = new URL(url, window.location.origin);
@@ -17,7 +21,6 @@ export function redirectTo(url: string, router: NextRouter, passQuery: boolean =
   const pathWithoutBase = newUrl.pathname.startsWith(basePath)
     ? newUrl.pathname.slice(basePath.length)
     : newUrl.pathname;
-
 
   void router.push({
     pathname: pathWithoutBase,

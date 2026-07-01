@@ -2,10 +2,7 @@ import { expect, Page } from "@playwright/test";
 import { getRecoveryCodeFromMailSlurp } from "./mail";
 import { BrowserContext } from "playwright-core";
 
-export const confirmMailCode = async (
-  page: Page,
-  context: BrowserContext,
-) => {
+export const confirmMailCode = async (page: Page, context: BrowserContext) => {
   await expect(page.getByText("Enter the code you received")).toBeVisible();
   const recoveryCode = await getRecoveryCodeFromMailSlurp(context);
   await page.getByLabel("Recovery code").fill(recoveryCode);

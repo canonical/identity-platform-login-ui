@@ -33,7 +33,9 @@ test("reset password from oidc app", async ({ browser, context, page }) => {
   await startNewAuthFlow(newPage);
 
   await userPassLogin(newPage, USER_EMAIL, USER_PASSWORD);
-  await expect(newPage.getByText("Incorrect password. Please try again.")).toBeVisible();
+  await expect(
+    newPage.getByText("Incorrect password. Please try again."),
+  ).toBeVisible();
 
   // Since the email step is already completed, we do not use userPassLogin(), instead we just fill the password field directly
   const passwordInput = newPage.getByRole("textbox", { name: "Password" });

@@ -7,7 +7,7 @@ const hydraAdmin = new OAuth2Api(
     baseOptions: {
       withCredentials: true,
     },
-  })
+  }),
 );
 
 export { hydraAdmin };
