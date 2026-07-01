@@ -11,7 +11,7 @@ export const userPassLogin = async (
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
 
-  const passwordInput = page.getByRole("textbox", {name: "Password"});
+  const passwordInput = page.getByRole("textbox", { name: "Password" });
   await expect(passwordInput).toBeVisible();
   await passwordInput.fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();

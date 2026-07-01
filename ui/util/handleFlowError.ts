@@ -9,13 +9,14 @@ export interface KratosErrorResponse {
   redirect_to: string;
 }
 
-const getRedirectToFromError = (err: KratosErrorResponse) => (
-  window.location.href = err.redirect_browser_to? err.redirect_browser_to: err.redirect_to
-);
+const getRedirectToFromError = (err: KratosErrorResponse) =>
+  (window.location.href = err.redirect_browser_to
+    ? err.redirect_browser_to
+    : err.redirect_to);
 
-export function capitalize(str?: string){
+export function capitalize(str?: string) {
   if (!str) return str;
-  return str.charAt(0).toUpperCase() + str.slice(1)
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // deal with errors coming from initializing a flow.

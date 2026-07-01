@@ -1,8 +1,6 @@
 import { UiNode, UiNodeInputAttributes } from "@ory/client";
 
-export const getCsrfNode = (
-  nodes?: UiNode[],
-): UiNode | undefined =>
+export const getCsrfNode = (nodes?: UiNode[]): UiNode | undefined =>
   nodes?.find(
     (node) =>
       node.group === "default" &&
