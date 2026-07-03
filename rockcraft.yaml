@@ -1,14 +1,14 @@
 name: identity-platform-login-ui
 base: bare
 build-base: ubuntu@22.04
-version: 0.27.0
+version: 0.28.0
 summary: Canonical Identity platform login UI
 description: |
   This is the Canonical Identity platform login UI used for connecting
   Ory Kratos with Ory Hydra.
 platforms:
-  amd64:
-  arm64:
+  amd64: null
+  arm64: null
 services:
   login-ui:
     override: replace
@@ -25,11 +25,14 @@ parts:
     build-packages:
       - make
       - git
-    override-build: |
+    override-build: >
       export GOARCH="${CRAFT_ARCH_BUILD_FOR}"
+
       make npm-build build
 
-      install -D -m755 app ${CRAFT_PART_INSTALL}/opt/identity-platform-login-ui/bin/app
+
+      install -D -m755 app
+      ${CRAFT_PART_INSTALL}/opt/identity-platform-login-ui/bin/app
     organize:
       opt/identity-platform-login-ui/bin/app: usr/bin/identity-platform-login-ui
     stage-packages:
