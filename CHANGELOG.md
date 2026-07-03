@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.28.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.27.0...v0.28.0) (2026-07-03)
+
+
+### Features
+
+* add arm64 support ([#919](https://github.com/canonical/identity-platform-login-ui/issues/919)) ([a45ba38](https://github.com/canonical/identity-platform-login-ui/commit/a45ba38634959b1314582cc4a9350928ed62a33b))
+* add FlowBackButton ([1d55000](https://github.com/canonical/identity-platform-login-ui/commit/1d5500008a912edccd47ca45fec2f63907898822))
+* add FlowBackButton to RegisterPassword ([63c38b9](https://github.com/canonical/identity-platform-login-ui/commit/63c38b92eb00d966c04376fa675f408d35cdf501))
+* support arm64 ([f020304](https://github.com/canonical/identity-platform-login-ui/commit/f020304c598b4bd514ad19e3814ce24a1c4c81b7))
+
+
+### Bug Fixes
+
+* allow webauthn 2fa along with totp ([92f387e](https://github.com/canonical/identity-platform-login-ui/commit/92f387e784c16094820ba63315bbfb51767780fb))
+* **deps:** update module github.com/go-chi/chi/v5 to v5.2.4 [security] ([006c2b9](https://github.com/canonical/identity-platform-login-ui/commit/006c2b9c4019d11f9e2f7175d3ff99f8509cd41b))
+* **deps:** update module github.com/go-chi/chi/v5 to v5.2.4 [security] ([#909](https://github.com/canonical/identity-platform-login-ui/issues/909)) ([e3990db](https://github.com/canonical/identity-platform-login-ui/commit/e3990db7b20757abe2bb38422e62268a466f18b4))
+* fix e2e tests ([462b9bf](https://github.com/canonical/identity-platform-login-ui/commit/462b9bf03cd98d1b8dd80a9f9470dcf09d23680e))
+* use grpc to call the tenant service ([abe18b8](https://github.com/canonical/identity-platform-login-ui/commit/abe18b86c3f69254afe87746a53a8af61b62a7ee))
+
 ## [0.27.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.26.0...v0.27.0) (2026-05-27)
 
 
