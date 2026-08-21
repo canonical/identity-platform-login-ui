@@ -9,11 +9,10 @@ import (
 	"io"
 	"net/http"
 
-	hClient "github.com/ory/hydra-client-go/v2"
+	hClient "github.com/ory/hydra-client-go/v26"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 
-	"github.com/canonical/identity-platform-login-ui/internal/hydra"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
@@ -27,7 +26,7 @@ type Service struct {
 	logger  logging.LoggerInterface
 }
 
-func (s *Service) AcceptUserCode(ctx context.Context, deviceChallenge string, req *hydra.AcceptDeviceUserCodeRequest) (*hClient.OAuth2RedirectTo, error) {
+func (s *Service) AcceptUserCode(ctx context.Context, deviceChallenge string, req *hClient.AcceptDeviceUserCodeRequest) (*hClient.OAuth2RedirectTo, error) {
 	ctx, span := s.tracer.Start(ctx, "device.service.AcceptUserCode")
 	defer span.End()
 
@@ -50,8 +49,8 @@ func (s *Service) AcceptUserCode(ctx context.Context, deviceChallenge string, re
 	return accept, nil
 }
 
-func (s *Service) ParseUserCodeBody(r *http.Request) (*hydra.AcceptDeviceUserCodeRequest, error) {
-	body := new(hydra.AcceptDeviceUserCodeRequest)
+func (s *Service) ParseUserCodeBody(r *http.Request) (*hClient.AcceptDeviceUserCodeRequest, error) {
+	body := new(hClient.AcceptDeviceUserCodeRequest)
 
 	err := parseBody(r.Body, &body)
 

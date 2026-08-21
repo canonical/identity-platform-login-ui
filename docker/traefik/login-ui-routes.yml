@@ -16,12 +16,12 @@ http:
         - sidecar-replace-path-regex-login-ui
       service: login-ui-public-api-service
 
-    # /api/device
-    login-ui-public-api-router-api-device:
+    # /api/hydra
+    login-ui-public-api-router-api-hydra:
       entryPoints:
         - web
         - websecure
-      rule: "Path(`/api/device`)"
+      rule: "PathPrefix(`/api/hydra`)"
       service: login-ui-public-api-service
 
     # /api/consent

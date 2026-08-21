@@ -1,22 +1,20 @@
 import type { NextPage } from "next";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useRouter } from "next/router";
 import React, { FormEvent, useCallback, useState } from "react";
 import PageLayout from "../components/PageLayout";
 import { Button, Form, Input } from "@canonical/react-components";
-
-export interface Response {
-  data: {
-    redirect_to?: string;
-  };
-}
+import { hydraAdmin } from "../api/hydra";
 
 async function acceptUserCode(userCode: string, challenge: string) {
-  return axios
-    .put(`../api/device?device_challenge=${challenge}`, {
-      user_code: userCode,
+  return hydraAdmin
+    .acceptUserCodeRequest({
+      deviceChallenge: challenge,
+      acceptDeviceUserCodeRequest: {
+        user_code: userCode,
+      },
     })
-    .then(({ data }: Response) => {
+    .then(({ data }) => {
       if (data.redirect_to) {
         window.location.href = data.redirect_to;
       }
@@ -35,12 +33,15 @@ const DeviceCode: NextPage = () => {
       const formData = new FormData(event.currentTarget);
       const userCode = formData.get("code") as string;
       acceptUserCode(String(userCode), String(challenge)).catch(
-        (error: AxiosError) => {
-          // TODO(nsklikas): Refactor when proper error handling is
-          // implemented in the backend
-          if (error.response?.status == 400) {
+        (error: AxiosError<{ error_description?: string }>) => {
+          if (
+            error.response &&
+            error.response.status >= 400 &&
+            error.response.status < 500
+          ) {
             setErrorMessage(
-              "The code is either invalid, expired or already used",
+              error.response.data?.error_description ||
+                "The code is either invalid, expired or already used",
             );
           } else {
             setErrorMessage("Something went wrong, please try again");

@@ -13,7 +13,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"
-	hClient "github.com/ory/hydra-client-go/v2"
+	hClient "github.com/ory/hydra-client-go/v26"
 	kClient "github.com/ory/kratos-client-go/v25"
 )
 

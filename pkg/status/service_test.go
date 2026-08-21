@@ -12,7 +12,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
 	"go.uber.org/mock/gomock"
 
-	hClient "github.com/ory/hydra-client-go/v2"
+	hClient "github.com/ory/hydra-client-go/v26"
 	kClient "github.com/ory/kratos-client-go/v25"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -22,7 +22,7 @@ import (
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_monitor.go -source=../../internal/monitoring/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_tracing.go -source=../../internal/tracing/interfaces.go
 //go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_kratos.go -mock_names MetadataApi=MockKratosMetadataAPI github.com/ory/kratos-client-go/v25 MetadataAPI
-//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_hydra.go -mock_names MetadataAPI=MockHydraMetadataAPI "github.com/ory/hydra-client-go/v2" MetadataAPI
+//go:generate mockgen -build_flags=--mod=mod -package status -destination ./mock_hydra.go -mock_names MetadataAPI=MockHydraMetadataAPI "github.com/ory/hydra-client-go/v26" MetadataAPI
 
 func TestKratosReadySuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)

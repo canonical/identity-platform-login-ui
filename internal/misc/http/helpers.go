@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	hydra_client "github.com/ory/hydra-client-go/v2"
+	hydra_client "github.com/ory/hydra-client-go/v26"
 	kratos_client "github.com/ory/kratos-client-go/v25"
 
 	oidc "github.com/canonical/identity-platform-login-ui/pkg/oidc"

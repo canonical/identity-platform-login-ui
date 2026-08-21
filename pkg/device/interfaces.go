@@ -7,7 +7,7 @@ import (
 	"context"
 	"net/http"
 
-	hClient "github.com/ory/hydra-client-go/v2"
+	hClient "github.com/ory/hydra-client-go/v26"
 	kClient "github.com/ory/kratos-client-go/v25"
 
 	"github.com/canonical/identity-platform-login-ui/internal/hydra"
@@ -22,6 +22,6 @@ type HydraClientInterface interface {
 }
 
 type ServiceInterface interface {
-	AcceptUserCode(context.Context, string, *hydra.AcceptDeviceUserCodeRequest) (*hClient.OAuth2RedirectTo, error)
-	ParseUserCodeBody(*http.Request) (*hydra.AcceptDeviceUserCodeRequest, error)
+	AcceptUserCode(context.Context, string, *hClient.AcceptDeviceUserCodeRequest) (*hClient.OAuth2RedirectTo, error)
+	ParseUserCodeBody(*http.Request) (*hClient.AcceptDeviceUserCodeRequest, error)
 }
