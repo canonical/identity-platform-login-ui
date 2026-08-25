@@ -95,7 +95,7 @@ From the failing network request URL and the backend logs, identify the Go handl
 |------------------------------------------|----------------------|-----------------------------|
 | `/api/kratos/self-service/*`             | `pkg/kratos`         | `handlers.go`               |
 | `/api/consent`                           | `pkg/extra`          | `handlers.go`               |
-| `/api/device`                            | `pkg/device`         | `handlers.go`               |
+| `/api/hydra/*`                           | `pkg/device`         | `handlers.go`               |
 
 Look at the handler's response when it receives an error from Kratos. Check whether
 it returns the updated Kratos flow object (good — the frontend can display the error
