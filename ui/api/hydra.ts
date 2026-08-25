@@ -1,4 +1,4 @@
-import { Configuration, OAuth2Api } from "@ory/client";
+import { Configuration, OAuth2Api } from "@ory/hydra-client";
 
 const hydraAdmin = new OAuth2Api(
   new Configuration({

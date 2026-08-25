@@ -13,7 +13,7 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/canonical/identity-platform-login-ui/internal/version"
 
-	hClient "github.com/ory/hydra-client-go/v2"
+	hClient "github.com/ory/hydra-client-go/v26"
 	kClient "github.com/ory/kratos-client-go/v25"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"

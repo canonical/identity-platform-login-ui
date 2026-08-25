@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/mock/gomock"
 
-	hClient "github.com/ory/hydra-client-go/v2"
+	hClient "github.com/ory/hydra-client-go/v26"
 	kClient "github.com/ory/kratos-client-go/v25"
 
 	"github.com/canonical/identity-platform-login-ui/pkg/kratos"

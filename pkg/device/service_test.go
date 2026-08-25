@@ -13,9 +13,8 @@ import (
 	reflect "reflect"
 	"testing"
 
-	"github.com/canonical/identity-platform-login-ui/internal/hydra"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring"
-	hClient "github.com/ory/hydra-client-go/v2"
+	hClient "github.com/ory/hydra-client-go/v26"
 	trace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/mock/gomock"
 )
@@ -37,7 +36,7 @@ func TestParseUserCodeBodySuccess(t *testing.T) {
 
 	code := "ABCDEFGH"
 
-	userCodeRequest := hydra.NewAcceptDeviceUserCodeRequest()
+	userCodeRequest := hClient.NewAcceptDeviceUserCodeRequest()
 	userCodeRequest.UserCode = &code
 	jsonBody, _ := userCodeRequest.MarshalJSON()
 
@@ -89,11 +88,11 @@ func TestAcceptUserCodeSuccess(t *testing.T) {
 	code := "ABCDEFGH"
 	challenge := "7bb518c4eec2454dbb289f5fdb4c0ee2"
 
-	userCodeRequest := hydra.NewAcceptDeviceUserCodeRequest()
+	userCodeRequest := hClient.NewAcceptDeviceUserCodeRequest()
 	userCodeRequest.UserCode = &code
 	redirectTo := hClient.NewOAuth2RedirectTo("test")
 
-	req := hydra.ApiAcceptUserCodeRequestRequest{
+	req := hClient.OAuth2APIAcceptUserCodeRequestRequest{
 		ApiService: mockOAuth2API,
 	}
 	resp := http.Response{}
@@ -102,7 +101,7 @@ func TestAcceptUserCodeSuccess(t *testing.T) {
 	mockHydra.EXPECT().OAuth2API().Times(1).Return(mockOAuth2API)
 	mockOAuth2API.EXPECT().AcceptUserCodeRequest(ctx).Times(1).Return(req)
 	mockOAuth2API.EXPECT().AcceptUserCodeRequestExecute(gomock.Any()).Times(1).DoAndReturn(
-		func(r hydra.ApiAcceptUserCodeRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
+		func(r hClient.OAuth2APIAcceptUserCodeRequestRequest) (*hClient.OAuth2RedirectTo, *http.Response, error) {
 			if _challenge := (*string)(reflect.ValueOf(r).FieldByName("deviceChallenge").UnsafePointer()); *_challenge != challenge {
 				t.Fatalf("expected challenge to be %s, got %s", challenge, *_challenge)
 			}
@@ -136,10 +135,10 @@ func TestAcceptUserCodeFailure(t *testing.T) {
 	code := "ABCDEFGH"
 	challenge := "7bb518c4eec2454dbb289f5fdb4c0ee2"
 
-	userCodeRequest := hydra.NewAcceptDeviceUserCodeRequest()
+	userCodeRequest := hClient.NewAcceptDeviceUserCodeRequest()
 	userCodeRequest.UserCode = &code
 
-	req := hydra.ApiAcceptUserCodeRequestRequest{
+	req := hClient.OAuth2APIAcceptUserCodeRequestRequest{
 		ApiService: mockOAuth2API,
 	}
 

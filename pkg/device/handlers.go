@@ -5,11 +5,13 @@ package device
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/go-chi/chi/v5"
+	hClient "github.com/ory/hydra-client-go/v26"
 )
 
 type API struct {
@@ -19,10 +21,8 @@ type API struct {
 	logger logging.LoggerInterface
 }
 
-const NOT_FOUND_ERROR_DESC = "The user_code provided is either invalid, expired or already used."
-
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
-	mux.Put("/api/device", a.handleDevice)
+	mux.Put("/api/hydra/admin/oauth2/auth/requests/device/accept", a.handleDevice)
 }
 
 func (a *API) handleDevice(w http.ResponseWriter, r *http.Request) {
@@ -38,11 +38,19 @@ func (a *API) handleDevice(w http.ResponseWriter, r *http.Request) {
 	deviceResp, err := a.service.AcceptUserCode(r.Context(), challenge, body)
 	if err != nil {
 		a.logger.Errorf("Failed to accept user code: %v\n", err)
-		if e := err.Error(); e == "404 Not Found" {
-			http.Error(w, NOT_FOUND_ERROR_DESC, http.StatusBadRequest)
-		} else {
-			http.Error(w, "Failed to accept user code", http.StatusInternalServerError)
+		var apiErr *hClient.GenericOpenAPIError
+		if errors.As(err, &apiErr) && len(apiErr.Body()) > 0 {
+			statusCode := http.StatusBadRequest
+			var oauth2Err hClient.ErrorOAuth2
+			if jsonErr := json.Unmarshal(apiErr.Body(), &oauth2Err); jsonErr == nil && oauth2Err.StatusCode != nil {
+				statusCode = int(*oauth2Err.StatusCode)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(statusCode)
+			w.Write(apiErr.Body())
+			return
 		}
+		http.Error(w, "Failed to accept user code", http.StatusInternalServerError)
 		return
 	}
 	resp, err := json.Marshal(deviceResp)
