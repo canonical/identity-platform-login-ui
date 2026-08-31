@@ -60,7 +60,8 @@ selfservice:
                         - hook: session
                 oidc:
                     hooks:
-                    - hook: session
+                        - hook: show_verification_ui
+                        - hook: session
                 webauthn:
                     hooks:
                     - hook: session
