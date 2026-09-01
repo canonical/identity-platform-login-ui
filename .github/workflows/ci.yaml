@@ -26,7 +26,7 @@ jobs:
       architectures: ${{ steps.parse.outputs.architectures }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Parse platforms from rockcraft.yaml
         id: parse
@@ -40,7 +40,7 @@ jobs:
     strategy:
       matrix:
         architecture: ${{ fromJson(needs.get-architectures.outputs.architectures) }}
-    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@d64b860c8679d3539f5f35f3d2494c419d8e41b5 # v1.12.2
+    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
     with:
       structure-tests-enabled: true
       architecture: ${{ matrix.architecture }}
@@ -51,13 +51,13 @@ jobs:
       contents: read
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@d64b860c8679d3539f5f35f3d2494c419d8e41b5 # v1.12.2
+    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
 
   oci-publish:
     # only release to oci-factory in case of release
     if: github.ref_type == 'tag'
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@d64b860c8679d3539f5f35f3d2494c419d8e41b5 # v1.12.2
+    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
     with:
       eol-stable-release: "6 month"
     secrets:
@@ -71,7 +71,7 @@ jobs:
       actions: read
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: gh-publish
-    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@d64b860c8679d3539f5f35f3d2494c419d8e41b5 # v1.12.2
+    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
     with:
       image: ${{ needs.gh-publish.outputs.image }}
 
@@ -81,7 +81,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@d64b860c8679d3539f5f35f3d2494c419d8e41b5 # v1.12.2
+    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
     with:
         oci-image: ${{ needs.gh-publish.outputs.image }}
         repository: canonical/identity-platform-login-ui-operator
