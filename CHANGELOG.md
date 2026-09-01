@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.29.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.28.0...v0.29.0) (2026-09-01)
+
+
+### Features
+
+* upgrade hydra client to v26 and use SDK for device flow ([7b276b5](https://github.com/canonical/identity-platform-login-ui/commit/7b276b51c6e59dfbbe0b8d0187ad53c0480679b9))
+
+
+### Bug Fixes
+
+* **deps:** update module google.golang.org/grpc to v1.82.1 [security] ([f2c03bb](https://github.com/canonical/identity-platform-login-ui/commit/f2c03bb30efee28bfc9a82d60fdde2e555787d99))
+* **deps:** update module google.golang.org/grpc to v1.82.1 [security] ([#932](https://github.com/canonical/identity-platform-login-ui/issues/932)) ([c0f0e24](https://github.com/canonical/identity-platform-login-ui/commit/c0f0e24ce26435e31fb7c45667ed2e82b86347de))
+
 ## [0.28.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.27.0...v0.28.0) (2026-07-03)
 
 
