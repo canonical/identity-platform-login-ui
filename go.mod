@@ -8,11 +8,11 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/openfga/go-sdk v0.7.3
+	github.com/openfga/go-sdk v0.7.5
 	github.com/ory/hydra-client-go/v26 v26.2.0
 	github.com/ory/kratos-client-go/v25 v25.4.0
 	github.com/prometheus/client_golang v1.24.1
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.46.0
 	go.opentelemetry.io/otel v1.46.0
@@ -24,7 +24,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.46.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
-	google.golang.org/grpc v1.83.1
+	google.golang.org/grpc v1.83.2
 )
 
 require (
