@@ -8,7 +8,7 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/openfga/go-sdk v0.7.5
+	github.com/openfga/go-sdk v0.8.2
 	github.com/ory/hydra-client-go/v26 v26.2.0
 	github.com/ory/kratos-client-go/v25 v25.4.0
 	github.com/prometheus/client_golang v1.24.1
