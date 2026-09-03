@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.29.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.28.0...v0.29.0) (2026-09-03)
+
+
+### Features
+
+* upgrade hydra client to v26 and use SDK for device flow ([7b276b5](https://github.com/canonical/identity-platform-login-ui/commit/7b276b51c6e59dfbbe0b8d0187ad53c0480679b9))
+
+
+### Bug Fixes
+
+* **deps:** update dependency @canonical/react-components to v4 ([932e83f](https://github.com/canonical/identity-platform-login-ui/commit/932e83f2dfcd41517f8ad0df75a36ecf05c548f3))
+* **deps:** update dependency @canonical/react-components to v4 ([#944](https://github.com/canonical/identity-platform-login-ui/issues/944)) ([8177edc](https://github.com/canonical/identity-platform-login-ui/commit/8177edc35252a2fecbe2cda0e0c7b4f0933bc0df))
+* **deps:** update dependency vanilla-framework to v4.59.0 ([746512a](https://github.com/canonical/identity-platform-login-ui/commit/746512ab758cf0163b643c567a86f0f5ead7ab6e))
+* **deps:** update go deps ([153b8ee](https://github.com/canonical/identity-platform-login-ui/commit/153b8eef89299c46511cedb1dc59d42183202292))
+* **deps:** update go deps ([2a638bb](https://github.com/canonical/identity-platform-login-ui/commit/2a638bb243ad789523085df4b5aad10dc1b94c1b))
+* **deps:** update go deps (patch) ([#955](https://github.com/canonical/identity-platform-login-ui/issues/955)) ([dd39c67](https://github.com/canonical/identity-platform-login-ui/commit/dd39c67bdbefd211e8046af3e59f258d0b262d22))
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.4 ([08ff546](https://github.com/canonical/identity-platform-login-ui/commit/08ff54642e18ab03fe377d662d2209f37a0facad))
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.4 ([#963](https://github.com/canonical/identity-platform-login-ui/issues/963)) ([dc18aaa](https://github.com/canonical/identity-platform-login-ui/commit/dc18aaa23ed699a52d27804a713ca131746c8cdd))
+* **deps:** update module github.com/openfga/go-sdk to v0.8.2 ([ba722c9](https://github.com/canonical/identity-platform-login-ui/commit/ba722c993e3de64459111642e5aa09a60e6d5743))
+* **deps:** update module github.com/openfga/go-sdk to v0.8.2 ([#958](https://github.com/canonical/identity-platform-login-ui/issues/958)) ([87d83b4](https://github.com/canonical/identity-platform-login-ui/commit/87d83b44279a8ba93e4bb89e804c15543accb724))
+* **deps:** update module google.golang.org/grpc to v1.82.1 [security] ([f2c03bb](https://github.com/canonical/identity-platform-login-ui/commit/f2c03bb30efee28bfc9a82d60fdde2e555787d99))
+* **deps:** update module google.golang.org/grpc to v1.82.1 [security] ([#932](https://github.com/canonical/identity-platform-login-ui/issues/932)) ([c0f0e24](https://github.com/canonical/identity-platform-login-ui/commit/c0f0e24ce26435e31fb7c45667ed2e82b86347de))
+* **deps:** update module google.golang.org/grpc to v1.83.1 [security] ([f52358a](https://github.com/canonical/identity-platform-login-ui/commit/f52358a4b1f710c05954b5a030dbf81de44d5ae5))
+* **deps:** update module google.golang.org/grpc to v1.83.1 [security] ([#952](https://github.com/canonical/identity-platform-login-ui/issues/952)) ([7f6e74b](https://github.com/canonical/identity-platform-login-ui/commit/7f6e74b5615c3d1cfbe79de6c8677c9874725e95))
+
 ## [0.28.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.27.0...v0.28.0) (2026-07-03)
 
 
