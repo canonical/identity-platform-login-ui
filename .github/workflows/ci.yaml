@@ -40,7 +40,7 @@ jobs:
     strategy:
       matrix:
         architecture: ${{ fromJson(needs.get-architectures.outputs.architectures) }}
-    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
+    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@b5428d226e364de1c5ad601c1ec27c333f489d1d # v1.16.2
     with:
       structure-tests-enabled: true
       architecture: ${{ matrix.architecture }}
@@ -51,13 +51,13 @@ jobs:
       contents: read
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
+    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@b5428d226e364de1c5ad601c1ec27c333f489d1d # v1.16.2
 
   oci-publish:
     # only release to oci-factory in case of release
     if: github.ref_type == 'tag'
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
+    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@b5428d226e364de1c5ad601c1ec27c333f489d1d # v1.16.2
     with:
       eol-stable-release: "6 month"
     secrets:
@@ -71,7 +71,7 @@ jobs:
       actions: read
     if: ${{ (github.ref == 'refs/heads/main') || (github.ref_type == 'tag') }}
     needs: gh-publish
-    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
+    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@b5428d226e364de1c5ad601c1ec27c333f489d1d # v1.16.2
     with:
       image: ${{ needs.gh-publish.outputs.image }}
 
@@ -81,7 +81,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@e017941885bd1d17774bf7be2cbbb1d1abe80d9e # v1.16.0
+    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@b5428d226e364de1c5ad601c1ec27c333f489d1d # v1.16.2
     with:
         oci-image: ${{ needs.gh-publish.outputs.image }}
         repository: canonical/identity-platform-login-ui-operator
