@@ -88,6 +88,7 @@ github.com/ory/hydra-client-go/v26 v26.2.0 h1:el+M6dV5CK3Am2V4isorOoZ8pJdDaJm0ir
 github.com/ory/hydra-client-go/v26 v26.2.0/go.mod h1:IkTtqWmwQoFGo6dclIP2n51uror2sGNHC4Fjs/QlFqM=
 github.com/ory/kratos-client-go/v25 v25.4.0 h1:iP+1HaWWIYfoWN/+G9n4D5yiZ9WN/Y6WeKrZrKid9D4=
 github.com/ory/kratos-client-go/v25 v25.4.0/go.mod h1:XiKALFzJ0ubLK0kILYkX6XlRpumrkyDNNHVL5hZ3Nl8=
+github.com/ory/kratos-client-go/v26 v26.2.0/go.mod h1:e+/mcu50WOlMneiR00+uD05b0mW5t2H4hF1o4ph6MYk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_golang v1.23.2 h1:Je96obch5RDVy3FDMndoUsjAhG5Edi49h0RJWRi/o0o=
