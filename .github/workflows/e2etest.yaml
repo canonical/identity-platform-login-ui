@@ -37,6 +37,9 @@ jobs:
         run: |
           ./ui/tests/scripts/03-start-oidc-app.sh
 
+      - name: Install Node dependencies
+        run: cd ui && npm ci
+
       - name: Install Playwright Browser
         run: |
           sudo rm -f /etc/apt/sources.list.d/*chrome* /etc/apt/sources.list.d/*google*
