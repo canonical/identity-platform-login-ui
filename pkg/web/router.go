@@ -4,7 +4,6 @@
 package web
 
 import (
-	"io/fs"
 	"net/http"
 	"time"
 
@@ -25,7 +24,6 @@ import (
 	"github.com/canonical/identity-platform-login-ui/pkg/metrics"
 	"github.com/canonical/identity-platform-login-ui/pkg/status"
 	"github.com/canonical/identity-platform-login-ui/pkg/tenants"
-	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
 type Option func(config *routerConfig)
@@ -52,12 +50,6 @@ func WithAuthzClient(a authz.AuthorizerInterface) Option {
 func WithCookieManager(cm *cookies.AuthCookieManager) Option {
 	return func(r *routerConfig) {
 		r.cookieManager = cm
-	}
-}
-
-func WithFS(fsys fs.FS) Option {
-	return func(r *routerConfig) {
-		r.distFS = fsys
 	}
 }
 
@@ -131,7 +123,6 @@ type routerConfig struct {
 	hydraClient                   *ih.Client
 	authzClient                   authz.AuthorizerInterface
 	cookieManager                 *cookies.AuthCookieManager
-	distFS                        fs.FS
 	verificationEnabled           bool
 	mfaEnabled                    bool
 	oidcWebAuthnSequencingEnabled bool
@@ -235,13 +226,6 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		status.NewService(config.kratosClient.MetadataApi(), config.hydraClient.MetadataAPI(), config.tracer, config.monitor, config.logger),
 		config.tracer,
 		config.monitor,
-		config.logger,
-	).RegisterEndpoints(router)
-
-	ui.NewAPI(
-		config.distFS,
-		config.baseURL,
-		config.kratosPublicURL,
 		config.logger,
 	).RegisterEndpoints(router)
 

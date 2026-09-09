@@ -21,7 +21,7 @@ test: mocks vet
 	cat test_source.json | grep -v "mock_*" | tee test.json
 .PHONY: test
 
-vet: cmd/ui/dist
+vet:
 	$(GO) vet ./...
 .PHONY: vet
 
@@ -29,17 +29,9 @@ vendor:
 	$(GO) mod vendor
 .PHONY: vendor
 
-build: cmd/ui/dist
+build:
 	$(GO) build -o $(GO_BIN) ./
 .PHONY: build
-
-# plan is to use this as a probe, if folder is there target wont run and npm-build will skip
-# but not working atm
-cmd/ui/dist:
-	@echo "copy dist npm files into cmd/ui folder"
-	mkdir -p cmd/ui/dist
-	cp -r $(UI_FOLDER)ui/dist cmd/ui/
-.PHONY: cmd/ui/dist
 
 npm-build:
 	$(MAKE) -C ui/ build
