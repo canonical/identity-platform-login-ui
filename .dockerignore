@@ -1,0 +1,8 @@
+node_modules
+ui/node_modules
+ui/.next
+ui/dist
+ui/out
+.git
+.github
+*.tar.gz
