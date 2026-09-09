@@ -2,7 +2,7 @@ include:
   - docker-compose.dev.yml
 services:
   identity-platform-login-ui:
-    image: ghcr.io/canonical/identity-platform-login-ui:latest
+    build: .
     environment:
       - KRATOS_PUBLIC_URL=http://kratos:4433
       - KRATOS_ADMIN_URL=http://kratos:4434
@@ -24,3 +24,20 @@ services:
     networks:
       - intranet
     restart: on-failure
+
+  frontend-ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: frontend-ui
+    ports:
+      - "8082:80"
+    networks:
+      - intranet
+    restart: on-failure
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend-ui.rule=PathPrefix(`/ui`)"
+      - "traefik.http.routers.frontend-ui.entryPoints=web"
+      - "traefik.http.services.frontend-ui.loadbalancer.server.port=80"
+

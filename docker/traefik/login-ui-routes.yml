@@ -62,10 +62,14 @@ http:
         - web
         - websecure
       rule: "PathPrefix(`/ui`)"
-      service: login-ui-public-api-service
+      service: frontend-ui-service
 
   services:
     login-ui-public-api-service:
       loadBalancer:
         servers:
           - url: "http://172.17.0.1:4455"
+    frontend-ui-service:
+      loadBalancer:
+        servers:
+          - url: "http://frontend-ui:80"
