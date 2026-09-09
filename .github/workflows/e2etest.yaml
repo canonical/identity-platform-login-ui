@@ -19,7 +19,7 @@ jobs:
 
       - name: Install oathtool
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo rm -f /etc/apt/sources.list.d/*chrome* /etc/apt/sources.list.d/*google*
           sudo apt-get update -o Acquire::http::No-Cache=true -o Acquire::https::No-Cache=true || true
           sudo apt-get install -y oathtool
 
@@ -38,7 +38,9 @@ jobs:
           ./ui/tests/scripts/03-start-oidc-app.sh
 
       - name: Install Playwright Browser
-        run: cd ui && npx playwright install --with-deps chromium
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/*chrome* /etc/apt/sources.list.d/*google*
+          cd ui && npx playwright install --with-deps chromium
 
       - name: Run the tests
         run: make test-e2e
