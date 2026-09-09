@@ -1,9 +1,10 @@
 import { Configuration, OAuth2Api } from "@ory/hydra-client";
 
+const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
+
 const hydraAdmin = new OAuth2Api(
   new Configuration({
-    // Use relative path so that this works when served in a subpath
-    basePath: "../api/hydra",
+    basePath: apiBase ? `${apiBase}/api/hydra` : "../api/hydra",
     baseOptions: {
       withCredentials: true,
     },

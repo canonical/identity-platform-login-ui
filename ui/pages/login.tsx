@@ -87,7 +87,11 @@ const Login: NextPage = () => {
     ) ?? false;
 
   useEffect(() => {
-    void fetch("../api/v0/app-config")
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
+    const endpoint = apiBase
+      ? `${apiBase}/api/v0/app-config`
+      : "../api/v0/app-config";
+    void fetch(endpoint)
       .then((response) => {
         return response.json() as Promise<AppConfig>;
       })

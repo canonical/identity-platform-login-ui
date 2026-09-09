@@ -35,7 +35,10 @@ const SelectTenant: NextPage = () => {
         body.flow = flow;
       }
 
-      void fetch("/api/v0/auth/tenant", {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
+      const endpoint = `${apiBase}/api/v0/auth/tenant`;
+
+      void fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

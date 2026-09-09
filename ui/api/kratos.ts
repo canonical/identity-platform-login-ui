@@ -5,10 +5,11 @@ import {
   LoginFlow,
 } from "@ory/client";
 
+const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
+
 export const kratos = new FrontendApi(
   new Configuration({
-    // WIP needs to be configurable
-    basePath: "..",
+    basePath: apiBase || "..",
     baseOptions: {
       withCredentials: true,
     },
@@ -28,7 +29,8 @@ export async function loginIdentifierFirst(
   if (loginChallenge) {
     params.set("login_challenge", loginChallenge);
   }
-  const res = await fetch(`/self-service/login/id-first?${params.toString()}`, {
+  const endpoint = `${apiBase}/self-service/login/id-first?${params.toString()}`;
+  const res = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
