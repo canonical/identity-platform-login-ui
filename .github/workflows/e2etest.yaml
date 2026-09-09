@@ -19,8 +19,9 @@ jobs:
 
       - name: Install oathtool
         run: |
-          sudo apt update
-          sudo apt install oathtool
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -o Acquire::http::No-Cache=true -o Acquire::https::No-Cache=true || true
+          sudo apt-get install -y oathtool
 
       - name: Boot the cluster with dependant backend systems
         run: |
