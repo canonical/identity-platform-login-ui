@@ -49,14 +49,16 @@ Use these instead of re-implementing common operations:
 
 E2E tests require all services running:
 ```bash
-docker compose -f docker-compose.dev.yml up   # Kratos, Hydra, Traefik, Postgres, Mailslurper
-./app serve                                   # Go backend on :4455
-cd ui && DEV=true npm run dev                 # Next.js on :3001 (if testing frontend dev build)
+docker compose up --build -d   # Kratos, Hydra, Traefik, Postgres, Mailslurper, Frontend UI (Nginx), Backend Go API
 ```
 
-Or run against the production build:
+Or run frontend locally in development mode:
 ```bash
-make npm-build build && ./app serve
+cd ui && DEV=true npm run dev  # Next.js on :3000 / :3001
 ```
 
-Both modes are covered by `make test-e2e`.
+E2E tests can then be triggered via:
+```bash
+make test-e2e
+```
+

@@ -49,7 +49,7 @@ docker-compose -f docker-compose.dev.yml --build --force-recreate up
 Build and run the Login UI:
 
 ```shell
-make npm-build build
+make build
 
 export KRATOS_PUBLIC_URL=http://localhost:4433
 export KRATOS_ADMIN_URL=http://localhost:4434
