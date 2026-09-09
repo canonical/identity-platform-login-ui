@@ -66,7 +66,11 @@ function AppConfigProvider({
   );
 
   useEffect(() => {
-    fetch("../api/v0/app-config", { cache: "no-store" })
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
+    const configEndpoint = apiBase
+      ? `${apiBase}/api/v0/app-config`
+      : "../api/v0/app-config";
+    fetch(configEndpoint, { cache: "no-store" })
       .then((value) => value.json())
       .then(
         (value: {

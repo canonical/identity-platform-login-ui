@@ -12,10 +12,12 @@ const parseTenants = (r: Response): Promise<Tenant[]> => {
   );
 };
 
+const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
+
 export const fetchTenantsByFlow = (flowId: string): Promise<Tenant[]> =>
-  fetch(`/api/v0/tenants?flow=${encodeURIComponent(flowId)}`).then(
+  fetch(`${apiBase}/api/v0/tenants?flow=${encodeURIComponent(flowId)}`).then(
     parseTenants,
   );
 
 export const fetchTenantsBySession = (): Promise<Tenant[]> =>
-  fetch("/api/v0/tenants").then(parseTenants);
+  fetch(`${apiBase}/api/v0/tenants`).then(parseTenants);
