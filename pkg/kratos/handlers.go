@@ -22,9 +22,9 @@ import (
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
 	"github.com/canonical/identity-platform-login-ui/pkg/tenants"
-	"github.com/canonical/identity-platform-login-ui/pkg/ui"
 )
 
+const uiPath = "/ui"
 const VERIFICATION_REQUIRED = "verification_required"
 const TOTP_REGISTRATION_REQUIRED = "totp_registration_required"
 const WEBAUTHN_REGISTRATION_REQUIRED = "webauthn_registration_required"
@@ -1089,7 +1089,7 @@ func (a *API) mfaSettingsRedirect(w http.ResponseWriter, r *http.Request, return
 }
 
 func (a *API) lookupSecretsSettingsRedirect(w http.ResponseWriter, r *http.Request, flowId, returnTo string, flowStateCookie cookies.FlowStateCookie) {
-	redirect, err := url.JoinPath("/", a.contextPath, ui.UI, "/backup_codes_regenerate")
+	redirect, err := url.JoinPath("/", a.contextPath, uiPath, "/backup_codes_regenerate")
 	if err != nil {
 		err = fmt.Errorf("unable to build backup codes redirect path, possible misconfiguration, err: %v", err)
 		a.logger.Error(err.Error())
@@ -1379,7 +1379,7 @@ func (a *API) settingsReturnToURL(r *http.Request, flowId string) (string, error
 
 	if returnTo == "" {
 		// fall back to a default redirect path
-		returnTo, err = url.JoinPath("/", a.contextPath, ui.UI, "/manage_details")
+		returnTo, err = url.JoinPath("/", a.contextPath, uiPath, "/manage_details")
 		if err != nil {
 			return "", fmt.Errorf("unable to build settings returnTo path, possible misconfiguration, err: %w", err)
 		}

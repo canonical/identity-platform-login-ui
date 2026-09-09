@@ -21,14 +21,13 @@ parts:
     source-type: local
     build-snaps:
       - go/1.26/stable
-      - node/20/stable
     build-packages:
       - make
       - git
     override-build: >
       export GOARCH="${CRAFT_ARCH_BUILD_FOR}"
 
-      make npm-build build
+      make build
 
 
       install -D -m755 app
