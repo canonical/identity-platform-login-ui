@@ -99,6 +99,11 @@ export const handleFlowError =
         resetFlow(undefined);
         window.location.href = "./" + flowType;
         return;
+      case 401:
+        // Unauthorized, redirect to login
+        resetFlow(undefined);
+        window.location.href = "./login";
+        return;
     }
 
     // We are not able to handle the error? Return it.
