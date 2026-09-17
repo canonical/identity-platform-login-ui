@@ -15,25 +15,18 @@ This is the UI for the Canonical Identity Platform.
 
 ### Build
 
-To create a binary with the UI you need to run:
+To create the binary, run:
 
 ```shell
-make npm-build build
+make build
 ```
 
-Please don't run them in parallel, `build` requires the target `cmd/ui/dist`
-which, unless the `js` code has been build independently, requires `npm-build`
-If you want to skip the `npm-build` make sure the `js` artifacts are in
-the `ui/dist` folder (check the `Makefile` for more advanced information).
-
-This will:
-
-- build the `js` code
-- produce a binary called `app` which you can run with:
+This will produce a binary called `app` which you can run with:
 
 ```shell
-PORT=<port number> ./cmd/app
+PORT=<port number> ./app
 ```
+
 
 ### Environment variables
 

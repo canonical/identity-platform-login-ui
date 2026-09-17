@@ -113,7 +113,7 @@ docker compose -f docker-compose.dev.yml up
 And run with the store:
 
 ```shell
-make npm-build build
+make build
 
 ./app create-fga-model --fga-api-token 42 --fga-api-url http://localhost:8080 --store-id 01GP1254CHWJC1MNGVB0WDG1T0
 

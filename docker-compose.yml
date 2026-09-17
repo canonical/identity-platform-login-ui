@@ -25,14 +25,3 @@ services:
       - intranet
     restart: on-failure
 
-  frontend-ui:
-    build:
-      context: ./ui
-      dockerfile: Dockerfile
-    container_name: frontend-ui
-    ports:
-      - "8082:80"
-    networks:
-      - intranet
-    restart: on-failure
-

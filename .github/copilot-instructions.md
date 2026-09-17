@@ -5,18 +5,15 @@
 
 ## Project Overview
 
-Full-stack authentication UI for the Canonical Identity Platform. A **Go backend** (chi
+Backend BFF and API service for the Canonical Identity Platform. A **Go backend** (chi
 router, default port 8080, dev port 4455) wraps [Ory Kratos](https://www.ory.sh/kratos/) (identity/self-service
-flows) and [Ory Hydra](https://www.ory.sh/hydra/) (OAuth2/OIDC), then serves a
-**Next.js static export** that renders those flows in the browser. The backend also
+flows) and [Ory Hydra](https://www.ory.sh/hydra/) (OAuth2/OIDC). The backend also
 integrates OpenFGA for optional authorization.
 
 **Key Technologies:**
 - Backend: Go 1.24+, chi router, gomock, OpenTelemetry, Prometheus, Zap
-- Frontend: Next.js 15 (Pages Router, static export), TypeScript 5.9+, React 19,
-  `@canonical/react-components`, Vanilla Framework, Sass
 - Infrastructure: docker-compose (dev), Rockcraft (OCI image), Kubernetes via Juju
-- Testing: Go unit tests (gomock), Playwright E2E
+- Testing: Go unit tests (gomock)
 
 ---
 
@@ -24,9 +21,8 @@ integrates OpenFGA for optional authorization.
 
 ```
 cmd/          CLI entry point — serve.go wires all dependencies
-pkg/          HTTP handlers + services (kratos, device, extra, metrics, status, ui)
+pkg/          HTTP handlers + services (kratos, device, extra, metrics, status)
 internal/     Private infrastructure (config, hydra, kratos, authz, logging, tracing)
-ui/           Next.js frontend (pages/, components/, api/, tests/)
 templates/    Go HTML templates (email verification)
 docker/       Config for Kratos, Hydra, Traefik, Postgres used in dev
 ```
@@ -43,9 +39,8 @@ docker/       Config for Kratos, Hydra, Traefik, Postgres used in dev
 ## Dev Environment
 
 Run `docker compose -f docker-compose.dev.yml up` first. Backend: use the VS Code
-"Launch Package" config (F5) or `make npm-build build && ./app serve`. Frontend:
-`cd ui && DEV=true npm run dev`. Always open the app at `http://localhost` (Traefik port 80),
-not `:3001`. See `CONTRIBUTING.md` and the `setup-dev-env` prompt for full details.
+"Launch Package" config (F5) or `make build && ./app serve`.
+See `CONTRIBUTING.md` and the `setup-dev-env` prompt for full details.
 
 ---
 
@@ -63,8 +58,9 @@ not `:3001`. See `CONTRIBUTING.md` and the `setup-dev-env` prompt for full detai
 ```bash
 make mocks       # After changing any interface
 make test        # Go unit tests
-make npm-build build  # Full build (frontend must precede Go binary)
+make build       # Build Go binary
 ```
+
 
 ---
 
