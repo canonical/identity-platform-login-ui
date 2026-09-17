@@ -63,7 +63,7 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 
 	r := hClient.NewAcceptOAuth2ConsentRequest()
 	r.SetGrantScope(consent.RequestedScope)
-	r.SetGrantAccessTokenAudience(consent.RequestedAccessTokenAudience)
+	r.SetGrantAccessTokenAudience(s.grantAudience(consent))
 	r.SetSession(*session)
 	r.SetRemember(true)
 
@@ -91,6 +91,25 @@ func (s *Service) AcceptConsent(ctx context.Context, identity kClient.Identity, 
 
 	span.SetStatus(codes.Ok, "")
 	return accept, nil
+}
+
+// grantAudience returns Hydra's requested audience plus the RFC 8707 "resource"
+// indicators the client's registered audience permits, which Hydra does not handle.
+func (s *Service) grantAudience(consent *hClient.OAuth2ConsentRequest) []string {
+	audience := consent.GetRequestedAccessTokenAudience()
+
+	resources, invalid := resourceIndicators(consent.GetRequestUrl())
+	if len(invalid) > 0 {
+		s.logger.Debugf("dropping invalid resource indicators: %v", invalid)
+	}
+
+	client := consent.GetClient()
+	permitted, rejected := permittedResources(client.GetAudience(), resources)
+	if len(rejected) > 0 {
+		s.logger.Debugf("dropping resource indicators not registered as client audience: %v", rejected)
+	}
+
+	return mergeAudience(audience, permitted)
 }
 
 func NewService(hydra HydraClientInterface, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
