@@ -5,10 +5,8 @@ package cmd
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,13 +33,6 @@ import (
 	tenant "github.com/canonical/identity-platform-api/v0/tenant"
 	"google.golang.org/grpc"
 )
-
-//go:embed ui/dist
-//go:embed ui/dist/_next
-//go:embed ui/dist/_next/static/chunks/pages/*.js
-//go:embed ui/dist/_next/static/*/*.js
-//go:embed ui/dist/_next/static/*/*.css
-var jsFS embed.FS
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
@@ -77,11 +68,6 @@ func serve() error {
 
 	logger.Debugf("env vars: %v", specs)
 
-	distFS, err := fs.Sub(jsFS, "ui/dist")
-	if err != nil {
-		return fmt.Errorf("issue with js distribution files: %w", err)
-	}
-
 	var grpcConn *grpc.ClientConn
 	if specs.MultiTenancyEnabled {
 		conn, err := tenants.NewGRPCConn(specs.TenantServiceGRPCAddress, specs.TenantServiceTLSEnabled)
@@ -93,7 +79,7 @@ func serve() error {
 		logger.Infof("Tenant validation enabled (tenant-service: %s, tls: %v, timeout: %s)", specs.TenantServiceGRPCAddress, specs.TenantServiceTLSEnabled, specs.TenantServiceGRPCTimeout)
 	}
 
-	router, err := buildRouter(specs, distFS, logger, grpcConn)
+	router, err := buildRouter(specs, logger, grpcConn)
 	if err != nil {
 		return err
 	}
@@ -110,7 +96,7 @@ func serve() error {
 	return handleServeAndShutdown(srv, logger.Security())
 }
 
-func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger, grpcConn *grpc.ClientConn) (http.Handler, error) {
+func buildRouter(specs *config.EnvSpec, logger *logging.Logger, grpcConn *grpc.ClientConn) (http.Handler, error) {
 	monitor := prometheus.NewMonitor("identity-login-ui", logger)
 	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.OtelGRPCEndpoint, specs.OtelHTTPEndpoint, logger))
 
@@ -152,7 +138,6 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger, gr
 		web.WithHydraClient(hClient),
 		web.WithAuthzClient(authorizer),
 		web.WithCookieManager(cookieManager),
-		web.WithFS(distFS),
 		web.WithFlags(specs.VerificationEnabled, specs.MFAEnabled, specs.OIDCWebAuthnSequencingEnabled, specs.IdentifierFirstEnabled, specs.MultiTenancyEnabled),
 		web.WithBaseURL(specs.BaseURL),
 		web.WithSupportEmail(specs.SupportEmail),

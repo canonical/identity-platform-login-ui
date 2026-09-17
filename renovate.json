@@ -24,41 +24,8 @@
       "additionalBranchPrefix": "auto-"
     },
     {
-      "groupName": "UI deps",
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
-      "automerge": true,
-      "schedule": ["at any time"],
-      "prPriority": 4,
-      "additionalBranchPrefix": "auto-"
-    },
-    {
-      "groupName": "internal UI dependencies",
-      "groupSlug": "internal",
-      "packagePatterns": [
-          "^@canonical",
-          "^canonicalwebteam",
-          "^vanilla-framework"
-      ],
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "schedule": ["at any time"],
-      "prPriority": 5,
-      "additionalBranchPrefix": "auto-"
-    },
-    {
-      "groupName": "internal UI dependencies",
-      "groupSlug": "internal",
-      "packagePatterns": [
-          "^@canonical",
-          "^canonicalwebteam",
-          "^vanilla-framework"
-      ],
-      "matchUpdateTypes": ["major"],
-      "schedule": ["at any time"],
-      "prPriority": 5
-    },
-    {
       "groupName": "Go deps",
+
       "matchManagers": ["gomod"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "schedule": ["at any time"],
