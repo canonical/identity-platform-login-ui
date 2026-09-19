@@ -1001,6 +1001,11 @@ func (s *Service) ParseRegistrationFlowMethodBody(r *http.Request) (*kClient.Upd
 		if err := parseBody(r.Body, &body); err != nil {
 			return nil, err
 		}
+		// Traits for OIDC registration must come from IdP-verified claims
+		// (docker/kratos/schema.jsonnet), never from client input. Without this,
+		// the identifier-first email (xxx@email.com) overrides the provider email
+		// (yyy@gmail.com) and the account registers under an unproven address.
+		body.Traits = nil
 		ret = kClient.UpdateRegistrationFlowWithOidcMethodAsUpdateRegistrationFlowBody(&body)
 	default:
 		return nil, fmt.Errorf("unknown method: %s", method)
