@@ -274,7 +274,13 @@ const Login: NextPage = () => {
         .catch(handleFlowError("login", setFlow))
         .catch((err: AxiosError<LoginFlow>) => {
           if (err.response?.status === 400) {
-            setFlow(err.response.data);
+            if ("ui" in err.response.data) {
+              setFlow(err.response.data);
+              return;
+            }
+
+            // A Kratos error handleFlowError does not know how to recover from
+            redirectToErrorPage();
             return;
           }
 

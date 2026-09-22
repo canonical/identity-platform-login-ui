@@ -1039,8 +1039,14 @@ func (s *Service) getUiError(responseBody io.ReadCloser) error {
 		return fmt.Errorf("cannot decode kratos error response: %v", err)
 	}
 
-	if errorMessages.Error != nil {
-		return &KratosGenericError{Response: KratosErrorResponse{Error: errorMessages.Error}}
+	if kratosErr := errorMessages.Error; kratosErr != nil {
+		// only client errors carry an id the frontend can act on; a kratos
+		// server fault stays an opaque 500
+		if kratosErr.GetCode() >= http.StatusInternalServerError {
+			return fmt.Errorf("kratos error %d: %s", kratosErr.GetCode(), kratosErr.GetMessage())
+		}
+
+		return &KratosGenericError{Response: KratosErrorResponse{Error: kratosErr}}
 	}
 
 	messages := errorMessages.Ui.Messages
@@ -1065,7 +1071,11 @@ func (s *Service) getUiError(responseBody io.ReadCloser) error {
 		return err
 	}
 
-	s.logger.Errorf("Unknown kratos error code: %v", messages[0].Id)
+	ids := make([]int64, 0, len(messages))
+	for _, m := range messages {
+		ids = append(ids, m.Id)
+	}
+	s.logger.Errorf("Unknown kratos error codes: %v", ids)
 	return fmt.Errorf("server error")
 }
 

@@ -1580,9 +1580,10 @@ func TestUpdateIdentifierFirstLoginFlowFailStatusBadRequest(t *testing.T) {
 		Identifier: identifier,
 	}
 
+	errorBody, _ := json.Marshal(UiErrorMessages{Ui: kClient.UiContainer{Messages: []kClient.UiText{{Id: IncorrectAccountIdentifier, Type: "error"}}}})
 	resp := &http.Response{
 		StatusCode: http.StatusBadRequest,
-		Body:       io.NopCloser(strings.NewReader("")),
+		Body:       io.NopCloser(bytes.NewReader(errorBody)),
 	}
 
 	mockKratos.EXPECT().
@@ -1593,8 +1594,8 @@ func TestUpdateIdentifierFirstLoginFlowFailStatusBadRequest(t *testing.T) {
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateIdentifierFirstLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	_, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, false, mockTracer, mockMonitor, mockLogger).UpdateIdentifierFirstLoginFlow(ctx, flowId, body, cookies)
 
-	if err == nil {
-		t.Fatalf("expected error, got nil")
+	if want := "account does not exist or has no login method configured"; err == nil || err.Error() != want {
+		t.Fatalf("expected error %q, got %v", want, err)
 	}
 }
 
@@ -1829,13 +1830,13 @@ func TestGetUiError(t *testing.T) {
 		return node(kClient.UiText{Id: id, Type: "error"})
 	}
 	tests := []struct {
-		name          string
-		messages      []kClient.UiText
-		nodes         []kClient.UiNode
-		genericError  *kClient.GenericError
-		expectErr     string
-		expectLog     bool
-		expectKratosI string
+		name           string
+		messages       []kClient.UiText
+		nodes          []kClient.UiNode
+		genericError   *kClient.GenericError
+		expectErr      string
+		expectLog      bool
+		expectKratosID string
 	}{
 		{
 			name:      "incorrect credentials",
@@ -1965,10 +1966,15 @@ func TestGetUiError(t *testing.T) {
 			expectLog: true,
 		},
 		{
-			name:          "generic error body is returned typed",
-			genericError:  &kClient.GenericError{Id: kClient.PtrString("session_refresh_required"), Message: "refresh"},
-			expectErr:     "kratos error session_refresh_required: refresh",
-			expectKratosI: "session_refresh_required",
+			name:           "generic client error body is returned typed",
+			genericError:   &kClient.GenericError{Id: kClient.PtrString("session_refresh_required"), Code: kClient.PtrInt64(403), Message: "refresh"},
+			expectErr:      "kratos error session_refresh_required: refresh",
+			expectKratosID: "session_refresh_required",
+		},
+		{
+			name:         "generic server error body stays opaque",
+			genericError: &kClient.GenericError{Code: kClient.PtrInt64(500), Message: "database down"},
+			expectErr:    "kratos error 500: database down",
 		},
 	}
 
@@ -2003,11 +2009,11 @@ func TestGetUiError(t *testing.T) {
 			}
 
 			var kratosErr *KratosGenericError
-			if got := errors.As(err, &kratosErr); got != (tt.expectKratosI != "") {
-				t.Fatalf("expected KratosGenericError=%v, got %v", tt.expectKratosI != "", got)
+			if got := errors.As(err, &kratosErr); got != (tt.expectKratosID != "") {
+				t.Fatalf("expected KratosGenericError=%v, got %v", tt.expectKratosID != "", got)
 			}
-			if kratosErr != nil && kratosErr.Response.Error.GetId() != tt.expectKratosI {
-				t.Fatalf("expected kratos error id %s, got %s", tt.expectKratosI, kratosErr.Response.Error.GetId())
+			if kratosErr != nil && kratosErr.Response.Error.GetId() != tt.expectKratosID {
+				t.Fatalf("expected kratos error id %s, got %s", tt.expectKratosID, kratosErr.Response.Error.GetId())
 			}
 		})
 	}
