@@ -295,17 +295,36 @@ func (a *API) handleCreateFlowWithSession(w http.ResponseWriter, r *http.Request
 }
 
 func parseGenericError(err error) (*KratosErrorResponse, bool) {
+	var kratosErr *KratosGenericError
+	if errors.As(err, &kratosErr) {
+		return &kratosErr.Response, true
+	}
+
 	var apiErr *client.GenericOpenAPIError
 	if !errors.As(err, &apiErr) {
 		return nil, false
 	}
 
 	var resp KratosErrorResponse
-	if err := json.Unmarshal(apiErr.Body(), &resp); err != nil {
+	if err := json.Unmarshal(apiErr.Body(), &resp); err != nil || resp.Error == nil {
 		return nil, false
 	}
 
 	return &resp, true
+}
+
+// writeUpdateFlowError answers a failed flow update. Kratos generic errors are
+// forwarded as JSON so the frontend can act on their id; anything else is an
+// opaque 500 whose body is shown to the user.
+func (a *API) writeUpdateFlowError(w http.ResponseWriter, flowType string, err error) {
+	if kratosError, ok := parseGenericError(err); ok {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(kratosError)
+		return
+	}
+
+	a.logger.Errorf("Error when updating %s flow: %v", flowType, err)
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
 func (a *API) returnToUrl(loginChallenge string) (string, error) {
@@ -478,9 +497,7 @@ func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Req
 
 	redirectTo, httpCookies, err := a.service.UpdateIdentifierFirstLoginFlow(r.Context(), flowId, *body, httpCookies)
 	if err != nil {
-		err = fmt.Errorf("error when updating identifier first login flow: %w\n", err)
-		a.logger.Errorf(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		a.writeUpdateFlowError(w, "identifier first login", err)
 		return
 	}
 
@@ -572,8 +589,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 	redirectTo, flow, httpCookies, err := a.service.UpdateLoginFlow(r.Context(), flowId, *body, httpCookies)
 	if err != nil {
-		a.logger.Errorf("Error when updating login flow: %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		a.writeUpdateFlowError(w, "login", err)
 		return
 	}
 
@@ -1185,8 +1201,7 @@ func (a *API) handleUpdateRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 
 	flow, cookies, err := a.service.UpdateRecoveryFlow(r.Context(), flowId, *body, r.Cookies())
 	if err != nil {
-		a.logger.Errorf("Error when updating recovery flow: %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		a.writeUpdateFlowError(w, "recovery", err)
 		return
 	}
 
@@ -1290,8 +1305,7 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 
 	flow, redirectInfo, cookies, err := a.service.UpdateSettingsFlow(r.Context(), flowId, *body, r.Cookies())
 	if err != nil {
-		a.logger.Errorf("Error when updating settings flow: %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		a.writeUpdateFlowError(w, "settings", err)
 		return
 	}
 
