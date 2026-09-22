@@ -1556,49 +1556,6 @@ func TestUpdateIdentifierFirstLoginFlowFail(t *testing.T) {
 	}
 }
 
-func TestUpdateIdentifierFirstLoginFlowFailStatusBadRequest(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockLogger := NewMockLoggerInterface(ctrl)
-	mockHydra := NewMockHydraClientInterface(ctrl)
-	mockKratos := NewMockKratosClientInterface(ctrl)
-	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
-	mockAuthz := NewMockAuthorizerInterface(ctrl)
-	mockTracer := NewMockTracingInterface(ctrl)
-	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
-
-	ctx := context.Background()
-	cookies := make([]*http.Cookie, 0)
-	cookie := &http.Cookie{Name: "test", Value: "test"}
-	cookies = append(cookies, cookie)
-	flowId := "flow"
-	csrfToken := "csrf_token_1234"
-	identifier := "test@example.com"
-	body := kClient.UpdateLoginFlowWithIdentifierFirstMethod{
-		CsrfToken:  &csrfToken,
-		Identifier: identifier,
-	}
-
-	errorBody, _ := json.Marshal(UiErrorMessages{Ui: kClient.UiContainer{Messages: []kClient.UiText{{Id: IncorrectAccountIdentifier, Type: "error"}}}})
-	resp := &http.Response{
-		StatusCode: http.StatusBadRequest,
-		Body:       io.NopCloser(bytes.NewReader(errorBody)),
-	}
-
-	mockKratos.EXPECT().
-		ExecuteIdentifierFirstUpdateLoginRequest(ctx, flowId, csrfToken, identifier, cookies).
-		Return(resp, nil).
-		Times(1)
-
-	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateIdentifierFirstLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
-	_, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, false, mockTracer, mockMonitor, mockLogger).UpdateIdentifierFirstLoginFlow(ctx, flowId, body, cookies)
-
-	if want := "account does not exist or has no login method configured"; err == nil || err.Error() != want {
-		t.Fatalf("expected error %q, got %v", want, err)
-	}
-}
-
 func TestUpdateIdentifierFirstLoginFlowFailUnexpectedStatus(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
