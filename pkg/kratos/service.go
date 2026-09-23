@@ -29,25 +29,8 @@ import (
 )
 
 const (
-	MinimumBackupCodesAmount     = 3
-	RecoveryCodeSent             = 1060003
-	InvalidProperty              = 4000002
-	NotEnoughCharacters          = 4000003
-	IncorrectCredentials         = 4000006
-	DuplicateIdentifier          = 4000007
-	InvalidAuthCode              = 4000008
-	InactiveAccount              = 4000010
-	BackupCodeAlreadyUsed        = 4000012
-	MissingBackupCodesSetup      = 4000014
-	MissingSecurityKeySetup      = 4000015
-	InvalidBackupCode            = 4000016
-	TooManyCharacters            = 4000017
-	PasswordIdentifierSimilarity = 4000031
-	PasswordTooLong              = 4000033
-	IncorrectAccountIdentifier   = 4000037
-	NewPasswordPolicyViolation   = 4000039
-	InvalidRecoveryCode          = 4060006
-	AmrPopValue                  = "pop"
+	MinimumBackupCodesAmount = 3
+	AmrPopValue              = "pop"
 )
 
 type Service struct {
@@ -109,7 +92,19 @@ type BrowserLocationChangeRequired struct {
 }
 
 type UiErrorMessages struct {
-	Ui kClient.UiContainer `json:"ui"`
+	Error *kClient.GenericError `json:"error,omitempty"`
+	Ui    kClient.UiContainer   `json:"ui"`
+}
+
+// KratosGenericError is a Kratos error response that carries no UI messages
+// (e.g. session_refresh_required, self_service_flow_expired). Handlers forward it
+// to the frontend as JSON so handleFlowError can act on its id.
+type KratosGenericError struct {
+	Response KratosErrorResponse
+}
+
+func (e *KratosGenericError) Error() string {
+	return fmt.Sprintf("kratos error %s: %s", e.Response.Error.GetId(), e.Response.Error.GetMessage())
 }
 
 type methodOnly struct {
@@ -393,8 +388,8 @@ func (s *Service) tryProcessingRegistration(resp *http.Response) (*RegistrationF
 			return nil, fmt.Errorf("unexpected error unmarshalling response body: %w", err)
 		}
 
-		if isDuplicateIdentifierError(registrationFlow) {
-			return nil, fmt.Errorf("an account with the same identifier already exists, contact support")
+		if err := uiError(registrationFlow.Ui.Messages); err != nil {
+			return nil, err
 		}
 
 		if err := passwordPolicyError(registrationFlow); err != nil {
@@ -427,19 +422,23 @@ func (s *Service) tryProcessingRegistration(resp *http.Response) (*RegistrationF
 }
 
 func passwordPolicyError(flow kClient.RegistrationFlow) error {
-	var err error
 	ui := flow.GetUi()
 	for _, node := range ui.GetNodes() {
-		if node.GetGroup() == "password" && node.GetType() == "input" && node.GetAttributes().UiNodeInputAttributes.Name == "password" {
-			for _, msg := range node.GetMessages() {
-				// grab and build all errors related to password policy
-				err = fmt.Errorf("%w ", errors.New(msg.GetText()))
-			}
-
-			if err != nil {
-				return fmt.Errorf("password policy error: %w", err)
-			}
+		if node.GetGroup() != "password" || node.GetType() != "input" || node.GetAttributes().UiNodeInputAttributes.Name != "password" {
+			continue
 		}
+
+		msgs := node.GetMessages()
+		if len(msgs) == 0 {
+			continue
+		}
+
+		texts := make([]string, 0, len(msgs))
+		for _, msg := range msgs {
+			texts = append(texts, msg.GetText())
+		}
+
+		return fmt.Errorf("password policy error: %s", strings.Join(texts, " "))
 	}
 
 	return nil
@@ -457,17 +456,6 @@ func isSessionAlreadyAvailableError(responseBody []byte) bool {
 
 	if errorBody.Error.Id == "session_already_available" {
 		return true
-	}
-
-	return false
-}
-
-func isDuplicateIdentifierError(flow kClient.RegistrationFlow) bool {
-	ui := flow.GetUi()
-	for _, message := range ui.GetMessages() {
-		if message.GetId() == DuplicateIdentifier {
-			return true
-		}
 	}
 
 	return false
@@ -689,15 +677,10 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 	// If a duplicate identifier was detected, kratos returns a 200 response
 	// with a 4000007 error in the rendered ui messages
 	if resp.StatusCode == http.StatusOK {
-		uiMsg := flow.GetUi()
-
-		for _, message := range uiMsg.GetMessages() {
-			if message.GetId() == DuplicateIdentifier {
-				err := fmt.Errorf("an account with the same identifier already exists, contact support")
-				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
-				return nil, nil, err
-			}
+		if err := uiError(flow.Ui.Messages); err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, nil, err
 		}
 	}
 
@@ -762,15 +745,10 @@ func (s *Service) UpdateRecoveryFlow(
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		uiMsg := recovery.GetUi()
-
-		for _, message := range uiMsg.GetMessages() {
-			if message.GetId() == InvalidRecoveryCode {
-				err := fmt.Errorf("the recovery code is invalid or has already been used")
-				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
-				return nil, nil, err
-			}
+		if err := uiError(recovery.Ui.Messages); err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, nil, err
 		}
 	}
 
@@ -1047,64 +1025,58 @@ func parseProfileBody(body io.ReadCloser) (*kClient.UpdateRegistrationFlowWithPr
 	return &profileBody, nil
 }
 
-func (s *Service) getUiError(responseBody io.ReadCloser) (err error) {
+// getUiError maps a Kratos 4xx response to the error surfaced to the user.
+// A body carrying a Kratos generic error has no UI messages and is returned as a
+// *KratosGenericError.
+func (s *Service) getUiError(responseBody io.ReadCloser) error {
+	body, err := io.ReadAll(responseBody)
+	if err != nil {
+		return fmt.Errorf("cannot read kratos error response: %v", err)
+	}
+
 	errorMessages := new(UiErrorMessages)
-	body, _ := io.ReadAll(responseBody)
-	json.Unmarshal(body, &errorMessages)
+	if err := json.Unmarshal(body, errorMessages); err != nil {
+		return fmt.Errorf("cannot decode kratos error response: %v", err)
+	}
 
-	errorCodes := errorMessages.Ui.Messages
+	if kratosErr := errorMessages.Error; kratosErr != nil {
+		// only client errors carry an id the frontend can act on; a kratos
+		// server fault stays an opaque 500
+		if kratosErr.GetCode() >= http.StatusInternalServerError {
+			return fmt.Errorf("kratos error %d: %s", kratosErr.GetCode(), kratosErr.GetMessage())
+		}
 
-	// if no message was found, search through nodes
-	if len(errorCodes) == 0 {
-		nodes := errorMessages.Ui.GetNodes()
-		for _, node := range nodes {
-			// look for the node where error appears
-			for _, message := range node.Messages {
-				if message.Type == "error" {
-					errorCodes = node.GetMessages()
-				}
+		return &KratosGenericError{Response: KratosErrorResponse{Error: kratosErr}}
+	}
+
+	messages := errorMessages.Ui.Messages
+
+	// if no flow-level message was found, use the first node that carries an error
+	if len(messages) == 0 {
+		for _, node := range errorMessages.Ui.GetNodes() {
+			if slices.ContainsFunc(node.Messages, func(m kClient.UiText) bool { return m.Type == "error" }) {
+				messages = node.Messages
+				break
 			}
 		}
 	}
 
-	if len(errorCodes) == 0 {
-		err = fmt.Errorf("error code not found")
+	if len(messages) == 0 {
+		err := fmt.Errorf("error code not found")
 		s.logger.Errorf(err.Error())
 		return err
 	}
 
-	switch errorCode := errorCodes[0].Id; errorCode {
-	case IncorrectCredentials:
-		err = fmt.Errorf("incorrect username or password")
-	case IncorrectAccountIdentifier:
-		err = fmt.Errorf("account does not exist or has no login method configured")
-	case InactiveAccount:
-		err = fmt.Errorf("inactive account")
-	case InvalidProperty:
-		err = fmt.Errorf("invalid %s", errorCodes[0].Context["property"])
-	case NotEnoughCharacters:
-		err = fmt.Errorf("at least %v characters required", errorCodes[0].Context["min_length"])
-	case TooManyCharacters, PasswordTooLong:
-		err = fmt.Errorf("maximum %v characters allowed", errorCodes[0].Context["max_length"])
-	case InvalidAuthCode:
-		err = fmt.Errorf("invalid authentication code")
-	case MissingSecurityKeySetup:
-		err = fmt.Errorf("choose a different login method")
-	case BackupCodeAlreadyUsed:
-		err = fmt.Errorf("this backup code was already used")
-	case InvalidBackupCode:
-		err = fmt.Errorf("invalid backup code")
-	case MissingBackupCodesSetup:
-		err = fmt.Errorf("login with backup codes unavailable")
-	case PasswordIdentifierSimilarity:
-		err = fmt.Errorf("password can not be similar to the email")
-	case NewPasswordPolicyViolation:
-		err = fmt.Errorf("new password does not meet the password policy requirements: %s", errorCodes[0].Text)
-	default:
-		s.logger.Errorf("Unknown kratos error code: %v", errorCode)
-		err = fmt.Errorf("server error")
+	if err := uiError(messages); err != nil {
+		return err
 	}
-	return err
+
+	ids := make([]int64, 0, len(messages))
+	for _, m := range messages {
+		ids = append(ids, m.Id)
+	}
+	s.logger.Errorf("Unknown kratos error codes: %v", ids)
+	return fmt.Errorf("server error")
 }
 
 func (s *Service) GetFlowError(ctx context.Context, id string) (*kClient.FlowError, []*http.Cookie, error) {

@@ -1580,9 +1580,10 @@ func TestUpdateIdentifierFirstLoginFlowFailStatusBadRequest(t *testing.T) {
 		Identifier: identifier,
 	}
 
+	errorBody, _ := json.Marshal(UiErrorMessages{Ui: kClient.UiContainer{Messages: []kClient.UiText{{Id: IncorrectAccountIdentifier, Type: "error"}}}})
 	resp := &http.Response{
 		StatusCode: http.StatusBadRequest,
-		Body:       io.NopCloser(strings.NewReader("")),
+		Body:       io.NopCloser(bytes.NewReader(errorBody)),
 	}
 
 	mockKratos.EXPECT().
@@ -1590,13 +1591,11 @@ func TestUpdateIdentifierFirstLoginFlowFailStatusBadRequest(t *testing.T) {
 		Return(resp, nil).
 		Times(1)
 
-	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
-
 	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateIdentifierFirstLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
 	_, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, false, mockTracer, mockMonitor, mockLogger).UpdateIdentifierFirstLoginFlow(ctx, flowId, body, cookies)
 
-	if err == nil {
-		t.Fatalf("expected error, got nil")
+	if want := "account does not exist or has no login method configured"; err == nil || err.Error() != want {
+		t.Fatalf("expected error %q, got %v", want, err)
 	}
 }
 
@@ -1820,11 +1819,24 @@ func TestUpdateLoginFlowErrorWhenBackupCodesNotSet(t *testing.T) {
 }
 
 func TestGetUiError(t *testing.T) {
+	node := func(msgs ...kClient.UiText) kClient.UiNode {
+		return kClient.UiNode{
+			Type:       "input",
+			Attributes: kClient.UiNodeAttributes{UiNodeInputAttributes: &kClient.UiNodeInputAttributes{Name: "field"}},
+			Messages:   msgs,
+		}
+	}
+	errorNode := func(id int64) kClient.UiNode {
+		return node(kClient.UiText{Id: id, Type: "error"})
+	}
 	tests := []struct {
-		name      string
-		messages  []kClient.UiText
-		expectErr string
-		expectLog bool
+		name           string
+		messages       []kClient.UiText
+		nodes          []kClient.UiNode
+		genericError   *kClient.GenericError
+		expectErr      string
+		expectLog      bool
+		expectKratosID string
 	}{
 		{
 			name:      "incorrect credentials",
@@ -1837,19 +1849,54 @@ func TestGetUiError(t *testing.T) {
 			expectErr: "account does not exist or has no login method configured",
 		},
 		{
-			name:      "inactive account",
-			messages:  []kClient.UiText{{Id: InactiveAccount}},
-			expectErr: "inactive account",
+			name:      "address not verified",
+			messages:  []kClient.UiText{{Id: AddressNotVerified}},
+			expectErr: "account not active yet, verify your email address first",
 		},
 		{
-			name:      "invalid property",
-			messages:  []kClient.UiText{{Id: InvalidProperty, Context: map[string]interface{}{"property": "email"}}},
+			name:      "identity disabled",
+			messages:  []kClient.UiText{{Id: IdentityDisabled}},
+			expectErr: "this account has been disabled",
+		},
+		{
+			name:      "property missing",
+			messages:  []kClient.UiText{{Id: PropertyMissing, Context: map[string]interface{}{"property": "email"}}},
 			expectErr: "invalid email",
 		},
 		{
+			name:      "password same as old",
+			messages:  []kClient.UiText{{Id: PasswordSameAsOld}},
+			expectErr: "new password must be different from the old password",
+		},
+		{
 			name:      "password policy violation",
-			messages:  []kClient.UiText{{Id: NewPasswordPolicyViolation, Text: "password must contain uppercase and numbers"}},
-			expectErr: "new password does not meet the password policy requirements: password must contain uppercase and numbers",
+			messages:  []kClient.UiText{{Id: PasswordPolicyViolation, Context: map[string]interface{}{"reason": "it is too common"}}},
+			expectErr: "password can not be used because it is too common",
+		},
+		{
+			name:      "password too short",
+			messages:  []kClient.UiText{{Id: PasswordTooShort, Context: map[string]interface{}{"min_length": 8, "actual_length": 3}}},
+			expectErr: "password must be at least 8 characters long",
+		},
+		{
+			name:      "password breached",
+			messages:  []kClient.UiText{{Id: PasswordBreached}},
+			expectErr: "password has been found in data breaches and can not be used",
+		},
+		{
+			name:      "duplicate identifier with hints",
+			messages:  []kClient.UiText{{Id: DuplicateIdentifierWithHints, Text: "You tried signing in with x which is already in use."}},
+			expectErr: "an account with the same identifier already exists, sign in with your existing credentials",
+		},
+		{
+			name:      "missing totp setup",
+			messages:  []kClient.UiText{{Id: MissingTOTPSetup}},
+			expectErr: "no authenticator app set up for this account",
+		},
+		{
+			name:      "missing security key",
+			messages:  []kClient.UiText{{Id: MissingSecurityKey}},
+			expectErr: "no security key set up for this account",
 		},
 		{
 			name:      "not enough characters",
@@ -1902,6 +1949,33 @@ func TestGetUiError(t *testing.T) {
 			expectErr: "server error",
 			expectLog: true,
 		},
+		{
+			name:      "unknown code followed by known code returns the known one",
+			messages:  []kClient.UiText{{Id: 9999999}, {Id: IncorrectCredentials}},
+			expectErr: "incorrect username or password",
+		},
+		{
+			name:      "first erroring node wins over later ones",
+			nodes:     []kClient.UiNode{node(), errorNode(InvalidAuthCode), errorNode(InvalidBackupCode)},
+			expectErr: "invalid authentication code",
+		},
+		{
+			name:      "no messages anywhere logs and fails",
+			nodes:     []kClient.UiNode{node(kClient.UiText{Id: 1010001, Type: "info"})},
+			expectErr: "error code not found",
+			expectLog: true,
+		},
+		{
+			name:           "generic client error body is returned typed",
+			genericError:   &kClient.GenericError{Id: kClient.PtrString("session_refresh_required"), Code: kClient.PtrInt64(403), Message: "refresh"},
+			expectErr:      "kratos error session_refresh_required: refresh",
+			expectKratosID: "session_refresh_required",
+		},
+		{
+			name:         "generic server error body stays opaque",
+			genericError: &kClient.GenericError{Code: kClient.PtrInt64(500), Message: "database down"},
+			expectErr:    "kratos error 500: database down",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1921,13 +1995,63 @@ func TestGetUiError(t *testing.T) {
 				mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
 			}
 
-			errorResp := UiErrorMessages{Ui: kClient.UiContainer{Messages: tt.messages}}
-			body, _ := json.Marshal(errorResp)
+			errorResp := UiErrorMessages{Error: tt.genericError, Ui: kClient.UiContainer{Messages: tt.messages, Nodes: tt.nodes}}
+			body, err := json.Marshal(errorResp)
+			if err != nil {
+				t.Fatalf("cannot marshal fixture: %v", err)
+			}
 			resp := io.NopCloser(bytes.NewBuffer(body))
 
-			err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, false, mockTracer, mockMonitor, mockLogger).getUiError(resp)
+			err = NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, false, mockTracer, mockMonitor, mockLogger).getUiError(resp)
 
 			if err == nil || err.Error() != tt.expectErr {
+				t.Fatalf("expected error '%s', got %v", tt.expectErr, err)
+			}
+
+			var kratosErr *KratosGenericError
+			if got := errors.As(err, &kratosErr); got != (tt.expectKratosID != "") {
+				t.Fatalf("expected KratosGenericError=%v, got %v", tt.expectKratosID != "", got)
+			}
+			if kratosErr != nil && kratosErr.Response.Error.GetId() != tt.expectKratosID {
+				t.Fatalf("expected kratos error id %s, got %s", tt.expectKratosID, kratosErr.Response.Error.GetId())
+			}
+		})
+	}
+}
+
+func TestPasswordPolicyError(t *testing.T) {
+	passwordNode := func(msgs ...kClient.UiText) kClient.UiNode {
+		return kClient.UiNode{
+			Group:      "password",
+			Type:       "input",
+			Attributes: kClient.UiNodeAttributes{UiNodeInputAttributes: &kClient.UiNodeInputAttributes{Name: "password"}},
+			Messages:   msgs,
+		}
+	}
+	tests := []struct {
+		name      string
+		nodes     []kClient.UiNode
+		expectErr string
+	}{
+		{
+			name:  "no password messages",
+			nodes: []kClient.UiNode{passwordNode()},
+		},
+		{
+			name:      "all password messages are reported",
+			nodes:     []kClient.UiNode{passwordNode(kClient.UiText{Text: "too short."}, kClient.UiText{Text: "too similar."})},
+			expectErr: "password policy error: too short. too similar.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := passwordPolicyError(kClient.RegistrationFlow{Ui: kClient.UiContainer{Nodes: tt.nodes}})
+
+			if tt.expectErr == "" && err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if tt.expectErr != "" && (err == nil || err.Error() != tt.expectErr) {
 				t.Fatalf("expected error '%s', got %v", tt.expectErr, err)
 			}
 		})

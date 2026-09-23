@@ -2748,6 +2748,49 @@ func TestHandleUpdateSettingsFlow(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateSettingsFlowForwardsKratosGenericError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+
+	flowId := "test"
+	flowBody := new(kClient.UpdateSettingsFlowBody)
+	flowBody.UpdateSettingsFlowWithPasswordMethod = kClient.NewUpdateSettingsFlowWithPasswordMethod("password", "password")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_SETTINGS_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	kratosErr := &KratosGenericError{Response: KratosErrorResponse{Error: &kClient.GenericError{Id: kClient.PtrString("self_service_flow_expired")}}}
+	mockService.EXPECT().ParseSettingsFlowMethodBody(gomock.Any()).Return(flowBody, nil)
+	mockService.EXPECT().UpdateSettingsFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, nil, kratosErr)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatal("Expected HTTP status code 400, got: ", res.Status)
+	}
+
+	var body KratosErrorResponse
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("Expected error to be nil got %v", err)
+	}
+	if body.Error.GetId() != "self_service_flow_expired" {
+		t.Fatalf("Expected error id self_service_flow_expired, got %q", body.Error.GetId())
+	}
+}
+
 func TestHandleUpdateSettingsFlowPrivilegedSessionRequired(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
