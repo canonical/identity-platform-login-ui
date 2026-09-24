@@ -38,7 +38,7 @@
 - [x] 6.3 Verify `TestLookupTenantsByFlow` still passes (it calls `lookupTenantsByEmail` internally)
 - [x] 6.4 Run `make test` and ensure all tests pass
 
-## 7. Post-Merge Cleanup (deferred)
+## 7. Post-Merge Cleanup
 
-- [ ] 7.1 After `IAM-1998` is merged to `main` on `identity-platform-api`, update `go.mod` to point at the `main` branch / latest release tag
-- [ ] 7.2 Re-run `go mod vendor` and open a follow-up PR to switch from the branch pin to `main`
+- [x] 7.1 After `IAM-1998` is merged to `main` on `identity-platform-api`, update `go.mod` to point at the `main` branch / latest release tag
+- [x] 7.2 Re-run `go mod vendor` and open a follow-up PR to switch from the branch pin to `main`
