@@ -4,7 +4,6 @@
 package kratos
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,13 +16,10 @@ func TestExecuteIdentifierFirstUpdateLoginRequest(t *testing.T) {
 
 	var mux http.ServeMux
 	server := httptest.NewServer(&mux)
-	defer server.Close()
+	t.Cleanup(server.Close)
 
 	redirectTo := server.URL + "/ui/login?flow=flow123"
-	mux.HandleFunc("/self-service/login", func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != http.MethodPost {
-			t.Fatalf("expected method POST, got %s", req.Method)
-		}
+	mux.HandleFunc("POST /self-service/login", func(w http.ResponseWriter, req *http.Request) {
 		if ct := req.Header.Get("Content-Type"); ct != "application/x-www-form-urlencoded" {
 			t.Fatalf("expected form content type, got %q", ct)
 		}
@@ -39,14 +35,13 @@ func TestExecuteIdentifierFirstUpdateLoginRequest(t *testing.T) {
 		http.SetCookie(w, cookie)
 		http.Redirect(w, req, redirectTo, http.StatusSeeOther)
 	})
-	mux.HandleFunc("/ui/login", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("GET /ui/login", func(w http.ResponseWriter, req *http.Request) {
 		t.Fatalf("redirect must not be followed")
 	})
 
 	client := NewClient(server.URL, false)
-	ctx := context.Background()
 
-	resp, err := client.ExecuteIdentifierFirstUpdateLoginRequest(ctx, "flow123", "csrf_token_1234", "test@example.com", cookies)
+	resp, err := client.ExecuteIdentifierFirstUpdateLoginRequest(t.Context(), "flow123", "csrf_token_1234", "test@example.com", cookies)
 	if err != nil {
 		t.Fatalf("expected error to be nil not %v", err)
 	}
