@@ -1,4 +1,9 @@
-import { RecoveryFlow, UpdateRecoveryFlowBody } from "@ory/client";
+import {
+  RecoveryFlow,
+  UiNode,
+  UiText,
+  UpdateRecoveryFlowBody,
+} from "@ory/client";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -7,8 +12,14 @@ import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
 import { Spinner } from "@canonical/react-components";
-import { ResetEmailBackButton } from "../components/NavigationButtons";
-import { isContinueWithPasswordReset } from "../util/constants";
+import {
+  FlowBackButton,
+  ResetEmailBackButton,
+} from "../components/NavigationButtons";
+import {
+  isContinueWithPasswordReset,
+  isResendVerificationCode,
+} from "../util/constants";
 
 const ResetEmail: NextPage = () => {
   const [flow, setFlow] = useState<RecoveryFlow>();
@@ -87,46 +98,69 @@ const ResetEmail: NextPage = () => {
     return "Enter an email to reset your password";
   };
 
+  const withLabel = (
+    node: UiNode,
+    label: Partial<UiText> & { context?: object },
+  ): UiNode => ({
+    ...node,
+    meta: {
+      ...node.meta,
+      label: {
+        ...node.meta.label,
+        ...label,
+        context: { ...node.meta.label?.context, ...label.context },
+      } as UiText,
+    },
+  });
+
   const getRenderFlow = (): RecoveryFlow | undefined => {
     if (!flow) {
       return flow;
     }
-    const isEnterEmail = flow.ui.nodes.length === 3;
 
-    return {
-      ...flow,
-      ui: {
-        ...flow.ui,
-        nodes: flow.ui.nodes.map((node) => {
-          if (isEnterEmail && node.meta.label?.text === "Submit") {
-            return {
-              ...node,
-              meta: {
-                ...node.meta,
-                label: {
-                  ...node.meta.label,
+    if (!wasEmailSent) {
+      return {
+        ...flow,
+        ui: {
+          ...flow.ui,
+          nodes: flow.ui.nodes.map((node) =>
+            isContinueWithPasswordReset(node)
+              ? withLabel(node, {
                   text: "Reset password",
-                  context: {
-                    ...node.meta.label.context,
-                    beforeComponent: <ResetEmailBackButton />,
-                  },
-                },
-              },
-            };
-          } else {
-            return node;
-          }
-        }),
-      },
-    } as RecoveryFlow;
-  };
-
-  flow?.ui.nodes.map((node) => {
-    if (isContinueWithPasswordReset(node)) {
-      node.meta.label.text = "Submit";
+                  context: { beforeComponent: <ResetEmailBackButton /> },
+                })
+              : node,
+          ),
+        },
+      };
     }
-    return node;
-  });
+
+    // Code screen: Back and "Resend code" as secondary actions, followed by
+    // "Reset password" as the main action, consistent with the email screen.
+    const resendNode = flow.ui.nodes.find(isResendVerificationCode);
+    const nodes = flow.ui.nodes
+      .filter((node) => node !== resendNode)
+      .flatMap((node) => {
+        if (!isContinueWithPasswordReset(node)) {
+          return [node];
+        }
+        const submitNode = withLabel(node, { text: "Reset password" });
+        const backButton = <FlowBackButton setFlow={setFlow} tabIndex={3} />;
+        if (!resendNode) {
+          return [
+            withLabel(submitNode, { context: { beforeComponent: backButton } }),
+          ];
+        }
+        return [
+          withLabel(resendNode, {
+            context: { appearance: "", beforeComponent: backButton },
+          }),
+          submitNode,
+        ];
+      });
+
+    return { ...flow, ui: { ...flow.ui, nodes } };
+  };
 
   return (
     <PageLayout title={getTitle()}>
