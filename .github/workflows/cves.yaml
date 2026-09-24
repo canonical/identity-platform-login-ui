@@ -1,6 +1,7 @@
 name: CVEs checker
 
 on:
+  workflow_dispatch:
   issues:
     types: [opened]
   schedule:
@@ -13,17 +14,17 @@ jobs:
         runs-on: ubuntu-latest
         if: ${{ github.event_name == 'schedule' }}
         steps:
-          - run: echo ids=$(gh issue list --json number,author -q '.[] | select(.author.login == "ROCKsBot") | .number') >> $GITHUB_OUTPUT
-            id: list
+          - run: |
+              ids=$(gh issue list --json number,author -q '[.[] | select(.author.login == "ROCKsBot") | .number]')
+              echo "ids=${ids}" >> $GITHUB_OUTPUT
+            id: issues
             env:
                 GH_PAGER:
                 GH_TOKEN: ${{ github.token }}
                 GH_REPO: ${{ github.repository }}
-          - run: echo ids=$(echo ${{steps.list.outputs.ids}} | jq -R 'split(" ")') >> $GITHUB_OUTPUT
-            id: issues
 
     scheduled-check:
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ github.event_name == 'schedule' && needs.list-all-issues.outputs.issues != '[]' && needs.list-all-issues.outputs.issues != '' }}
         permissions:
             contents: write
             issues: write
@@ -32,7 +33,7 @@ jobs:
                 issue: ${{ fromJson(needs.list-all-issues.outputs.issues) }}
         needs:
             - list-all-issues
-        uses: canonical/identity-team/.github/workflows/cve-check.yaml@b5428d226e364de1c5ad601c1ec27c333f489d1d # v1.16.2
+        uses: canonical/identity-team/.github/workflows/cve-check.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
         with:
             issue: ${{ matrix.issue }}
 
@@ -40,5 +41,20 @@ jobs:
         permissions:
             contents: write
             issues: write
-        uses: canonical/identity-team/.github/workflows/cve-check.yaml@b5428d226e364de1c5ad601c1ec27c333f489d1d # v1.16.2
+        uses: canonical/identity-team/.github/workflows/cve-check.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
         if: ${{ github.event.issue.id }}
+
+    scan-stable:
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        permissions:
+            packages: read
+            contents: read
+            security-events: write
+            actions: read
+        uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
+        with:
+            image: ${{ vars.REGISTRY || 'ghcr.io' }}/${{ github.repository }}:stable
+            exit-code: '0'
+            severity: 'HIGH,CRITICAL'
+            ignore-unfixed: true
+            trivyignores: '.trivyignore'
