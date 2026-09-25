@@ -6,7 +6,7 @@
       "bump-minor-pre-major": false,
       "bump-patch-for-minor-pre-major": false,
       "draft": false,
-      "prerelease": false,
+      "prerelease": true,
       "pull-request-title-pattern": "ci: release ${version}",
       "package-name": "",
       "extra-files": [

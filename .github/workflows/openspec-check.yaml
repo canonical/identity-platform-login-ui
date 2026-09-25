@@ -1,0 +1,76 @@
+name: OpenSpec Check
+
+on:
+  workflow_call:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+
+      - name: Discover Active OpenSpec Changes
+        id: discover
+        run: |
+          CHANGES_JSON=$(npx @fission-ai/openspec list --json || echo "{}")
+          ACTIVE_CHANGES=$(echo "$CHANGES_JSON" | jq -r '.changes? | map(.name)? | join(" ")' || echo "")
+
+          if [ -z "$ACTIVE_CHANGES" ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "changes=$ACTIVE_CHANGES" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify Task Completion (tasks.md)
+        if: steps.discover.outputs.has_changes == 'true'
+        env:
+          CHANGES: ${{ steps.discover.outputs.changes }}
+        run: |
+          FAIL_STEP=false
+          for CHANGE in $CHANGES; do
+            TASKS_FILE="openspec/changes/$CHANGE/tasks.md"
+            if [ -f "$TASKS_FILE" ]; then
+              INCOMPLETE=$(grep -c '^\s*-\s*\[ \]' "$TASKS_FILE" || true)
+              if [ "$INCOMPLETE" -gt 0 ]; then
+                echo "::error file=$TASKS_FILE::Change '$CHANGE' has $INCOMPLETE incomplete task(s) remaining in tasks.md."
+                FAIL_STEP=true
+              fi
+            fi
+          done
+          if [ "$FAIL_STEP" = "true" ]; then
+            exit 1
+          fi
+
+      - name: Validate OpenSpec Schemas
+        if: steps.discover.outputs.has_changes == 'true'
+        env:
+          CHANGES: ${{ steps.discover.outputs.changes }}
+        run: |
+          FAIL_STEP=false
+          for CHANGE in $CHANGES; do
+            if ! npx @fission-ai/openspec validate "$CHANGE" --strict; then
+              echo "::error::Change '$CHANGE' failed OpenSpec schema validation."
+              FAIL_STEP=true
+            fi
+          done
+          if [ "$FAIL_STEP" = "true" ]; then
+            exit 1
+          fi
+
+      - name: Verify No Active Changes Exist (Enforce Archival)
+        if: steps.discover.outputs.has_changes == 'true'
+        env:
+          CHANGES: ${{ steps.discover.outputs.changes }}
+        run: |
+          echo "::error::Active OpenSpec changes found: $CHANGES. Active changes must be archived using the '/archive-spec' command before merging."
+          exit 1
