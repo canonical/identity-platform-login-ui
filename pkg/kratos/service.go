@@ -798,23 +798,21 @@ func (s *Service) UpdateIdentifierFirstLoginFlow(
 
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusSeeOther:
-		location := resp.Header.Get("Location")
-		span.SetStatus(codes.Ok, "")
-		return &BrowserLocationChangeRequired{RedirectTo: &location}, resp.Cookies(), nil
-	case http.StatusBadRequest:
-		err = s.getUiError(resp.Body)
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, nil, err
-	default:
+	// Kratos only renders a flow body for JSON requests; for this form-encoded
+	// request it answers with a 303 to the login UI both on success and on
+	// validation errors (the error is persisted in the flow's ui messages), so
+	// any other status is unexpected.
+	if resp.StatusCode != http.StatusSeeOther {
 		s.logger.Errorf("updating identifier first flow %s failed: got unexpected response status %d from kratos", flow, resp.StatusCode)
 		err := fmt.Errorf("unexpected status: %d", resp.StatusCode)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
+
+	location := resp.Header.Get("Location")
+	span.SetStatus(codes.Ok, "")
+	return &BrowserLocationChangeRequired{RedirectTo: &location}, resp.Cookies(), nil
 }
 
 func (s *Service) UpdateLoginFlow(

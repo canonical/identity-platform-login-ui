@@ -17,7 +17,11 @@ import (
 type Client struct {
 	c          *client.APIClient
 	httpClient *http.Client
-	loginURL   *url.URL
+	// noRedirectClient shares httpClient's transport but does not follow redirects.
+	// Kratos answers identifier first submissions with a 303 whose Location the
+	// service turns into a BrowserLocationChangeRequired response.
+	noRedirectClient *http.Client
+	loginURL         *url.URL
 }
 
 func (c *Client) HTTPClient() *http.Client {
@@ -70,13 +74,7 @@ func (c *Client) ExecuteIdentifierFirstUpdateLoginRequest(
 		return nil, err
 	}
 
-	client := *c.httpClient
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		// Kratos returns 303 for identifier first flows. We disable these automatic redirects
-		// in order to let the handler process the BrowserLocationChangeRequired and change to 200
-		return http.ErrUseLastResponse
-	}
-	return client.Do(req)
+	return c.noRedirectClient.Do(req)
 }
 
 func NewClient(baseURL string, debug bool) *Client {
@@ -88,7 +86,8 @@ func NewClient(baseURL string, debug bool) *Client {
 		},
 	}
 
-	httpClient := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	transport := otelhttp.NewTransport(http.DefaultTransport)
+	httpClient := &http.Client{Transport: transport}
 	configuration.HTTPClient = httpClient
 
 	loginURL, err := url.Parse(baseURL + "/self-service/login")
@@ -99,6 +98,12 @@ func NewClient(baseURL string, debug bool) *Client {
 	return &Client{
 		c:          client.NewAPIClient(configuration),
 		httpClient: httpClient,
-		loginURL:   loginURL,
+		noRedirectClient: &http.Client{
+			Transport: transport,
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		},
+		loginURL: loginURL,
 	}
 }
