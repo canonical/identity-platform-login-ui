@@ -1,13 +1,15 @@
 import { getNodeLabel } from "@ory/integrations/ui";
 import { Button, Link } from "@canonical/react-components";
 import { NodeInputProps } from "./helpers";
-import React, { FC } from "react";
+import React, { FC, useContext } from "react";
 import { getProviderImage } from "../util/logos";
 import {
   isRegisterEmailSubmit,
   isResendVerificationCode,
   isSignInWithPassword,
+  isVerificationCodeInput,
 } from "../util/constants";
+import { FlowContext } from "../context/FlowContext";
 import { ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN } from "../util/constants";
 
 function getLoginStartUrl(): string {
@@ -23,6 +25,7 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
   disabled,
   dispatchSubmit,
 }) => {
+  const flow = useContext(FlowContext);
   const label = getNodeLabel(node);
   const isProvider = attributes.name === "provider";
   const provider = attributes.value as string;
@@ -77,7 +80,14 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
     }
   )?.afterComponent;
 
-  if (isResendVerificationCode(node)) return null;
+  // The verification code input renders its own inline "Resend code" link
+  // (see NodeInputText), so only hide the button when that input is present.
+  if (
+    isResendVerificationCode(node) &&
+    flow.ui?.nodes.some(isVerificationCodeInput)
+  ) {
+    return null;
+  }
 
   return (
     <>
