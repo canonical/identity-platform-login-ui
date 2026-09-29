@@ -4,9 +4,11 @@ import { BrowserContext } from "playwright-core";
 
 export const confirmMailCode = async (page: Page, context: BrowserContext) => {
   await expect(page.getByText("Enter the code you received")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Resend code" })).toBeVisible();
   const recoveryCode = await getRecoveryCodeFromMailSlurp(context);
   await page.getByLabel("Recovery code").fill(recoveryCode);
-  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByRole("button", { name: "Reset password" }).click();
 };
 
 export const enterNewPassword = async (page: Page, password: string) => {
