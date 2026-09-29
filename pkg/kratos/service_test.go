@@ -3464,6 +3464,76 @@ func TestGetSettingsFlowFail(t *testing.T) {
 	}
 }
 
+func TestGetSettingsFlowForbidden(t *testing.T) {
+	kratosErr := fmt.Errorf("403 Forbidden")
+	redirectTo := "http://kratos/self-service/login/browser?aal=aal2"
+
+	tests := []struct {
+		name             string
+		body             string
+		expectedRedirect *string
+		expectedErr      error
+	}{
+		{
+			name:             "second factor required returns redirect",
+			body:             `{"error":{"id":"session_aal2_required","code":403,"message":"forbidden"},"redirect_browser_to":"` + redirectTo + `"}`,
+			expectedRedirect: &redirectTo,
+		},
+		{
+			// A settings flow opened with another identity's session.
+			name:        "no redirect returns the Kratos error",
+			body:        `{"error":{"id":"security_identity_mismatch","code":403,"message":"The requested action was forbidden"}}`,
+			expectedErr: kratosErr,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockHydra := NewMockHydraClientInterface(ctrl)
+			mockKratos := NewMockKratosClientInterface(ctrl)
+			mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+			mockAuthz := NewMockAuthorizerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
+			mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+			mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
+
+			ctx := context.Background()
+			request := kClient.FrontendAPIGetSettingsFlowRequest{
+				ApiService: mockKratosFrontendApi,
+			}
+			resp := http.Response{
+				StatusCode: http.StatusForbidden,
+				Body:       io.NopCloser(strings.NewReader(tt.body)),
+			}
+
+			mockTracer.EXPECT().Start(ctx, "kratos.Service.GetSettingsFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+			mockTracer.EXPECT().Start(ctx, "kratos.Service.parseKratosRedirectResponse").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+			mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+			mockKratosFrontendApi.EXPECT().GetSettingsFlow(ctx).Times(1).Return(request)
+			mockKratosFrontendApi.EXPECT().GetSettingsFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, kratosErr)
+
+			_, r, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, false, mockTracer, mockMonitor, mockLogger).GetSettingsFlow(ctx, "id", nil)
+
+			if err != tt.expectedErr {
+				t.Fatalf("expected error %v, got %v", tt.expectedErr, err)
+			}
+			if tt.expectedRedirect == nil {
+				if r != nil {
+					t.Fatalf("expected no redirect, got %v", r)
+				}
+				return
+			}
+			if r == nil || r.RedirectTo == nil || *r.RedirectTo != *tt.expectedRedirect {
+				t.Fatalf("expected redirect to %s, got %v", *tt.expectedRedirect, r)
+			}
+		})
+	}
+}
+
 func TestCreateBrowserSettingsFlowSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

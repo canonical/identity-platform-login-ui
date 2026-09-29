@@ -313,6 +313,27 @@ func parseGenericError(err error) (*KratosErrorResponse, bool) {
 	return &resp, true
 }
 
+// writeGetFlowError answers a failed flow fetch. Kratos errors are forwarded
+// with the status code Kratos reported, so the frontend can act on either the
+// error id or the status; anything else is a 500 with fallback as the body.
+func (a *API) writeGetFlowError(w http.ResponseWriter, flowType string, err error, fallback string) {
+	a.logger.Errorf("Error when getting %s flow: %v", flowType, err)
+
+	kratosError, ok := parseGenericError(err)
+	if !ok {
+		http.Error(w, fallback, http.StatusInternalServerError)
+		return
+	}
+
+	status := int(kratosError.Error.GetCode())
+	if status < http.StatusBadRequest || status > 599 {
+		status = http.StatusInternalServerError
+	}
+
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(kratosError)
+}
+
 // writeUpdateFlowError answers a failed flow update. Kratos generic errors are
 // forwarded as JSON so the frontend can act on their id; anything else is an
 // opaque 500 whose body is shown to the user.
@@ -442,8 +463,7 @@ func (a *API) handleGetRegistrationFlow(w http.ResponseWriter, r *http.Request) 
 
 	flow, cookies, err := a.service.GetRegistrationFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
-		a.logger.Errorf("Error when getting registration flow: %v\n", err)
-		http.Error(w, "Failed to get registration flow", http.StatusInternalServerError)
+		a.writeGetFlowError(w, "registration", err, "Failed to get registration flow")
 		return
 	}
 
@@ -1172,8 +1192,7 @@ func (a *API) handleGetRecoveryFlow(w http.ResponseWriter, r *http.Request) {
 
 	flow, cookies, err := a.service.GetRecoveryFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
-		a.logger.Errorf("Error when getting recovery flow: %v\n", err)
-		http.Error(w, "Failed to get recovery flow", http.StatusInternalServerError)
+		a.writeGetFlowError(w, "recovery", err, "Failed to get recovery flow")
 		return
 	}
 
@@ -1267,8 +1286,7 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 
 	flow, response, err := a.service.GetSettingsFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
-		a.logger.Errorf("Error when getting settings flow: %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		a.writeGetFlowError(w, "settings", err, err.Error())
 		return
 	}
 
@@ -1483,8 +1501,7 @@ func (a *API) handleGetVerificationFlow(w http.ResponseWriter, r *http.Request) 
 
 	flow, cookies, err := a.service.GetVerificationFlow(r.Context(), flowId, r.Cookies())
 	if err != nil {
-		a.logger.Errorf("Error when getting verification flow: %v\n", err)
-		http.Error(w, "Failed to get verification flow", http.StatusInternalServerError)
+		a.writeGetFlowError(w, "verification", err, "Failed to get verification flow")
 		return
 	}
 

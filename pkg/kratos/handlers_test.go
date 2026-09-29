@@ -2699,6 +2699,85 @@ func TestHandleGetSettingsFlowFail(t *testing.T) {
 	}
 }
 
+// kratosAPIError builds the error the Kratos client returns for a non-2xx
+// response, carrying body as the raw response payload.
+func kratosAPIError(status, body string) error {
+	err := &kClient.GenericOpenAPIError{}
+	v := reflect.ValueOf(err).Elem()
+	for name, value := range map[string]any{"error": status, "body": []byte(body)} {
+		f := v.FieldByName(name)
+		reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem().Set(reflect.ValueOf(value))
+	}
+	return err
+}
+
+func TestHandleGetSettingsFlowKratosError(t *testing.T) {
+	tests := []struct {
+		name           string
+		err            error
+		expectedStatus int
+		expectedID     string
+	}{
+		{
+			// Flow URL opened in a browser without a session (issue #880).
+			name:           "missing session is forwarded as 401",
+			err:            kratosAPIError("401 Unauthorized", `{"error":{"code":401,"status":"Unauthorized","reason":"A valid Ory Session Cookie or Ory Session Token is missing.","message":"The request could not be authorized"}}`),
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "error id is forwarded with status",
+			err:            kratosAPIError("410 Gone", `{"error":{"id":"self_service_flow_expired","code":410,"message":"flow expired"}}`),
+			expectedStatus: http.StatusGone,
+			expectedID:     "self_service_flow_expired",
+		},
+		{
+			name:           "missing code falls back to 500",
+			err:            kratosAPIError("502 Bad Gateway", `{"error":{"message":"no code"}}`),
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockLogger := NewMockLoggerInterface(ctrl)
+			mockService := NewMockServiceInterface(ctrl)
+			mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+			mockTracer := NewMockTracingInterface(ctrl)
+
+			req := httptest.NewRequest(http.MethodGet, HANDLE_GET_SETTINGS_FLOW_URL+"?id=test", nil)
+
+			mockService.EXPECT().GetSettingsFlow(gomock.Any(), "test", req.Cookies()).Return(nil, nil, tt.err)
+			mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any())
+
+			w := httptest.NewRecorder()
+			mux := chi.NewMux()
+			NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+			mux.ServeHTTP(w, req)
+
+			res := w.Result()
+			defer res.Body.Close()
+
+			if res.StatusCode != tt.expectedStatus {
+				t.Fatalf("expected status %d, got %d", tt.expectedStatus, res.StatusCode)
+			}
+
+			var body KratosErrorResponse
+			if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+				t.Fatalf("expected Kratos error JSON, got decode error %v", err)
+			}
+			if body.Error == nil {
+				t.Fatal("expected error object in body")
+			}
+			if body.Error.GetId() != tt.expectedID {
+				t.Fatalf("expected error id %q, got %q", tt.expectedID, body.Error.GetId())
+			}
+		})
+	}
+}
+
 func TestHandleUpdateSettingsFlow(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

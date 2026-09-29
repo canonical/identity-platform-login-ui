@@ -667,8 +667,8 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 	}
 
 	// 403 means the user must be redirected to complete second factor auth
-	// in order to access settings
-	if err != nil && resp.StatusCode != http.StatusForbidden {
+	// in order to access settings. resp is nil on transport errors.
+	if err != nil && (resp == nil || resp.StatusCode != http.StatusForbidden) {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
@@ -689,8 +689,16 @@ func (s *Service) GetSettingsFlow(ctx context.Context, id string, cookies []*htt
 		return flow, nil, nil
 	}
 
-	returnToResp, err := s.parseKratosRedirectResponse(ctx, resp)
-	if err != nil {
+	returnToResp, parseErr := s.parseKratosRedirectResponse(ctx, resp)
+	if parseErr != nil {
+		span.RecordError(parseErr)
+		span.SetStatus(codes.Error, parseErr.Error())
+		return nil, nil, parseErr
+	}
+
+	// Other 403s (e.g. security_identity_mismatch) carry no redirect, so
+	// return the Kratos error instead.
+	if !returnToResp.HasRedirectTo() {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
