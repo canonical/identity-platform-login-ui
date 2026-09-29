@@ -19,17 +19,42 @@ export function capitalize(str?: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+type FlowType =
+  | "login"
+  | "registration"
+  | "settings"
+  | "recovery"
+  | "verification";
+
+// URL that starts a new flow of the given type. Registration, recovery and
+// settings keep the current query (e.g. return_to) minus the stale flow id.
+// Settings flows are created by several pages (setup_secure, manage_details,
+// reset_password, ...), so those reload the current page.
+const newFlowUrl = (flowType: FlowType) => {
+  let page: string;
+  switch (flowType) {
+    case "registration":
+      page = "./register";
+      break;
+    case "recovery":
+      page = "./reset_email";
+      break;
+    case "settings":
+      page = window.location.pathname;
+      break;
+    default:
+      return "./" + flowType;
+  }
+
+  const url = new URL(page, window.location.href);
+  url.search = window.location.search;
+  url.searchParams.delete("flow");
+  return url.toString();
+};
+
 // deal with errors coming from initializing a flow.
 export const handleFlowError =
-  <S>(
-    flowType:
-      | "login"
-      | "registration"
-      | "settings"
-      | "recovery"
-      | "verification",
-    resetFlow: Dispatch<SetStateAction<S | undefined>>,
-  ) =>
+  <S>(flowType: FlowType, resetFlow: Dispatch<SetStateAction<S | undefined>>) =>
   async (err: AxiosError<KratosErrorResponse>) => {
     switch (err.response?.data.error?.id) {
       case "session_aal2_required":
@@ -53,22 +78,22 @@ export const handleFlowError =
       case "self_service_flow_return_to_forbidden":
         // The flow expired, let's request a new one.
         resetFlow(undefined);
-        window.location.href = "./" + flowType;
+        window.location.href = newFlowUrl(flowType);
         return;
       case "self_service_flow_expired":
         // The flow expired, let's request a new one.
         resetFlow(undefined);
-        window.location.href = "./" + flowType;
+        window.location.href = newFlowUrl(flowType);
         return;
       case "security_csrf_violation":
         // A CSRF violation occurred. Best to just refresh the flow!
         resetFlow(undefined);
-        window.location.href = "./" + flowType;
+        window.location.href = newFlowUrl(flowType);
         return;
       case "security_identity_mismatch":
         // The requested item was intended for someone else. Let's request a new flow...
         resetFlow(undefined);
-        window.location.href = "./" + flowType;
+        window.location.href = newFlowUrl(flowType);
         return;
       case "browser_location_change_required":
         // Ory Kratos asked us to point the user to this URL.
@@ -89,7 +114,7 @@ export const handleFlowError =
       case 410:
         // The flow expired, let's request a new one.
         resetFlow(undefined);
-        window.location.href = "./" + flowType;
+        window.location.href = newFlowUrl(flowType);
         return;
     }
 
