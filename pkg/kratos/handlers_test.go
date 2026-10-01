@@ -1324,6 +1324,76 @@ func TestHandleGetRegistrationFlow(t *testing.T) {
 			t.Fatalf("expected id %s, got %v", id, body["id"])
 		}
 	})
+
+	rejection := kClient.UiText{Id: RegistrationRejectedFirst, Text: "Account could not be verified", Type: "error"}
+	emailNode := kClient.UiNode{Messages: []kClient.UiText{rejection}}
+
+	for _, tc := range []struct {
+		name string
+		ui   kClient.UiContainer
+	}{
+		{name: "Rejected by a webhook with a flow message", ui: kClient.UiContainer{Messages: []kClient.UiText{rejection}}},
+		{name: "Rejected by a webhook with a node message", ui: kClient.UiContainer{Nodes: []kClient.UiNode{emailNode}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			id := "flow789"
+			req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
+			w := httptest.NewRecorder()
+
+			flow := kClient.NewRegistrationFlowWithDefaults()
+			flow.SetId(id)
+			flow.SetUi(tc.ui)
+
+			mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
+				Return(flow, nil, nil)
+
+			api.handleGetRegistrationFlow(w, req)
+
+			res := w.Result()
+			defer res.Body.Close()
+
+			if res.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("expected %d, got %d", http.StatusUnprocessableEntity, res.StatusCode)
+			}
+
+			var resp KratosErrorResponse
+			if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
+				t.Fatalf("unexpected decode error: %v", err)
+			}
+			if resp.Error == nil || resp.Error.GetId() != BROWSER_LOCATION_CHANGE_REQUIRED {
+				t.Fatalf("expected error id %s, got: %v", BROWSER_LOCATION_CHANGE_REQUIRED, resp.Error)
+			}
+
+			expected := "/ui/oidc_error?error=registration_rejected&error_description=Account+could+not+be+verified"
+			if resp.RedirectTo != expected {
+				t.Fatalf("expected redirect_to %q, got %q", expected, resp.RedirectTo)
+			}
+		})
+	}
+
+	t.Run("Kratos validation errors are left to the registration page", func(t *testing.T) {
+		id := "flow012"
+		req := httptest.NewRequest(http.MethodGet, "/registration?id="+id, nil)
+		w := httptest.NewRecorder()
+
+		flow := kClient.NewRegistrationFlowWithDefaults()
+		flow.SetId(id)
+		flow.SetUi(kClient.UiContainer{
+			Messages: []kClient.UiText{{Id: DuplicateIdentifier, Text: "duplicate", Type: "error"}},
+		})
+
+		mockService.EXPECT().GetRegistrationFlow(gomock.Any(), id, req.Cookies()).
+			Return(flow, nil, nil)
+
+		api.handleGetRegistrationFlow(w, req)
+
+		res := w.Result()
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
+	})
 }
 
 func TestHandleUpdateRegistrationFlow(t *testing.T) {

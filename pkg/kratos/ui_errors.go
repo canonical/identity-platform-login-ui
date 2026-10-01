@@ -38,6 +38,14 @@ const (
 	InvalidRecoveryCode          = 4060006
 )
 
+// Kratos does not use message IDs in this range. A registration webhook returns
+// one to reject the registration outright, so that the user is sent to the error
+// page instead of back to the registration form.
+const (
+	RegistrationRejectedFirst = 4200000
+	RegistrationRejectedLast  = 4299999
+)
+
 // uiErrorText maps a Kratos UI message ID to the text returned to the user.
 // To handle a new code, add a constant above and one entry here.
 //
@@ -88,4 +96,30 @@ func uiError(msgs []kClient.UiText) error {
 	}
 
 	return nil
+}
+
+// registrationRejection returns the text of the first message with which a
+// webhook rejected the registration.
+func registrationRejection(ui kClient.UiContainer) (string, bool) {
+	rejection := func(msgs []kClient.UiText) (string, bool) {
+		for _, m := range msgs {
+			if id := m.GetId(); id >= RegistrationRejectedFirst && id <= RegistrationRejectedLast {
+				return m.GetText(), true
+			}
+		}
+
+		return "", false
+	}
+
+	if text, ok := rejection(ui.GetMessages()); ok {
+		return text, true
+	}
+
+	for _, n := range ui.GetNodes() {
+		if text, ok := rejection(n.GetMessages()); ok {
+			return text, true
+		}
+	}
+
+	return "", false
 }
