@@ -17,6 +17,7 @@ import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
 import {
+  UpdateLoginFlowWithLookupSecretMethod,
   UpdateLoginFlowWithOidcMethod,
   UpdateLoginFlowWithPasswordMethod,
 } from "@ory/client/api";
@@ -206,7 +207,12 @@ const Login: NextPage = () => {
         if (values.method === "webauthn") {
           return "webauthn";
         }
-        if (values.method === "lookup_secret") {
+        // A backup code submitted with Enter carries no method: the code
+        // itself says which one it is.
+        if (
+          values.method === "lookup_secret" ||
+          (values as UpdateLoginFlowWithLookupSecretMethod).lookup_secret
+        ) {
           return "lookup_secret";
         }
         if (isAuthCode) {
