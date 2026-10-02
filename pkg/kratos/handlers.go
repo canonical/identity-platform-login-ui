@@ -33,6 +33,7 @@ const SESSION_REFRESH_REQUIRED = "session_refresh_required"
 const KRATOS_SESSION_COOKIE_NAME = "ory_kratos_session"
 const LOGIN_UI_STATE_COOKIE = "login_ui_state"
 const SECURITY_CSRF_VIOLATION_ERROR = "security_csrf_violation"
+const BROWSER_LOCATION_CHANGE_REQUIRED = "browser_location_change_required"
 
 type API struct {
 	verificationEnabled           bool
@@ -467,6 +468,26 @@ func (a *API) handleGetRegistrationFlow(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Kratos sends the browser back to the registration page when a webhook
+	// rejects the registration; there is nothing for the user to fix in the form.
+	if description, rejected := registrationRejection(flow.GetUi()); rejected {
+		rt, err := a.registrationErrorURL(description)
+		if err != nil {
+			a.logger.Errorf("failed to build registration error redirect: %v", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		setCookies(w, cookies)
+		errorID := BROWSER_LOCATION_CHANGE_REQUIRED
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_ = json.NewEncoder(w).Encode(KratosErrorResponse{
+			Error:      &client.GenericError{Id: &errorID},
+			RedirectTo: rt,
+		})
+		return
+	}
+
 	setCookies(w, cookies)
 	w.WriteHeader(http.StatusOK)
 	toMap, _ := flow.ToMap()
@@ -834,6 +855,26 @@ func (a *API) tenantSelectionURLWithFlow(loginChallenge, flowID string) (string,
 	if flowID != "" {
 		q.Set("flow", flowID)
 	}
+	redirectTo.RawQuery = q.Encode()
+	return redirectTo.String(), nil
+}
+
+// registrationErrorURL builds the URL of the error page shown when a
+// registration is rejected.
+func (a *API) registrationErrorURL(description string) (string, error) {
+	redirect, err := url.JoinPath("/", a.contextPath, "/ui/oidc_error")
+	if err != nil {
+		return "", fmt.Errorf("cannot build registration error path: %w", err)
+	}
+
+	redirectTo, err := url.ParseRequestURI(redirect)
+	if err != nil {
+		return "", fmt.Errorf("cannot parse registration error URL: %w", err)
+	}
+
+	q := redirectTo.Query()
+	q.Set("error", "registration_rejected")
+	q.Set("error_description", description)
 	redirectTo.RawQuery = q.Encode()
 	return redirectTo.String(), nil
 }
