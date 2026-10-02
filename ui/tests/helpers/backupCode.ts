@@ -9,10 +9,19 @@ export const clickButton = async (page: Page, name: string) => {
     .click();
 };
 
-export const verifyBackupCode = async (page: Page, backupCode: string) => {
+export const verifyBackupCode = async (
+  page: Page,
+  backupCode: string,
+  { submitWithEnter = false } = {},
+) => {
   await expect(
     page.getByRole("heading", { name: "Verify your identity" }),
   ).toBeVisible();
-  await page.getByLabel("Backup recovery code").fill(backupCode);
+  const input = page.getByLabel("Backup recovery code");
+  await input.fill(backupCode);
+  if (submitWithEnter) {
+    await input.press("Enter");
+    return;
+  }
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 };

@@ -1,11 +1,11 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import { setupTotp } from "./helpers/totp";
 import { finishAuthFlow, startNewAuthFlow } from "./helpers/oidc_client";
 import { resetIdentities } from "./helpers/kratosIdentities";
 import { userPassLogin } from "./helpers/login";
 import { clickButton, verifyBackupCode } from "./helpers/backupCode";
 
-test("backup recovery code setup and usage", async ({ browser, page }) => {
+const setupBackupCode = async (page: Page) => {
   resetIdentities();
   await startNewAuthFlow(page);
   await userPassLogin(page);
@@ -24,6 +24,11 @@ test("backup recovery code setup and usage", async ({ browser, page }) => {
   await clickButton(page, "Create backup codes");
 
   await expect(page.getByText("Account setup complete")).toBeVisible();
+  return backupCode;
+};
+
+test("backup recovery code setup and usage", async ({ browser, page }) => {
+  const backupCode = await setupBackupCode(page);
 
   // Start login in a new context as user is already authenticated within the current context
   const newContext = await browser.newContext();
@@ -34,6 +39,21 @@ test("backup recovery code setup and usage", async ({ browser, page }) => {
 
   await clickButton(newPage, "Use backup code instead");
   await verifyBackupCode(newPage, backupCode);
+
+  await finishAuthFlow(newPage);
+});
+
+test("backup recovery code submitted with Enter", async ({ browser, page }) => {
+  const backupCode = await setupBackupCode(page);
+
+  const newContext = await browser.newContext();
+  const newPage = await newContext.newPage();
+
+  await startNewAuthFlow(newPage);
+  await userPassLogin(newPage);
+
+  await clickButton(newPage, "Use backup code instead");
+  await verifyBackupCode(newPage, backupCode, { submitWithEnter: true });
 
   await finishAuthFlow(newPage);
 });
