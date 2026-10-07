@@ -454,7 +454,7 @@ func isSessionAlreadyAvailableError(responseBody []byte) bool {
 		return false
 	}
 
-	if errorBody.Error.Id == "session_already_available" {
+	if errorBody.Error.Id == SESSION_ALREADY_AVAILABLE {
 		return true
 	}
 
@@ -1033,7 +1033,8 @@ func parseProfileBody(body io.ReadCloser) (*kClient.UpdateRegistrationFlowWithPr
 
 // getUiError maps a Kratos 4xx response to the error surfaced to the user.
 // A body carrying a Kratos generic error has no UI messages and is returned as a
-// *KratosGenericError.
+// *KratosGenericError. So is the refusal of a login that the session already
+// satisfies, which Kratos reports in a UI message.
 func (s *Service) getUiError(responseBody io.ReadCloser) error {
 	body, err := io.ReadAll(responseBody)
 	if err != nil {
@@ -1071,6 +1072,16 @@ func (s *Service) getUiError(responseBody io.ReadCloser) error {
 		err := fmt.Errorf("error code not found")
 		s.logger.Errorf(err.Error())
 		return err
+	}
+
+	// the session already satisfies the submitted login: the frontend knows
+	// this as the error Kratos answers when such a login is started
+	if alreadyLoggedIn(messages) {
+		return &KratosGenericError{Response: KratosErrorResponse{Error: &kClient.GenericError{
+			Id:      kClient.PtrString(SESSION_ALREADY_AVAILABLE),
+			Code:    kClient.PtrInt64(http.StatusBadRequest),
+			Message: "a valid session was detected and thus login is not possible",
+		}}}
 	}
 
 	if err := uiError(messages); err != nil {

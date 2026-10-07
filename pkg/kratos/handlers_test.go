@@ -2130,6 +2130,64 @@ func TestHandleUpdateFlowFailOnUpdateOIDCLoginFlow(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateFlowWhenSessionSatisfiesFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+
+	flowId := "test"
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = flowId
+
+	flowBody := new(kClient.UpdateLoginFlowBody)
+	flowBody.UpdateLoginFlowWithTotpMethod = kClient.NewUpdateLoginFlowWithTotpMethod("totp", "123456")
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	kratosErr := &KratosGenericError{Response: KratosErrorResponse{Error: &kClient.GenericError{
+		Id:      kClient.PtrString(SESSION_ALREADY_AVAILABLE),
+		Code:    kClient.PtrInt64(http.StatusBadRequest),
+		Message: "a valid session was detected and thus login is not possible",
+	}}}
+
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
+	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(nil, nil, nil, kratosErr)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, tenants.NewNoOpTenantResolver(), BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	// the frontend acts on the error id: it is not told where to go
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected HTTP status code 400, got: %s", res.Status)
+	}
+	if location := res.Header.Get("Location"); location != "" {
+		t.Fatalf("expected no Location, got %q", location)
+	}
+
+	body := new(KratosErrorResponse)
+	if err := json.NewDecoder(res.Body).Decode(body); err != nil {
+		t.Fatalf("expected a kratos error body, got: %v", err)
+	}
+	if id := body.Error.GetId(); id != SESSION_ALREADY_AVAILABLE {
+		t.Fatalf("expected error id %s not %s", SESSION_ALREADY_AVAILABLE, id)
+	}
+}
+
 func TestHandleUpdateFlowFailOnCheckAllowedProvider(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
