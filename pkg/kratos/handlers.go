@@ -175,10 +175,10 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// When the tenant resolver has confirmed the user is authenticated for
-	// this specific challenge (cookie hash matches), honor the decision
-	// immediately — MustReAuthenticate is unnecessary because the user
-	// already completed auth for this challenge.
+	// When the tenant resolver has confirmed the session signed in for this
+	// specific challenge, honor the decision immediately —
+	// MustReAuthenticate is unnecessary because the user already completed
+	// auth for this challenge.
 	if !intercept.DeferMFAChecks {
 		if intercept.SelectTenant {
 			a.tenantSelectionRedirect(w, r, loginChallenge)
@@ -190,13 +190,15 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// When DeferMFAChecks is set the user has a session from a previous
-	// flow (cookie doesn't match this challenge). We must still consult
-	// MustReAuthenticate because Hydra may demand re-auth (max_age=0).
-	// Only if Hydra says skip=true do we honour SelectTenant/AcceptLogin.
+	// When DeferMFAChecks is set the session did not sign in for this
+	// challenge. We must still consult MustReAuthenticate because Hydra may
+	// demand re-auth (prompt=login, max_age=0). Only if Hydra says skip=true
+	// do we honour SelectTenant/AcceptLogin. MustReAuthenticate gets the
+	// resolver's cookie: what the request's cookie says of a setup made for
+	// this challenge is not about this session.
 	if intercept.DeferMFAChecks || (!intercept.AcceptLogin && !intercept.SelectTenant) {
 		var forceLogin bool
-		forceLogin, err = a.service.MustReAuthenticate(r.Context(), loginChallenge, session, c)
+		forceLogin, err = a.service.MustReAuthenticate(r.Context(), loginChallenge, session, intercept.Cookie)
 		if err != nil {
 			a.logger.Errorf("Failed to fetch hydra flow: %v", err)
 			http.Error(w, "Failed to fetch hydra flow", http.StatusInternalServerError)
@@ -636,7 +638,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 	flowCookie := stateCookie
 	if lc != "" {
-		flowCookie = stateCookie.RenewForChallenge(lc)
+		flowCookie = stateCookie.StartLogin(lc, loginFlow.GetIssuedAt())
 	}
 
 	session, _, err := a.service.CheckSession(r.Context(), httpCookies)

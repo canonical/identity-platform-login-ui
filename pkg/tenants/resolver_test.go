@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	kClient "github.com/ory/kratos-client-go/v25"
 	"go.uber.org/mock/gomock"
@@ -20,6 +21,16 @@ func sessionWithEmail(email string) *kClient.Session {
 	s := kClient.NewSession("test")
 	s.Identity = kClient.NewIdentity("test-identity", "default", "https://example.com/schema", map[string]interface{}{"email": email})
 	return s
+}
+
+// signedIn returns the state cookie and the session of a user who signed in
+// for challenge: the session authenticated after the login for it started.
+func signedIn(challenge string) (cookies.FlowStateCookie, *kClient.Session) {
+	started := time.Date(2026, 10, 7, 12, 0, 0, 0, time.UTC)
+	authenticated := started.Add(time.Second)
+	session := sessionWithEmail("u@e.com")
+	session.AuthenticatedAt = &authenticated
+	return cookies.FlowStateCookie{}.StartLogin(challenge, started), session
 }
 
 // mockTenantLookup is a hand-built stub of tenantLookupService for tests.
@@ -152,7 +163,11 @@ func TestCookieTenantResolverStoreTenant(t *testing.T) {
 
 	challenge := "store-challenge"
 	tenantID := "tenant-42"
-	existingCookie := cookies.FlowStateCookie{}
+	// the cookie is renewed: the start of this challenge's login is kept
+	// (a user who selects a tenant after signing in stays signed in for
+	// it), a setup flag is not
+	existingCookie, _ := signedIn(challenge)
+	existingCookie.TotpSetup = true
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/", nil)
 
@@ -160,6 +175,7 @@ func TestCookieTenantResolverStoreTenant(t *testing.T) {
 	mockCM.EXPECT().SetStateCookie(w, cookies.FlowStateCookie{
 		TenantID:           tenantID,
 		LoginChallengeHash: cookies.ChallengeHash(challenge),
+		LoginStartedAt:     existingCookie.LoginStartedAt,
 	}).Return(nil)
 
 	if err := r.StoreTenant(w, req, tenantID, challenge); err != nil {
@@ -602,11 +618,11 @@ func TestInterceptLoginAutoSelectsSingleTenant(t *testing.T) {
 	defer ctrl.Finish()
 
 	challenge := "ch-1"
-	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	c, session := signedIn(challenge)
 	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
-	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	result, err := r.InterceptLogin(context.Background(), session, c, challenge)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -626,11 +642,11 @@ func TestInterceptLoginSelectsTenantWhenMultipleTenants(t *testing.T) {
 	defer ctrl.Finish()
 
 	challenge := "ch-1"
-	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	c, session := signedIn(challenge)
 	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1", Name: "Acme"}, {ID: "t2", Name: "Beta"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
-	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	result, err := r.InterceptLogin(context.Background(), session, c, challenge)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -647,14 +663,12 @@ func TestInterceptLoginAcceptsWhenTenantAlreadySelected(t *testing.T) {
 	defer ctrl.Finish()
 
 	challenge := "ch-1"
-	c := cookies.FlowStateCookie{
-		LoginChallengeHash: cookies.ChallengeHash(challenge),
-		TenantID:           "t1",
-	}
+	c, session := signedIn(challenge)
+	c.TenantID = "t1"
 	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1"}, {ID: "t2"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
-	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	result, err := r.InterceptLogin(context.Background(), session, c, challenge)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -666,21 +680,51 @@ func TestInterceptLoginAcceptsWhenTenantAlreadySelected(t *testing.T) {
 	}
 }
 
+// The cookie is bound to a challenge as soon as an email is entered or a
+// tenant is selected for it, so a session that was already there is not one
+// that signed in for it: Hydra decides (DeferMFAChecks). The tenant selected
+// for the challenge is kept, so the user is not sent to select again; a setup
+// flag is not, it is not about this session.
+func TestInterceptLoginDefersForSessionThatDidNotSignInForChallenge(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	challenge := "ch-1"
+	_, session := signedIn(challenge)
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge), TenantID: "t1", TotpSetup: true}
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1"}, {ID: "t2"}}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+
+	result, err := r.InterceptLogin(context.Background(), session, c, challenge)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.DeferMFAChecks || !result.AcceptLogin || result.SelectTenant {
+		t.Fatalf("expected a deferred accept, got %+v", result)
+	}
+	if result.Cookie.TenantID != "t1" || result.Cookie.TotpSetup {
+		t.Fatalf("expected the tenant kept and the setup flag dropped, got %+v", result.Cookie)
+	}
+}
+
 func TestInterceptLoginAcceptsWithSentinelWhenNoTenants(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	challenge := "ch-1"
-	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	c, session := signedIn(challenge)
 	svc := &mockTenantLookup{tenants: []*Tenant{}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
-	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	result, err := r.InterceptLogin(context.Background(), session, c, challenge)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !result.AcceptLogin {
 		t.Fatal("expected AcceptLogin=true when user has no tenants")
+	}
+	if result.DeferMFAChecks {
+		t.Fatal("expected DeferMFAChecks=false for a session that signed in for the challenge")
 	}
 	if result.Cookie.TenantID != cookies.NoTenantAvailable {
 		t.Fatalf("expected sentinel %q, got %q", cookies.NoTenantAvailable, result.Cookie.TenantID)
@@ -692,11 +736,11 @@ func TestInterceptLoginPropagatesLookupError(t *testing.T) {
 	defer ctrl.Finish()
 
 	challenge := "ch-1"
-	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	c, session := signedIn(challenge)
 	svc := &mockTenantLookup{err: fmt.Errorf("network error")}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
-	_, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	_, err := r.InterceptLogin(context.Background(), session, c, challenge)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

@@ -168,3 +168,52 @@ func TestAuthCookieManager_SetStateCookieFailure(t *testing.T) {
 		t.Fatalf("expected error to be not nil")
 	}
 }
+
+func TestSignedInFor(t *testing.T) {
+	started := time.Date(2026, 10, 7, 12, 0, 0, 0, time.UTC)
+	after, before := started.Add(time.Second), started.Add(-time.Second)
+
+	// as the browser returns it: the start has to survive the cookie
+	var c FlowStateCookie
+	raw, _ := json.Marshal(FlowStateCookie{}.StartLogin("ch-1", started))
+	if err := json.Unmarshal(raw, &c); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	tests := []struct {
+		name            string
+		cookie          FlowStateCookie
+		challenge       string
+		authenticatedAt *time.Time
+		expect          bool
+	}{
+		{name: "authenticated after the login started", cookie: c, challenge: "ch-1", authenticatedAt: &after, expect: true},
+		{name: "authenticated before the login started", cookie: c, challenge: "ch-1", authenticatedAt: &before, expect: false},
+		{name: "authenticated when the login started", cookie: c, challenge: "ch-1", authenticatedAt: &started, expect: false},
+		{name: "no login started", cookie: FlowStateCookie{LoginChallengeHash: ChallengeHash("ch-1")}, challenge: "ch-1", authenticatedAt: &after, expect: false},
+		{name: "another challenge", cookie: c, challenge: "ch-2", authenticatedAt: &after, expect: false},
+		{name: "no authentication time", cookie: c, challenge: "ch-1", expect: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cookie.SignedInFor(tt.challenge, tt.authenticatedAt); got != tt.expect {
+				t.Fatalf("expected %v, got %v", tt.expect, got)
+			}
+		})
+	}
+}
+
+func TestStartLoginAndRenewForChallenge(t *testing.T) {
+	started := time.Date(2026, 10, 7, 12, 0, 0, 0, time.UTC)
+	c := FlowStateCookie{}.StartLogin("ch-1", started)
+	c.TenantID = "t1"
+	c.TotpSetup = true
+
+	if again := c.StartLogin("ch-1", started.Add(time.Minute)); !again.LoginStartedAt.Equal(started) || again.TenantID != "t1" {
+		t.Fatalf("expected the first start and the tenant to be kept for the same challenge, got %+v", again)
+	}
+	if other := c.RenewForChallenge("ch-2"); !other.LoginStartedAt.IsZero() || other.TenantID != "" || other.TotpSetup {
+		t.Fatalf("expected nothing to be carried to another challenge, got %+v", other)
+	}
+}

@@ -26,9 +26,10 @@ type tenantLookupService interface {
 // the returned value drives all subsequent branching—no tenant-specific
 // logic leaks into the handler.
 type LoginInterception struct {
-	// DeferMFAChecks is true when MFA/WebAuthn enforcement should be
-	// skipped for now (e.g. the user hasn't completed first-factor auth
-	// for this challenge yet).
+	// DeferMFAChecks is true when the session, if any, has not signed in
+	// for this challenge: Hydra must be asked whether it demands
+	// re-authentication before SelectTenant or AcceptLogin is honoured,
+	// and MFA/WebAuthn enforcement is skipped for now.
 	DeferMFAChecks bool
 	// SelectTenant is true when the user should be redirected to the
 	// tenant selection page.
@@ -105,9 +106,11 @@ func (c *CookieTenantResolver) StoreTenant(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return fmt.Errorf("cannot read state cookie: %w", err)
 	}
-	stateCookie.TenantID = tenantID
-	stateCookie.LoginChallengeHash = cookies.ChallengeHash(loginChallenge)
-	return c.cookieManager.SetStateCookie(w, stateCookie)
+	// renewed, so that nothing recorded for another challenge is carried
+	// over to this one
+	next := stateCookie.RenewForChallenge(loginChallenge)
+	next.TenantID = tenantID
+	return c.cookieManager.SetStateCookie(w, next)
 }
 
 func (c *CookieTenantResolver) HasTenants(ctx context.Context, session *kClient.Session) (bool, error) {
@@ -189,21 +192,24 @@ func (c *CookieTenantResolver) InterceptLogin(ctx context.Context, session *kCli
 		return LoginInterception{Cookie: cookie}, nil
 	}
 
-	if !c.IsAuthenticatedForChallenge(cookie, loginChallenge) {
-		// The cookie's challenge hash doesn't match the current challenge.
-		// If there is no existing session the user is still authenticating
-		// (identifier-first in progress) — defer all checks.
-		if session == nil {
-			return LoginInterception{DeferMFAChecks: true, Cookie: cookie}, nil
-		}
+	if session == nil {
+		// Without a session the user is still authenticating. The handler
+		// does not read DeferMFAChecks in that case.
+		return LoginInterception{DeferMFAChecks: !c.IsAuthenticatedForChallenge(cookie, loginChallenge), Cookie: cookie}, nil
+	}
 
-		// Session reuse: the user has a valid Kratos session from a
-		// previous flow. Authentication is skipped, but multi-tenant
-		// users must still select a tenant for this challenge.
-		// Bind the cookie to the new challenge and clear the stale
-		// TenantID so tenant selection is re-evaluated for this flow.
-		cookie.LoginChallengeHash = cookies.ChallengeHash(loginChallenge)
-		cookie.TenantID = ""
+	if !cookie.SignedInFor(loginChallenge, session.AuthenticatedAt) {
+		// The session did not sign in for this challenge: it is from a
+		// previous flow, or from before the first credential step of this
+		// one (the cookie is bound to a challenge as soon as an email is
+		// entered or a tenant is selected for it). Authentication may be
+		// skipped only if Hydra says so; multi-tenant users must still
+		// select a tenant for this challenge.
+		// Renewing binds the cookie to the challenge and keeps only a
+		// tenant already selected for it. What was recorded for another
+		// challenge is dropped, and so are the setup flags of this one:
+		// they are not about this session.
+		cookie = cookie.RenewForChallenge(loginChallenge)
 		needsSelection, updatedCookie, err := c.NeedsTenantSelection(ctx, session, cookie, loginChallenge)
 		if err != nil {
 			return LoginInterception{}, err
@@ -212,10 +218,6 @@ func (c *CookieTenantResolver) InterceptLogin(ctx context.Context, session *kCli
 			return LoginInterception{DeferMFAChecks: true, SelectTenant: true, Cookie: cookie}, nil
 		}
 		return LoginInterception{DeferMFAChecks: true, AcceptLogin: true, Cookie: updatedCookie}, nil
-	}
-
-	if session == nil {
-		return LoginInterception{Cookie: cookie}, nil
 	}
 
 	needsSelection, updatedCookie, err := c.NeedsTenantSelection(ctx, session, cookie, loginChallenge)
