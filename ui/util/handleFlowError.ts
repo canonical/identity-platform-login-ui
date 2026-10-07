@@ -29,10 +29,20 @@ type FlowType =
 // URL that starts a new flow of the given type. Registration, recovery and
 // settings keep the current query (e.g. return_to) minus the stale flow id.
 // Settings flows are created by several pages (setup_secure, manage_details,
-// reset_password, ...), so those reload the current page.
+// reset_password, ...), so those reload the current page. A login keeps only
+// its login_challenge: the OIDC client is still waiting for that login, and a
+// flow started without it would end on the account page.
 const newFlowUrl = (flowType: FlowType) => {
   let page: string;
   switch (flowType) {
+    case "login": {
+      const loginChallenge = new URLSearchParams(window.location.search).get(
+        "login_challenge",
+      );
+      return loginChallenge
+        ? `./login?login_challenge=${encodeURIComponent(loginChallenge)}`
+        : "./login";
+    }
     case "registration":
       page = "./register";
       break;

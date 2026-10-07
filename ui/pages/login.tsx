@@ -65,6 +65,26 @@ const resolveLoginTitle = (
   return `Sign in${titleSuffix}`;
 };
 
+// Keeps the OIDC login challenge in the URL of the next login step. The browser
+// comes back to that URL with Back from a later step, where its flow can no
+// longer be used and a new one is started (handleFlowError): with the
+// challenge in the URL, the new flow still belongs to the login the OIDC
+// client is waiting for.
+const withLoginChallenge = (redirectTo: string, loginChallenge?: string) => {
+  if (!loginChallenge) {
+    return redirectTo;
+  }
+  const url = new URL(redirectTo, window.location.href);
+  if (
+    !url.pathname.endsWith("/login") ||
+    url.searchParams.has("login_challenge")
+  ) {
+    return redirectTo;
+  }
+  url.searchParams.set("login_challenge", loginChallenge);
+  return url.toString();
+};
+
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
@@ -235,19 +255,24 @@ const Login: NextPage = () => {
 
       if (method === "identifier_first") {
         const flowId = String(flow?.id);
+        const loginChallenge =
+          typeof login_challenge === "string"
+            ? login_challenge
+            : flow?.oauth2_login_challenge;
 
         return loginIdentifierFirst(
           flowId,
           values,
           method,
           flow,
-          typeof login_challenge === "string"
-            ? login_challenge
-            : flow?.oauth2_login_challenge,
+          loginChallenge,
         )
           .then((data) => {
             if ("redirect_to" in data) {
-              window.location.href = data.redirect_to;
+              window.location.href = withLoginChallenge(
+                data.redirect_to,
+                loginChallenge,
+              );
             } else {
               setFlow(data);
             }
