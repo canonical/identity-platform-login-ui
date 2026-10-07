@@ -31,15 +31,16 @@ type FlowType =
 // Settings flows are created by several pages (setup_secure, manage_details,
 // reset_password, ...), so those reload the current page. A login keeps only
 // its login_challenge: the OIDC client is still waiting for that login, and a
-// flow started without it would end on the account page.
+// flow started without it would end on the account page. It keeps it only when
+// the URL was for an existing flow: when a flow could not be created for the
+// challenge, starting one for it again would fail the same way.
 const newFlowUrl = (flowType: FlowType) => {
   let page: string;
   switch (flowType) {
     case "login": {
-      const loginChallenge = new URLSearchParams(window.location.search).get(
-        "login_challenge",
-      );
-      return loginChallenge
+      const params = new URLSearchParams(window.location.search);
+      const loginChallenge = params.get("login_challenge");
+      return loginChallenge && params.has("flow")
         ? `./login?login_challenge=${encodeURIComponent(loginChallenge)}`
         : "./login";
     }
