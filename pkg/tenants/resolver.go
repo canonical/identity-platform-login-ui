@@ -135,9 +135,6 @@ func (c *CookieTenantResolver) NeedsTenantSelection(ctx context.Context, session
 }
 
 func (c *CookieTenantResolver) NeedsTenantSelectionByEmail(ctx context.Context, email string, cookie cookies.FlowStateCookie, loginChallenge string) (bool, cookies.FlowStateCookie, error) {
-	if c.TenantID(cookie, loginChallenge) != "" {
-		return false, cookie, nil
-	}
 	if email == "" {
 		return false, cookie, nil
 	}
@@ -145,37 +142,46 @@ func (c *CookieTenantResolver) NeedsTenantSelectionByEmail(ctx context.Context, 
 	if err != nil {
 		return false, cookie, fmt.Errorf("cannot look up tenants: %w", err)
 	}
-	if len(tenants) == 1 {
-		cookie.TenantID = tenants[0].ID
-		return false, cookie, nil
-	}
-	if len(tenants) > 1 {
-		return true, cookie, nil
-	}
-	cookie.TenantID = cookies.NoTenantAvailable
-	return false, cookie, nil
+	needsSelection, cookie := c.resolve(tenants, cookie, loginChallenge)
+	return needsSelection, cookie, nil
 }
 
 // needsTenantSelectionByIdentityID is the identity_id-based equivalent of
 // NeedsTenantSelectionByEmail. It skips the Kratos email resolution on the
 // tenant-service side, resulting in faster lookups.
 func (c *CookieTenantResolver) needsTenantSelectionByIdentityID(ctx context.Context, identityID string, cookie cookies.FlowStateCookie, loginChallenge string) (bool, cookies.FlowStateCookie, error) {
-	if c.TenantID(cookie, loginChallenge) != "" {
-		return false, cookie, nil
-	}
 	tenants, err := c.service.LookupTenantsByIdentityID(ctx, identityID)
 	if err != nil {
 		return false, cookie, fmt.Errorf("cannot look up tenants: %w", err)
 	}
-	if len(tenants) == 1 {
+	needsSelection, cookie := c.resolve(tenants, cookie, loginChallenge)
+	return needsSelection, cookie, nil
+}
+
+// resolve sets the tenant of a login from the tenants of its user, and
+// reports whether the user must still select one. The tenant recorded in the
+// cookie only chooses among several of them: the cookie is bound to a login
+// challenge, not to a user, so the record can be the one of another email
+// entered for the same challenge, or an id the client sent as its selection.
+// For the same reason a user who signs in with another account than the email
+// entered, and has the recorded tenant among several, is not asked.
+func (c *CookieTenantResolver) resolve(tenants []*Tenant, cookie cookies.FlowStateCookie, loginChallenge string) (bool, cookies.FlowStateCookie) {
+	switch len(tenants) {
+	case 0:
+		cookie.TenantID = cookies.NoTenantAvailable
+		return false, cookie
+	case 1:
 		cookie.TenantID = tenants[0].ID
-		return false, cookie, nil
+		return false, cookie
 	}
-	if len(tenants) > 1 {
-		return true, cookie, nil
+	recorded := c.TenantID(cookie, loginChallenge)
+	for _, t := range tenants {
+		if t.ID == recorded {
+			return false, cookie
+		}
 	}
-	cookie.TenantID = cookies.NoTenantAvailable
-	return false, cookie, nil
+	cookie.TenantID = ""
+	return true, cookie
 }
 
 func (c *CookieTenantResolver) InterceptLogin(ctx context.Context, session *kClient.Session, cookie cookies.FlowStateCookie, loginChallenge string) (LoginInterception, error) {
