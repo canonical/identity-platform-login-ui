@@ -5,7 +5,7 @@
 
 ## 2. A restart keeps the challenge
 
-- [x] 2.1 In `ui/util/handleFlowError.ts` `newFlowUrl`, add a `login` case: return `./login?login_challenge=<encoded>` when `window.location.search` has both `login_challenge` and `flow`, and `./login` otherwise. Update the comment above the function. Other flow types keep their branches.
+- [x] 2.1 In `ui/util/handleFlowError.ts` `newFlowUrl`, add a `login` case: return `./login?login_challenge=<encoded>` when `window.location.search` has both `login_challenge` and `flow`, and `./login` otherwise. Other flow types keep their branches.
 - [x] 2.2 `npx eslint pages/login.tsx util/handleFlowError.ts`, `npx prettier --check` on both and `npx tsc --noEmit -p .` in `ui/`. Completion: all clean.
 
 ## 3. Tests
