@@ -4,8 +4,7 @@ import { finishAuthFlow, startNewAuthFlow } from "./helpers/oidc_client";
 import { resetIdentities } from "./helpers/kratosIdentities";
 import { USER_EMAIL, userPassLogin } from "./helpers/login";
 
-// Goes back to a page the browser has in its history, as picking it from the
-// history of the back button does.
+// Goes back to a page in the browser history, however many entries away.
 const backTo = async (page: Page, url: string) => {
   const cdp = await page.context().newCDPSession(page);
   const { currentIndex, entries } = await cdp.send("Page.getNavigationHistory");
@@ -20,7 +19,6 @@ const backTo = async (page: Page, url: string) => {
   await expect(page).toHaveURL(url);
 };
 
-// The account page of the signed in user, loaded.
 const expectAccountPage = async (page: Page) => {
   await expect(page).toHaveURL(/\/ui\/manage_details/);
   await expect(page.getByLabel("Email address")).toHaveValue(USER_EMAIL);
