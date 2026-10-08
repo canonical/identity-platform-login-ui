@@ -138,11 +138,8 @@ const Login: NextPage = () => {
         .then(async (res) => {
           setFlow(res.data);
 
-          // Keep the OIDC login challenge in the URL of this step. The browser
-          // comes back to this URL with Back from a later step, where the flow
-          // can no longer be used and a new one is started (handleFlowError):
-          // with the challenge in the URL, the new flow still belongs to the
-          // login the OIDC client is waiting for.
+          // Keep the login challenge in the URL, so that a login restarted
+          // from this step (handleFlowError) is still the OIDC client's.
           const loginChallenge = res.data.oauth2_login_challenge;
           if (loginChallenge && !login_challenge) {
             await router.replace(

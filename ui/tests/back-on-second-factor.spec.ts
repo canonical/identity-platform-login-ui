@@ -4,8 +4,7 @@ import { finishAuthFlow, startNewAuthFlow } from "./helpers/oidc_client";
 import { resetIdentities } from "./helpers/kratosIdentities";
 import { userPassLogin } from "./helpers/login";
 
-// The flow of the previous step can no longer be used, so the login starts
-// again. It must still be the login the client is waiting for.
+// Back restarts the login: it must still be the OIDC client's.
 const backToNewLogin = async (page: Page) => {
   await page.goBack();
   await expect(page.getByLabel("Email")).toBeVisible();
