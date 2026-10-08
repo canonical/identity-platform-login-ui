@@ -173,7 +173,7 @@ func TestSignedInFor(t *testing.T) {
 	started := time.Date(2026, 10, 7, 12, 0, 0, 0, time.UTC)
 	after, before := started.Add(time.Second), started.Add(-time.Second)
 
-	// as the browser returns it: the start has to survive the cookie
+	// through JSON, as the cookie stores it
 	var c FlowStateCookie
 	raw, _ := json.Marshal(FlowStateCookie{}.StartLogin("ch-1", started))
 	if err := json.Unmarshal(raw, &c); err != nil {

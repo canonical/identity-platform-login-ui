@@ -965,9 +965,6 @@ func TestHandleCreateFlowRedirectsToTenantSelectionWhenHasTenants(t *testing.T) 
 	}
 }
 
-// A session that did not sign in for the challenge is Hydra's to judge: when
-// it demands re-authentication (prompt=login, max_age), a new login flow is
-// created and nothing is accepted.
 func TestHandleCreateFlowForcesLoginForSessionThatDidNotSignInForChallenge(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -982,8 +979,7 @@ func TestHandleCreateFlowForcesLoginForSessionThatDidNotSignInForChallenge(t *te
 	session := kClient.NewSession("test")
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = "new-flow"
-	// the request's cookie says a setup was made for this challenge; the
-	// resolver's cookie, renewed for a session that did not sign in, does not
+	// the resolver's cookie has no setup flag, unlike the request's
 	stateCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge), TenantID: "tenant-123", TotpSetup: true}
 	renewedCookie := stateCookie.RenewForChallenge(loginChallenge)
 
@@ -1083,10 +1079,10 @@ func TestHandleCreateFlowSkipsTenantSelectionForNoTenantUser(t *testing.T) {
 }
 
 // TestHandleCreateFlowAcceptsLoginAfterOIDCAuth verifies that when the user
-// returns from OIDC authentication (e.g. Dex) with a valid session that the
-// resolver does not take as signed in for the challenge (DeferMFAChecks),
-// MustReAuthenticate is asked with the resolver's cookie, and the login is
-// accepted when it does not force a new one.
+// returns from OIDC authentication (e.g. Dex) with a valid session but the
+// state cookie's challenge hash doesn't match (because it was never set during
+// the OIDC redirect), InterceptLogin correctly returns AcceptLogin=true and
+// the login is accepted without calling MustReAuthenticate.
 // This is the fix for the OIDC redirect-back-to-login-page loop.
 func TestHandleCreateFlowAcceptsLoginAfterOIDCAuth(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -1125,9 +1121,9 @@ func TestHandleCreateFlowAcceptsLoginAfterOIDCAuth(t *testing.T) {
 	// DeferMFAChecks=true → MFA/WebAuthn checks are skipped
 	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
 		Return(tenants.LoginInterception{DeferMFAChecks: true, AcceptLogin: true, Cookie: updatedCookie}, nil)
-	// DeferMFAChecks=true means the session did not sign in for this
-	// challenge, so MustReAuthenticate is called, with the resolver's
-	// cookie. It says the login need not be forced, so AcceptLogin proceeds.
+	// DeferMFAChecks=true means the cookie doesn't match this challenge,
+	// so MustReAuthenticate is called. Hydra says skip=true (user just
+	// authenticated via OIDC), so forceLogin=false and AcceptLogin proceeds.
 	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, updatedCookie).Return(false, nil)
 	mockTenantMgr.EXPECT().TenantID(updatedCookie, loginChallenge).Return(cookies.NoTenantAvailable)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, cookies.NoTenantAvailable).Return(&redirectTo, req.Cookies(), nil)
@@ -1887,7 +1883,6 @@ func TestHandleUpdateFlow(t *testing.T) {
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = flowId
 	flow.ExpiresAt = time.Now().UTC()
-	// a login for a client: its step records when the login started
 	loginChallenge := "lc-456"
 	flow.IssuedAt = time.Date(2026, 10, 7, 12, 0, 0, 0, time.UTC)
 	flow.SetOauth2LoginChallenge(loginChallenge)

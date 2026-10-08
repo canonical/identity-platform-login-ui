@@ -46,9 +46,8 @@ type TenantResolverInterface interface {
 	// silently with NoTenantAvailable. Returns false when tenant selection is disabled.
 	HasTenants(ctx context.Context, session *kClient.Session) (bool, error)
 	// IsAuthenticatedForChallenge reports whether the state cookie is bound
-	// to the given login challenge. That alone does not prove a sign-in for
-	// it: the cookie is bound before any credential is given. When tenant
-	// selection is disabled this always returns true (no gate).
+	// to the given login challenge. When tenant selection is disabled this
+	// always returns true (no gate).
 	IsAuthenticatedForChallenge(cookie cookies.FlowStateCookie, loginChallenge string) bool
 	// NeedsTenantSelection checks whether the user needs to pick a tenant.
 	// Returns needsSelection=true when the user has tenants but none is

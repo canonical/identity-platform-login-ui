@@ -38,19 +38,15 @@ func ChallengeHash(loginChallenge string) string {
 }
 
 // FlowStateCookie holds per-flow UI state persisted across redirects in an
-// encrypted browser cookie. Every field belongs to the login challenge of
-// LoginChallengeHash: bind the cookie to another challenge only through
-// RenewForChallenge.
+// encrypted browser cookie.
 type FlowStateCookie struct {
 	LoginChallengeHash string `json:"lc,omitempty"`
 	TotpSetup          bool   `json:"t,omitempty"`
 	WebauthnSetup      bool   `json:"w,omitempty"`
 	BackupCodeUsed     bool   `json:"bc,omitempty"`
 	TenantID           string `json:"tid,omitempty"`
-	// LoginStartedAt is when Kratos issued the first login flow submitted
-	// for the challenge. The hash only says which login the cookie is for,
-	// not that anyone signed in for it: it is set before any credential is
-	// given.
+	// LoginStartedAt is the issue time of the first Kratos login flow
+	// submitted for the challenge.
 	LoginStartedAt time.Time `json:"ls,omitzero"`
 }
 
@@ -75,10 +71,8 @@ func (c FlowStateCookie) RenewForChallenge(loginChallenge string) FlowStateCooki
 	return next
 }
 
-// StartLogin renews the cookie for loginChallenge and records when its login
-// started, from the issue time of a Kratos login flow submitted for it. The
-// first start recorded for a challenge is kept, so that a later flow of the
-// same login cannot move it past a sign-in already made for it.
+// StartLogin renews the cookie for loginChallenge and records flowIssuedAt as
+// the start of its login. The first start recorded for a challenge is kept.
 func (c FlowStateCookie) StartLogin(loginChallenge string, flowIssuedAt time.Time) FlowStateCookie {
 	next := c.RenewForChallenge(loginChallenge)
 	if next.LoginStartedAt.IsZero() {
@@ -87,12 +81,8 @@ func (c FlowStateCookie) StartLogin(loginChallenge string, flowIssuedAt time.Tim
 	return next
 }
 
-// SignedInFor reports whether a session that authenticated at authenticatedAt
-// counts as signed in for loginChallenge: it authenticated after the first
-// login flow submitted for that challenge was issued. That does not prove the
-// sign-in went through that flow: one made elsewhere in the same browser
-// after the start counts too. Both times are stamped by Kratos, never by this
-// service or the browser.
+// SignedInFor reports whether a session authenticated after the login for
+// loginChallenge started. Both times come from Kratos.
 func (c FlowStateCookie) SignedInFor(loginChallenge string, authenticatedAt *time.Time) bool {
 	return authenticatedAt != nil &&
 		!c.LoginStartedAt.IsZero() &&

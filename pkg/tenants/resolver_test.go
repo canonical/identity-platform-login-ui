@@ -23,8 +23,7 @@ func sessionWithEmail(email string) *kClient.Session {
 	return s
 }
 
-// signedIn returns the state cookie and the session of a user who signed in
-// for challenge: the session authenticated after the login for it started.
+// signedIn returns a state cookie and a session that signed in for challenge.
 func signedIn(challenge string) (cookies.FlowStateCookie, *kClient.Session) {
 	started := time.Date(2026, 10, 7, 12, 0, 0, 0, time.UTC)
 	authenticated := started.Add(time.Second)
@@ -163,9 +162,7 @@ func TestCookieTenantResolverStoreTenant(t *testing.T) {
 
 	challenge := "store-challenge"
 	tenantID := "tenant-42"
-	// the cookie is renewed: the start of this challenge's login is kept
-	// (a user who selects a tenant after signing in stays signed in for
-	// it), a setup flag is not
+	// the start of this challenge's login is kept, a setup flag is not
 	existingCookie, _ := signedIn(challenge)
 	existingCookie.TotpSetup = true
 	w := httptest.NewRecorder()
@@ -680,17 +677,13 @@ func TestInterceptLoginAcceptsWhenTenantAlreadySelected(t *testing.T) {
 	}
 }
 
-// The cookie is bound to a challenge as soon as an email is entered or a
-// tenant is selected for it, so a session that was already there is not one
-// that signed in for it: Hydra decides (DeferMFAChecks). The tenant selected
-// for the challenge is kept, so the user is not sent to select again; a setup
-// flag is not, it is not about this session.
 func TestInterceptLoginDefersForSessionThatDidNotSignInForChallenge(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	challenge := "ch-1"
 	_, session := signedIn(challenge)
+	// bound to the challenge, but no login was started for it
 	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge), TenantID: "t1", TotpSetup: true}
 	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1"}, {ID: "t2"}}}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
