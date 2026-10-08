@@ -48,15 +48,9 @@ const (
 	RegistrationRejectedLast  = 4299999
 )
 
-// alreadyLoggedInReason is how the reason of Kratos's login.ErrAlreadyLoggedIn
-// starts; registration and recovery have errors of their own with another
-// wording. Kratos refuses a submission to a login flow that the session
-// already satisfies with that error
-// (https://github.com/ory/kratos/blob/v25.4.0/selfservice/flow/login/handler.go#L840-L858),
-// and answers with the flow, the reason in a ValidationGeneric message
-// (https://github.com/ory/kratos/blob/v25.4.0/ui/container/container.go#L168-L171),
-// not with the session_already_available error it answers when such a flow is
-// created.
+// alreadyLoggedInReason is how Kratos's refusal of a login flow that the
+// session already satisfies starts, in a ValidationGeneric message. See
+// https://github.com/ory/kratos/blob/v25.4.0/selfservice/flow/login/handler.go#L840-L858
 const alreadyLoggedInReason = "A valid session was detected and thus login is not possible"
 
 // uiErrorText maps a Kratos UI message ID to the text returned to the user.
