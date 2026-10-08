@@ -317,8 +317,6 @@ func TestNeedsTenantSelectionAlreadySelected(t *testing.T) {
 	}
 }
 
-// A tenant recorded for another email, or sent by the client, is not this
-// user's choice.
 func TestNeedsTenantSelectionDropsTenantOfAnotherUser(t *testing.T) {
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{

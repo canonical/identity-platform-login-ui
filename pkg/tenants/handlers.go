@@ -112,10 +112,10 @@ func (a *API) handleTenantSelection(w http.ResponseWriter, r *http.Request) {
 	// Determine the tenant ID to persist. An empty submission is allowed only
 	// when server-side verification confirms the user has no tenants.
 	// A non-empty tenant_id is stored without membership validation here.
-	// It is sent to Kratos with the credentials, for the Tenant Service's
-	// login hook, and before the Hydra login is accepted CookieTenantResolver
-	// keeps it only if it is one of the user's several tenants. The Tenant
-	// Service's Hydra token hook checks membership again.
+	// Defense-in-depth is provided by two server-side gates in the Tenant
+	// Service: the Kratos login hook and the Hydra token hook both call
+	// GetActiveMemberByTenantAndUserID and reject non-members with 403,
+	// preventing any forged tenant_id from reaching the final OAuth2 tokens.
 	tenantToStore := body.TenantID
 	if tenantToStore == "" {
 		tenants, err := a.lookupTenants(r.Context(), body.Flow, r.Cookies())

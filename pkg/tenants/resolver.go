@@ -158,13 +158,9 @@ func (c *CookieTenantResolver) needsTenantSelectionByIdentityID(ctx context.Cont
 	return needsSelection, cookie, nil
 }
 
-// resolve sets the tenant of a login from the tenants of its user, and
-// reports whether the user must still select one. The tenant recorded in the
-// cookie only chooses among several of them: the cookie is bound to a login
-// challenge, not to a user, so the record can be the one of another email
-// entered for the same challenge, or an id the client sent as its selection.
-// For the same reason a user who signs in with another account than the email
-// entered, and has the recorded tenant among several, is not asked.
+// resolve sets the tenant of a login from its user's tenants and reports
+// whether the user must still select one. The tenant recorded in the cookie
+// is kept only when it is one of several.
 func (c *CookieTenantResolver) resolve(tenants []*Tenant, cookie cookies.FlowStateCookie, loginChallenge string) (bool, cookies.FlowStateCookie) {
 	switch len(tenants) {
 	case 0:

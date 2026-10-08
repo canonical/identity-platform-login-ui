@@ -7,7 +7,7 @@
 
 - [x] 2.1 In `pkg/kratos/handlers.go` `checkTenantSelectionByEmail`, start from `cookies.FlowStateCookie{LoginChallengeHash: …}` and drop the read of the state cookie.
 - [x] 2.2 In `handleUpdateFlow`, write `updatedCookie` when the user is sent to the tenant selection.
-- [x] 2.3 `pkg/kratos/handlers_test.go`: `TestHandleUpdateFlowPersistsResolvedCookieForTenantSelection`; it fails with 2.2 reverted. Update the comments in `pkg/tenants/handlers.go` and `pkg/kratos/interfaces.go`. Completion: `go vet ./pkg/... ./internal/...` and `go test ./pkg/... ./internal/...`.
+- [x] 2.3 `pkg/kratos/handlers_test.go`: `TestHandleUpdateFlowPersistsResolvedCookieForTenantSelection`; it fails with 2.2 reverted. Completion: `go vet ./pkg/... ./internal/...` and `go test ./pkg/... ./internal/...`.
 
 ## 3. Verification in a browser
 

@@ -1653,7 +1653,6 @@ func TestHandleUpdateIdentifierFirstFlowRedirectsToTenantSelection(t *testing.T)
 	mockTenantMgr.EXPECT().Enabled().Return(true)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
 
-	// an email submission starts from a new cookie, whatever the request carried
 	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
 	mockTenantMgr.EXPECT().NeedsTenantSelectionByEmail(gomock.Any(), "user@example.com", flowCookie, loginChallenge).
 		Return(true, flowCookie, nil)
@@ -1733,7 +1732,6 @@ func TestHandleUpdateIdentifierFirstFlowProceedsWhenNoTenants(t *testing.T) {
 	mockTenantMgr.EXPECT().Enabled().Return(true)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
 
-	// an email submission starts from a new cookie, whatever the request carried
 	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
 	mockTenantMgr.EXPECT().NeedsTenantSelectionByEmail(gomock.Any(), "user@example.com", flowCookie, loginChallenge).
 		Return(false, sentinelCookie, nil)
@@ -1765,6 +1763,9 @@ func TestHandleUpdateIdentifierFirstFlowProceedsWhenNoTenants(t *testing.T) {
 	}
 }
 
+// TestHandleUpdateIdentifierFirstFlowSkipsTenantForNonHydraFlow verifies that
+// when the flow is not Hydra-initiated (no oauth2_login_challenge), tenant
+// selection is skipped even when multi-tenancy is enabled.
 func TestHandleUpdateIdentifierFirstFlowSkipsTenantForNonHydraFlow(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1883,9 +1884,6 @@ func TestHandleUpdateFlow(t *testing.T) {
 	}
 }
 
-// After the credentials, a tenant recorded in the cookie that is not one of
-// the user's is dropped by the resolver: the cookie persisted for the tenant
-// selection is the resolver's, not the request's.
 func TestHandleUpdateFlowPersistsResolvedCookieForTenantSelection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

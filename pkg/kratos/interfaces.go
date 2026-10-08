@@ -50,11 +50,9 @@ type TenantResolverInterface interface {
 	// tenant selection is disabled this always returns true (no gate).
 	IsAuthenticatedForChallenge(cookie cookies.FlowStateCookie, loginChallenge string) bool
 	// NeedsTenantSelection checks whether the user needs to pick a tenant.
-	// Returns needsSelection=true when the user has several tenants and none
-	// of them is selected: a tenant recorded in the cookie that is not theirs
-	// is dropped from the returned cookie, which the caller must persist.
-	// When the user has no tenants, the sentinel is stored in the returned
-	// cookie. When disabled this always returns false.
+	// Returns needsSelection=true when the user has tenants but none is
+	// selected yet. When the user has no tenants, the sentinel is stored in
+	// the returned cookie. When disabled this always returns false.
 	NeedsTenantSelection(ctx context.Context, session *kClient.Session, cookie cookies.FlowStateCookie, loginChallenge string) (needsSelection bool, updatedCookie cookies.FlowStateCookie, err error)
 	// NeedsTenantSelectionByEmail is like NeedsTenantSelection but works with
 	// an email address instead of a session. Used after the identifier-first

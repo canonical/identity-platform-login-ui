@@ -902,13 +902,12 @@ func (a *API) tenantSelectionRedirect(w http.ResponseWriter, r *http.Request, lo
 	})
 }
 
-// checkTenantSelectionByEmail checks whether the user needs to select a
-// tenant (pre-1FA, by email), persists the state cookie, and redirects if
-// selection is required. Returns a non-nil error when the caller should stop
-// processing (the response has already been written).
+// checkTenantSelectionByEmail checks whether the user
+// needs to select a tenant (pre-1FA, by email), persists the updated cookie,
+// and redirects if selection is required. Returns a non-nil error when the
+// caller should stop processing (the response has already been written).
 func (a *API) checkTenantSelectionByEmail(w http.ResponseWriter, r *http.Request, email, loginChallenge, flowId string) error {
-	// An email submission starts from a new cookie: the tenant recorded for
-	// this challenge may be the choice made for another email.
+	// A new cookie: the tenant recorded so far may be another email's.
 	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
 	needsSelection, updatedCookie, err := a.tenantMgr.NeedsTenantSelectionByEmail(
 		r.Context(), email, flowCookie, loginChallenge,
