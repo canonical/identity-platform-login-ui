@@ -38,12 +38,14 @@ const BROWSER_LOCATION_CHANGE_REQUIRED = "browser_location_change_required"
 type API struct {
 	verificationEnabled           bool
 	mfaEnabled                    bool
+	regenerateBackupCodes         bool
 	oidcWebAuthnSequencingEnabled bool
 	service                       ServiceInterface
 	baseURL                       string
 	contextPath                   string
 	cookieManager                 AuthCookieManagerInterface
 	tenantMgr                     TenantResolverInterface
+	ext                           ExtensionInterface
 
 	tracer tracing.TracingInterface
 	logger logging.LoggerInterface
@@ -78,11 +80,9 @@ func (a *API) RegisterEndpoints(mux *chi.Mux) {
 // TODO: Validate response when server error handling is implemented
 func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	var (
-		response              any
-		shouldEnforceMfa      = false
-		shouldEnforceWebAuthn = false
-		httpCookies           []*http.Cookie
-		err                   error
+		response    any
+		httpCookies []*http.Cookie
+		err         error
 	)
 
 	q := r.URL.Query()
@@ -122,6 +122,13 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 	// TODO: We need to send a different content-type to CreateBrowserLoginFlow in order to avoid this bug.
 	session, _, _ := a.service.CheckSession(r.Context(), r.Cookies())
 
+	if session != nil && loginChallenge != "" && a.ext.HandlesSessionLogin() {
+		if !a.enforceSessionChecks(w, r, session, returnTo, c.RenewForChallenge(loginChallenge), false) {
+			a.ext.HandleSessionLogin(w, r, session, loginChallenge)
+		}
+		return
+	}
+
 	// Ask the tenant resolver plugin whether the login flow needs special
 	// handling (MFA deferral, tenant selection, or immediate accept).
 	// When multi-tenancy is disabled the plugin returns zero-value fields,
@@ -139,39 +146,8 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			flowCookie = c.RenewForChallenge(loginChallenge)
 		}
 
-		shouldEnforceVerification, unverifiedEmail, err := a.shouldEnforceVerificationWithSession(r.Context(), session)
-		if err != nil {
-			a.logger.Errorf("failed check for verification status: %v", err)
-			http.Error(w, "failed to check verification status", http.StatusInternalServerError)
+		if a.enforceSessionChecks(w, r, session, returnTo, flowCookie, intercept.DeferMFAChecks) {
 			return
-		}
-		if shouldEnforceVerification {
-			a.verificationRedirect(w, r, returnTo, flowCookie, unverifiedEmail)
-			return
-		}
-
-		if !intercept.DeferMFAChecks {
-			shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
-			if err != nil {
-				a.logger.Errorf("failed to check MFA status: %v", err)
-				http.Error(w, "failed to check MFA status", http.StatusInternalServerError)
-				return
-			}
-			if shouldEnforceMfa {
-				a.mfaSettingsRedirect(w, r, returnTo, flowCookie)
-				return
-			}
-
-			shouldEnforceWebAuthn, err = a.shouldEnforceWebAuthnWithSession(r.Context(), session)
-			if err != nil {
-				a.logger.Errorf("failed to check WebAuthn status: %v", err)
-				http.Error(w, "failed to check WebAuthn status", http.StatusInternalServerError)
-				return
-			}
-			if shouldEnforceWebAuthn {
-				a.webAuthnSettingsRedirect(w, r, returnTo, flowCookie)
-				return
-			}
 		}
 	}
 
@@ -217,6 +193,9 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if errors.Is(err, errResponseWritten) {
+		return
+	}
 	if err != nil {
 		// Propagate the KratosErrorResponse so frontend can handle it
 		if kratosError, ok := parseGenericError(err); ok {
@@ -244,10 +223,64 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, u, http.StatusSeeOther)
 			return
 		}
+		// The frontend renders this flow as created, so the extension amends
+		// it here as it does a fetched one. A flow with a login challenge is
+		// amended once the address is entered.
+		if res.GetOauth2LoginChallenge() == "" {
+			flow, ok := a.ext.HydrateLoginFlow(w, r, res)
+			if !ok {
+				return
+			}
+			response = flow
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+// enforceSessionChecks redirects a session that has to verify its email, set
+// up MFA or register a WebAuthn key before the login can go on. It reports
+// whether the response has been written.
+func (a *API) enforceSessionChecks(w http.ResponseWriter, r *http.Request, session *client.Session, returnTo string, flowCookie cookies.FlowStateCookie, deferMFAChecks bool) bool {
+	shouldEnforceVerification, unverifiedEmail, err := a.shouldEnforceVerificationWithSession(r.Context(), session)
+	if err != nil {
+		a.logger.Errorf("failed check for verification status: %v", err)
+		http.Error(w, "failed to check verification status", http.StatusInternalServerError)
+		return true
+	}
+	if shouldEnforceVerification {
+		a.verificationRedirect(w, r, returnTo, flowCookie, unverifiedEmail)
+		return true
+	}
+
+	if deferMFAChecks {
+		return false
+	}
+
+	shouldEnforceMfa, err := a.shouldEnforceMFAWithSession(r.Context(), session)
+	if err != nil {
+		a.logger.Errorf("failed to check MFA status: %v", err)
+		http.Error(w, "failed to check MFA status", http.StatusInternalServerError)
+		return true
+	}
+	if shouldEnforceMfa {
+		a.mfaSettingsRedirect(w, r, returnTo, flowCookie)
+		return true
+	}
+
+	shouldEnforceWebAuthn, err := a.shouldEnforceWebAuthnWithSession(r.Context(), session)
+	if err != nil {
+		a.logger.Errorf("failed to check WebAuthn status: %v", err)
+		http.Error(w, "failed to check WebAuthn status", http.StatusInternalServerError)
+		return true
+	}
+	if shouldEnforceWebAuthn {
+		a.webAuthnSettingsRedirect(w, r, returnTo, flowCookie)
+		return true
+	}
+
+	return false
 }
 
 func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginChallenge string, refresh bool, session *client.Session) (*client.LoginFlow, []*http.Cookie, error) {
@@ -285,6 +318,10 @@ func (a *API) handleCreateFlowNewSession(r *http.Request, aal, returnTo, loginCh
 
 func (a *API) handleCreateFlowWithSession(w http.ResponseWriter, r *http.Request, session *client.Session, loginChallenge string, stateCookie cookies.FlowStateCookie) (*BrowserLocationChangeRequired, []*http.Cookie, error) {
 	tenantID := a.tenantMgr.TenantID(stateCookie, loginChallenge)
+
+	if a.ext.BeforeAcceptLogin(w, r, session, loginChallenge, stateCookie) {
+		return nil, nil, errResponseWritten
+	}
 
 	response, cookies, err := a.service.AcceptLoginRequest(r.Context(), session, loginChallenge, tenantID)
 	if err != nil {
@@ -429,6 +466,11 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	flow, ok := a.ext.HydrateLoginFlow(w, r, flow)
+	if !ok {
+		return
+	}
+
 	setCookies(w, flowCookies)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(flow)
@@ -504,6 +546,10 @@ func (a *API) handleUpdateRegistrationFlow(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if a.ext.InterceptRegistrationSubmission(w, r, flowId) {
+		return
+	}
+
 	body, err := a.service.ParseRegistrationFlowMethodBody(r)
 	if err != nil {
 		a.logger.Errorf("Error when parsing request body: %v\n", err)
@@ -555,6 +601,10 @@ func (a *API) handleUpdateIdentifierFirstFlow(w http.ResponseWriter, r *http.Req
 			return
 		}
 
+		if a.ext.BeforeTenantSelection(w, r, loginFlow, body.Identifier) {
+			return
+		}
+
 		lc := loginFlow.GetOauth2LoginChallenge()
 		if lc != "" {
 			if err := a.checkTenantSelectionByEmail(w, r, body.Identifier, lc, flowId); err != nil {
@@ -586,6 +636,11 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		a.logger.Errorf("Error when getting login flow: %v\n", err)
 		http.Error(w, "Failed to get login flow", http.StatusInternalServerError)
+		return
+	}
+
+	r, answered := a.ext.InterceptLoginSubmission(w, r, loginFlow)
+	if answered {
 		return
 	}
 
@@ -714,7 +769,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 			tenantSession = &flow.Session
 		}
 
-		if tenantSession != nil && a.tenantMgr.Enabled() {
+		if tenantSession != nil && a.tenantMgr.Enabled() && !a.ext.HandlesSessionLogin() {
 			needsSelection, updatedCookie, err := a.tenantMgr.NeedsTenantSelection(r.Context(), tenantSession, flowCookie, lc)
 			if err != nil {
 				a.logger.Errorf("failed to check tenant selection: %v", err)
@@ -746,6 +801,9 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		// to let the redirect block below follow Kratos's instruction.
 		if redirectTo == nil || (tenantSession != nil && a.tenantMgr.Enabled()) {
 			response, acceptCookies, err := a.handleCreateFlowWithSession(w, r, tenantSession, lc, flowCookie)
+			if errors.Is(err, errResponseWritten) {
+				return
+			}
 			if err != nil {
 				a.logger.Errorf("failed to accept login request: %v", err)
 				http.Error(w, "failed to accept login request", http.StatusInternalServerError)
@@ -972,6 +1030,12 @@ func (a *API) verificationRedirect(w http.ResponseWriter, r *http.Request, retur
 }
 
 func (a *API) redirectResponse(w http.ResponseWriter, r *http.Request, resp RedirectToInterface) {
+	RedirectResponse(w, r, resp)
+}
+
+// RedirectResponse tells the browser where to go next: a form submission is
+// redirected, any other request gets the location as JSON.
+func RedirectResponse(w http.ResponseWriter, r *http.Request, resp RedirectToInterface) {
 	code := http.StatusOK
 	// We differentiate between simple redirects and redirects because of an error to make it easier
 	// for the frontend
@@ -1000,7 +1064,7 @@ func (a *API) shouldRegenerateBackupCodesWithSession(ctx context.Context, sessio
 	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldRegenerateBackupCodesWithSession")
 	defer span.End()
 
-	if !a.mfaEnabled || session == nil {
+	if !a.regenerateBackupCodes || session == nil {
 		return false, nil
 	}
 
@@ -1335,6 +1399,8 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	flow = a.ext.HydrateSettingsFlow(r.Context(), flow, r.Cookies())
+
 	resp, err := flow.MarshalJSON()
 	if err != nil {
 		a.logger.Errorf("Error when marshalling json: %v\n", err)
@@ -1348,6 +1414,10 @@ func (a *API) handleGetSettingsFlow(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	flowId := q.Get("flow")
+
+	if a.ext.InterceptSettingsSubmission(w, r, flowId) {
+		return
+	}
 
 	body, err := a.service.ParseSettingsFlowMethodBody(r)
 	if err != nil {
@@ -1421,7 +1491,7 @@ func (a *API) handleUpdateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := json.Marshal(flow)
+	resp, err := json.Marshal(a.ext.HydrateSettingsFlow(r.Context(), flow, r.Cookies()))
 	if err != nil {
 		a.logger.Errorf("Error when marshalling json: %v\n", err)
 		http.Error(w, "Failed to parse settings flow", http.StatusInternalServerError)
@@ -1473,6 +1543,8 @@ func (a *API) handleCreateSettingsFlow(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	flow = a.ext.HydrateSettingsFlow(r.Context(), flow, r.Cookies())
 
 	resp, err := flow.MarshalJSON()
 	if err != nil {
@@ -1589,11 +1661,14 @@ func NewAPI(
 	baseURL string,
 	cookieManager AuthCookieManagerInterface,
 	tracer tracing.TracingInterface,
-	logger logging.LoggerInterface) *API {
+	logger logging.LoggerInterface,
+	opts ...Option) *API {
 	a := new(API)
+	a.ext = NewNoOpExtension()
 
 	a.verificationEnabled = verificationEnabled
 	a.mfaEnabled = mfaEnabled
+	a.regenerateBackupCodes = mfaEnabled
 	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
 	a.tenantMgr = tenantMgr
 	a.service = service
@@ -1610,6 +1685,10 @@ func NewAPI(
 
 	a.tracer = tracer
 	a.logger = logger
+
+	for _, opt := range opts {
+		opt(a)
+	}
 
 	return a
 }

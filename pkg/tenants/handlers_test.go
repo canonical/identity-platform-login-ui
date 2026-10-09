@@ -221,3 +221,75 @@ func TestHandleTenantSelectionEmptyRejectedWhenTenantsExist(t *testing.T) {
 		t.Fatalf("expected 400, got %d", rec.Code)
 	}
 }
+
+func TestHandleLookupTenantsBySessionEmail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockSessionChecker := NewMockSessionCheckerInterface(ctrl)
+
+	session := &kClient.Session{
+		Identity: &kClient.Identity{
+			Id:     "identity-123",
+			Traits: map[string]interface{}{"email": "user@example.com"},
+		},
+	}
+	expected := []*Tenant{{ID: "t1", Name: "Acme", Enabled: true, Invited: true}}
+
+	mockSessionChecker.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
+	mockService.EXPECT().LookupTenantsByEmail(gomock.Any(), "user@example.com").Return(expected, nil)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, nil, mockSessionChecker, "", mockTracer, mockLogger, WithSessionLookupByEmail()).RegisterEndpoints(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/tenants", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var body struct {
+		Tenants []*Tenant `json:"tenants"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("unexpected decode error: %v", err)
+	}
+	if len(body.Tenants) != 1 {
+		t.Fatalf("expected 1 tenant, got %d", len(body.Tenants))
+	}
+	if !body.Tenants[0].Invited {
+		t.Fatalf("expected tenant %q to be invited", body.Tenants[0].ID)
+	}
+}
+
+func TestHandleLookupTenantsBySessionEmailWithoutEmail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockSessionChecker := NewMockSessionCheckerInterface(ctrl)
+
+	identityID := "identity-123"
+	session := &kClient.Session{Identity: &kClient.Identity{Id: identityID}}
+
+	mockSessionChecker.EXPECT().CheckSession(gomock.Any(), gomock.Any()).Return(session, nil, nil)
+	mockService.EXPECT().LookupTenantsByIdentityID(gomock.Any(), identityID).Return([]*Tenant{{ID: "t1"}}, nil)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, nil, mockSessionChecker, "", mockTracer, mockLogger, WithSessionLookupByEmail()).RegisterEndpoints(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v0/tenants", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+}

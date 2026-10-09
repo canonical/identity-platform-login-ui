@@ -1,4 +1,4 @@
-import { UiNode, UiNodeMeta, UiText } from "@ory/client";
+import { UiNode, UiNodeInputAttributes, UiNodeMeta, UiText } from "@ory/client";
 
 // see https://www.ory.sh/docs/kratos/concepts/ui-messages
 const ORY_LABEL_SECURITY_KEY_ADD = 1050012;
@@ -118,6 +118,34 @@ const ORY_ERR_ANSWERED_BY_BACKEND = new Set([
 
 export const isErrorAnsweredByBackend = (message: UiText): boolean =>
   ORY_ERR_ANSWERED_BY_BACKEND.has(message.id);
+
+// Node groups and fields the backend adds to a flow for the tenant list and
+// the company sign-ins. They are not part of the Kratos client types.
+const TENANT_NODE_GROUP = "tenant";
+const SSO_NODE_GROUP = "sso";
+const TENANT_FIELD = "sso_tenant";
+const SSO_LINK_NODE_PREFIX = "sso_link_";
+export const SSO_UNLINK_FIELD = "sso_unlink";
+export const SSO_UNLINK_LABEL_PREFIX = "Unlink ";
+export const TENANT_INVITATION_LABEL = " — invitation";
+
+export const isTenantNode = (node: UiNode): boolean =>
+  (node.group as string) === TENANT_NODE_GROUP;
+
+export const isSsoNode = (node: UiNode): boolean =>
+  (node.group as string) === SSO_NODE_GROUP;
+
+export const isTenantChoice = (node: UiNode): boolean =>
+  isTenantNode(node) &&
+  (node.attributes as UiNodeInputAttributes).name === TENANT_FIELD;
+
+export const isSsoUnlinkBtn = (node: UiNode): boolean =>
+  isSsoNode(node) &&
+  node.type === "input" &&
+  (node.attributes as UiNodeInputAttributes).name === SSO_UNLINK_FIELD;
+
+export const getSsoLinkNodeId = (connectionId: string): string =>
+  `${SSO_LINK_NODE_PREFIX}${connectionId}`;
 
 export function isUiNodeBackButton(meta: UiNodeMeta) {
   return meta.label?.type === "info" && meta.label?.text === "Back";

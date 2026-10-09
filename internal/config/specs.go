@@ -30,6 +30,16 @@ type EnvSpec struct {
 	TenantServiceGRPCTimeout time.Duration `envconfig:"tenant_service_grpc_timeout" default:"5s"`
 	TenantServiceTLSEnabled  bool          `envconfig:"tenant_service_tls_enabled" default:"false"`
 
+	BYOSSOEnabled                 bool          `envconfig:"byosso_enabled" default:"false"`
+	SSOServiceGRPCAddress         string        `envconfig:"sso_service_grpc_address"`
+	SSOServiceGRPCTimeout         time.Duration `envconfig:"sso_service_grpc_timeout" default:"3s"`
+	SSOServiceTLSEnabled          bool          `envconfig:"sso_service_tls_enabled" default:"false"`
+	ServiceTokenURL               string        `envconfig:"service_token_url"`
+	ServiceClientID               string        `envconfig:"service_client_id"`
+	ServiceClientSecret           string        `envconfig:"service_client_secret"`
+	ServiceTokenScopes            []string      `envconfig:"service_token_scopes"`
+	KratosPrivilegedSessionMaxAge time.Duration `envconfig:"kratos_privileged_session_max_age" default:"1h"`
+
 	ApiScheme            string `envconfig:"openfga_api_scheme" default:""`
 	ApiHost              string `envconfig:"openfga_api_host"`
 	ApiToken             string `envconfig:"openfga_api_token"`

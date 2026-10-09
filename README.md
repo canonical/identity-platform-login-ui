@@ -62,9 +62,34 @@ At the moment the application is sourcing the following from the environment:
 - `OPENFGA_STORE_ID` - the OpenFGA store ID to use
 - `OPENFGA_MODEL_ID` - the OpenFGA model ID to use. If not specified, a new
   model will be created
-- `MFA_ENABLED` - whether MFA is enabled and enforced, defaults to true
+- `MFA_ENABLED` - whether MFA is enabled and enforced, defaults to true. It
+  has no effect while `BYOSSO_ENABLED` is true: the MFA policy of each tenant
+  decides instead
 - `IDENTIFIER_FIRST_ENABLED` - whether login flow follows the identifier-first pattern, defaults to true
 - `FEATURE_FLAGS` - comma separated list (no spaces) of feature flags allowing to activate "self service" pages (values allowed: password,webauthn,backup_codes,totp,account_linking)
+- `BYOSSO_ENABLED` - whether tenants can offer or require sign-in through
+  their own identity provider ("bring your own SSO"), defaults to false. It
+  needs multi-tenancy (`MULTI_TENANCY_ENABLED=true`, with the gRPC address of
+  the tenant service in `TENANT_SERVICE_GRPC_ADDRESS`), cannot be combined
+  with asking a security key of every sign-in through an external provider
+  (`OIDC_WEBAUTHN_SEQUENCING_ENABLED=true`), and needs Kratos to run with
+  `session.whoami.required_aal: aal1`
+- `SSO_SERVICE_GRPC_ADDRESS` - gRPC address of the SSO service, needed when
+  `BYOSSO_ENABLED` is true
+- `SSO_SERVICE_GRPC_TIMEOUT` - deadline of one call to the SSO service,
+  defaults to `3s`
+- `SSO_SERVICE_TLS_ENABLED` - whether the connection to the SSO service uses
+  TLS, defaults to false
+- `SERVICE_TOKEN_URL` - OAuth2 token endpoint for the token the calls to the
+  tenant service and the SSO service carry, needed when `BYOSSO_ENABLED` is
+  true
+- `SERVICE_CLIENT_ID`, `SERVICE_CLIENT_SECRET` - client credentials for that
+  token, needed when `BYOSSO_ENABLED` is true
+- `SERVICE_TOKEN_SCOPES` - comma separated list (no spaces) of scopes asked
+  for that token
+- `KRATOS_PRIVILEGED_SESSION_MAX_AGE` - the age up to which a session may
+  remove a company sign-in, defaults to `1h`. It has to equal Kratos's
+  `selfservice.flows.settings.privileged_session_max_age`
 
 ### Container
 

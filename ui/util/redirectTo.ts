@@ -1,4 +1,5 @@
 import { NextRouter } from "next/router";
+import { useCallback, useEffect, useState } from "react";
 
 export function redirectTo(
   url: string,
@@ -31,3 +32,42 @@ export function redirectTo(
     hash: newUrl.hash,
   });
 }
+
+// A redirect the backend answers with. redirect_label is set when the
+// destination is a company sign-in.
+type LabelledRedirect = {
+  redirect_to?: string;
+  redirect_label?: string;
+};
+
+export const getRedirectLabel = (data: unknown): string | undefined => {
+  const label = (data as LabelledRedirect | undefined)?.redirect_label;
+  return typeof label === "string" && label !== "" ? label : undefined;
+};
+
+// useLabelledRedirect returns the label of the company sign-in being
+// redirected to (render "Redirecting to <label>…" while it is set) and the
+// function that follows a redirect. Without a label the browser leaves at
+// once; with one, it leaves only after the step has been rendered.
+export const useLabelledRedirect = (): [
+  string | undefined,
+  (url: string, label?: string) => void,
+] => {
+  const [pending, setPending] = useState<{ url: string; label: string }>();
+
+  useEffect(() => {
+    if (pending) {
+      window.location.href = pending.url;
+    }
+  }, [pending]);
+
+  const redirect = useCallback((url: string, label?: string) => {
+    if (!label) {
+      window.location.href = url;
+      return;
+    }
+    setPending({ url, label });
+  }, []);
+
+  return [pending?.label, redirect];
+};
