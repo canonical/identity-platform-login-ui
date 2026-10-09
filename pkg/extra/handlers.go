@@ -25,6 +25,7 @@ type API struct {
 	oidcWebAuthnSequencingEnabled bool
 	mfaEnabled                    bool
 	contextPath                   string
+	ext                           ExtensionInterface
 	tracer                        tracing.TracingInterface
 	logger                        logging.LoggerInterface
 }
@@ -66,6 +67,18 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 		a.logger.Errorf("error when calling hydra: %s", err)
 		// TODO @shipperizer evaluate return status
 		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	rejectTo, err := a.ext.GateConsent(r.Context(), session, consent)
+	if err != nil {
+		a.logger.Errorf("failed to gate consent: %s", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	if rejectTo != "" {
+		rr, _ := hClient.NewOAuth2RedirectTo(rejectTo).MarshalJSON()
+		w.Write(rr)
 		return
 	}
 
@@ -127,8 +140,12 @@ func (a *API) sessionRequiredAAL(session *kClient.Session) kClient.Authenticator
 	return ret
 }
 
-func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL string, mfaEnabled, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, logger logging.LoggerInterface) *API {
+func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL string, mfaEnabled, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, logger logging.LoggerInterface, opts ...Option) *API {
 	a := new(API)
+	a.ext = NewNoOpExtension()
+	for _, opt := range opts {
+		opt(a)
+	}
 
 	a.service = service
 	a.kratos = kratos
