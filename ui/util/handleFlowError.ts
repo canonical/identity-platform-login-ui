@@ -14,6 +14,23 @@ const getRedirectToFromError = (err: KratosErrorResponse) =>
     ? err.redirect_browser_to
     : err.redirect_to);
 
+// Kratos names no page to come back to when it asks for the second factor on
+// a flow that was created without one. The login endpoint needs one: come
+// back to this page.
+const getSecondFactorRedirect = (err: KratosErrorResponse) => {
+  const target = new URL(
+    err.redirect_browser_to ? err.redirect_browser_to : err.redirect_to,
+    window.location.href,
+  );
+  if (
+    !target.searchParams.has("return_to") &&
+    !target.searchParams.has("login_challenge")
+  ) {
+    target.searchParams.set("return_to", window.location.href);
+  }
+  return target.toString();
+};
+
 export function capitalize(str?: string) {
   if (!str) return str;
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -60,7 +77,7 @@ export const handleFlowError =
       case "session_aal2_required":
         resetFlow(undefined);
         // 2FA is enabled and enforced, but user did not perform 2fa yet!
-        window.location.href = getRedirectToFromError(err.response.data);
+        window.location.href = getSecondFactorRedirect(err.response.data);
         return;
       case "session_already_available":
         // User is already signed in, let's redirect them to settings
