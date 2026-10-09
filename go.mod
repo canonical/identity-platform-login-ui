@@ -11,6 +11,7 @@ require (
 	github.com/openfga/go-sdk v0.8.2
 	github.com/ory/hydra-client-go/v26 v26.2.0
 	github.com/ory/kratos-client-go/v25 v25.4.0
+	github.com/ory/kratos-client-go/v26 v26.2.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/cobra v1.10.2
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0
