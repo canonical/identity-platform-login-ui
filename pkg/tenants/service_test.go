@@ -374,3 +374,52 @@ func TestNewServiceNegativeTimeoutDefaulted(t *testing.T) {
 		t.Fatalf("expected timeout to be defaulted to a positive value, got %v", svc.timeout)
 	}
 }
+
+func TestLookupTenantsByEmailWithSignInTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// the sign-in tenants are listed in place of LookupTenants
+	mockGRPC := NewMockTenantServiceClientInterface(ctrl)
+	mockSignIn := NewMockTenantSignInServiceClientInterface(ctrl)
+	svc := NewService(mockGRPC, nil, testTimeout, &noopTracer{}, nil, nil, WithSignInTenants(mockSignIn))
+
+	mockSignIn.EXPECT().
+		ListSignInTenants(gomock.Any(), &tenant.ListSignInTenantsRequest{Email: "user@example.com"}).
+		Return(&tenant.ListSignInTenantsResponse{Tenants: []*tenant.SignInTenant{
+			{Tenant: protoTenants("t1")[0]},
+			{Tenant: protoTenants("t2")[0], Invited: true},
+		}}, nil)
+
+	got, err := svc.LookupTenantsByEmail(context.Background(), "user@example.com")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 tenants, got %d", len(got))
+	}
+	if got[0].ID != "t1" || got[0].Invited {
+		t.Fatalf("expected tenant t1 not to be invited, got %+v", got[0])
+	}
+	if got[1].ID != "t2" || !got[1].Invited {
+		t.Fatalf("expected tenant t2 to be invited, got %+v", got[1])
+	}
+}
+
+func TestLookupTenantsByEmailWithSignInTenantsError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockSignIn := NewMockTenantSignInServiceClientInterface(ctrl)
+	svc := NewService(nil, nil, testTimeout, &noopTracer{}, nil, nil, WithSignInTenants(mockSignIn))
+
+	mockSignIn.EXPECT().ListSignInTenants(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("rpc error"))
+
+	got, err := svc.LookupTenantsByEmail(context.Background(), "user@example.com")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if got != nil {
+		t.Fatalf("expected nil tenants, got %v", got)
+	}
+}

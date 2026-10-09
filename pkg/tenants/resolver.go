@@ -107,6 +107,7 @@ func (c *CookieTenantResolver) StoreTenant(w http.ResponseWriter, r *http.Reques
 	}
 	next := stateCookie.RenewForChallenge(loginChallenge)
 	next.TenantID = tenantID
+	next.TenantChoice = stateCookie.TenantChoice
 	return c.cookieManager.SetStateCookie(w, next)
 }
 
