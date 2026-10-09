@@ -4,6 +4,7 @@ import { Dispatch, SetStateAction } from "react";
 export interface KratosErrorResponse {
   error?: {
     id: string;
+    message?: string;
   };
   redirect_browser_to: string;
   redirect_to: string;
@@ -30,6 +31,28 @@ const getSecondFactorRedirect = (err: KratosErrorResponse) => {
   }
   return target.toString();
 };
+
+// Errors the backend answers with instead of a flow, whose message the page
+// shows in place: single sign-on or the tenants cannot be reached, no company
+// sign-in applies to the address at a tenant that requires one, or the
+// account is not a member of the chosen tenant.
+const IN_PLACE_ERRORS = new Set([
+  "sso_unavailable",
+  "sso_not_applicable",
+  "tenant_not_a_member",
+]);
+
+export const getInPlaceErrorMessage = (data: unknown): string | undefined => {
+  const error = (data as KratosErrorResponse | undefined)?.error;
+  if (!error?.id || !IN_PLACE_ERRORS.has(error.id)) {
+    return undefined;
+  }
+  return capitalize(error.message);
+};
+
+// A Kratos error the backend passed on as JSON, in place of a flow.
+export const isKratosError = (data: unknown): data is KratosErrorResponse =>
+  typeof data === "object" && data !== null && "error" in data;
 
 export function capitalize(str?: string) {
   if (!str) return str;
