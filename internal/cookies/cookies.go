@@ -45,6 +45,9 @@ type FlowStateCookie struct {
 	WebauthnSetup      bool   `json:"w,omitempty"`
 	BackupCodeUsed     bool   `json:"bc,omitempty"`
 	TenantID           string `json:"tid,omitempty"`
+	// LoginStartedAt is the issue time of the first Kratos login flow
+	// submitted for the challenge.
+	LoginStartedAt time.Time `json:"ls,omitzero"`
 }
 
 // AuthCookieManager is the production implementation of AuthCookieManagerInterface.
@@ -55,16 +58,36 @@ type AuthCookieManager struct {
 }
 
 // RenewForChallenge returns a new FlowStateCookie with LoginChallengeHash set
-// for the given loginChallenge. TenantID is carried forward only when the
-// existing cookie was stored for the same challenge, preventing state
-// pollution across different flows.
+// for the given loginChallenge. TenantID and LoginStartedAt are carried
+// forward only when the existing cookie was stored for the same challenge,
+// preventing state pollution across different flows.
 func (c FlowStateCookie) RenewForChallenge(loginChallenge string) FlowStateCookie {
 	lcHash := ChallengeHash(loginChallenge)
 	next := FlowStateCookie{LoginChallengeHash: lcHash}
 	if c.LoginChallengeHash == lcHash {
 		next.TenantID = c.TenantID
+		next.LoginStartedAt = c.LoginStartedAt
 	}
 	return next
+}
+
+// StartLogin renews the cookie for loginChallenge and records flowIssuedAt as
+// the start of its login. The first start recorded for a challenge is kept.
+func (c FlowStateCookie) StartLogin(loginChallenge string, flowIssuedAt time.Time) FlowStateCookie {
+	next := c.RenewForChallenge(loginChallenge)
+	if next.LoginStartedAt.IsZero() {
+		next.LoginStartedAt = flowIssuedAt
+	}
+	return next
+}
+
+// SignedInFor reports whether a session authenticated after the login for
+// loginChallenge started. Both times come from Kratos.
+func (c FlowStateCookie) SignedInFor(loginChallenge string, authenticatedAt *time.Time) bool {
+	return authenticatedAt != nil &&
+		!c.LoginStartedAt.IsZero() &&
+		c.LoginChallengeHash == ChallengeHash(loginChallenge) &&
+		authenticatedAt.After(c.LoginStartedAt)
 }
 
 func (a *AuthCookieManager) SetStateCookie(w http.ResponseWriter, state FlowStateCookie) error {

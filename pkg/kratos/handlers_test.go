@@ -965,6 +965,50 @@ func TestHandleCreateFlowRedirectsToTenantSelectionWhenHasTenants(t *testing.T) 
 	}
 }
 
+func TestHandleCreateFlowForcesLoginForSessionThatDidNotSignInForChallenge(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	loginChallenge := "test-challenge"
+	session := kClient.NewSession("test")
+	flow := kClient.NewLoginFlowWithDefaults()
+	flow.Id = "new-flow"
+	// the resolver's cookie has no setup flag, unlike the request's
+	stateCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge), TenantID: "tenant-123", TotpSetup: true}
+	renewedCookie := stateCookie.RenewForChallenge(loginChallenge)
+
+	req := httptest.NewRequest(http.MethodGet, HANDLE_CREATE_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("login_challenge", loginChallenge)
+	req.URL.RawQuery = values.Encode()
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(stateCookie, nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockTenantMgr.EXPECT().InterceptLogin(gomock.Any(), session, stateCookie, loginChallenge).
+		Return(tenants.LoginInterception{DeferMFAChecks: true, AcceptLogin: true, Cookie: renewedCookie}, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, renewedCookie).Return(true, nil)
+	mockService.EXPECT().CreateBrowserLoginFlow(gomock.Any(), gomock.Any(), gomock.Any(), loginChallenge, gomock.Any(), gomock.Any()).Return(flow, req.Cookies(), nil)
+	mockService.EXPECT().FilterFlowProviderList(gomock.Any(), flow).Return(flow, nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	if res := w.Result(); res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code 200, got: %d", res.StatusCode)
+	}
+}
+
 // TestHandleCreateFlowSkipsTenantSelectionForNoTenantUser verifies that
 // when the user has no tenants, handleCreateFlow stores the NoTenantAvailable
 // sentinel and proceeds directly to accept the Hydra login request.
@@ -1080,7 +1124,7 @@ func TestHandleCreateFlowAcceptsLoginAfterOIDCAuth(t *testing.T) {
 	// DeferMFAChecks=true means the cookie doesn't match this challenge,
 	// so MustReAuthenticate is called. Hydra says skip=true (user just
 	// authenticated via OIDC), so forceLogin=false and AcceptLogin proceeds.
-	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, stateCookie).Return(false, nil)
+	mockService.EXPECT().MustReAuthenticate(gomock.Any(), loginChallenge, session, updatedCookie).Return(false, nil)
 	mockTenantMgr.EXPECT().TenantID(updatedCookie, loginChallenge).Return(cookies.NoTenantAvailable)
 	mockService.EXPECT().AcceptLoginRequest(gomock.Any(), session, loginChallenge, cookies.NoTenantAvailable).Return(&redirectTo, req.Cookies(), nil)
 	mockCookieManager.EXPECT().ClearStateCookie(gomock.Any())
@@ -1839,6 +1883,9 @@ func TestHandleUpdateFlow(t *testing.T) {
 	flow := kClient.NewLoginFlowWithDefaults()
 	flow.Id = flowId
 	flow.ExpiresAt = time.Now().UTC()
+	loginChallenge := "lc-456"
+	flow.IssuedAt = time.Date(2026, 10, 7, 12, 0, 0, 0, time.UTC)
+	flow.SetOauth2LoginChallenge(loginChallenge)
 	redirectTo := "https://some/path/to/somewhere"
 	redirectFlow := new(BrowserLocationChangeRequired)
 	redirectFlow.RedirectTo = &redirectTo
@@ -1856,7 +1903,10 @@ func TestHandleUpdateFlow(t *testing.T) {
 	mockTracer.EXPECT().Start(gomock.Any(), "kratos.API.shouldRegenerateBackupCodesWithSession").Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
 	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(nil, nil, nil)
-	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), gomock.Any()).Return(nil)
+	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), cookies.FlowStateCookie{
+		LoginChallengeHash: cookies.ChallengeHash(loginChallenge),
+		LoginStartedAt:     flow.IssuedAt,
+	}).Return(nil)
 	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
 	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, nil, req.Cookies(), nil)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(flow, nil, nil)

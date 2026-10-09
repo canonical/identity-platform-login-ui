@@ -190,13 +190,13 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// When DeferMFAChecks is set the user has a session from a previous
-	// flow (cookie doesn't match this challenge). We must still consult
-	// MustReAuthenticate because Hydra may demand re-auth (max_age=0).
-	// Only if Hydra says skip=true do we honour SelectTenant/AcceptLogin.
+	// When DeferMFAChecks is set the user has a session that did not sign in
+	// for this challenge. We must still consult MustReAuthenticate because
+	// Hydra may demand re-auth (max_age=0). Only if Hydra says skip=true do we
+	// honour SelectTenant/AcceptLogin.
 	if intercept.DeferMFAChecks || (!intercept.AcceptLogin && !intercept.SelectTenant) {
 		var forceLogin bool
-		forceLogin, err = a.service.MustReAuthenticate(r.Context(), loginChallenge, session, c)
+		forceLogin, err = a.service.MustReAuthenticate(r.Context(), loginChallenge, session, intercept.Cookie)
 		if err != nil {
 			a.logger.Errorf("Failed to fetch hydra flow: %v", err)
 			http.Error(w, "Failed to fetch hydra flow", http.StatusInternalServerError)
@@ -636,7 +636,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 
 	flowCookie := stateCookie
 	if lc != "" {
-		flowCookie = stateCookie.RenewForChallenge(lc)
+		flowCookie = stateCookie.StartLogin(lc, loginFlow.GetIssuedAt())
 	}
 
 	session, _, err := a.service.CheckSession(r.Context(), httpCookies)
