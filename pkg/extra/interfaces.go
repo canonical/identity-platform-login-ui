@@ -20,3 +20,10 @@ type ServiceInterface interface {
 	GetConsent(context.Context, string) (*hClient.OAuth2ConsentRequest, error)
 	AcceptConsent(context.Context, kClient.Identity, *hClient.OAuth2ConsentRequest, string) (*hClient.OAuth2RedirectTo, error)
 }
+
+// ExtensionInterface lets an optional feature refuse a consent. GateConsent
+// returns where the browser goes when it rejected the consent request, ""
+// to go on.
+type ExtensionInterface interface {
+	GateConsent(context.Context, *kClient.Session, *hClient.OAuth2ConsentRequest) (string, error)
+}

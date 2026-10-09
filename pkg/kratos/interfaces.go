@@ -112,3 +112,35 @@ type RedirectToInterface interface {
 	GetCode() int
 	GetRedirectTo() string
 }
+
+// ExtensionInterface lets an optional feature take part in the login,
+// registration and settings flows. A hook that reports it answered the
+// request has written the response, and the handler returns.
+type ExtensionInterface interface {
+	// HydrateLoginFlow amends the login flow the frontend is about to render.
+	// It returns false when it answered the request.
+	HydrateLoginFlow(http.ResponseWriter, *http.Request, *kClient.LoginFlow) (*kClient.LoginFlow, bool)
+	// BeforeTenantSelection runs after the identifier-first step, before the
+	// tenant is chosen from the entered email.
+	BeforeTenantSelection(http.ResponseWriter, *http.Request, *kClient.LoginFlow, string) bool
+	// InterceptLoginSubmission sees a login submission before it is parsed.
+	// It returns the request the handler goes on with.
+	InterceptLoginSubmission(http.ResponseWriter, *http.Request, *kClient.LoginFlow) (*http.Request, bool)
+	// BeforeAcceptLogin runs right before the Hydra login is accepted with an
+	// existing session.
+	BeforeAcceptLogin(http.ResponseWriter, *http.Request, *kClient.Session, string, cookies.FlowStateCookie) bool
+	// InterceptRegistrationSubmission sees a registration submission before
+	// it is parsed.
+	InterceptRegistrationSubmission(http.ResponseWriter, *http.Request, string) bool
+	// HydrateSettingsFlow amends the settings flow the frontend renders.
+	HydrateSettingsFlow(context.Context, *kClient.SettingsFlow, []*http.Cookie) *kClient.SettingsFlow
+	// InterceptSettingsSubmission sees a settings submission before it is
+	// parsed.
+	InterceptSettingsSubmission(http.ResponseWriter, *http.Request, string) bool
+	// HandlesSessionLogin reports whether the extension decides every Hydra
+	// login that arrives with a Kratos session.
+	HandlesSessionLogin() bool
+	// HandleSessionLogin answers the login page of a Hydra login request
+	// with a Kratos session, after the verification and MFA checks.
+	HandleSessionLogin(http.ResponseWriter, *http.Request, *kClient.Session, string)
+}
