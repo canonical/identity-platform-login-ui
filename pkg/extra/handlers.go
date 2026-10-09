@@ -21,12 +21,22 @@ type API struct {
 	service ServiceInterface
 	kratos  kratos.ServiceInterface
 
-	baseURL                       string
-	oidcWebAuthnSequencingEnabled bool
-	mfaEnabled                    bool
-	contextPath                   string
-	tracer                        tracing.TracingInterface
-	logger                        logging.LoggerInterface
+	baseURL            string
+	secondFactorPolicy SecondFactorPolicyInterface
+	contextPath        string
+	tracer             tracing.TracingInterface
+	logger             logging.LoggerInterface
+}
+
+// Option configures the API.
+type Option func(*API)
+
+// WithSecondFactorPolicy sets the second factor policy the consent handler
+// asks, in place of the platform's.
+func WithSecondFactorPolicy(policy SecondFactorPolicyInterface) Option {
+	return func(a *API) {
+		a.secondFactorPolicy = policy
+	}
 }
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
@@ -106,38 +116,23 @@ func (a *API) resolveTenantID(consent *hClient.OAuth2ConsentRequest) string {
 
 // sessionRequiredAAL returns the required aal, based on the session's authentication methods.
 func (a *API) sessionRequiredAAL(session *kClient.Session) kClient.AuthenticatorAssuranceLevel {
-	var authMethod string
-	ret := kClient.AUTHENTICATORASSURANCELEVEL_AAL1
-
-	if methods, ok := session.GetAuthenticationMethodsOk(); ok {
-		authMethod = methods[0].GetMethod()
+	if a.secondFactorPolicy.For(kratos.NewSignIn(session)).SecondFactor {
+		return kClient.AUTHENTICATORASSURANCELEVEL_AAL2
 	}
 
-	switch authMethod {
-	case "oidc":
-		if a.oidcWebAuthnSequencingEnabled {
-			ret = kClient.AUTHENTICATORASSURANCELEVEL_AAL2
-		}
-	case "password", "webauthn":
-		if a.mfaEnabled {
-			ret = kClient.AUTHENTICATORASSURANCELEVEL_AAL2
-		}
-	}
-
-	return ret
+	return kClient.AUTHENTICATORASSURANCELEVEL_AAL1
 }
 
-func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL string, mfaEnabled, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, logger logging.LoggerInterface) *API {
+func NewAPI(service ServiceInterface, kratosService kratos.ServiceInterface, baseURL string, mfaEnabled, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, logger logging.LoggerInterface, opts ...Option) *API {
 	a := new(API)
 
 	a.service = service
-	a.kratos = kratos
+	a.kratos = kratosService
 
 	a.logger = logger
 
 	a.baseURL = baseURL
-	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
-	a.mfaEnabled = mfaEnabled
+	a.secondFactorPolicy = kratos.NewPlatformSecondFactorPolicy(mfaEnabled, oidcWebAuthnSequencingEnabled)
 
 	fullBaseURL, err := url.Parse(baseURL)
 	if err != nil {
@@ -146,6 +141,10 @@ func NewAPI(service ServiceInterface, kratos kratos.ServiceInterface, baseURL st
 	}
 	a.contextPath = fullBaseURL.Path
 	a.tracer = tracer
+
+	for _, opt := range opts {
+		opt(a)
+	}
 
 	return a
 }
