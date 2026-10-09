@@ -2,8 +2,6 @@ buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-202604152011
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1/go.mod h1:tvtbpgaVXZX4g6Pn+AnzFycuRK3MOz5HJfEGeEllXYM=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/canonical/identity-platform-api v0.0.0-20260924175044-8c1a27b95cef h1:74vMs6gvIikbDNlH5vbHZfE9Mcop/bkO3yuzyd8Jigo=
-github.com/canonical/identity-platform-api v0.0.0-20260924175044-8c1a27b95cef/go.mod h1:xYUYXBF2qUwdvimZPIQzjE4ExVEpoYQCoFDWpR2RkRo=
 github.com/canonical/identity-platform-api v0.0.0-20261118120358-db9a1a737e97 h1:DyXLM0/brb3wJfPLETdq7LiFqaZmuLxa973FRfEJgdM=
 github.com/canonical/identity-platform-api v0.0.0-20261118120358-db9a1a737e97/go.mod h1:xYUYXBF2qUwdvimZPIQzjE4ExVEpoYQCoFDWpR2RkRo=
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
@@ -54,8 +52,6 @@ github.com/leodido/go-urn v1.5.0 h1:pLqT2kq1zpHW/1D18QMjMpdtX7cekxqtJJjg5ANyWw0=
 github.com/leodido/go-urn v1.5.0/go.mod h1:9BORnCDhdPBJNDEX+w1bJisa8yOKYi116VeO96s4ifE=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/openfga/go-sdk v0.8.3 h1:I4haME2GkR+gzmJY3vuGjuaLfdNyuMixsqj0lQbB4zE=
-github.com/openfga/go-sdk v0.8.3/go.mod h1:4EwBqOVHnIfCsQZ6e7LTbgr+jKfngu3YibPPV1mLXCc=
 github.com/openfga/go-sdk v0.8.4 h1:rEKi+ZGQGgilapTwQITX1My1jPRCKMYwFUQKtwVRuLM=
 github.com/openfga/go-sdk v0.8.4/go.mod h1:tZwva9JHdAC8rF2ANohM87y5QyBDgydFTgFOVVaVYhI=
 github.com/ory/hydra-client-go/v26 v26.2.0 h1:el+M6dV5CK3Am2V4isorOoZ8pJdDaJm0irQzqnxZHqU=
