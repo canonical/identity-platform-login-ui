@@ -1,0 +1,47 @@
+# Not for merge: this file exists only on the branch `bysso`, which carries the
+# bring-your-own-SSO changes of this repository ahead of their pull requests,
+# so that the charms can be developed against one image.
+name: publish bysso image
+run-name: Publish ghcr.io/${{ github.repository }}:bysso from ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - bysso
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
+
+  publish:
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Download the rock
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ needs.build.outputs.rock }}
+
+      - name: Install Rockcraft to get Skopeo
+        run: sudo snap install --classic --channel latest/stable rockcraft
+
+      # Only the tags bysso and bysso-<commit>: latest, stable and the release
+      # tags belong to the ci workflow.
+      - name: Push the image
+        env:
+          ROCK: ${{ needs.build.outputs.rock }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for tag in bysso "bysso-${GITHUB_SHA::8}"; do
+            sudo rockcraft.skopeo --insecure-policy copy \
+              --dest-creds "${GITHUB_ACTOR}:${TOKEN}" \
+              "oci-archive:$(realpath "$ROCK")" \
+              "docker://ghcr.io/${GITHUB_REPOSITORY}:${tag}"
+          done
+          echo "Pushed ghcr.io/${GITHUB_REPOSITORY}:bysso and :bysso-${GITHUB_SHA::8}" >> "$GITHUB_STEP_SUMMARY"
