@@ -1,4 +1,4 @@
-import { UiNode, UiNodeMeta } from "@ory/client";
+import { UiNode, UiNodeMeta, UiText } from "@ory/client";
 
 // see https://www.ory.sh/docs/kratos/concepts/ui-messages
 const ORY_LABEL_SECURITY_KEY_ADD = 1050012;
@@ -85,6 +85,39 @@ export const isRegisterPasswordInput = (node: UiNode): node is NodeWithLabel =>
   node.meta.label?.id === ORY_LABEL_REGISTER_PASSWORD_INPUT;
 
 export const ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD = 4000037;
+
+// Kratos errors the backend answers in its own words: the keys of uiErrorText
+// in pkg/kratos/ui_errors.go. The page shows that answer where the error
+// happened, so they are not shown again as flow-level messages.
+const ORY_ERR_ANSWERED_BY_BACKEND = new Set([
+  4000006, // IncorrectCredentials
+  4000037, // IncorrectAccountIdentifier
+  4000010, // AddressNotVerified
+  4010011, // IdentityDisabled
+  4000002, // PropertyMissing
+  4000003, // NotEnoughCharacters
+  4000017, // TooManyCharacters
+  4000032, // PasswordTooShort
+  4000033, // PasswordTooLong
+  4000005, // PasswordPolicyViolation
+  4000034, // PasswordBreached
+  4000031, // PasswordIdentifierSimilarity
+  4000039, // PasswordSameAsOld
+  4000008, // InvalidAuthCode
+  4000011, // MissingTOTPSetup
+  4000013, // MissingSecurityKey
+  4000015, // MissingSecurityKeySetup
+  4000012, // BackupCodeAlreadyUsed
+  4000016, // InvalidBackupCode
+  4000014, // MissingBackupCodesSetup
+  4000007, // DuplicateIdentifier
+  4000027, // DuplicateIdentifierOIDCLink
+  4000028, // DuplicateIdentifierWithHints
+  4060006, // InvalidRecoveryCode
+]);
+
+export const isErrorAnsweredByBackend = (message: UiText): boolean =>
+  ORY_ERR_ANSWERED_BY_BACKEND.has(message.id);
 
 export function isUiNodeBackButton(meta: UiNodeMeta) {
   return meta.label?.type === "info" && meta.label?.text === "Back";
