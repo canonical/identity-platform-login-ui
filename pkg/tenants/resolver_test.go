@@ -888,3 +888,28 @@ func TestNeedsTenantSelectionByEmailLookupError(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+
+func TestCookieTenantResolverStoreTenantKeepsTenantChoice(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockCM := NewMockCookieManagerInterface(ctrl)
+	r := NewCookieTenantResolver(mockCM, &mockTenantLookup{})
+
+	challenge := "store-challenge"
+	tenantID := "tenant-42"
+	existingCookie := cookies.FlowStateCookie{TenantChoice: true}
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/", nil)
+
+	mockCM.EXPECT().GetStateCookie(req).Return(existingCookie, nil)
+	mockCM.EXPECT().SetStateCookie(w, cookies.FlowStateCookie{
+		TenantID:           tenantID,
+		LoginChallengeHash: cookies.ChallengeHash(challenge),
+		TenantChoice:       true,
+	}).Return(nil)
+
+	if err := r.StoreTenant(w, req, tenantID, challenge); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

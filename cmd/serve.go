@@ -23,15 +23,18 @@ import (
 	authz "github.com/canonical/identity-platform-login-ui/internal/authorization"
 	"github.com/canonical/identity-platform-login-ui/internal/config"
 	"github.com/canonical/identity-platform-login-ui/internal/cookies"
+	ig "github.com/canonical/identity-platform-login-ui/internal/grpc"
 	ih "github.com/canonical/identity-platform-login-ui/internal/hydra"
 	ik "github.com/canonical/identity-platform-login-ui/internal/kratos"
 	"github.com/canonical/identity-platform-login-ui/internal/logging"
 	"github.com/canonical/identity-platform-login-ui/internal/monitoring/prometheus"
 	fga "github.com/canonical/identity-platform-login-ui/internal/openfga"
 	"github.com/canonical/identity-platform-login-ui/internal/tracing"
+	"github.com/canonical/identity-platform-login-ui/pkg/byosso"
 	"github.com/canonical/identity-platform-login-ui/pkg/tenants"
 	"github.com/canonical/identity-platform-login-ui/pkg/web"
 
+	sso "github.com/canonical/identity-platform-api/v0/sso"
 	tenant "github.com/canonical/identity-platform-api/v0/tenant"
 	"google.golang.org/grpc"
 )
@@ -56,6 +59,26 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 }
 
+// validateTenantSettings refuses the multi-tenancy and BYO-SSO settings the
+// service cannot start with.
+func validateTenantSettings(specs *config.EnvSpec) error {
+	switch {
+	case specs.MultiTenancyEnabled && specs.TenantServiceGRPCAddress == "":
+		return fmt.Errorf("cannot enable multi-tenancy without TENANT_SERVICE_GRPC_ADDRESS")
+	case specs.BYOSSOEnabled && !specs.MultiTenancyEnabled:
+		return fmt.Errorf("cannot enable BYO-SSO without MULTI_TENANCY_ENABLED")
+	case specs.BYOSSOEnabled && (specs.SSOServiceGRPCAddress == "" || specs.ServiceTokenURL == "" || specs.ServiceClientID == "" || specs.ServiceClientSecret == ""):
+		return fmt.Errorf("cannot enable BYO-SSO without SSO_SERVICE_GRPC_ADDRESS, SERVICE_TOKEN_URL, SERVICE_CLIENT_ID and SERVICE_CLIENT_SECRET")
+	case specs.BYOSSOEnabled && specs.OIDCWebAuthnSequencingEnabled:
+		// OIDC_WEBAUTHN_SEQUENCING_ENABLED asks a WebAuthn key of every
+		// sign-in through an external provider, and with BYO-SSO each tenant
+		// decides MFA: with both, two rules would answer the same question.
+		return fmt.Errorf("cannot enable BYO-SSO with OIDC_WEBAUTHN_SEQUENCING_ENABLED")
+	}
+
+	return nil
+}
+
 func serve() error {
 
 	specs := new(config.EnvSpec)
@@ -68,8 +91,8 @@ func serve() error {
 		return fmt.Errorf("issues with environment variables validation: %w", err)
 	}
 
-	if specs.MultiTenancyEnabled && specs.TenantServiceGRPCAddress == "" {
-		return fmt.Errorf("cannot enable multi-tenancy without TENANT_SERVICE_GRPC_ADDRESS")
+	if err := validateTenantSettings(specs); err != nil {
+		return err
 	}
 
 	logger := logging.NewLogger(specs.LogLevel)
@@ -82,9 +105,16 @@ func serve() error {
 		return fmt.Errorf("issue with js distribution files: %w", err)
 	}
 
+	var tenantServiceDialOpts, ssoServiceDialOpts []grpc.DialOption
+	if specs.BYOSSOEnabled {
+		tokens := byosso.NewServiceTokenSource(specs.ServiceTokenURL, specs.ServiceClientID, specs.ServiceClientSecret, specs.ServiceTokenScopes)
+		tenantServiceDialOpts = byosso.TenantServiceDialOptions(tokens)
+		ssoServiceDialOpts = byosso.SSOServiceDialOptions(tokens)
+	}
+
 	var grpcConn *grpc.ClientConn
 	if specs.MultiTenancyEnabled {
-		conn, err := tenants.NewGRPCConn(specs.TenantServiceGRPCAddress, specs.TenantServiceTLSEnabled)
+		conn, err := ig.NewConn("tenant-service", specs.TenantServiceGRPCAddress, specs.TenantServiceTLSEnabled, tenantServiceDialOpts...)
 		if err != nil {
 			return err
 		}
@@ -93,7 +123,18 @@ func serve() error {
 		logger.Infof("Tenant validation enabled (tenant-service: %s, tls: %v, timeout: %s)", specs.TenantServiceGRPCAddress, specs.TenantServiceTLSEnabled, specs.TenantServiceGRPCTimeout)
 	}
 
-	router, err := buildRouter(specs, distFS, logger, grpcConn)
+	var ssoGRPCConn *grpc.ClientConn
+	if specs.BYOSSOEnabled {
+		conn, err := ig.NewConn("sso-service", specs.SSOServiceGRPCAddress, specs.SSOServiceTLSEnabled, ssoServiceDialOpts...)
+		if err != nil {
+			return err
+		}
+		ssoGRPCConn = conn
+		defer ssoGRPCConn.Close()
+		logger.Infof("BYO-SSO enabled (sso-service: %s, tls: %v, timeout: %s)", specs.SSOServiceGRPCAddress, specs.SSOServiceTLSEnabled, specs.SSOServiceGRPCTimeout)
+	}
+
+	router, err := buildRouter(specs, distFS, logger, grpcConn, ssoGRPCConn)
 	if err != nil {
 		return err
 	}
@@ -110,7 +151,7 @@ func serve() error {
 	return handleServeAndShutdown(srv, logger.Security())
 }
 
-func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger, grpcConn *grpc.ClientConn) (http.Handler, error) {
+func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger, grpcConn, ssoGRPCConn *grpc.ClientConn) (http.Handler, error) {
 	monitor := prometheus.NewMonitor("identity-login-ui", logger)
 	tracer := tracing.NewTracer(tracing.NewConfig(specs.TracingEnabled, specs.OtelGRPCEndpoint, specs.OtelHTTPEndpoint, logger))
 
@@ -141,11 +182,23 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger, gr
 	}
 
 	var tenantsServiceClient tenants.TenantServiceClientInterface
+	var tenantSignInClient tenant.TenantSignInServiceClient
 	if grpcConn != nil {
 		tenantsServiceClient = tenant.NewTenantServiceClient(grpcConn)
+		tenantSignInClient = tenant.NewTenantSignInServiceClient(grpcConn)
 	}
 
-	router := web.NewRouter(
+	var ssoServiceClient sso.SSOSignInServiceClient
+	if ssoGRPCConn != nil {
+		ssoServiceClient = sso.NewSSOSignInServiceClient(ssoGRPCConn)
+	}
+
+	return web.NewRouter(
+		web.WithBYOSSOEnabled(specs.BYOSSOEnabled),
+		web.WithBYOSSOClients(tenantSignInClient, ssoServiceClient),
+		web.WithSSOGRPCTimeout(specs.SSOServiceGRPCTimeout),
+		web.WithCookieEncryption(encrypt),
+		web.WithKratosPrivilegedSessionMaxAge(specs.KratosPrivilegedSessionMaxAge),
 		web.WithKratosClients(kClient, kAdminClient),
 		web.WithTenantsServiceClient(tenantsServiceClient),
 		web.WithTenantsGRPCTimeout(specs.TenantServiceGRPCTimeout),
@@ -162,7 +215,6 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger, gr
 		web.WithMonitoring(monitor),
 		web.WithLogger(logger),
 	)
-	return router, nil
 }
 
 func handleServeAndShutdown(srv *http.Server, securityLogger logging.SecurityLoggerInterface) error {

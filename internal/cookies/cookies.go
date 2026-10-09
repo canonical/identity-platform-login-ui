@@ -45,6 +45,9 @@ type FlowStateCookie struct {
 	WebauthnSetup      bool   `json:"w,omitempty"`
 	BackupCodeUsed     bool   `json:"bc,omitempty"`
 	TenantID           string `json:"tid,omitempty"`
+	// TenantChoice is set when the user has several tenants to choose
+	// TenantID from.
+	TenantChoice bool `json:"tc,omitempty"`
 }
 
 // AuthCookieManager is the production implementation of AuthCookieManagerInterface.
