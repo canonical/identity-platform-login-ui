@@ -48,6 +48,9 @@ type FlowStateCookie struct {
 	// LoginStartedAt is the issue time of the first Kratos login flow
 	// submitted for the challenge.
 	LoginStartedAt time.Time `json:"ls,omitzero"`
+	// TenantChoice is set when the user has several tenants to choose
+	// TenantID from.
+	TenantChoice bool `json:"tc,omitempty"`
 }
 
 // AuthCookieManager is the production implementation of AuthCookieManagerInterface.
