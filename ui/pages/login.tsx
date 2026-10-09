@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
+import { FlowMessages } from "../components/FlowMessages";
 import { kratos, loginIdentifierFirst } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
@@ -22,6 +23,7 @@ import {
   UpdateLoginFlowWithPasswordMethod,
 } from "@ory/client/api";
 import {
+  isErrorAnsweredByBackend,
   isSignInEmailInput,
   isSignInWithHardwareKey,
   isSignInWithPassword,
@@ -439,6 +441,13 @@ const Login: NextPage = () => {
     return;
   }
 
+  // Flow-level messages, which are not attached to a node.
+  const flowMessages = flow.ui.messages ?? [];
+  // An error FlowMessages leaves out is not one the user gets to see here.
+  const hasFlowError = flowMessages.some(
+    (message) => message.type === "error" && !isErrorAnsweredByBackend(message),
+  );
+
   // When WebAuthn is shown but TOTP is also registered, "I want to use another
   // method" should return to the TOTP selection page (strip ?webauthn=true and
   // ?email= from the URL).  When WebAuthn is the sole 2FA method there is no
@@ -482,6 +491,8 @@ const Login: NextPage = () => {
   const csrfNode = getCsrfNode(renderFlow?.ui.nodes);
   const isSingleOidcOption =
     isSequencedLogin &&
+    // never forward away from an error the user has not seen yet
+    !hasFlowError &&
     renderFlow?.ui.nodes.length === 2 &&
     renderFlow?.ui.nodes[1].group === "oidc" &&
     csrfNode !== undefined;
@@ -498,6 +509,7 @@ const Login: NextPage = () => {
 
   return (
     <PageLayout title={title}>
+      <FlowMessages messages={flowMessages} />
       {isSingleOidcOption ? (
         <p className="u-text--muted">
           <Spinner style={{ marginRight: "0.5rem" }} />
