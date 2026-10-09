@@ -118,8 +118,12 @@ const ManageConnectedAccounts: NextPage = () => {
       .then(({ data }) => {
         setFlow(data);
       })
+      .catch(handleFlowError("settings", setFlow))
       .catch(async (err: AxiosError<string>) => {
-        if (err.response?.data.trim() === "Failed to create settings flow") {
+        if (
+          typeof err.response?.data === "string" &&
+          err.response.data.trim() === "Failed to create settings flow"
+        ) {
           window.location.href = `./login?return_to=${window.location.pathname}`;
           return;
         }
