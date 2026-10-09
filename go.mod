@@ -3,7 +3,7 @@ module github.com/canonical/identity-platform-login-ui
 go 1.26.0
 
 require (
-	github.com/canonical/identity-platform-api v0.0.0-20260609125125-fe6c4040a954
+	github.com/canonical/identity-platform-api v0.0.0-20261009094913-c2085af498e4
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/cors v1.2.2
 	github.com/go-playground/validator/v10 v10.30.4
@@ -24,7 +24,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.46.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688
 	google.golang.org/grpc v1.83.2
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
@@ -58,6 +60,4 @@ require (
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260819154853-08b0e4226688 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect
-	google.golang.org/protobuf v1.36.12 // indirect
 )

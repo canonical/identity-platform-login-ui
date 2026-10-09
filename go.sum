@@ -2,8 +2,8 @@ buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-202604152011
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1/go.mod h1:tvtbpgaVXZX4g6Pn+AnzFycuRK3MOz5HJfEGeEllXYM=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/canonical/identity-platform-api v0.0.0-20260609125125-fe6c4040a954 h1:/hJHofKveb25+hy5t0QBImKyAcccA+jRDo5ffk+Ki/0=
-github.com/canonical/identity-platform-api v0.0.0-20260609125125-fe6c4040a954/go.mod h1:xYUYXBF2qUwdvimZPIQzjE4ExVEpoYQCoFDWpR2RkRo=
+github.com/canonical/identity-platform-api v0.0.0-20261009094913-c2085af498e4 h1:BrrCOoqVFLWOKJYoK1sDkcA46ukKJjx70qj/FOzfAl4=
+github.com/canonical/identity-platform-api v0.0.0-20261009094913-c2085af498e4/go.mod h1:xYUYXBF2qUwdvimZPIQzjE4ExVEpoYQCoFDWpR2RkRo=
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
