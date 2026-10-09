@@ -9,6 +9,7 @@ import {
 } from "../api/tenants";
 import { useAppConfig } from "../config/useAppConfig";
 import PageLayout from "../components/PageLayout";
+import { TENANT_INVITATION_LABEL } from "../util/constants";
 
 const SelectTenant: NextPage = () => {
   const router = useRouter();
@@ -120,6 +121,7 @@ const SelectTenant: NextPage = () => {
                 onClick={() => submitTenantSelection(tenant.id)}
               >
                 {tenant.name}
+                {tenant.invited ? TENANT_INVITATION_LABEL : ""}
               </Button>
             </li>
           ))}
