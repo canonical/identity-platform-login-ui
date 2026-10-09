@@ -99,6 +99,11 @@ type ServiceInterface interface {
 	RequireVerificationForEmail(context.Context, *kClient.Session) (bool, string, error)
 }
 
+type SecondFactorPolicyInterface interface {
+	// For returns what the given sign-in still needs before it may complete.
+	For(SignIn) Requirement
+}
+
 type AuthCookieManagerInterface interface {
 	// SetStateCookie sets the nonce cookie on the response with the specified duration as MaxAge
 	SetStateCookie(http.ResponseWriter, cookies.FlowStateCookie) error
