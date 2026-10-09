@@ -1652,7 +1652,6 @@ func TestHandleUpdateIdentifierFirstFlowRedirectsToTenantSelection(t *testing.T)
 	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
 	mockTenantMgr.EXPECT().Enabled().Return(true)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 
 	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
 	mockTenantMgr.EXPECT().NeedsTenantSelectionByEmail(gomock.Any(), "user@example.com", flowCookie, loginChallenge).
@@ -1732,7 +1731,6 @@ func TestHandleUpdateIdentifierFirstFlowProceedsWhenNoTenants(t *testing.T) {
 	mockService.EXPECT().UpdateIdentifierFirstLoginFlow(gomock.Any(), flowId, *flowBody, req.Cookies()).Return(redirectFlow, req.Cookies(), nil)
 	mockTenantMgr.EXPECT().Enabled().Return(true)
 	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
-	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(cookies.FlowStateCookie{}, nil)
 
 	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
 	mockTenantMgr.EXPECT().NeedsTenantSelectionByEmail(gomock.Any(), "user@example.com", flowCookie, loginChallenge).
@@ -1883,6 +1881,58 @@ func TestHandleUpdateFlow(t *testing.T) {
 	flowResponse := new(BrowserLocationChangeRequired)
 	if err := json.Unmarshal(data, flowResponse); err != nil {
 		t.Fatalf("Expected error to be nil got %v", err)
+	}
+}
+
+func TestHandleUpdateFlowPersistsResolvedCookieForTenantSelection(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockCookieManager := NewMockAuthCookieManagerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockTenantMgr := NewMockTenantResolverInterface(ctrl)
+
+	flowId := "test"
+	loginChallenge := "lc-456"
+	loginFlow := kClient.NewLoginFlowWithDefaults()
+	loginFlow.Id = flowId
+	loginFlow.SetOauth2LoginChallenge(loginChallenge)
+	session := kClient.NewSession("test")
+	redirectTo := "https://some/path/to/somewhere"
+	redirectFlow := &BrowserLocationChangeRequired{RedirectTo: &redirectTo}
+	flowBody := new(kClient.UpdateLoginFlowBody)
+	flowBody.UpdateLoginFlowWithTotpMethod = kClient.NewUpdateLoginFlowWithTotpMethod("totp", "123456")
+
+	recorded := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge), TenantID: "other"}
+	resolved := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
+
+	req := httptest.NewRequest(http.MethodPost, HANDLE_UPDATE_LOGIN_FLOW_URL, nil)
+	values := req.URL.Query()
+	values.Add("flow", flowId)
+	req.URL.RawQuery = values.Encode()
+
+	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).Return(context.Background(), trace.SpanFromContext(context.Background())).AnyTimes()
+	mockService.EXPECT().GetLoginFlow(gomock.Any(), flowId, req.Cookies()).Return(loginFlow, nil, nil)
+	mockService.EXPECT().ParseLoginFlowMethodBody(gomock.Any(), gomock.Any()).Return(flowBody, req.Cookies(), nil)
+	mockService.EXPECT().CheckAllowedProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+	mockCookieManager.EXPECT().GetStateCookie(gomock.Any()).Return(recorded, nil)
+	mockTenantMgr.EXPECT().Enabled().Return(true).AnyTimes()
+	mockTenantMgr.EXPECT().TenantID(recorded, loginChallenge).Return("other")
+	mockService.EXPECT().UpdateLoginFlow(gomock.Any(), flowId, gomock.Any(), req.Cookies()).Return(redirectFlow, nil, req.Cookies(), nil)
+	mockService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockTenantMgr.EXPECT().NeedsTenantSelection(gomock.Any(), session, recorded, loginChallenge).Return(true, resolved, nil)
+	mockCookieManager.EXPECT().SetStateCookie(gomock.Any(), resolved).Return(nil)
+
+	w := httptest.NewRecorder()
+	mux := chi.NewMux()
+	NewAPI(mockService, false, false, false, mockTenantMgr, BASE_URL, mockCookieManager, mockTracer, mockLogger).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	if res := w.Result(); res.StatusCode != http.StatusOK {
+		t.Fatal("Expected HTTP status code 200, got: ", res.Status)
 	}
 }
 

@@ -306,13 +306,49 @@ func TestNeedsTenantSelectionAlreadySelected(t *testing.T) {
 		TenantID:           "t1",
 		LoginChallengeHash: cookies.ChallengeHash(challenge),
 	}
-	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
-	need, _, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1"}, {ID: "t2"}}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+	need, updated, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if need {
-		t.Fatal("should not need selection when tenant already selected")
+	if need || updated.TenantID != "t1" {
+		t.Fatalf("should keep the selected tenant of a user who has it, got need=%v tenant=%q", need, updated.TenantID)
+	}
+}
+
+func TestNeedsTenantSelectionDropsTenantOfAnotherUser(t *testing.T) {
+	challenge := "ch-1"
+	c := cookies.FlowStateCookie{
+		TenantID:           "other",
+		LoginChallengeHash: cookies.ChallengeHash(challenge),
+	}
+
+	tests := []struct {
+		name         string
+		tenants      []*Tenant
+		expectNeed   bool
+		expectTenant string
+	}{
+		{name: "no tenants: none replaces the record", tenants: nil, expectTenant: cookies.NoTenantAvailable},
+		{name: "one tenant: it replaces the record", tenants: []*Tenant{{ID: "t1"}}, expectTenant: "t1"},
+		{name: "several tenants: the user picks", tenants: []*Tenant{{ID: "t1"}, {ID: "t2"}}, expectNeed: true, expectTenant: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{tenants: tt.tenants})
+			need, updated, err := r.NeedsTenantSelection(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if need != tt.expectNeed || updated.TenantID != tt.expectTenant {
+				t.Fatalf("expected need=%v tenant=%q, got need=%v tenant=%q", tt.expectNeed, tt.expectTenant, need, updated.TenantID)
+			}
+		})
 	}
 }
 
@@ -381,7 +417,8 @@ func TestNeedsTenantSelectionLookupError(t *testing.T) {
 	defer ctrl.Finish()
 
 	challenge := "ch-1"
-	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge)}
+	// a recorded tenant is no fallback for a lookup that fails
+	c := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(challenge), TenantID: "t1"}
 	svc := &mockTenantLookup{err: fmt.Errorf("network error")}
 	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
@@ -614,7 +651,8 @@ func TestInterceptLoginAcceptsWhenTenantAlreadySelected(t *testing.T) {
 		LoginChallengeHash: cookies.ChallengeHash(challenge),
 		TenantID:           "t1",
 	}
-	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1"}, {ID: "t2"}}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
 
 	result, err := r.InterceptLogin(context.Background(), sessionWithEmail("u@e.com"), c, challenge)
 	if err != nil {
@@ -739,22 +777,23 @@ func TestNoOpNeedsTenantSelectionByEmail(t *testing.T) {
 	}
 }
 
-func TestNeedsTenantSelectionByEmailAlreadySelected(t *testing.T) {
+func TestNeedsTenantSelectionByEmailLooksUpDespiteRecordedTenant(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	challenge := "ch-1"
 	c := cookies.FlowStateCookie{
-		TenantID:           "t1",
+		TenantID:           "other",
 		LoginChallengeHash: cookies.ChallengeHash(challenge),
 	}
-	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), &mockTenantLookup{})
-	need, _, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", c, challenge)
+	svc := &mockTenantLookup{tenants: []*Tenant{{ID: "t1"}}}
+	r := NewCookieTenantResolver(NewMockCookieManagerInterface(ctrl), svc)
+	need, updated, err := r.NeedsTenantSelectionByEmail(context.Background(), "u@e.com", c, challenge)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if need {
-		t.Fatal("should not need selection when tenant already selected")
+	if need || updated.TenantID != "t1" {
+		t.Fatalf("expected the tenant of this email, got need=%v tenant=%q", need, updated.TenantID)
 	}
 }
 

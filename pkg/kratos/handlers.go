@@ -722,7 +722,7 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if needsSelection {
-				a.cookieManager.SetStateCookie(w, flowCookie)
+				a.cookieManager.SetStateCookie(w, updatedCookie)
 				if redirectTo != nil {
 					a.redirectResponse(w, r, redirectTo)
 				} else {
@@ -902,19 +902,13 @@ func (a *API) tenantSelectionRedirect(w http.ResponseWriter, r *http.Request, lo
 	})
 }
 
-// checkTenantSelectionByEmail reads the state cookie, checks whether the user
+// checkTenantSelectionByEmail checks whether the user
 // needs to select a tenant (pre-1FA, by email), persists the updated cookie,
 // and redirects if selection is required. Returns a non-nil error when the
 // caller should stop processing (the response has already been written).
 func (a *API) checkTenantSelectionByEmail(w http.ResponseWriter, r *http.Request, email, loginChallenge, flowId string) error {
-	stateCookie, err := a.cookieManager.GetStateCookie(r)
-	if err != nil {
-		a.logger.Errorf("failed to read state cookie: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return err
-	}
-
-	flowCookie := stateCookie.RenewForChallenge(loginChallenge)
+	// A new cookie: the tenant recorded so far may be another email's.
+	flowCookie := cookies.FlowStateCookie{LoginChallengeHash: cookies.ChallengeHash(loginChallenge)}
 	needsSelection, updatedCookie, err := a.tenantMgr.NeedsTenantSelectionByEmail(
 		r.Context(), email, flowCookie, loginChallenge,
 	)
