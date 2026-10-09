@@ -1,6 +1,8 @@
 export type Tenant = {
   id: string;
   name: string;
+  // A pending invitation: signing in to the tenant accepts it.
+  invited?: boolean;
 };
 
 const parseTenants = (r: Response): Promise<Tenant[]> => {
