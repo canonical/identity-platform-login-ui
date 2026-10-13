@@ -6,7 +6,12 @@ import {
   ConfirmationButton,
   Spinner,
 } from "@canonical/react-components";
-import { SettingsFlow, UiNodeInputAttributes } from "@ory/client";
+import {
+  SettingsFlow,
+  UiNodeInputAttributes,
+  UiNodeTextAttributes,
+  UpdateSettingsFlowBody,
+} from "@ory/client";
 import PageLayout from "../components/PageLayout";
 import { kratos } from "../api/kratos";
 import { handleFlowError } from "../util/handleFlowError";
@@ -14,6 +19,14 @@ import { AxiosError } from "axios";
 import { getLoggedInName } from "../util/selfServeHelpers";
 import { List, Icon, useToastNotification } from "@canonical/react-components";
 import { getProviderImage } from "../util/logos";
+import { getCsrfToken } from "../util/getCsrfNode";
+import {
+  getSsoLinkNodeId,
+  isSsoNode,
+  isSsoUnlinkBtn,
+  SSO_UNLINK_FIELD,
+  SSO_UNLINK_LABEL_PREFIX,
+} from "../util/constants";
 import { FlowMessages } from "../components/FlowMessages";
 
 type ProviderConnectionAction = "link" | "unlink";
@@ -26,6 +39,16 @@ interface ProviderState {
   id: string;
   label: string;
   name: ProviderConnectionAction;
+  disabled: boolean;
+}
+
+// A company sign-in attached to the account. The backend adds these to the
+// settings flow: a text node describing it, and a submit to unlink it whose
+// value is the connection id.
+interface CompanySignInState {
+  id: string;
+  label: string;
+  description?: string;
   disabled: boolean;
 }
 
@@ -75,6 +98,34 @@ const buildOidcProviderStates = (flow?: SettingsFlow): ProviderState[] => {
   return Object.values(byProvider);
 };
 
+const buildCompanySignInStates = (
+  flow?: SettingsFlow,
+): CompanySignInState[] => {
+  if (!flow) return [];
+
+  const ssoNodes = (flow.ui?.nodes ?? []).filter(isSsoNode);
+  const descriptions: Record<string, string> = {};
+  for (const node of ssoNodes) {
+    if (node.type !== "text") continue;
+    const attributes = node.attributes as UiNodeTextAttributes;
+    descriptions[attributes.id] = attributes.text.text;
+  }
+
+  return ssoNodes.filter(isSsoUnlinkBtn).map((node) => {
+    const attributes = node.attributes as UiNodeInputAttributes;
+    const id = String(attributes.value);
+    const labelText = node.meta.label?.text ?? id;
+    return {
+      id,
+      label: labelText.startsWith(SSO_UNLINK_LABEL_PREFIX)
+        ? labelText.slice(SSO_UNLINK_LABEL_PREFIX.length)
+        : labelText,
+      description: descriptions[getSsoLinkNodeId(id)],
+      disabled: Boolean(attributes.disabled),
+    };
+  });
+};
+
 const ManageConnectedAccounts: NextPage = () => {
   const [flow, setFlow] = useState<SettingsFlow>();
 
@@ -84,6 +135,7 @@ const ManageConnectedAccounts: NextPage = () => {
 
   const userName = getLoggedInName(flow);
   const providers = useMemo(() => buildOidcProviderStates(flow), [flow]);
+  const companySignIns = useMemo(() => buildCompanySignInStates(flow), [flow]);
 
   useEffect(() => {
     if (!router.isReady || providers.length === 0) return;
@@ -175,12 +227,60 @@ const ManageConnectedAccounts: NextPage = () => {
     [flow, router],
   );
 
+  // A refusal (e.g. the account's only sign-in method) comes back as 200 with
+  // the flow's messages, so success is judged by the returned flow alone.
+  const handleCompanySignInUnlink = useCallback(
+    (connectionId: string) => {
+      const label =
+        companySignIns.find((c) => c.id === connectionId)?.label ??
+        connectionId;
+
+      return kratos
+        .updateSettingsFlow({
+          flow: String(flow?.id),
+          updateSettingsFlowBody: {
+            [SSO_UNLINK_FIELD]: connectionId,
+            csrf_token: getCsrfToken(flow?.ui.nodes),
+          } as unknown as UpdateSettingsFlowBody,
+        })
+        .then((result) => {
+          const data = result.data as SettingsFlowWithRedirect;
+          if (data.redirect_to) {
+            window.location.href = data.redirect_to;
+            return;
+          }
+          setFlow(data);
+          const isGone = !buildCompanySignInStates(data).some(
+            (c) => c.id === connectionId,
+          );
+          const hasError = data.ui.messages?.some((m) => m.type === "error");
+          if (isGone && !hasError) {
+            toastNotify.success(
+              `Your ${label} sign-in has been disconnected.`,
+              undefined,
+              "Account disconnected successfully",
+            );
+          }
+        })
+        .catch(handleFlowError("settings", setFlow))
+        .catch((err: AxiosError) => {
+          toastNotify.failure(
+            "Failed to disconnect account",
+            undefined,
+            err?.message,
+          );
+        });
+    },
+    [flow, companySignIns],
+  );
+
   const connectionState = useMemo<ConnectionState>(() => {
+    if (companySignIns.length) return "someConnected";
     if (!providers.length) return "none";
     return providers.some((p) => p.name === "unlink")
       ? "someConnected"
       : "allDisconnected";
-  }, [providers]);
+  }, [providers, companySignIns]);
 
   if (!flow) {
     return <Spinner />;
@@ -250,6 +350,65 @@ const ManageConnectedAccounts: NextPage = () => {
                   </div>
                 ))}
               />
+              {companySignIns.length > 0 && (
+                <>
+                  <p className="p-heading--5">Company sign-ins</p>
+                  <p>
+                    A company sign-in is attached when you sign in with your
+                    company&apos;s identity provider.
+                  </p>
+                  <List
+                    items={companySignIns.map(
+                      ({ id, label, description, disabled }) => (
+                        <div key={id} className="provider">
+                          <img
+                            src={getProviderImage(label)}
+                            alt={`${label} logo`}
+                            className="provider-logo"
+                          />
+                          <span>
+                            {label}
+                            {description && (
+                              <>
+                                <br />
+                                <small className="u-text--muted">
+                                  {description}
+                                </small>
+                              </>
+                            )}
+                          </span>
+                          <ConfirmationButton
+                            disabled={disabled}
+                            appearance="negative"
+                            className="unlink-provider-btn has-icon"
+                            confirmationModalProps={{
+                              title: "Disconnect Account?",
+                              confirmButtonLabel: "Disconnect",
+                              onConfirm: () =>
+                                void handleCompanySignInUnlink(id),
+                              children: (
+                                <>
+                                  <p className="u-no-margin--bottom">
+                                    You&apos;re about to disconnect your {label}{" "}
+                                    sign-in from this profile.
+                                  </p>
+                                  <p>
+                                    It is attached again the next time you sign
+                                    in with {label}.
+                                  </p>
+                                </>
+                              ),
+                            }}
+                          >
+                            <Icon name="delete" />
+                            <span>Disconnect</span>
+                          </ConfirmationButton>
+                        </div>
+                      ),
+                    )}
+                  />
+                </>
+              )}
             </>
           )}
         </div>

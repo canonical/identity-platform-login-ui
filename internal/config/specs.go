@@ -23,12 +23,18 @@ type EnvSpec struct {
 	CookiesEncryptionKey string `envconfig:"cookies_encryption_key" required:"true" validate:"required,min=32,max=32"`
 	CookieTTL            int    `envconfig:"cookie_ttl" default:"300"`
 
-	KratosPublicURL          string `envconfig:"kratos_public_url"`
-	KratosAdminURL           string `envconfig:"kratos_admin_url"`
-	HydraAdminURL            string `envconfig:"hydra_admin_url"`
+	KratosPublicURL          string        `envconfig:"kratos_public_url"`
+	KratosAdminURL           string        `envconfig:"kratos_admin_url"`
+	HydraAdminURL            string        `envconfig:"hydra_admin_url"`
 	TenantServiceGRPCAddress string        `envconfig:"tenant_service_grpc_address"`
 	TenantServiceGRPCTimeout time.Duration `envconfig:"tenant_service_grpc_timeout" default:"5s"`
 	TenantServiceTLSEnabled  bool          `envconfig:"tenant_service_tls_enabled" default:"false"`
+
+	BYOSSOEnabled                 bool          `envconfig:"byosso_enabled" default:"false"`
+	SSOServiceGRPCAddress         string        `envconfig:"sso_service_grpc_address"`
+	SSOServiceGRPCTimeout         time.Duration `envconfig:"sso_service_grpc_timeout" default:"3s"`
+	SSOServiceTLSEnabled          bool          `envconfig:"sso_service_tls_enabled" default:"false"`
+	KratosPrivilegedSessionMaxAge time.Duration `envconfig:"kratos_privileged_session_max_age" default:"1h"`
 
 	ApiScheme            string `envconfig:"openfga_api_scheme" default:""`
 	ApiHost              string `envconfig:"openfga_api_host"`
