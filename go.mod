@@ -6,9 +6,9 @@ require (
 	github.com/canonical/identity-platform-api v0.0.0-20260924175044-8c1a27b95cef
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/cors v1.2.2
-	github.com/go-playground/validator/v10 v10.30.4
+	github.com/go-playground/validator/v10 v10.30.5
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/openfga/go-sdk v0.8.2
+	github.com/openfga/go-sdk v0.8.3
 	github.com/ory/hydra-client-go/v26 v26.2.0
 	github.com/ory/kratos-client-go/v25 v25.4.0
 	github.com/prometheus/client_golang v1.25.0
