@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         architecture: ${{ fromJson(needs.get-architectures.outputs.architectures) }}
-    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
+    uses: canonical/identity-team/.github/workflows/_rock-build.yaml@6e3d618fb7650a26b7a2254a15fef1d28373bd9d # v1.17.1
     with:
       structure-tests-enabled: true
       architecture: ${{ matrix.architecture }}
@@ -54,7 +54,7 @@ jobs:
       contents: read
     if: ${{ github.ref == 'refs/heads/main' }}
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
+    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@6e3d618fb7650a26b7a2254a15fef1d28373bd9d # v1.17.1
 
   gh-publish-candidate:
     permissions:
@@ -62,7 +62,7 @@ jobs:
       contents: read
     if: ${{ github.ref_type == 'tag' }}
     needs: [ build, unit-test ]
-    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
+    uses: canonical/identity-team/.github/workflows/_rock-gh-publish.yaml@6e3d618fb7650a26b7a2254a15fef1d28373bd9d # v1.17.1
     with:
       candidate: true
 
@@ -74,7 +74,7 @@ jobs:
       actions: read
     if: ${{ !cancelled() && (needs.gh-publish-branch.result == 'success' || needs.gh-publish-candidate.result == 'success') }}
     needs: [ gh-publish-branch, gh-publish-candidate ]
-    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
+    uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@6e3d618fb7650a26b7a2254a15fef1d28373bd9d # v1.17.1
     with:
       image: ${{ needs.gh-publish-candidate.outputs.image || needs.gh-publish-branch.outputs.image }}
       exit-code: '1'
@@ -88,7 +88,7 @@ jobs:
       contents: write
     if: ${{ github.ref_type == 'tag' }}
     needs: [ gh-publish-candidate, scan ]
-    uses: canonical/identity-team/.github/workflows/_rock-promote.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
+    uses: canonical/identity-team/.github/workflows/_rock-promote.yaml@6e3d618fb7650a26b7a2254a15fef1d28373bd9d # v1.17.1
     with:
       candidate-image: ${{ needs.gh-publish-candidate.outputs.image }}
       release-tag: ${{ github.ref_name }}
@@ -98,7 +98,7 @@ jobs:
     # only release to oci-factory in case of release
     if: github.ref_type == 'tag'
     needs: [ promote ]
-    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
+    uses: canonical/identity-team/.github/workflows/_rock-oci-publish.yaml@6e3d618fb7650a26b7a2254a15fef1d28373bd9d # v1.17.1
     with:
       eol-stable-release: "6 month"
     secrets:
@@ -110,7 +110,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@fc85af7448538c473be450dc2c8ec5d158ea0d15 # v1.17.0
+    uses: canonical/identity-team/.github/workflows/oci-update-pr.yaml@6e3d618fb7650a26b7a2254a15fef1d28373bd9d # v1.17.1
     with:
         oci-image: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
         repository: canonical/identity-platform-login-ui-operator
