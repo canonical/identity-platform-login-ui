@@ -74,7 +74,7 @@ The extension MUST check each pick:
 - The browser has a session. If not, the answer is `401`.
 - The account is linked to the connection. If not, the answer is `403` "Provider not allowed".
 
-The company sign-in SHALL run on a new login flow. The extension SHALL create this flow without the Kratos session cookie. The flow SHALL return to `/api/v0/sso/complete?return_to=<return_to of the refresh flow>`. The company sign-in SHALL be for the tenant of the link and the address of the session. It SHALL have `reauthenticate` set, so that the identity provider asks the user to log in again.
+The company sign-in SHALL run on a new login flow. The extension SHALL create this flow without the Kratos session cookie. The flow SHALL return to `/api/v0/sso/complete?return_to=<return_to of the refresh flow>`. The company sign-in SHALL be for the tenant of the link and the address of the session. It SHALL have `reauthenticate` set, so that the SSO service asks the identity provider for a fresh login (see `re-authentication`).
 
 Kratos issues a new session that authenticated just now. `/api/v0/sso/complete` confirms the attempt and records provenance. Then it returns to the page that asked.
 
