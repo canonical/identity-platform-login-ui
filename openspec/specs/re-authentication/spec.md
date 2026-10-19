@@ -81,7 +81,7 @@ This rule applies to a company sign-in that starts from the sign-in screen, or b
 - The request has a `max_age` that the current session exceeds.
 - There is no session, and the request has `max_age=0`.
 
-The SSO service then asks the identity provider for a fresh login. When a user signs in again for a settings change (`connected-accounts`), `reauthenticate` is always set.
+The SSO service then asks the identity provider for a fresh login. The identity provider can ignore that request. No service checks that the user signed in again at the identity provider. When a user signs in again for a settings change (`connected-accounts`), `reauthenticate` is always set.
 
 #### Scenario: `prompt=login` at a tenant that requires company sign-in
 - **WHEN** the user has a session from the company sign-in of that tenant, and the app sends `prompt=login`
