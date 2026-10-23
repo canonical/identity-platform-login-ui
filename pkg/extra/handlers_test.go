@@ -334,3 +334,200 @@ func TestHandleConsentFailOnCheckSession(t *testing.T) {
 		t.Fatalf("expected HTTP status code 403 got %v", res.StatusCode)
 	}
 }
+
+func TestHandleConsentWhenExtensionRejects(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockExtension := NewMockExtensionInterface(ctrl)
+
+	session := kClient.NewSession("test")
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL1)
+	consent := hClient.NewOAuth2ConsentRequest("challenge")
+	reject := "https://test.com/callback?error=login_required"
+
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
+	w := httptest.NewRecorder()
+
+	// the consent is not accepted
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
+	mockExtension.EXPECT().GateConsent(gomock.Any(), session, consent).Times(1).Return(reject, nil)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockTracer, mockLogger, WithExtension(mockExtension)).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("expected HTTP status code 200 got %v", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	defer res.Body.Close()
+
+	if err != nil {
+		t.Fatalf("expected error to be nil got %v", err)
+	}
+
+	redirect := hClient.NewOAuth2RedirectToWithDefaults()
+	if err := json.Unmarshal(data, redirect); err != nil {
+		t.Fatalf("expected error to be nil got %v", err)
+	}
+
+	if redirect.RedirectTo != reject {
+		t.Fatalf("expected %s, got %s.", reject, redirect.RedirectTo)
+	}
+}
+
+func TestHandleConsentWhenExtensionApproves(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockExtension := NewMockExtensionInterface(ctrl)
+
+	session := kClient.NewSession("test")
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL1)
+	consent := hClient.NewOAuth2ConsentRequest("challenge")
+	accept := hClient.NewOAuth2RedirectTo("test")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
+	w := httptest.NewRecorder()
+
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
+	mockExtension.EXPECT().GateConsent(gomock.Any(), session, consent).Times(1).Return("", nil)
+	mockService.EXPECT().AcceptConsent(gomock.Any(), *session.Identity, consent, gomock.Any()).Return(accept, nil)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockTracer, mockLogger, WithExtension(mockExtension)).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("expected HTTP status code 200 got %v", res.StatusCode)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	defer res.Body.Close()
+
+	if err != nil {
+		t.Fatalf("expected error to be nil got %v", err)
+	}
+
+	redirect := hClient.NewOAuth2RedirectToWithDefaults()
+	if err := json.Unmarshal(data, redirect); err != nil {
+		t.Fatalf("expected error to be nil got %v", err)
+	}
+
+	if redirect.RedirectTo != accept.RedirectTo {
+		t.Fatalf("expected %s, got %s.", accept.RedirectTo, redirect.RedirectTo)
+	}
+}
+
+func TestHandleConsentFailOnGateConsent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockExtension := NewMockExtensionInterface(ctrl)
+
+	session := kClient.NewSession("test")
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL1)
+	consent := hClient.NewOAuth2ConsentRequest("challenge")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
+	w := httptest.NewRecorder()
+
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockService.EXPECT().GetConsent(gomock.Any(), "7bb518c4eec2454dbb289f5fdb4c0ee2").Return(consent, nil)
+	mockExtension.EXPECT().GateConsent(gomock.Any(), session, consent).Times(1).Return("", fmt.Errorf("error"))
+	mockLogger.EXPECT().Errorf(gomock.Any(), gomock.Any()).Times(1)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockKratosService, BASE_URL, false, false, mockTracer, mockLogger, WithExtension(mockExtension)).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected HTTP status code 403 got %v", res.StatusCode)
+	}
+}
+
+func TestHandleConsentInvalidPasswordAALWithExtension(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockService := NewMockServiceInterface(ctrl)
+	mockKratosService := kratos.NewMockServiceInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockExtension := NewMockExtensionInterface(ctrl)
+
+	session := kClient.NewSessionWithDefaults()
+	session.Identity = kClient.NewIdentity("test", "test.json", "https://test.com/test.json", map[string]string{"name": "name"})
+	session.SetAuthenticatorAssuranceLevel(kClient.AUTHENTICATORASSURANCELEVEL_AAL1)
+
+	method := "password"
+	var authnMethods []kClient.SessionAuthenticationMethod
+	authnMethods = append(authnMethods, kClient.SessionAuthenticationMethod{Method: &method})
+	session.AuthenticationMethods = authnMethods
+
+	req := httptest.NewRequest(http.MethodGet, "/api/consent", nil)
+
+	values := req.URL.Query()
+	values.Add("consent_challenge", "7bb518c4eec2454dbb289f5fdb4c0ee2")
+	req.URL.RawQuery = values.Encode()
+
+	w := httptest.NewRecorder()
+
+	// the aal check comes before the extension
+	mockKratosService.EXPECT().CheckSession(gomock.Any(), req.Cookies()).Return(session, nil, nil)
+	mockLogger.EXPECT().Errorf(gomock.Any()).Times(1)
+
+	mux := chi.NewMux()
+	NewAPI(mockService, mockKratosService, BASE_URL, true, false, mockTracer, mockLogger, WithExtension(mockExtension)).RegisterEndpoints(mux)
+
+	mux.ServeHTTP(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected HTTP status code 403 got %v", res.StatusCode)
+	}
+}

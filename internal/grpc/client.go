@@ -1,7 +1,7 @@
 // Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package tenants
+package grpc
 
 import (
 	"crypto/tls"
@@ -19,10 +19,10 @@ const (
 	keepaliveTimeout = 10 * time.Second
 )
 
-// NewGRPCConn creates a gRPC client connection to address, configured with
-// keepalive parameters and optionally TLS transport credentials.
-// The caller is responsible for closing the returned connection.
-func NewGRPCConn(address string, tlsEnabled bool) (*grpc.ClientConn, error) {
+// NewConn creates a gRPC client connection to the named service at address,
+// configured with keepalive parameters and optionally TLS transport
+// credentials. The caller is responsible for closing the returned connection.
+func NewConn(service, address string, tlsEnabled bool, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	var creds credentials.TransportCredentials
 	if tlsEnabled {
 		creds = credentials.NewTLS(&tls.Config{MinVersion: tls.VersionTLS12})
@@ -30,17 +30,18 @@ func NewGRPCConn(address string, tlsEnabled bool) (*grpc.ClientConn, error) {
 		creds = insecure.NewCredentials()
 	}
 
-	conn, err := grpc.NewClient(
-		address,
+	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(creds),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                keepaliveTime,
 			Timeout:             keepaliveTimeout,
 			PermitWithoutStream: true,
 		}),
-	)
+	}
+
+	conn, err := grpc.NewClient(address, append(dialOpts, opts...)...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create gRPC client for tenant-service at %s: %v", address, err)
+		return nil, fmt.Errorf("failed to create gRPC client for %s at %s: %v", service, address, err)
 	}
 
 	return conn, nil

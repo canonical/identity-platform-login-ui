@@ -8,12 +8,22 @@ import { CheckboxInput, Spinner } from "@canonical/react-components";
 import { AxiosError } from "axios";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import React from "react";
-import { handleFlowError } from "../util/handleFlowError";
+import {
+  getInPlaceErrorMessage,
+  handleFlowError,
+  isKratosError,
+} from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
 import { FlowMessages } from "../components/FlowMessages";
-import { kratos, loginIdentifierFirst } from "../api/kratos";
+import { RedirectingNotice } from "../components/RedirectingNotice";
+import { getRedirectLabel, useLabelledRedirect } from "../util/redirectTo";
+import {
+  IdentifierFirstError,
+  kratos,
+  loginIdentifierFirst,
+} from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
 import { replaceAuthLabel } from "../util/replaceAuthLabel";
@@ -27,6 +37,9 @@ import {
   isSignInEmailInput,
   isSignInWithHardwareKey,
   isSignInWithPassword,
+  isSsoNode,
+  isTenantChoice,
+  isTenantNode,
 } from "../util/constants";
 import {
   isWebauthnAutologin,
@@ -70,6 +83,14 @@ const resolveLoginTitle = (
 const Login: NextPage = () => {
   const [flow, setFlow] = useState<LoginFlow>();
   const [isSequencedLogin, setSequencedLogin] = useState(false);
+  // An error the backend answered with instead of a flow, shown in place.
+  const [inPlaceError, setInPlaceError] = useState<string>();
+  // A tenant or company sign-in pick in flight, and why the last one failed.
+  const [pickPending, setPickPending] = useState(false);
+  const pickInFlight = useRef(false);
+  const [pickError, setPickError] = useState<string>();
+  // Set while the browser is being sent to a company sign-in.
+  const [redirectLabel, redirectWithLabel] = useLabelledRedirect();
   const isAuthCode = flow?.ui.nodes.find((node) => node.group === "totp");
   // Only auto-select the WebAuthn form when WebAuthn is the *sole* 2FA method.
   // When TOTP is also registered the selection page must show both options so the
@@ -123,6 +144,20 @@ const Login: NextPage = () => {
     window.location.href = `./error${idParam}`;
   };
 
+  // Keep the user on the login page for an error that is shown in place,
+  // pass any other error on.
+  const handleInPlaceError = (err: Error) => {
+    const data =
+      err instanceof IdentifierFirstError
+        ? err.data
+        : (err as AxiosError).response?.data;
+    const message = getInPlaceErrorMessage(data);
+    if (!message) {
+      return Promise.reject(err);
+    }
+    setInPlaceError(message);
+  };
+
   useEffect(() => {
     // If the router is not ready yet, do nothing.
     if (!router.isReady) {
@@ -139,6 +174,7 @@ const Login: NextPage = () => {
         .getLoginFlow({ id: String(flowId) })
         .then((res) => setFlow(res.data))
         .catch(handleFlowError("login", setFlow))
+        .catch(handleInPlaceError)
         .catch(redirectToErrorPage);
       return;
     }
@@ -163,6 +199,11 @@ const Login: NextPage = () => {
       })
       .then(async ({ data }: FlowResponse) => {
         if (data.redirect_to !== undefined) {
+          const label = getRedirectLabel(data);
+          if (label) {
+            redirectWithLabel(data.redirect_to, label);
+            return;
+          }
           const addendum = data.redirect_to.includes("?") ? "&" : "?";
           const pwParam = pwChanged
             ? `${addendum}pw_changed=${pwChanged as string}`
@@ -185,6 +226,7 @@ const Login: NextPage = () => {
         );
       })
       .catch(handleFlowError("login", setFlow))
+      .catch(handleInPlaceError)
       .catch(redirectToErrorPage);
   }, [
     flowId,
@@ -249,11 +291,12 @@ const Login: NextPage = () => {
         )
           .then((data) => {
             if ("redirect_to" in data) {
-              window.location.href = data.redirect_to;
+              redirectWithLabel(data.redirect_to, getRedirectLabel(data));
             } else {
               setFlow(data);
             }
           })
+          .catch(handleInPlaceError)
           .catch(redirectToErrorPage);
       }
 
@@ -271,7 +314,10 @@ const Login: NextPage = () => {
             return;
           }
           if ("redirect_to" in data) {
-            window.location.href = data.redirect_to as string;
+            redirectWithLabel(
+              data.redirect_to as string,
+              getRedirectLabel(data),
+            );
             return;
           }
           if (flow?.return_to) {
@@ -282,12 +328,25 @@ const Login: NextPage = () => {
         .catch(handleFlowError("login", setFlow))
         .catch((err: AxiosError<LoginFlow>) => {
           if (err.response?.status === 400) {
-            if ("ui" in err.response.data) {
+            if (
+              typeof err.response.data === "object" &&
+              "ui" in err.response.data
+            ) {
               setFlow(err.response.data);
               return;
             }
 
             // A Kratos error handleFlowError does not know how to recover from
+            redirectToErrorPage();
+            return;
+          }
+
+          if (getInPlaceErrorMessage(err.response?.data)) {
+            return handleInPlaceError(err);
+          }
+
+          // A Kratos error passed on with the status Kratos gave it
+          if (isKratosError(err.response?.data)) {
             redirectToErrorPage();
             return;
           }
@@ -312,6 +371,14 @@ const Login: NextPage = () => {
     },
     [flow, router, login_challenge],
   );
+
+  // Called where the user acts, never from handleSubmit: the page also calls
+  // that while rendering.
+  const clearErrors = () => {
+    setInPlaceError(undefined);
+    setPickError(undefined);
+  };
+
   const reqName = flow?.oauth2_login_request?.client?.client_name ?? "";
   const reqDomain = flow?.oauth2_login_request?.client?.client_uri
     ? new URL(flow.oauth2_login_request.client.client_uri).hostname
@@ -413,16 +480,76 @@ const Login: NextPage = () => {
       });
     }
 
-    // ensure oidc options are presented after username/password inputs
+    // The tenant list and the company sign-ins, which the backend adds.
+    const isPick = (node: UiNode) => isTenantNode(node) || isSsoNode(node);
+
+    // ensure oidc options are presented after username/password inputs,
+    // and the tenant list after both
     renderFlow.ui.nodes.sort((a, b) => {
-      const toValue = (node: UiNode) => (node.group === "oidc" ? 1 : -1);
+      const toValue = (node: UiNode) =>
+        isTenantNode(node) ? 2 : node.group === "oidc" ? 1 : -1;
       return toValue(a) - toValue(b);
     });
+
+    // A tenant or company sign-in pick posts only itself: a value kept in the
+    // form from an earlier pick must not ride along with a password.
+    renderFlow.ui.nodes.filter(isPick).forEach((node) => {
+      const label = node.meta.label;
+      if (!label || node.attributes.node_type !== "input") {
+        return;
+      }
+      const attributes = node.attributes as UiNodeInputAttributes;
+      attributes.disabled = pickPending;
+      node.meta.label = {
+        ...label,
+        context: {
+          ...label.context,
+          onClick: () => {
+            if (pickInFlight.current) {
+              return;
+            }
+            pickInFlight.current = true;
+            setPickPending(true);
+            clearErrors();
+            void handleSubmit({
+              csrf_token: getCsrfToken(renderFlow.ui.nodes),
+              [attributes.name]: attributes.value as string,
+            } as unknown as UpdateLoginFlowBody)
+              .catch(() => setPickError("Something went wrong. Try again."))
+              .finally(() => {
+                pickInFlight.current = false;
+                setPickPending(false);
+              });
+          },
+        },
+      };
+    });
+
+    const firstTenant = renderFlow.ui.nodes.find(isTenantChoice);
+    // The tenant list is the whole screen: the account's own sign-ins belong
+    // to the tenant that accepts them, shown once it is picked.
+    if (firstTenant?.meta.label) {
+      firstTenant.meta.label = {
+        ...firstTenant.meta.label,
+        context: {
+          ...firstTenant.meta.label?.context,
+          beforeComponent: (
+            <p className="p-heading--5 u-sv1">Choose a tenant to sign in to</p>
+          ),
+        },
+      };
+    }
 
     // autosubmit webauthn in case email is provided (1FA only — in AAL2 the
     // identity is already known from the session, so skip auto-submit)
     const email = urlParams.get("email");
-    if (isWebauthn && email && flow?.requested_aal !== "aal2") {
+    // an error the submission was answered with is shown in place instead
+    if (
+      isWebauthn &&
+      email &&
+      flow?.requested_aal !== "aal2" &&
+      !inPlaceError
+    ) {
       void handleSubmit({
         method: "webauthn",
         identifier: email,
@@ -437,12 +564,33 @@ const Login: NextPage = () => {
     }
   }
 
-  if (!flow) {
-    return;
+  if (redirectLabel) {
+    return (
+      <PageLayout title="Sign in">
+        <RedirectingNotice label={redirectLabel} />
+      </PageLayout>
+    );
   }
 
-  // Flow-level messages, which are not attached to a node.
-  const flowMessages = flow.ui.messages ?? [];
+  if (!flow) {
+    // No flow to render, e.g. single sign-on was unavailable while creating it.
+    return inPlaceError ? (
+      <PageLayout title="Sign in">
+        <FlowMessages
+          messages={[{ id: 0, type: "error", text: inPlaceError }]}
+        />
+      </PageLayout>
+    ) : undefined;
+  }
+
+  // Flow-level messages, e.g. a rejection by the company's identity provider.
+  const flowMessages = [
+    ...(flow.ui.messages ?? []),
+    ...(inPlaceError
+      ? [{ id: 0, type: "error" as const, text: inPlaceError }]
+      : []),
+    ...(pickError ? [{ id: 0, type: "error" as const, text: pickError }] : []),
+  ];
   // An error FlowMessages leaves out is not one the user gets to see here.
   const hasFlowError = flowMessages.some(
     (message) => message.type === "error" && !isErrorAnsweredByBackend(message),
@@ -524,7 +672,13 @@ const Login: NextPage = () => {
             </p>
           )}
           {flow ? (
-            <Flow onSubmit={handleSubmit} flow={renderFlow} />
+            <Flow
+              onSubmit={(values: UpdateLoginFlowBody) => {
+                clearErrors();
+                return handleSubmit(values);
+              }}
+              flow={renderFlow}
+            />
           ) : (
             <Spinner />
           )}

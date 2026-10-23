@@ -10,7 +10,11 @@ import { AxiosError } from "axios";
 import type { NextPage } from "next";
 import { NextRouter, useRouter } from "next/router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { handleFlowError } from "../util/handleFlowError";
+import {
+  getInPlaceErrorMessage,
+  handleFlowError,
+  isKratosError,
+} from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
 import { kratos } from "../api/kratos";
 import PageLayout from "../components/PageLayout";
@@ -23,7 +27,12 @@ import {
 import { setFlowIDQueryParam } from "../util/flowHelper";
 import { RegisterPassword } from "../components/RegisterPassword";
 import { isRegisterPasswordInput } from "../util/constants";
-import { redirectTo } from "../util/redirectTo";
+import {
+  getRedirectLabel,
+  redirectTo,
+  useLabelledRedirect,
+} from "../util/redirectTo";
+import { RedirectingNotice } from "../components/RedirectingNotice";
 
 type FlowPreparer = (values: any) => UpdateRegistrationFlowBody;
 type SupportedFlowMethods = "oidc" | "password" | "profile";
@@ -80,6 +89,8 @@ const Registration: NextPage = () => {
   const [flow, setFlow] = useState<RegistrationFlow>();
   const router = useRouter();
   const { return_to: returnTo, flow: flowId } = router.query;
+  // Set while the browser is being sent to a company sign-in.
+  const [redirectLabel, redirectWithLabel] = useLabelledRedirect();
 
   const redirectToErrorPage = () => {
     const idParam = flowId ? `?id=${flowId.toString()}` : "";
@@ -142,6 +153,12 @@ const Registration: NextPage = () => {
             );
 
             if (redirectAction) {
+              // The address belongs to a company sign-in: go there.
+              const label = getRedirectLabel(data);
+              if (label) {
+                redirectWithLabel(redirectAction.redirect_browser_to, label);
+                return;
+              }
               redirectTo(redirectAction.redirect_browser_to, router);
               return;
             }
@@ -151,8 +168,22 @@ const Registration: NextPage = () => {
         })
         .catch(handleFlowError("registration", setFlow))
         .catch((err: AxiosError<RegistrationFlow>) => {
-          if (err.response?.status === 400) {
+          if (
+            err.response?.status === 400 &&
+            !isKratosError(err.response.data)
+          ) {
             setFlow(err.response.data);
+            return;
+          }
+          // Flow shows the response body as the error: give it the message
+          // of an error the backend answers with one.
+          const message = getInPlaceErrorMessage(err.response?.data);
+          if (message) {
+            return Promise.reject({ response: { data: message } });
+          }
+          // A Kratos error handleFlowError does not know how to recover from
+          if (isKratosError(err.response?.data)) {
+            redirectToErrorPage();
             return;
           }
           return Promise.reject(err);
@@ -202,6 +233,14 @@ const Registration: NextPage = () => {
 
     return { ...flow, ui: { ...flow.ui, nodes: reorderedNodes } };
   }, [flow]);
+
+  if (redirectLabel) {
+    return (
+      <PageLayout title="Create your account">
+        <RedirectingNotice label={redirectLabel} />
+      </PageLayout>
+    );
+  }
 
   if (
     flow?.state === "choose_method" &&
