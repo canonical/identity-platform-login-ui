@@ -33,6 +33,15 @@ type FlowType =
 const newFlowUrl = (flowType: FlowType) => {
   let page: string;
   switch (flowType) {
+    case "login": {
+      // Keep the login challenge, unless no flow could be created for it:
+      // starting one again would fail the same way.
+      const params = new URLSearchParams(window.location.search);
+      const loginChallenge = params.get("login_challenge");
+      return loginChallenge && params.has("flow")
+        ? `./login?login_challenge=${encodeURIComponent(loginChallenge)}`
+        : "./login";
+    }
     case "registration":
       page = "./register";
       break;
