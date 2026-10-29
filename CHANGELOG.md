@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.29.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.29.0...v0.29.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* **deps:** update module google.golang.org/grpc to v1.85.0 ([0fdb799](https://github.com/canonical/identity-platform-login-ui/commit/0fdb799135935907814be4e69e17f9a5da6a3bd1))
+* **deps:** update module google.golang.org/grpc to v1.85.0 ([#1018](https://github.com/canonical/identity-platform-login-ui/issues/1018)) ([bcd72ae](https://github.com/canonical/identity-platform-login-ui/commit/bcd72aee43249565e3848442fe5714869154c079))
+
 ## [0.29.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.28.0...v0.29.0) (2026-10-16)
 
 
