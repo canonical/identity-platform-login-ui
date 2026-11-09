@@ -79,7 +79,11 @@ const nodeOrder = ["default", "profile", "oidc"];
 const Registration: NextPage = () => {
   const [flow, setFlow] = useState<RegistrationFlow>();
   const router = useRouter();
-  const { return_to: returnTo, flow: flowId } = router.query;
+  const {
+    return_to: returnTo,
+    login_challenge: loginChallenge,
+    flow: flowId,
+  } = router.query;
 
   const redirectToErrorPage = () => {
     const idParam = flowId ? `?id=${flowId.toString()}` : "";
@@ -107,6 +111,7 @@ const Registration: NextPage = () => {
     kratos
       .createBrowserRegistrationFlow({
         returnTo: returnTo ? String(returnTo) : undefined,
+        loginChallenge: loginChallenge ? String(loginChallenge) : undefined,
       })
       .then(({ data }) => {
         setFlow(data);
@@ -114,7 +119,7 @@ const Registration: NextPage = () => {
       })
       .catch(handleFlowError("registration", setFlow))
       .catch(redirectToErrorPage);
-  }, [flowId, router, router.isReady, returnTo, flow]);
+  }, [flowId, router, router.isReady, returnTo, loginChallenge, flow]);
 
   const handleSubmit = useCallback(
     (values: UpdateRegistrationFlowBody) => {

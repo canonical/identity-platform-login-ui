@@ -1045,7 +1045,7 @@ func TestService_CreateBrowserRegistrationFlow(t *testing.T) {
 			CreateBrowserRegistrationFlowExecute(gomock.Any()).
 			Return(nil, nil, errors.New("registration failure"))
 
-		flow, cookies, err := service.CreateBrowserRegistrationFlow(ctx, "/fail")
+		flow, cookies, err := service.CreateBrowserRegistrationFlow(ctx, "/fail", "")
 
 		if flow != nil {
 			t.Fatalf("expected flow to be nil")
@@ -1076,7 +1076,7 @@ func TestService_CreateBrowserRegistrationFlow(t *testing.T) {
 			CreateBrowserRegistrationFlowExecute(gomock.Any()).
 			Return(expectedFlow, resp, nil)
 
-		flow, cookies, err := service.CreateBrowserRegistrationFlow(ctx, "/success")
+		flow, cookies, err := service.CreateBrowserRegistrationFlow(ctx, "/success", "")
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -1091,6 +1091,64 @@ func TestService_CreateBrowserRegistrationFlow(t *testing.T) {
 			t.Fatalf("expected cookie foo=bar, got %v", cookies)
 		}
 	})
+}
+
+func registrationLoginChallenge(r kClient.FrontendAPICreateBrowserRegistrationFlowRequest) string {
+	field := reflect.ValueOf(r).FieldByName("loginChallenge")
+	if field.IsNil() {
+		return ""
+	}
+	return field.Elem().String()
+}
+
+func TestService_CreateBrowserRegistrationFlowLoginChallenge(t *testing.T) {
+	for _, tc := range []struct {
+		name                          string
+		oidcWebAuthnSequencingEnabled bool
+		multiTenancyEnabled           bool
+		expected                      string
+	}{
+		{name: "passed on to Kratos", expected: "challenge-123"},
+		{name: "left to the login UI with OIDC WebAuthn sequencing", oidcWebAuthnSequencingEnabled: true},
+		{name: "left to the login UI with multi-tenancy", multiTenancyEnabled: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockTracer := NewMockTracingInterface(ctrl)
+			mockKratos := NewMockKratosClientInterface(ctrl)
+			mockFrontendApi := NewMockFrontendAPI(ctrl)
+
+			service := &Service{
+				tracer:                        mockTracer,
+				kratos:                        mockKratos,
+				oidcWebAuthnSequencingEnabled: tc.oidcWebAuthnSequencingEnabled,
+				multiTenancyEnabled:           tc.multiTenancyEnabled,
+			}
+
+			ctx := context.Background()
+			mockTracer.EXPECT().Start(ctx, "kratos.Service.CreateBrowserRegistrationFlow").Return(ctx, trace.SpanFromContext(ctx))
+			mockKratos.EXPECT().FrontendApi().Return(mockFrontendApi).Times(2)
+			mockFrontendApi.EXPECT().CreateBrowserRegistrationFlow(ctx).
+				Return(kClient.FrontendAPICreateBrowserRegistrationFlowRequest{ApiService: mockFrontendApi})
+
+			var sent kClient.FrontendAPICreateBrowserRegistrationFlowRequest
+			mockFrontendApi.EXPECT().
+				CreateBrowserRegistrationFlowExecute(gomock.Any()).
+				DoAndReturn(func(r kClient.FrontendAPICreateBrowserRegistrationFlowRequest) (*kClient.RegistrationFlow, *http.Response, error) {
+					sent = r
+					return &kClient.RegistrationFlow{Id: "flow"}, nil, nil
+				})
+
+			if _, _, err := service.CreateBrowserRegistrationFlow(ctx, "", "challenge-123"); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if got := registrationLoginChallenge(sent); got != tc.expected {
+				t.Fatalf("expected login challenge %q sent to Kratos, got %q", tc.expected, got)
+			}
+		})
+	}
 }
 
 func TestService_UpdateRegistrationFlow(t *testing.T) {

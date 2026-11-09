@@ -70,7 +70,7 @@ type ServiceInterface interface {
 	AcceptLoginRequest(context.Context, *kClient.Session, string, string) (*BrowserLocationChangeRequired, []*http.Cookie, error)
 	MustReAuthenticate(context.Context, string, *kClient.Session, cookies.FlowStateCookie) (bool, error)
 	CreateBrowserLoginFlow(context.Context, string, string, string, bool, []*http.Cookie) (*kClient.LoginFlow, []*http.Cookie, error)
-	CreateBrowserRegistrationFlow(context.Context, string) (*kClient.RegistrationFlow, []*http.Cookie, error)
+	CreateBrowserRegistrationFlow(context.Context, string, string) (*kClient.RegistrationFlow, []*http.Cookie, error)
 	CreateBrowserRecoveryFlow(context.Context, string) (*kClient.RecoveryFlow, []*http.Cookie, error)
 	CreateBrowserSettingsFlow(context.Context, string, []*http.Cookie) (*kClient.SettingsFlow, *BrowserLocationChangeRequired, error)
 	CreateBrowserVerificationFlow(context.Context, []*http.Cookie) (*kClient.VerificationFlow, []*http.Cookie, error)
