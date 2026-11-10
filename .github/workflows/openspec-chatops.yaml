@@ -1,0 +1,133 @@
+name: OpenSpec ChatOps Archiver
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  openspec-archive:
+    # Trigger only if comment is on a PR AND contains /archive-spec
+    if: >
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/archive-spec') &&
+      (
+        github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'COLLABORATOR'
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Checkout PR Branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr checkout ${{ github.event.issue.number }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '26'
+
+      - name: Discover Active OpenSpec Changes
+        id: discover
+        run: |
+          CHANGES_JSON=$(npx @fission-ai/openspec list --json || echo "{}")
+          ACTIVE_CHANGES=$(echo "$CHANGES_JSON" | jq -r '.changes? | map(.name)? | join(" ")' || echo "")
+
+          if [ -z "$ACTIVE_CHANGES" ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "changes=$ACTIVE_CHANGES" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify No Active Changes
+        if: steps.discover.outputs.has_changes == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.issue.number }} \
+            --body "⚠️ **OpenSpec ChatOps**: No active OpenSpec changes found to archive."
+
+      - name: Verify Task Completion (tasks.md)
+        if: steps.discover.outputs.has_changes == 'true'
+        env:
+          CHANGES: ${{ steps.discover.outputs.changes }}
+        run: |
+          for CHANGE in $CHANGES; do
+            TASKS_FILE="openspec/changes/$CHANGE/tasks.md"
+            if [ -f "$TASKS_FILE" ]; then
+              INCOMPLETE=$(grep -c '^\s*-\s*\[ \]' "$TASKS_FILE" || true)
+              if [ "$INCOMPLETE" -gt 0 ]; then
+                echo "ERROR_MSG=Change **\`$CHANGE\`**: Has **$INCOMPLETE** incomplete task(s) remaining in \`tasks.md\`." >> $GITHUB_ENV
+                exit 1
+              fi
+            fi
+          done
+
+      - name: Validate OpenSpec Schemas
+        if: steps.discover.outputs.has_changes == 'true'
+        env:
+          CHANGES: ${{ steps.discover.outputs.changes }}
+        run: |
+          for CHANGE in $CHANGES; do
+            if ! npx @fission-ai/openspec validate "$CHANGE" --strict; then
+              echo "ERROR_MSG=Change **\`$CHANGE\`**: Failed OpenSpec schema validation." >> $GITHUB_ENV
+              exit 1
+            fi
+          done
+
+      - name: Execute OpenSpec Archive
+        if: steps.discover.outputs.has_changes == 'true'
+        env:
+          CHANGES: ${{ steps.discover.outputs.changes }}
+        run: |
+          for CHANGE in $CHANGES; do
+            if ! npx @fission-ai/openspec archive "$CHANGE" --yes; then
+              echo "ERROR_MSG=Change **\`$CHANGE\`**: Archival step failed during merge." >> $GITHUB_ENV
+              exit 1
+            fi
+          done
+
+      - name: Commit and Push Changes
+        if: steps.discover.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add openspec/
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(openspec): archive completed spec change"
+            git push origin HEAD
+          fi
+
+      - name: Post Success Comment
+        if: steps.discover.outputs.has_changes == 'true' && success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.issue.number }} \
+            --body "✅ **OpenSpec Archival Successful**: All tasks verified and changes merged into \`openspec/specs/\`."
+
+      - name: Post Failure Comment
+        if: steps.discover.outputs.has_changes == 'true' && failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ERROR_MSG: ${{ env.ERROR_MSG }}
+        run: |
+          gh pr comment ${{ github.event.issue.number }} \
+            --body "### ❌ OpenSpec Archival Paused
+
+          ${ERROR_MSG:-An error occurred during archival verification.}
+
+          Please resolve the issue on your branch and reply with \`/archive-spec\` to try again."
