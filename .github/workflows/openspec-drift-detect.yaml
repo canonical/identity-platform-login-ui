@@ -58,6 +58,7 @@ jobs:
         id: pr_state
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           STATE=$(gh pr view ${{ github.event.issue.number }} --json state --jq .state)
           echo "state=$STATE" >> "$GITHUB_OUTPUT"
@@ -67,6 +68,7 @@ jobs:
           fi
 
       - name: Checkout repository
+        if: github.event_name == 'pull_request' || steps.pr_state.outputs.state == 'OPEN'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: true
@@ -129,7 +131,8 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
         run: |
           gh pr comment "$PR_NUMBER" \
-            --body "❌ **OpenSpec Drift Detection failed** — this is an infrastructure or audit-execution failure, not a drift verdict. See the [run logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+            --body "❌ **OpenSpec Drift Detection failed** — this is an infrastructure or audit-execution failure, not a drift verdict. See the [run logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})." || true
