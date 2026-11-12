@@ -135,7 +135,25 @@ const Login: NextPage = () => {
     if (flowId) {
       kratos
         .getLoginFlow({ id: String(flowId) })
-        .then((res) => setFlow(res.data))
+        .then(async (res) => {
+          setFlow(res.data);
+
+          // Keep the login challenge in the URL, so that a login restarted
+          // from this step (handleFlowError) is still the OIDC client's.
+          const loginChallenge = res.data.oauth2_login_challenge;
+          if (loginChallenge && !login_challenge) {
+            await router.replace(
+              {
+                query: {
+                  ...router.query,
+                  login_challenge: loginChallenge,
+                },
+              },
+              undefined,
+              { shallow: true },
+            );
+          }
+        })
         .catch(handleFlowError("login", setFlow))
         .catch(redirectToErrorPage);
       return;
