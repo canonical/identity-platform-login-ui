@@ -95,6 +95,12 @@ func WithKratosPublicURL(url string) Option {
 	}
 }
 
+func WithHydraAdminURL(url string) Option {
+	return func(r *routerConfig) {
+		r.hydraAdminURL = url
+	}
+}
+
 func WithTenantsServiceClient(client tenants.TenantServiceClientInterface) Option {
 	return func(r *routerConfig) {
 		r.tenantsServiceClient = client
@@ -141,6 +147,7 @@ type routerConfig struct {
 	supportEmail                  string
 	featureFlags                  []string
 	kratosPublicURL               string
+	hydraAdminURL                 string
 	tracer                        tracing.TracingInterface
 	monitor                       monitoring.MonitorInterface
 	logger                        logging.LoggerInterface
@@ -232,7 +239,15 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		config.identifierFirstEnabled,
 		config.multiTenancyEnabled,
 		config.featureFlags,
-		status.NewService(config.kratosClient.MetadataApi(), config.hydraClient.MetadataAPI(), config.tracer, config.monitor, config.logger),
+		status.NewService(
+			config.kratosPublicURL,
+			config.hydraAdminURL,
+			config.kratosClient.MetadataApi(),
+			config.hydraClient.MetadataAPI(),
+			config.tracer,
+			config.monitor,
+			config.logger,
+		),
 		config.tracer,
 		config.monitor,
 		config.logger,

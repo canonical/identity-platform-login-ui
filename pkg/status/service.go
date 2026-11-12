@@ -32,6 +32,9 @@ type Service struct {
 	hydraStatus  healthcheck.CheckerInterface
 	kratosStatus healthcheck.CheckerInterface
 
+	kratosURL string
+	hydraURL  string
+
 	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
 	logger  logging.LoggerInterface
@@ -77,6 +80,12 @@ func (s *Service) kratosReady(ctx context.Context) (bool, error) {
 	ctx, span := s.tracer.Start(ctx, "status.Service.kratosReady")
 	defer span.End()
 
+	if s.kratosURL == "" {
+		// Kratos is not configured; treat it as unavailable (no error).
+		span.SetStatus(codes.Ok, "")
+		return false, nil
+	}
+
 	// IsReady only checks the status of specific instance called, not the cluster status
 	ok, resp, err := s.kratos.IsReady(ctx).Execute()
 
@@ -107,6 +116,12 @@ func (s *Service) kratosReady(ctx context.Context) (bool, error) {
 func (s *Service) hydraReady(ctx context.Context) (bool, error) {
 	ctx, span := s.tracer.Start(ctx, "status.Service.hydraReady")
 	defer span.End()
+
+	if s.hydraURL == "" {
+		// Hydra is not configured; treat it as unavailable (no error).
+		span.SetStatus(codes.Ok, "")
+		return false, nil
+	}
 
 	// IsReady only checks the status of specific instance called, not the cluster status
 	ok, resp, err := s.hydra.IsReady(ctx).Execute()
@@ -150,11 +165,13 @@ func (s *Service) gitRevision(ctx context.Context, settings []debug.BuildSetting
 	return "n/a"
 }
 
-func NewService(kratos kClient.MetadataAPI, hydra hClient.MetadataAPI, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(kratosURL, hydraURL string, kratos kClient.MetadataAPI, hydra hClient.MetadataAPI, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
 	s := new(Service)
 
 	s.kratos = kratos
 	s.hydra = hydra
+	s.kratosURL = kratosURL
+	s.hydraURL = hydraURL
 
 	s.hydraStatus = healthcheck.NewChecker(s.hydraReady, tracer, logger)
 	s.kratosStatus = healthcheck.NewChecker(s.kratosReady, tracer, logger)
@@ -162,6 +179,13 @@ func NewService(kratos kClient.MetadataAPI, hydra hClient.MetadataAPI, tracer tr
 	s.monitor = monitor
 	s.tracer = tracer
 	s.logger = logger
+
+	if kratosURL == "" {
+		logger.Warn("Kratos public URL is not configured; Kratos will be reported as unavailable")
+	}
+	if hydraURL == "" {
+		logger.Warn("Hydra admin URL is not configured; Hydra will be reported as unavailable")
+	}
 
 	// TOOO @shipperizer hook up the Stop methods for each checker
 	s.hydraStatus.Start()
