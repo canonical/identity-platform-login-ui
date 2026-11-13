@@ -158,6 +158,7 @@ func buildRouter(specs *config.EnvSpec, distFS fs.FS, logger *logging.Logger, gr
 		web.WithSupportEmail(specs.SupportEmail),
 		web.WithFeatureFlags(specs.FeatureFlags),
 		web.WithKratosPublicURL(specs.KratosPublicURL),
+		web.WithHydraAdminURL(specs.HydraAdminURL),
 		web.WithTracing(tracer),
 		web.WithMonitoring(monitor),
 		web.WithLogger(logger),

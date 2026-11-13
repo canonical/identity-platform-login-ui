@@ -53,7 +53,9 @@ func TestKratosReadySuccess(t *testing.T) {
 		},
 	)
 
-	status, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).kratosReady(ctx)
+	kratosURL := "http://kratos"
+	hydraURL := "http://hydra"
+	status, err := NewService(kratosURL, hydraURL, mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).kratosReady(ctx)
 
 	if !status {
 		t.Fatalf("expected status to be %v not  %v", true, status)
@@ -93,7 +95,9 @@ func TestHydraReadySuccess(t *testing.T) {
 		},
 	)
 
-	status, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).hydraReady(ctx)
+	kratosURL := "http://kratos"
+	hydraURL := "http://hydra"
+	status, err := NewService(kratosURL, hydraURL, mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).hydraReady(ctx)
 
 	if !status {
 		t.Fatalf("expected status to be %v not  %v", true, status)
@@ -132,7 +136,9 @@ func TestKratosReadyFailure(t *testing.T) {
 		},
 	)
 
-	status, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).kratosReady(ctx)
+	kratosURL := "http://kratos"
+	hydraURL := "http://hydra"
+	status, err := NewService(kratosURL, hydraURL, mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).kratosReady(ctx)
 
 	if status {
 		t.Fatalf("expected status to be %v not  %v", false, status)
@@ -171,7 +177,9 @@ func TestHydraReadyFailure(t *testing.T) {
 		},
 	)
 
-	status, err := NewService(mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).hydraReady(ctx)
+	kratosURL := "http://kratos"
+	hydraURL := "http://hydra"
+	status, err := NewService(kratosURL, hydraURL, mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).hydraReady(ctx)
 
 	if status {
 		t.Fatalf("expected status to be %v not  %v", false, status)
@@ -179,5 +187,61 @@ func TestHydraReadyFailure(t *testing.T) {
 
 	if err == nil {
 		t.Fatalf("expected error not to be nil")
+	}
+}
+
+func TestKratosReadyEmptyURL(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratos := NewMockMetadataAPI(ctrl)
+	mockHydra := NewMockHydraMetadataAPI(ctrl)
+
+	ctx := context.Background()
+
+	mockLogger.EXPECT().Warn(gomock.Any()).Times(1)
+	mockTracer.EXPECT().Start(gomock.Any(), "status.Service.kratosReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).AnyTimes().Return(ctx, trace.SpanFromContext(ctx))
+	// No IsReady expectation: the SDK must not be called when the URL is empty
+
+	status, err := NewService("", "http://hydra", mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).kratosReady(ctx)
+
+	if status {
+		t.Fatalf("expected status to be %v not  %v", false, status)
+	}
+
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
+	}
+}
+
+func TestHydraReadyEmptyURL(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratos := NewMockMetadataAPI(ctrl)
+	mockHydra := NewMockHydraMetadataAPI(ctrl)
+
+	ctx := context.Background()
+
+	mockLogger.EXPECT().Warn(gomock.Any()).Times(1)
+	mockTracer.EXPECT().Start(gomock.Any(), "status.Service.hydraReady").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockTracer.EXPECT().Start(gomock.Any(), gomock.Any()).AnyTimes().Return(ctx, trace.SpanFromContext(ctx))
+	// No IsReady expectation: the SDK must not be called when the URL is empty
+
+	status, err := NewService("http://kratos", "", mockKratos, mockHydra, mockTracer, mockMonitor, mockLogger).hydraReady(ctx)
+
+	if status {
+		t.Fatalf("expected status to be %v not  %v", false, status)
+	}
+
+	if err != nil {
+		t.Fatalf("expected error to be nil not  %v", err)
 	}
 }
