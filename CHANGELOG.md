@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.29.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.29.0...v0.29.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.6 ([b29b8e5](https://github.com/canonical/identity-platform-login-ui/commit/b29b8e50f94fb0c0d75a87478f2a0a73a60e7898))
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.6 ([#1024](https://github.com/canonical/identity-platform-login-ui/issues/1024)) ([c795b8f](https://github.com/canonical/identity-platform-login-ui/commit/c795b8faaa32a6bc8c18a3518959ef40e165a659))
+* **deps:** update module github.com/openfga/go-sdk to v0.8.4 ([7472392](https://github.com/canonical/identity-platform-login-ui/commit/7472392de93936b58c82a93cf6398444b2400e77))
+* **deps:** update module github.com/openfga/go-sdk to v0.8.4 ([#1037](https://github.com/canonical/identity-platform-login-ui/issues/1037)) ([ce90840](https://github.com/canonical/identity-platform-login-ui/commit/ce9084071eb233c3854aa358e942a178993b376c))
+* **deps:** update module google.golang.org/grpc to v1.85.0 ([0fdb799](https://github.com/canonical/identity-platform-login-ui/commit/0fdb799135935907814be4e69e17f9a5da6a3bd1))
+* **deps:** update module google.golang.org/grpc to v1.85.0 ([#1018](https://github.com/canonical/identity-platform-login-ui/issues/1018)) ([bcd72ae](https://github.com/canonical/identity-platform-login-ui/commit/bcd72aee43249565e3848442fe5714869154c079))
+* **status:** skip health checks when Kratos/Hydra URLs are empty ([8c6a5cd](https://github.com/canonical/identity-platform-login-ui/commit/8c6a5cd18de45f1368bda4197b999988761998b5))
+* **status:** skip health checks when Kratos/Hydra URLs are empty ([#1035](https://github.com/canonical/identity-platform-login-ui/issues/1035)) ([b55f9af](https://github.com/canonical/identity-platform-login-ui/commit/b55f9afdf8ad2022daaa3614260539db4778b9a3))
+
 ## [0.29.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.28.0...v0.29.0) (2026-10-16)
 
 
