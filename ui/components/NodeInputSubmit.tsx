@@ -12,6 +12,21 @@ import {
 import { FlowContext } from "../context/FlowContext";
 import { ORY_LABEL_CONTINUE_IDENTIFIER_FIRST_LOGIN } from "../util/constants";
 
+// The Hydra login and the return URL the login page was opened with, so a user who registers
+// instead of logging in still finishes that login.
+function getRegisterUrl(): string {
+  const current = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams();
+  for (const name of ["login_challenge", "return_to"]) {
+    const value = current.get(name);
+    if (value) {
+      params.set(name, value);
+    }
+  }
+  const query = params.toString();
+  return query ? `./register?${query}` : "./register";
+}
+
 function getLoginStartUrl(): string {
   const url = new URL("./login", window.location.href);
   url.searchParams.delete("flow");
@@ -63,7 +78,8 @@ export const NodeInputSubmit: FC<NodeInputProps> = ({
 
     return (
       <p className="registration-cta">
-        Don&apos;t have an account? <Link href={`./register`}>Register</Link>
+        Don&apos;t have an account?{" "}
+        <Link href={getRegisterUrl()}>Register</Link>
       </p>
     );
   };

@@ -436,8 +436,9 @@ func (a *API) handleGetLoginFlow(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) handleCreateRegistrationFlow(w http.ResponseWriter, r *http.Request) {
 	returnTo := r.URL.Query().Get("return_to")
+	loginChallenge := r.URL.Query().Get("login_challenge")
 
-	flow, cookies, err := a.service.CreateBrowserRegistrationFlow(r.Context(), returnTo)
+	flow, cookies, err := a.service.CreateBrowserRegistrationFlow(r.Context(), returnTo, loginChallenge)
 	if err != nil {
 		a.logger.Errorf("Failed to create registration flow: %v", err)
 		http.Error(w, "Failed to create registration flow", http.StatusInternalServerError)
