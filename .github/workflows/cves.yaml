@@ -33,7 +33,7 @@ jobs:
                 issue: ${{ fromJson(needs.list-all-issues.outputs.issues) }}
         needs:
             - list-all-issues
-        uses: canonical/identity-team/.github/workflows/cve-check.yaml@990a60c1a8f3017af7236b91f0e24eb2e7999657 # v1.19.1
+        uses: canonical/identity-team/.github/workflows/cve-check.yaml@00995831ff788db43992012900820edf7967305f # v1.19.2
         with:
             issue: ${{ matrix.issue }}
 
@@ -41,7 +41,7 @@ jobs:
         permissions:
             contents: write
             issues: write
-        uses: canonical/identity-team/.github/workflows/cve-check.yaml@990a60c1a8f3017af7236b91f0e24eb2e7999657 # v1.19.1
+        uses: canonical/identity-team/.github/workflows/cve-check.yaml@00995831ff788db43992012900820edf7967305f # v1.19.2
         if: ${{ github.event.issue.id }}
 
     scan-stable:
@@ -51,7 +51,7 @@ jobs:
             contents: read
             security-events: write
             actions: read
-        uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@990a60c1a8f3017af7236b91f0e24eb2e7999657 # v1.19.1
+        uses: canonical/identity-team/.github/workflows/_rock-scan.yaml@00995831ff788db43992012900820edf7967305f # v1.19.2
         with:
             image: ${{ vars.REGISTRY || 'ghcr.io' }}/${{ github.repository }}:stable
             exit-code: '0'
