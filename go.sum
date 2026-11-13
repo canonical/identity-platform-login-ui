@@ -54,6 +54,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/openfga/go-sdk v0.8.3 h1:I4haME2GkR+gzmJY3vuGjuaLfdNyuMixsqj0lQbB4zE=
 github.com/openfga/go-sdk v0.8.3/go.mod h1:4EwBqOVHnIfCsQZ6e7LTbgr+jKfngu3YibPPV1mLXCc=
+github.com/openfga/go-sdk v0.8.4 h1:rEKi+ZGQGgilapTwQITX1My1jPRCKMYwFUQKtwVRuLM=
+github.com/openfga/go-sdk v0.8.4/go.mod h1:tZwva9JHdAC8rF2ANohM87y5QyBDgydFTgFOVVaVYhI=
 github.com/ory/hydra-client-go/v26 v26.2.0 h1:el+M6dV5CK3Am2V4isorOoZ8pJdDaJm0irQzqnxZHqU=
 github.com/ory/hydra-client-go/v26 v26.2.0/go.mod h1:IkTtqWmwQoFGo6dclIP2n51uror2sGNHC4Fjs/QlFqM=
 github.com/ory/kratos-client-go/v25 v25.4.0 h1:iP+1HaWWIYfoWN/+G9n4D5yiZ9WN/Y6WeKrZrKid9D4=
