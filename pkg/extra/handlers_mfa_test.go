@@ -66,6 +66,26 @@ func TestHandleConsentMFA(t *testing.T) {
 			aal:        &aal1,
 		},
 		{
+			name:                          "sequencing: oidc at aal1 is refused",
+			oidcWebAuthnSequencingEnabled: true,
+			methods:                       []string{"oidc"},
+			aal:                           &aal1,
+		},
+		{
+			name:                          "sequencing: oidc at aal2 is accepted",
+			oidcWebAuthnSequencingEnabled: true,
+			methods:                       []string{"oidc", "webauthn"},
+			aal:                           &aal2,
+			accepted:                      true,
+		},
+		{
+			name:                          "sequencing: password at aal1 is accepted",
+			oidcWebAuthnSequencingEnabled: true,
+			methods:                       []string{"password"},
+			aal:                           &aal1,
+			accepted:                      true,
+		},
+		{
 			name:                          "mfa and sequencing: a passkey at aal1 is accepted",
 			mfaEnabled:                    true,
 			oidcWebAuthnSequencingEnabled: true,
