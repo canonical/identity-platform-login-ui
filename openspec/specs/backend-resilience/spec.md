@@ -18,7 +18,7 @@ The gRPC channels SHALL retry a call that ends `UNAVAILABLE`, up to 3 attempts i
 
 - `ListSignInTenants`, `GetSignInContext`, `JoinTenant` and `CreatePersonalTenant` of the tenant service
 - the `LookupTenants` that the handlers call on the same channel
-- `ListOptions`, `StartAttempt`, `CompleteAttempt` and `ListLinks` of the SSO service
+- `ListOptions`, `StartAttempt`, `VerifyAttempt` and `ListLinks` of the SSO service
 
 The channels MUST NOT retry `DeleteLink`. This is because, when the answer to the first call is lost, a second call reports a removed link as a link that never existed. The channels retry no other status. The channels SHALL reconnect with a backoff from 0.2 s to at most 5 s. This lets Login UI reach a restarted service again within seconds.
 
@@ -67,7 +67,7 @@ When the extension cannot ask the SSO service, the extension SHALL confine the e
 - **THEN** the login page shows "Single sign-on is temporarily unavailable" and offers no password
 
 #### Scenario: SSO service down on the return
-- **WHEN** `CompleteAttempt` fails for a session that just came back from a company sign-in
+- **WHEN** `VerifyAttempt` fails for a session that just came back from a company sign-in
 - **THEN** the response is `503`
 - **AND** Login UI records no provenance and does not accept the login
 

@@ -46,7 +46,7 @@
 - [x] 6.1 Add `constants.go` (provider id, node groups and fields, message ids, error ids, cookie names, deadlines). Add `interfaces.go` (the interfaces of the package, mocked with `go:generate` directives in its test files). Mocks are not committed.
 - [x] 6.2 In `grpc.go` add the reconnect parameters and the retry service config. Test them in `grpc_test.go` (`TestDialOptionsRetry`).
 - [x] 6.3 In `directory.go` add `Directory` over the `TenantSignInService` of the Tenant Service (`SignInTenants`, `SignInContext`, `JoinTenant`, `CreatePersonalTenant`) and the retried methods. `toSignInContext` fails on unspecified and unknown enum values. Test it in `directory_test.go`.
-- [x] 6.4 In `sso.go` add `SSO` over the SSO Service (`Options`, `StartAttempt`, `CompleteAttempt`, `Links`, `DeleteLink`) and the retried methods. Turn error reasons into sentinel errors. Test it in `sso_test.go`.
+- [x] 6.4 In `sso.go` add `SSO` over the SSO Service (`Options`, `StartAttempt`, `VerifyAttempt`, `Links`, `DeleteLink`) and the retried methods. Turn error reasons into sentinel errors. Test it in `sso_test.go`.
 - [x] 6.5 In `hydra.go` add `LoginRequest` (`prompt`, `max_age`, remembered subject), `Reauthenticate`, `NeedsFreshFirstFactor` and `RemembersAnother`. Add `Hydra` (`LoginRequest`, `RevokeLoginSession`, `RejectConsent`). Test it in `hydra_test.go`.
 - [x] 6.6 In `kratos.go` add `Verification.Start` and `IdentityFinder` (`IdentityID`, `IdentityExists`, `HasRecoveryCodes`). Test it in `kratos_test.go`.
 - [x] 6.7 In `kratos_decorator.go` add `KratosServiceDecorator`, which removes the `byo-sso` nodes from login, registration and settings flows. Test it in `kratos_decorator_test.go`.
