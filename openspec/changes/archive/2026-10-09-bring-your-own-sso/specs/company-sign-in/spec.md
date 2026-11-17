@@ -59,7 +59,7 @@ This requirement applies when a session reaches the checks before an accept, or 
 - the id of the session differs from the session id that the cookie recorded
 - the session includes a `byo-sso` authentication method
 
-Login UI SHALL then ask the SSO service to confirm that the attempt ended at this account, in this browser. The request is `CompleteAttempt` with `ticket`, `identity_id` and `receipt`. The `receipt` is the receipt of the ticket, which the requirement below describes. The SSO service answers with `connection_id` and `tenant_id`. Login UI SHALL then write the provenance cookie for this session and that connection. Login UI SHALL also clear the sign-in cookie and the receipt cookies of its tickets.
+Login UI SHALL then ask the SSO service to confirm that the attempt ended at this account, in this browser. The request is `VerifyAttempt` with `ticket`, `identity_id` and `receipt`. The `receipt` is the receipt of the ticket, which the requirement below describes. The SSO service answers with `connection_id` and `tenant_id`. Login UI SHALL then write the provenance cookie for this session and that connection. Login UI SHALL also clear the sign-in cookie and the receipt cookies of its tickets.
 
 These rules also apply:
 
@@ -70,13 +70,13 @@ These rules also apply:
 #### Scenario: Return to the login page
 - **WHEN** a new session with a `byo-sso` method arrives with the sign-in cookie of its attempt
 - **AND** the session arrives with the receipt of its ticket
-- **THEN** `CompleteAttempt` confirms the attempt
+- **THEN** `VerifyAttempt` confirms the attempt
 - **AND** Login UI sets the provenance cookie
 - **AND** the checks continue with that connection as the provenance
 
 #### Scenario: The session the browser already had
 - **WHEN** the session id equals the session id in the sign-in cookie
-- **THEN** Login UI does not call `CompleteAttempt`
+- **THEN** Login UI does not call `VerifyAttempt`
 
 ### Requirement: The receipt of a company sign-in
 With each ticket that it asks the SSO service about, Login UI SHALL send the receipt of that ticket. The receipt is the unchanged value of a cookie that the SSO service sets in the browser whose company sign-in it accepts. A ticket says which sign-in was started. A ticket does not say that the sign-in was completed, and does not say in which browser. The SSO service confirms an attempt only when the receipt comes with the ticket.
@@ -99,12 +99,12 @@ The receipt does not do 2 things:
 #### Scenario: The receipt goes with its ticket
 - **WHEN** a new session with a `byo-sso` method arrives with the sign-in cookie of ticket T
 - **AND** the session arrives with the cookie `__Host-sso_receipt_<digest of T>`
-- **THEN** `CompleteAttempt` carries T and the value of that cookie
-- **AND** the response clears both cookies when `CompleteAttempt` confirms, and also when it answers `NOT_APPLICABLE`
+- **THEN** `VerifyAttempt` carries T and the value of that cookie
+- **AND** the response clears both cookies when `VerifyAttempt` confirms, and also when it answers `NOT_APPLICABLE`
 
 #### Scenario: No receipt in the browser
 - **WHEN** the browser sends the sign-in cookie of a ticket and no receipt cookie for that ticket
-- **THEN** Login UI calls `CompleteAttempt` with an empty receipt
+- **THEN** Login UI calls `VerifyAttempt` with an empty receipt
 - **AND** the SSO service answers `NOT_APPLICABLE`
 - **AND** Login UI records no provenance
 

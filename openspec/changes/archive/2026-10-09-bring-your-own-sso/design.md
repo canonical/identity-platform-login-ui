@@ -7,7 +7,7 @@ Login UI has no rule for each tenant. Every tenant gets the same sign-ins. One f
 This change adds those rules. Three other parties are involved. None of them changes in this repository:
 
 - The **tenant service** owns memberships, personal tenants, pending invitations and each tenant's policy (enforcement, domains, auto-join, MFA). Login UI asks its `TenantSignInService` four things: `ListSignInTenants`, `GetSignInContext`, `CreatePersonalTenant` and `JoinTenant`.
-- The **SSO service** owns the company sign-ins (connections to customers' identity providers) and runs them. Login UI asks it five things: `ListOptions`, `StartAttempt`, `CompleteAttempt`, `ListLinks` and `DeleteLink`.
+- The **SSO service** owns the company sign-ins (connections to customers' identity providers) and runs them. Login UI asks it five things: `ListOptions`, `StartAttempt`, `VerifyAttempt`, `ListLinks` and `DeleteLink`.
 - **Kratos** keeps one OIDC provider, `byo-sso`, for all company sign-ins. Kratos itself writes every link between an account and a company sign-in.
 
 The table below shows the layout of the code.
@@ -67,7 +67,7 @@ Every company sign-in, every public sign-in and every reused session arrives at 
 
 **Decision**: when Login UI starts a company sign-in, it writes `login_ui_sso_signin`. The cookie holds the ticket and the id of the session that the browser has, if any.
 
-A session with another id that includes a `byo-sso` method can come back. Then Login UI asks the SSO service to confirm the attempt (`CompleteAttempt`). It sends the ticket with the receipt. The SSO service left the receipt in the browser that completed the sign-in, in its cookie `__Host-sso_receipt_<digest of the ticket>`. Login UI then writes `login_ui_sso_provenance` (`session id`, `connection id`). At later accepts, the provenance counts only while the cookie names the current session.
+A session with another id that includes a `byo-sso` method can come back. Then Login UI asks the SSO service to confirm the attempt (`VerifyAttempt`). It sends the ticket with the receipt. The SSO service left the receipt in the browser that completed the sign-in, in its cookie `__Host-sso_receipt_<digest of the ticket>`. Login UI then writes `login_ui_sso_provenance` (`session id`, `connection id`). At later accepts, the provenance counts only while the cookie names the current session.
 
 **Rationale**: all company sign-ins share one Kratos provider. So the session says "byo-sso" and nothing about the connection. A tenant must accept only sessions from its own connections. Login UI has no store. A cookie bound to the session id needs none. The SSO service, not the browser, vouches for what goes into the cookie. If the cookie is lost, the check fails closed: a company-sign-in session with no provenance goes through the company sign-in again.
 
@@ -122,7 +122,7 @@ The price of the last step: the tenant service can withdraw the admission betwee
 
 ### 8. Retries only where a repeat is harmless, and one budget per request
 
-**Decision**: the gRPC service config (`pkg/byosso/grpc.go`) retries `UNAVAILABLE` up to 3 attempts. This applies to the reads and to `JoinTenant`, `CreatePersonalTenant`, `StartAttempt` and `CompleteAttempt`. It does not retry `DeleteLink`. Each call has its own timeout. Each browser request has 12 seconds for everything. The channels reconnect within 5 seconds.
+**Decision**: the gRPC service config (`pkg/byosso/grpc.go`) retries `UNAVAILABLE` up to 3 attempts. This applies to the reads and to `JoinTenant`, `CreatePersonalTenant`, `StartAttempt` and `VerifyAttempt`. It does not retry `DeleteLink`. Each call has its own timeout. Each browser request has 12 seconds for everything. The channels reconnect within 5 seconds.
 
 **Rationale**: a call that answers `UNAVAILABLE` can have run. The listed writes leave the same state when they run a second time. A second `DeleteLink` answers "no such link" for a removal that worked, and the user sees a refusal. The system does not retry a call that timed out. The budget is better spent on an answer.
 
@@ -174,7 +174,7 @@ This is a company sign-in from the email to the code of the app. The user has on
 3. **Outside Login UI.** The browser goes to the OpenID Provider behind `byo-sso`. The SSO service fronts this provider. The browser goes on to the customer's identity provider and back to Kratos's callback. On the way back, the SSO service accepts the sign-in and sets its receipt cookie for the ticket. Kratos finds the link, issues a new session and returns to the login page of C. (With no link, account linking or registration runs. Then the return is the same.)
 4. **Return.** The frontend calls `GET …/login/browser?login_challenge=C` again, now with a session. `HandleSessionLogin` calls `checkAndAccept`:
    1. It verifies the address.
-   2. The SSO service gets `CompleteAttempt` with the ticket and its receipt. Login UI writes the provenance cookie for (session, K). It clears the sign-in cookie and the receipt cookie.
+   2. The SSO service gets `VerifyAttempt` with the ticket and its receipt. Login UI writes the provenance cookie for (session, K). It clears the sign-in cookie and the receipt cookie.
    3. It calls Hydra `GetOAuth2LoginRequest`.
    4. It takes tenant T from the state cookie.
    5. The tenant service gets `GetSignInContext` for the account.
@@ -183,7 +183,7 @@ This is a company sign-in from the email to the code of the app. The user has on
    8. Hydra gets `AcceptOAuth2LoginRequest` with `context.tenant_id` = T.
 5. **Consent.** Hydra sends the browser to consent. `GET /api/consent` runs `GateConsent` (subject and `tenant_id` present). The consent is accepted as before, and Hydra returns the code to the app.
 
-A later sign-in to another app with the same session repeats only step 4, without `CompleteAttempt`. It makes one `ListSignInTenants` or none, and one `GetSignInContext`. It makes no call to the SSO service.
+A later sign-in to another app with the same session repeats only step 4, without `VerifyAttempt`. It makes one `ListSignInTenants` or none, and one `GetSignInContext`. It makes no call to the SSO service.
 
 ## Rollout
 

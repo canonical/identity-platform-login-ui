@@ -63,6 +63,6 @@ When Kratos added the company sign-in to a session by account linking, the exten
 
 #### Scenario: Linked through the account's other company sign-in
 - **WHEN** the user proved the account with connection A while the user linked connection B
-- **THEN** the extension calls `CompleteAttempt` first with the ticket of B and the receipt of B
+- **THEN** the extension calls `VerifyAttempt` first with the ticket of B and the receipt of B
 - **AND** B is the provenance
 
