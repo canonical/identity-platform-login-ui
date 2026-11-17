@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -89,6 +90,41 @@ func TestPlatformSecondFactorPolicyFor(t *testing.T) {
 
 			if requirement != tt.expected {
 				t.Fatalf("expected %+v got %+v", tt.expected, requirement)
+			}
+		})
+	}
+}
+
+func TestNewSignIn(t *testing.T) {
+	password, totp := "password", "totp"
+
+	tests := []struct {
+		name     string
+		session  *kClient.Session
+		expected []string
+	}{
+		{
+			name: "no session has no methods",
+		},
+		{
+			name:    "a session with an empty list of methods has no methods",
+			session: &kClient.Session{AuthenticationMethods: []kClient.SessionAuthenticationMethod{}},
+		},
+		{
+			name: "a session's methods are kept in order",
+			session: &kClient.Session{AuthenticationMethods: []kClient.SessionAuthenticationMethod{
+				{Method: &password}, {Method: &totp},
+			}},
+			expected: []string{"password", "totp"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			signIn := NewSignIn(tt.session)
+
+			if !slices.Equal(signIn.Methods, tt.expected) {
+				t.Fatalf("expected %v got %v", tt.expected, signIn.Methods)
 			}
 		})
 	}
