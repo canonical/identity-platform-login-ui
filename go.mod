@@ -3,7 +3,7 @@ module github.com/canonical/identity-platform-login-ui
 go 1.26.0
 
 require (
-	github.com/canonical/identity-platform-api v0.0.0-20260924175044-8c1a27b95cef
+	github.com/canonical/identity-platform-api v0.0.0-20261118120358-db9a1a737e97
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/cors v1.2.2
 	github.com/go-playground/validator/v10 v10.30.6
