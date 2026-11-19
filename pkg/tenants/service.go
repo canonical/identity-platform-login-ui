@@ -25,6 +25,9 @@ type Tenant struct {
 	Name      string `json:"name"`
 	CreatedAt string `json:"created_at"`
 	Enabled   bool   `json:"enabled"`
+	// Invited marks a pending invitation, which signing in to the tenant
+	// accepts.
+	Invited bool `json:"invited,omitempty"`
 }
 
 // Service fetches tenant data from the tenant gRPC service.
@@ -32,6 +35,9 @@ type Service struct {
 	grpcClient  TenantServiceClientInterface
 	flowFetcher FlowFetcherInterface
 	timeout     time.Duration
+	// signInClient, when set, answers lookups by email with the tenants the
+	// address may sign in to.
+	signInClient TenantSignInServiceClientInterface
 
 	tracer  tracing.TracingInterface
 	monitor monitoring.MonitorInterface
@@ -39,6 +45,10 @@ type Service struct {
 }
 
 func (s *Service) lookupTenantsByEmail(ctx context.Context, email string) ([]*Tenant, error) {
+	if s.signInClient != nil {
+		return s.listSignInTenants(ctx, email)
+	}
+
 	ctx, span := s.tracer.Start(ctx, "tenants.Service.lookupTenantsByEmail")
 	defer span.End()
 
@@ -61,6 +71,40 @@ func (s *Service) lookupTenantsByEmail(ctx context.Context, email string) ([]*Te
 
 	span.SetStatus(codes.Ok, "")
 	return toLocalTenants(resp.Tenants), nil
+}
+
+// listSignInTenants looks up the tenants the email address may sign in to:
+// those of its account, and those that invited it or that it could auto-join.
+func (s *Service) listSignInTenants(ctx context.Context, email string) ([]*Tenant, error) {
+	ctx, span := s.tracer.Start(ctx, "tenants.Service.listSignInTenants")
+	defer span.End()
+
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	resp, err := s.signInClient.ListSignInTenants(ctx, &tenant.ListSignInTenantsRequest{Email: email})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "cannot list sign-in tenants by email")
+		return nil, fmt.Errorf("cannot list sign-in tenants by email: %w", err)
+	}
+
+	result := make([]*Tenant, 0, len(resp.GetTenants()))
+	for _, t := range resp.GetTenants() {
+		if t.GetTenant() == nil {
+			continue
+		}
+		result = append(result, &Tenant{
+			ID:        t.Tenant.Id,
+			Name:      t.Tenant.Name,
+			CreatedAt: t.Tenant.CreatedAt,
+			Enabled:   t.Tenant.Enabled,
+			Invited:   t.Invited,
+		})
+	}
+
+	span.SetStatus(codes.Ok, "")
+	return result, nil
 }
 
 // LookupTenantsByEmail looks up tenants for the given email address directly,
@@ -156,13 +200,22 @@ func toLocalTenants(ts []*tenant.Tenant) []*Tenant {
 	return result
 }
 
+// ServiceOption configures optional Service behaviour.
+type ServiceOption func(*Service)
+
+// WithSignInTenants makes lookups by email list the tenants the address may
+// sign in to: also those that invited it or that it could auto-join.
+func WithSignInTenants(client TenantSignInServiceClientInterface) ServiceOption {
+	return func(s *Service) { s.signInClient = client }
+}
+
 const defaultGRPCTimeout = 5 * time.Second
 
-func NewService(grpcClient TenantServiceClientInterface, flowFetcher FlowFetcherInterface, timeout time.Duration, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface) *Service {
+func NewService(grpcClient TenantServiceClientInterface, flowFetcher FlowFetcherInterface, timeout time.Duration, tracer tracing.TracingInterface, monitor monitoring.MonitorInterface, logger logging.LoggerInterface, opts ...ServiceOption) *Service {
 	if timeout <= 0 {
 		timeout = defaultGRPCTimeout
 	}
-	return &Service{
+	s := &Service{
 		grpcClient:  grpcClient,
 		flowFetcher: flowFetcher,
 		timeout:     timeout,
@@ -170,4 +223,8 @@ func NewService(grpcClient TenantServiceClientInterface, flowFetcher FlowFetcher
 		monitor:     monitor,
 		logger:      logger,
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }

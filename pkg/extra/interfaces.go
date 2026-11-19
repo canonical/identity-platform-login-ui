@@ -26,3 +26,10 @@ type SecondFactorPolicyInterface interface {
 	// For returns what the given sign-in still needs before it may complete.
 	For(kratos.SignIn) kratos.Requirement
 }
+
+// ExtensionInterface lets an optional feature refuse a consent. GateConsent
+// returns where the browser goes when it rejected the consent request, ""
+// to go on.
+type ExtensionInterface interface {
+	GateConsent(context.Context, *kClient.Session, *hClient.OAuth2ConsentRequest) (string, error)
+}

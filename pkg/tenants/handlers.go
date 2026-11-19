@@ -23,10 +23,37 @@ type API struct {
 	service        ServiceInterface
 	sessionChecker SessionCheckerInterface
 	storer         TenantStorerInterface
+	// sessionByEmail looks a signed-in user's tenants up by the session's
+	// email, so auto-join candidates are listed too.
+	sessionByEmail bool
 	baseURL        string
 
 	tracer tracing.TracingInterface
 	logger logging.LoggerInterface
+}
+
+// Option configures optional API behaviour.
+type Option func(*API)
+
+// WithSessionLookupByEmail lists a signed-in user's tenants by the
+// session's email instead of its identity id: the list then includes the
+// auto-join candidates, which only an email lookup returns.
+func WithSessionLookupByEmail() Option {
+	return func(a *API) { a.sessionByEmail = true }
+}
+
+// lookupSessionTenants returns the signed-in user's tenant list.
+func (a *API) lookupSessionTenants(ctx context.Context, session *kClient.Session) ([]*Tenant, error) {
+	if a.sessionByEmail {
+		if email := emailFromSession(session); email != "" {
+			return a.service.LookupTenantsByEmail(ctx, email)
+		}
+	}
+	identityID := identityIDFromSession(session)
+	if identityID == "" {
+		return nil, fmt.Errorf("cannot determine identity from session")
+	}
+	return a.service.LookupTenantsByIdentityID(ctx, identityID)
 }
 
 func (a *API) RegisterEndpoints(mux *chi.Mux) {
@@ -53,12 +80,11 @@ func (a *API) handleLookupTenants(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		identityID := identityIDFromSession(session)
-		if identityID == "" {
+		if identityIDFromSession(session) == "" {
 			http.Error(w, "could not determine identity from session", http.StatusUnauthorized)
 			return
 		}
-		tenants, err = a.service.LookupTenantsByIdentityID(r.Context(), identityID)
+		tenants, err = a.lookupSessionTenants(r.Context(), session)
 	} else {
 		tenants, err = a.service.LookupTenantsByFlow(r.Context(), flowID, r.Cookies())
 	}
@@ -165,12 +191,7 @@ func (a *API) lookupTenants(ctx context.Context, flowID string, httpCookies []*h
 		return nil, fmt.Errorf("cannot check session: %v", err)
 	}
 
-	identityID := identityIDFromSession(session)
-	if identityID == "" {
-		return nil, fmt.Errorf("cannot determine identity from session")
-	}
-
-	return a.service.LookupTenantsByIdentityID(ctx, identityID)
+	return a.lookupSessionTenants(ctx, session)
 }
 
 // loginChallengeURL builds the /ui/login?login_challenge=<challenge> URL used
@@ -203,8 +224,9 @@ func NewAPI(
 	baseURL string,
 	tracer tracing.TracingInterface,
 	logger logging.LoggerInterface,
+	opts ...Option,
 ) *API {
-	return &API{
+	a := &API{
 		service:        service,
 		sessionChecker: sessionChecker,
 		storer:         storer,
@@ -212,6 +234,10 @@ func NewAPI(
 		tracer:         tracer,
 		logger:         logger,
 	}
+	for _, opt := range opts {
+		opt(a)
+	}
+	return a
 }
 
 // emailFromSession extracts the email trait from a Kratos session identity.

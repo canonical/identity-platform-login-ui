@@ -153,9 +153,10 @@ type routerConfig struct {
 	logger                        logging.LoggerInterface
 	tenantsServiceClient          tenants.TenantServiceClientInterface
 	tenantsGRPCTimeout            time.Duration
+	byosso                        byossoConfig
 }
 
-func NewRouter(opts ...Option) http.Handler {
+func NewRouter(opts ...Option) (http.Handler, error) {
 
 	config := &routerConfig{}
 	for _, opt := range opts {
@@ -165,10 +166,12 @@ func NewRouter(opts ...Option) http.Handler {
 	router := chi.NewMux()
 	router.Use(buildMiddlewares(config)...)
 
-	registerAPIs(config, router)
+	if err := registerAPIs(config, router); err != nil {
+		return nil, err
+	}
 
 	wrappedRouter := tracing.NewMiddleware(config.monitor, config.logger).OpenTelemetry(router)
-	return wrappedRouter
+	return wrappedRouter, nil
 }
 
 func buildMiddlewares(config *routerConfig) chi.Middlewares {
@@ -190,7 +193,7 @@ func buildMiddlewares(config *routerConfig) chi.Middlewares {
 	return middlewares
 }
 
-func registerAPIs(config *routerConfig, router *chi.Mux) {
+func registerAPIs(config *routerConfig, router *chi.Mux) error {
 	device.NewAPI(
 		device.NewService(config.hydraClient, config.tracer, config.monitor, config.logger),
 		config.tracer,
@@ -204,14 +207,19 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		if config.tenantsServiceClient == nil {
 			config.logger.Warn("multi-tenancy enabled but tenant gRPC client is not configured; falling back to no-op resolver")
 		} else {
-			tenantsService := tenants.NewService(config.tenantsServiceClient, kratosService, config.tenantsGRPCTimeout, config.tracer, config.monitor, config.logger)
+			tenantsService := tenants.NewService(config.tenantsServiceClient, kratosService, config.tenantsGRPCTimeout, config.tracer, config.monitor, config.logger, config.byosso.tenantsServiceOptions()...)
 			resolver = tenants.NewCookieTenantResolver(config.cookieManager, tenantsService)
-			tenants.NewAPI(tenantsService, resolver, kratosService, config.baseURL, config.tracer, config.logger).RegisterEndpoints(router)
+			tenants.NewAPI(tenantsService, resolver, kratosService, config.baseURL, config.tracer, config.logger, config.byosso.tenantsOptions()...).RegisterEndpoints(router)
 		}
 	}
 
+	byosso, err := registerBYOSSO(config, router, kratosService, resolver)
+	if err != nil {
+		return err
+	}
+
 	kratos.NewAPI(
-		kratosService,
+		byosso.kratosService,
 		config.verificationEnabled,
 		config.mfaEnabled,
 		config.oidcWebAuthnSequencingEnabled,
@@ -220,6 +228,7 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		config.cookieManager,
 		config.tracer,
 		config.logger,
+		byosso.kratosOpts...,
 	).RegisterEndpoints(router)
 
 	extra.NewAPI(
@@ -230,6 +239,7 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 		config.oidcWebAuthnSequencingEnabled,
 		config.tracer,
 		config.logger,
+		byosso.extraOpts...,
 	).RegisterEndpoints(router)
 
 	status.NewAPI(
@@ -261,4 +271,6 @@ func registerAPIs(config *routerConfig, router *chi.Mux) {
 	).RegisterEndpoints(router)
 
 	metrics.NewAPI(config.logger).RegisterEndpoints(router)
+
+	return nil
 }
