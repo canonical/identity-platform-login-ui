@@ -36,17 +36,27 @@ const SECURITY_CSRF_VIOLATION_ERROR = "security_csrf_violation"
 const BROWSER_LOCATION_CHANGE_REQUIRED = "browser_location_change_required"
 
 type API struct {
-	verificationEnabled           bool
-	mfaEnabled                    bool
-	oidcWebAuthnSequencingEnabled bool
-	service                       ServiceInterface
-	baseURL                       string
-	contextPath                   string
-	cookieManager                 AuthCookieManagerInterface
-	tenantMgr                     TenantResolverInterface
+	verificationEnabled bool
+	secondFactorPolicy  SecondFactorPolicyInterface
+	service             ServiceInterface
+	baseURL             string
+	contextPath         string
+	cookieManager       AuthCookieManagerInterface
+	tenantMgr           TenantResolverInterface
 
 	tracer tracing.TracingInterface
 	logger logging.LoggerInterface
+}
+
+// Option configures the API.
+type Option func(*API)
+
+// WithSecondFactorPolicy sets the second factor policy the login handlers
+// ask, in place of the platform's.
+func WithSecondFactorPolicy(policy SecondFactorPolicyInterface) Option {
+	return func(a *API) {
+		a.secondFactorPolicy = policy
+	}
 }
 
 type KratosErrorResponse struct {
@@ -151,7 +161,9 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !intercept.DeferMFAChecks {
-			shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session)
+			requirement := a.secondFactorPolicy.For(NewSignIn(session))
+
+			shouldEnforceMfa, err = a.shouldEnforceMFAWithSession(r.Context(), session, requirement)
 			if err != nil {
 				a.logger.Errorf("failed to check MFA status: %v", err)
 				http.Error(w, "failed to check MFA status", http.StatusInternalServerError)
@@ -162,7 +174,7 @@ func (a *API) handleCreateFlow(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			shouldEnforceWebAuthn, err = a.shouldEnforceWebAuthnWithSession(r.Context(), session)
+			shouldEnforceWebAuthn, err = a.shouldEnforceWebAuthnWithSession(r.Context(), session, requirement)
 			if err != nil {
 				a.logger.Errorf("failed to check WebAuthn status: %v", err)
 				http.Error(w, "failed to check WebAuthn status", http.StatusInternalServerError)
@@ -653,14 +665,16 @@ func (a *API) handleUpdateFlow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shouldEnforceMfa, err := a.shouldEnforceMFAWithSession(r.Context(), session)
+	requirement := a.secondFactorPolicy.For(NewSignIn(session))
+
+	shouldEnforceMfa, err := a.shouldEnforceMFAWithSession(r.Context(), session, requirement)
 	if err != nil {
 		a.logger.Errorf("enforce MFA check error: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	shouldRegenerateBackupCodes, err := a.shouldRegenerateBackupCodesWithSession(r.Context(), session)
+	shouldRegenerateBackupCodes, err := a.shouldRegenerateBackupCodesWithSession(r.Context(), session, requirement)
 	if err != nil {
 		a.logger.Errorf("backup codes check error: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -996,11 +1010,11 @@ func (a *API) redirectResponse(w http.ResponseWriter, r *http.Request, resp Redi
 	}
 }
 
-func (a *API) shouldRegenerateBackupCodesWithSession(ctx context.Context, session *client.Session) (bool, error) {
+func (a *API) shouldRegenerateBackupCodesWithSession(ctx context.Context, session *client.Session, requirement Requirement) (bool, error) {
 	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldRegenerateBackupCodesWithSession")
 	defer span.End()
 
-	if !a.mfaEnabled || session == nil {
+	if !requirement.RegenerateBackupCodes || session == nil {
 		return false, nil
 	}
 
@@ -1018,40 +1032,12 @@ func (a *API) shouldRegenerateBackupCodesWithSession(ctx context.Context, sessio
 	return a.service.HasNotEnoughLookupSecretsLeft(ctx, session.Identity.GetId())
 }
 
-func (a *API) shouldEnforceMFA(ctx context.Context, cookies []*http.Cookie) (bool, error) {
-	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceMFA")
-	defer span.End()
-
-	if !a.mfaEnabled {
-		return false, nil
-	}
-
-	session, _, err := a.service.CheckSession(ctx, cookies)
-	if err != nil {
-		if a.is40xError(err) {
-			a.logger.Debugf("check session failed, err: %v", err)
-			return false, nil
-		}
-
-		return false, err
-	}
-
-	return a.shouldEnforceMFAWithSession(ctx, session)
-}
-
-func (a *API) shouldEnforceMFAWithSession(ctx context.Context, session *client.Session) (bool, error) {
+func (a *API) shouldEnforceMFAWithSession(ctx context.Context, session *client.Session, requirement Requirement) (bool, error) {
 	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceMFAWithSession")
 	defer span.End()
 
-	if !a.mfaEnabled || session == nil {
+	if requirement.SetUp != "totp" || session == nil {
 		return false, nil
-	}
-
-	// if using OIDC external provider, do not enforce MFA
-	for _, method := range session.AuthenticationMethods {
-		if method.Method != nil && *method.Method == "oidc" {
-			return false, nil
-		}
 	}
 
 	totpAvailable, err := a.service.HasTOTPAvailable(ctx, session.Identity.GetId())
@@ -1073,25 +1059,20 @@ func (a *API) is40xError(err error) bool {
 	return false
 }
 
-func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *client.Session) (bool, error) {
+func (a *API) shouldEnforceWebAuthnWithSession(ctx context.Context, session *client.Session, requirement Requirement) (bool, error) {
 	ctx, span := a.tracer.Start(ctx, "kratos.API.shouldEnforceWebAuthnWithSession")
 	defer span.End()
 
-	if !a.oidcWebAuthnSequencingEnabled {
+	if requirement.SetUp != "webauthn" {
 		return false, nil
 	}
 
-	// enforce only if one of the authentication methods was oidc
-	for _, method := range session.AuthenticationMethods {
-		if method.GetMethod() == "oidc" {
-			webAuthnAvailable, err := a.service.HasWebAuthnAvailable(ctx, session.Identity.GetId())
-			if err != nil {
-				return false, err
-			}
-			return !webAuthnAvailable, nil
-		}
+	webAuthnAvailable, err := a.service.HasWebAuthnAvailable(ctx, session.Identity.GetId())
+	if err != nil {
+		return false, err
 	}
-	return false, nil
+
+	return !webAuthnAvailable, nil
 }
 
 func (a *API) webAuthnSettingsRedirect(w http.ResponseWriter, r *http.Request, returnTo string, flowStateCookie cookies.FlowStateCookie) {
@@ -1589,12 +1570,12 @@ func NewAPI(
 	baseURL string,
 	cookieManager AuthCookieManagerInterface,
 	tracer tracing.TracingInterface,
-	logger logging.LoggerInterface) *API {
+	logger logging.LoggerInterface,
+	opts ...Option) *API {
 	a := new(API)
 
 	a.verificationEnabled = verificationEnabled
-	a.mfaEnabled = mfaEnabled
-	a.oidcWebAuthnSequencingEnabled = oidcWebAuthnSequencingEnabled
+	a.secondFactorPolicy = NewPlatformSecondFactorPolicy(mfaEnabled, oidcWebAuthnSequencingEnabled)
 	a.tenantMgr = tenantMgr
 	a.service = service
 	a.baseURL = baseURL
@@ -1610,6 +1591,10 @@ func NewAPI(
 
 	a.tracer = tracer
 	a.logger = logger
+
+	for _, opt := range opts {
+		opt(a)
+	}
 
 	return a
 }
