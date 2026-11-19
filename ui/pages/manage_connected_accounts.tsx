@@ -14,6 +14,7 @@ import { AxiosError } from "axios";
 import { getLoggedInName } from "../util/selfServeHelpers";
 import { List, Icon, useToastNotification } from "@canonical/react-components";
 import { getProviderImage } from "../util/logos";
+import { FlowMessages } from "../components/FlowMessages";
 
 type ProviderConnectionAction = "link" | "unlink";
 type ConnectionState = "none" | "allDisconnected" | "someConnected";
@@ -118,8 +119,12 @@ const ManageConnectedAccounts: NextPage = () => {
       .then(({ data }) => {
         setFlow(data);
       })
+      .catch(handleFlowError("settings", setFlow))
       .catch(async (err: AxiosError<string>) => {
-        if (err.response?.data.trim() === "Failed to create settings flow") {
+        if (
+          typeof err.response?.data === "string" &&
+          err.response.data.trim() === "Failed to create settings flow"
+        ) {
           window.location.href = `./login?return_to=${window.location.pathname}`;
           return;
         }
@@ -185,6 +190,7 @@ const ManageConnectedAccounts: NextPage = () => {
     <PageLayout title="Connected accounts" isSelfServe={true} user={userName}>
       {flow && (
         <div>
+          <FlowMessages messages={flow.ui.messages} types={["error"]} />
           <p>{CONNECTION_TEXT[connectionState]}</p>
           {connectionState !== "none" && (
             <>
