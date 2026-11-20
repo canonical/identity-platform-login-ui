@@ -6,12 +6,14 @@ package kratos
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	kClient "github.com/ory/kratos-client-go/v25"
 )
 
 // Kratos UI message IDs, see https://github.com/ory/kratos/blob/master/text/id.go
 const (
+	ValidationGeneric            = 4000001
 	PropertyMissing              = 4000002
 	NotEnoughCharacters          = 4000003
 	PasswordPolicyViolation      = 4000005
@@ -45,6 +47,11 @@ const (
 	RegistrationRejectedFirst = 4200000
 	RegistrationRejectedLast  = 4299999
 )
+
+// alreadyLoggedInReason is how Kratos's refusal of a login flow that the
+// session already satisfies starts, in a ValidationGeneric message. See
+// https://github.com/ory/kratos/blob/v25.4.0/selfservice/flow/login/handler.go#L840-L858
+const alreadyLoggedInReason = "A valid session was detected and thus login is not possible"
 
 // uiErrorText maps a Kratos UI message ID to the text returned to the user.
 // To handle a new code, add a constant above and one entry here.
@@ -96,6 +103,18 @@ func uiError(msgs []kClient.UiText) error {
 	}
 
 	return nil
+}
+
+// alreadyLoggedIn reports whether msgs say that the session already satisfies
+// the login flow that was submitted.
+func alreadyLoggedIn(msgs []kClient.UiText) bool {
+	for _, m := range msgs {
+		if m.GetId() == ValidationGeneric && strings.HasPrefix(m.GetText(), alreadyLoggedInReason) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // registrationRejection returns the text of the first message with which a

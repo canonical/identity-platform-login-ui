@@ -454,7 +454,7 @@ func isSessionAlreadyAvailableError(responseBody []byte) bool {
 		return false
 	}
 
-	if errorBody.Error.Id == "session_already_available" {
+	if errorBody.Error.Id == SESSION_ALREADY_AVAILABLE {
 		return true
 	}
 
@@ -1071,6 +1071,15 @@ func (s *Service) getUiError(responseBody io.ReadCloser) error {
 		err := fmt.Errorf("error code not found")
 		s.logger.Errorf(err.Error())
 		return err
+	}
+
+	// the session already satisfies the login: answer as session_already_available
+	if alreadyLoggedIn(messages) {
+		return &KratosGenericError{Response: KratosErrorResponse{Error: &kClient.GenericError{
+			Id:      kClient.PtrString(SESSION_ALREADY_AVAILABLE),
+			Code:    kClient.PtrInt64(http.StatusBadRequest),
+			Message: "a valid session was detected and thus login is not possible",
+		}}}
 	}
 
 	if err := uiError(messages); err != nil {
