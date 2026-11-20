@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.29.2](https://github.com/canonical/identity-platform-login-ui/compare/v0.29.1...v0.29.2) (2026-11-20)
+
+
+### Bug Fixes
+
+* **deps:** update github.com/canonical/identity-platform-api digest to db9a1a7 ([176a400](https://github.com/canonical/identity-platform-login-ui/commit/176a40039e82b864c0a4a6c69b2c4f226e653e53))
+* **deps:** update github.com/canonical/identity-platform-api digest to db9a1a7 ([#1040](https://github.com/canonical/identity-platform-login-ui/issues/1040)) ([cd652b3](https://github.com/canonical/identity-platform-login-ui/commit/cd652b33ad410e5b288a8f74a4d513a2f309abf1))
+
 ## [0.29.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.29.0...v0.29.1) (2026-11-13)
 
 
