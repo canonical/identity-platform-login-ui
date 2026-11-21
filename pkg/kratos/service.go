@@ -316,13 +316,19 @@ func (s *Service) CreateBrowserLoginFlow(
 	return flow, resp.Cookies(), nil
 }
 
-func (s *Service) CreateBrowserRegistrationFlow(ctx context.Context, returnTo string) (*kClient.RegistrationFlow, []*http.Cookie, error) {
+func (s *Service) CreateBrowserRegistrationFlow(ctx context.Context, returnTo, loginChallenge string) (*kClient.RegistrationFlow, []*http.Cookie, error) {
 	ctx, span := s.tracer.Start(ctx, "kratos.Service.CreateBrowserRegistrationFlow")
 	defer span.End()
 
 	request := s.kratos.FrontendApi().
 		CreateBrowserRegistrationFlow(ctx).
 		ReturnTo(returnTo)
+
+	// As in CreateBrowserLoginFlow, Kratos completes Hydra's login request itself once the user
+	// has registered, and sends the browser back to Hydra, unless the login UI does that instead.
+	if loginChallenge != "" && !s.oidcWebAuthnSequencingEnabled && !s.multiTenancyEnabled {
+		request = request.LoginChallenge(loginChallenge)
+	}
 
 	flow, resp, err := s.kratos.FrontendApi().CreateBrowserRegistrationFlowExecute(request)
 
