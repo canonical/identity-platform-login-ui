@@ -12,7 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
-import { FlowMessages } from "../components/FlowMessages";
+import { FlowMessages, visibleFlowMessages } from "../components/FlowMessages";
 import { kratos, loginIdentifierFirst } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
@@ -23,7 +23,6 @@ import {
   UpdateLoginFlowWithPasswordMethod,
 } from "@ory/client/api";
 import {
-  isErrorAnsweredByBackend,
   isSignInEmailInput,
   isSignInWithHardwareKey,
   isSignInWithPassword,
@@ -460,10 +459,9 @@ const Login: NextPage = () => {
   }
 
   // Flow-level messages, which are not attached to a node.
-  const flowMessages = flow.ui.messages ?? [];
-  // An error FlowMessages leaves out is not one the user gets to see here.
-  const hasFlowError = flowMessages.some(
-    (message) => message.type === "error" && !isErrorAnsweredByBackend(message),
+  const flowMessages = renderFlow?.ui.messages;
+  const hasFlowError = visibleFlowMessages(flowMessages).some(
+    (message) => message.type === "error",
   );
 
   // When WebAuthn is shown but TOTP is also registered, "I want to use another
@@ -527,7 +525,6 @@ const Login: NextPage = () => {
 
   return (
     <PageLayout title={title}>
-      <FlowMessages messages={flowMessages} />
       {isSingleOidcOption ? (
         <p className="u-text--muted">
           <Spinner style={{ marginRight: "0.5rem" }} />
@@ -535,6 +532,7 @@ const Login: NextPage = () => {
         </p>
       ) : (
         <>
+          <FlowMessages messages={flowMessages} />
           {isWebauthn && isSequencedLogin && (
             <p className="u-text--muted">
               Additional authentication needed to get access{" "}

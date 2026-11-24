@@ -16,17 +16,25 @@ const getRedirectToFromError = (err: KratosErrorResponse) =>
 
 // Kratos names no page to come back to when it asks for the second factor on
 // a flow that was created without one. The login endpoint needs one: come
-// back to this page.
+// back to this page, on a new flow.
 const getSecondFactorRedirect = (err: KratosErrorResponse) => {
-  const target = new URL(
-    err.redirect_browser_to ? err.redirect_browser_to : err.redirect_to,
-    window.location.href,
-  );
+  const redirect = err.redirect_browser_to || err.redirect_to;
+  if (!redirect) {
+    return redirect;
+  }
+  let target: URL;
+  try {
+    target = new URL(redirect, window.location.href);
+  } catch {
+    return redirect;
+  }
   if (
     !target.searchParams.has("return_to") &&
     !target.searchParams.has("login_challenge")
   ) {
-    target.searchParams.set("return_to", window.location.href);
+    const back = new URL(window.location.href);
+    back.searchParams.delete("flow");
+    target.searchParams.set("return_to", back.toString());
   }
   return target.toString();
 };

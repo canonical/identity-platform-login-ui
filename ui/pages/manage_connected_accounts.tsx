@@ -120,7 +120,7 @@ const ManageConnectedAccounts: NextPage = () => {
         setFlow(data);
       })
       .catch(handleFlowError("settings", setFlow))
-      .catch(async (err: AxiosError<string>) => {
+      .catch(async (err: AxiosError<unknown>) => {
         if (
           typeof err.response?.data === "string" &&
           err.response.data.trim() === "Failed to create settings flow"

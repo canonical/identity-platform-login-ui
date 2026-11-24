@@ -91,7 +91,7 @@ export const ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD = 4000037;
 // happened, so they are not shown again as flow-level messages.
 const ORY_ERR_ANSWERED_BY_BACKEND = new Set([
   4000006, // IncorrectCredentials
-  4000037, // IncorrectAccountIdentifier
+  ORY_ERR_ACCOUNT_NOT_FOUND_OR_NO_LOGIN_METHOD, // IncorrectAccountIdentifier
   4000010, // AddressNotVerified
   4010011, // IdentityDisabled
   4000002, // PropertyMissing
@@ -117,7 +117,7 @@ const ORY_ERR_ANSWERED_BY_BACKEND = new Set([
 ]);
 
 export const isErrorAnsweredByBackend = (message: UiText): boolean =>
-  ORY_ERR_ANSWERED_BY_BACKEND.has(message.id);
+  message.type === "error" && ORY_ERR_ANSWERED_BY_BACKEND.has(message.id);
 
 export function isUiNodeBackButton(meta: UiNodeMeta) {
   return meta.label?.type === "info" && meta.label?.text === "Back";
