@@ -51,6 +51,8 @@ const (
 //
 // The frontend matches on some of these strings (ui/pages/login.tsx,
 // ui/components/NodeInputPassword.tsx); change them in both places.
+// ui/util/constants.ts lists these message IDs (ORY_ERR_ANSWERED_BY_BACKEND):
+// add or remove an ID in both places.
 var uiErrorText = map[int64]func(kClient.UiText) string{
 	IncorrectCredentials:         static("incorrect username or password"),
 	IncorrectAccountIdentifier:   static("account does not exist or has no login method configured"),

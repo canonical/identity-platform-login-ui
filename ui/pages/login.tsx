@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import React from "react";
 import { handleFlowError } from "../util/handleFlowError";
 import { Flow } from "../components/Flow";
+import { FlowMessages, visibleFlowMessages } from "../components/FlowMessages";
 import { kratos, loginIdentifierFirst } from "../api/kratos";
 import { FlowResponse } from "./consent";
 import PageLayout from "../components/PageLayout";
@@ -457,6 +458,12 @@ const Login: NextPage = () => {
     return;
   }
 
+  // Flow-level messages, which are not attached to a node.
+  const flowMessages = renderFlow?.ui.messages;
+  const hasFlowError = visibleFlowMessages(flowMessages).some(
+    (message) => message.type === "error",
+  );
+
   // When WebAuthn is shown but TOTP is also registered, "I want to use another
   // method" should return to the TOTP selection page (strip ?webauthn=true and
   // ?email= from the URL).  When WebAuthn is the sole 2FA method there is no
@@ -500,6 +507,8 @@ const Login: NextPage = () => {
   const csrfNode = getCsrfNode(renderFlow?.ui.nodes);
   const isSingleOidcOption =
     isSequencedLogin &&
+    // never forward away from an error the user has not seen yet
+    !hasFlowError &&
     renderFlow?.ui.nodes.length === 2 &&
     renderFlow?.ui.nodes[1].group === "oidc" &&
     csrfNode !== undefined;
@@ -523,6 +532,7 @@ const Login: NextPage = () => {
         </p>
       ) : (
         <>
+          <FlowMessages messages={flowMessages} />
           {isWebauthn && isSequencedLogin && (
             <p className="u-text--muted">
               Additional authentication needed to get access{" "}

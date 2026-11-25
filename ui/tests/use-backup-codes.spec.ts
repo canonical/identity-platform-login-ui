@@ -37,6 +37,13 @@ test("backup recovery code setup and usage", async ({ browser, page }) => {
   await startNewAuthFlow(newPage);
   await userPassLogin(newPage);
 
+  // Kratos attaches this message to the flow, not to a node
+  await expect(
+    newPage.getByText("Please complete the second authentication challenge.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+
   await clickButton(newPage, "Use backup code instead");
   await verifyBackupCode(newPage, backupCode);
 
