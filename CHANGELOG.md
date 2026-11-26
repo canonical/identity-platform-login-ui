@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.30.0](https://github.com/canonical/identity-platform-login-ui/compare/v0.29.1...v0.30.0) (2026-11-26)
+
+
+### Features
+
+* **ui:** show Kratos's flow-level messages and follow second-factor errors ([#994](https://github.com/canonical/identity-platform-login-ui/issues/994)) ([29d1545](https://github.com/canonical/identity-platform-login-ui/commit/29d1545b2b82469fcadac7d45575b64508cf53b1))
+* **ui:** show Kratos's flow-level messages on the login page ([ea9175e](https://github.com/canonical/identity-platform-login-ui/commit/ea9175ea3edb34ea6a6929453ddb009e4747c0de))
+
+
+### Bug Fixes
+
+* **deps:** update github.com/canonical/identity-platform-api digest to db9a1a7 ([176a400](https://github.com/canonical/identity-platform-login-ui/commit/176a40039e82b864c0a4a6c69b2c4f226e653e53))
+* **deps:** update github.com/canonical/identity-platform-api digest to db9a1a7 ([#1040](https://github.com/canonical/identity-platform-login-ui/issues/1040)) ([cd652b3](https://github.com/canonical/identity-platform-login-ui/commit/cd652b33ad410e5b288a8f74a4d513a2f309abf1))
+* **ui:** add a return_to when Kratos asks for the second factor without one ([f3e4034](https://github.com/canonical/identity-platform-login-ui/commit/f3e4034d8d145041168a2bb7d06c69d5cb7927b2))
+* **ui:** follow a flow error on the Connected accounts page ([f8ec4bf](https://github.com/canonical/identity-platform-login-ui/commit/f8ec4bf0f92bb727205f500282380731624b96cf))
+* **ui:** keep the login challenge on every login step ([0c3470c](https://github.com/canonical/identity-platform-login-ui/commit/0c3470c2322e1bf581aabc8528d6cbdce4b642e8))
+* **ui:** keep the login challenge when a login restarts ([b232982](https://github.com/canonical/identity-platform-login-ui/commit/b23298229c13ba9a532d7dca03fa382035cc2d3c)), closes [#984](https://github.com/canonical/identity-platform-login-ui/issues/984)
+* **ui:** keep the login challenge when a login restarts ([#986](https://github.com/canonical/identity-platform-login-ui/issues/986)) ([05ff220](https://github.com/canonical/identity-platform-login-ui/commit/05ff220f0acbf479561e7e287e42c8043e446bcd))
+* **ui:** return to a new flow after the second factor, and tidy the flow messages ([aaf40a4](https://github.com/canonical/identity-platform-login-ui/commit/aaf40a423b1e5ad6b703b5b0324fd94d0ba816ce))
+
 ## [0.29.1](https://github.com/canonical/identity-platform-login-ui/compare/v0.29.0...v0.29.1) (2026-11-13)
 
 
