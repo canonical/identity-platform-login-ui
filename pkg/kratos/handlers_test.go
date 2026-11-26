@@ -1169,7 +1169,7 @@ func TestHandleCreateRegistrationFlow(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/registration/create?return_to=/error", nil)
 		w := httptest.NewRecorder()
 
-		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/error").
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/error", "").
 			Return(nil, nil, errors.New("create failed"))
 		mockLogger.EXPECT().Errorf("Failed to create registration flow: %v", gomock.Any())
 
@@ -1197,7 +1197,7 @@ func TestHandleCreateRegistrationFlow(t *testing.T) {
 		flow.SetId(flowID)
 		cookies := []*http.Cookie{{Name: "session", Value: "xyz"}}
 
-		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/welcome").
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "/welcome", "").
 			Return(flow, cookies, nil)
 
 		api.handleCreateRegistrationFlow(w, req)
@@ -1228,6 +1228,26 @@ func TestHandleCreateRegistrationFlow(t *testing.T) {
 		}
 	})
 
+	t.Run("success - login_challenge is passed on", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/registration/create?login_challenge=challenge-123", nil)
+		w := httptest.NewRecorder()
+
+		flow := kClient.NewRegistrationFlowWithDefaults()
+		flow.SetId("flow-with-challenge")
+
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "", "challenge-123").
+			Return(flow, nil, nil)
+
+		api.handleCreateRegistrationFlow(w, req)
+
+		res := w.Result()
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("expected %d, got %d", http.StatusOK, res.StatusCode)
+		}
+	})
+
 	t.Run("success - no return_to", func(t *testing.T) {
 		flowID := "flow-789"
 		req := httptest.NewRequest(http.MethodGet, "/registration/create", nil)
@@ -1237,7 +1257,7 @@ func TestHandleCreateRegistrationFlow(t *testing.T) {
 		flow.SetId(flowID)
 		cookies := []*http.Cookie{{Name: "def", Value: "ok"}}
 
-		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "").
+		mockService.EXPECT().CreateBrowserRegistrationFlow(gomock.Any(), "", "").
 			Return(flow, cookies, nil)
 
 		api.handleCreateRegistrationFlow(w, req)
