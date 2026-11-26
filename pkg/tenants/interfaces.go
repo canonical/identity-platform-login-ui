@@ -21,6 +21,12 @@ type TenantServiceClientInterface interface {
 	LookupTenants(ctx context.Context, in *tenant.LookupTenantsRequest, opts ...grpc.CallOption) (*tenant.LookupTenantsResponse, error)
 }
 
+// TenantSignInServiceClientInterface is the subset of the generated gRPC
+// TenantSignInServiceClient needed by Service with WithSignInTenants.
+type TenantSignInServiceClientInterface interface {
+	ListSignInTenants(ctx context.Context, in *tenant.ListSignInTenantsRequest, opts ...grpc.CallOption) (*tenant.ListSignInTenantsResponse, error)
+}
+
 // CookieManagerInterface is the subset of the cookie manager this package needs.
 // Re-defined locally to avoid a hard dependency on internal/cookies interfaces
 // and to keep this package's dependencies explicit and testable.

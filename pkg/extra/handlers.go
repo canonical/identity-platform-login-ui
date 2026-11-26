@@ -24,6 +24,7 @@ type API struct {
 	baseURL            string
 	secondFactorPolicy SecondFactorPolicyInterface
 	contextPath        string
+	ext                ExtensionInterface
 	tracer             tracing.TracingInterface
 	logger             logging.LoggerInterface
 }
@@ -79,6 +80,18 @@ func (a *API) handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rejectTo, err := a.ext.GateConsent(r.Context(), session, consent)
+	if err != nil {
+		a.logger.Errorf("failed to gate consent: %s", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	if rejectTo != "" {
+		rr, _ := hClient.NewOAuth2RedirectTo(rejectTo).MarshalJSON()
+		w.Write(rr)
+		return
+	}
+
 	tenantID := a.resolveTenantID(consent)
 
 	accept, err := a.service.AcceptConsent(r.Context(), *session.Identity, consent, tenantID)
@@ -125,6 +138,7 @@ func (a *API) sessionRequiredAAL(session *kClient.Session) kClient.Authenticator
 
 func NewAPI(service ServiceInterface, kratosService kratos.ServiceInterface, baseURL string, mfaEnabled, oidcWebAuthnSequencingEnabled bool, tracer tracing.TracingInterface, logger logging.LoggerInterface, opts ...Option) *API {
 	a := new(API)
+	a.ext = NewNoOpExtension()
 
 	a.service = service
 	a.kratos = kratosService
