@@ -1721,6 +1721,69 @@ func TestUpdateLoginFlowErrorWebAuthnNotSet(t *testing.T) {
 	}
 }
 
+func TestUpdateLoginFlowErrorWhenSessionSatisfiesFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := NewMockLoggerInterface(ctrl)
+	mockHydra := NewMockHydraClientInterface(ctrl)
+	mockKratos := NewMockKratosClientInterface(ctrl)
+	mockAdminKratos := NewMockKratosAdminClientInterface(ctrl)
+	mockAuthz := NewMockAuthorizerInterface(ctrl)
+	mockTracer := NewMockTracingInterface(ctrl)
+	mockMonitor := monitoring.NewMockMonitorInterface(ctrl)
+	mockKratosFrontendApi := NewMockFrontendAPI(ctrl)
+
+	ctx := context.Background()
+	cookies := []*http.Cookie{{Name: "test", Value: "test"}}
+	flowId := "flow"
+	body := new(kClient.UpdateLoginFlowBody)
+
+	request := kClient.FrontendAPIUpdateLoginFlowRequest{
+		ApiService: mockKratosFrontendApi,
+	}
+	// Kratos v25.4.0 answers 400 with the flow, the refusal in its messages.
+	reason := "A valid session was detected and thus login is not possible. Did you forget to set `?refresh=true`?"
+	errorBodyJson, _ := json.Marshal(map[string]any{
+		"id":            flowId,
+		"type":          "browser",
+		"requested_aal": "aal2",
+		"ui": map[string]any{
+			"action": "http://kratos/self-service/login?flow=" + flowId,
+			"method": "POST",
+			"nodes":  []any{},
+			"messages": []any{map[string]any{
+				"id":      ValidationGeneric,
+				"type":    "error",
+				"text":    reason,
+				"context": map[string]any{"reason": reason},
+			}},
+		},
+	})
+	resp := http.Response{
+		Body:       io.NopCloser(bytes.NewBuffer(errorBodyJson)),
+		StatusCode: http.StatusBadRequest,
+	}
+
+	mockTracer.EXPECT().Start(ctx, "kratos.Service.UpdateLoginFlow").Times(1).Return(ctx, trace.SpanFromContext(ctx))
+	mockKratos.EXPECT().FrontendApi().Times(1).Return(mockKratosFrontendApi)
+	mockKratosFrontendApi.EXPECT().UpdateLoginFlow(ctx).Times(1).Return(request)
+	mockKratosFrontendApi.EXPECT().UpdateLoginFlowExecute(gomock.Any()).Times(1).Return(nil, &resp, fmt.Errorf("error"))
+
+	_, _, _, err := NewService(mockKratos, mockAdminKratos, mockHydra, mockAuthz, false, false, mockTracer, mockMonitor, mockLogger).UpdateLoginFlow(ctx, flowId, *body, cookies)
+
+	var kratosErr *KratosGenericError
+	if !errors.As(err, &kratosErr) {
+		t.Fatalf("expected a *KratosGenericError, got %T: %v", err, err)
+	}
+	if id := kratosErr.Response.Error.GetId(); id != SESSION_ALREADY_AVAILABLE {
+		t.Fatalf("expected error id %s not %s", SESSION_ALREADY_AVAILABLE, id)
+	}
+	if code := kratosErr.Response.Error.GetCode(); code != http.StatusBadRequest {
+		t.Fatalf("expected error code %d not %d", http.StatusBadRequest, code)
+	}
+}
+
 func TestUpdateLoginFlowErrorWhenBackupCodesNotSet(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1932,6 +1995,32 @@ func TestGetUiError(t *testing.T) {
 			name:         "generic server error body stays opaque",
 			genericError: &kClient.GenericError{Code: kClient.PtrInt64(500), Message: "database down"},
 			expectErr:    "kratos error 500: database down",
+		},
+		{
+			name: "login submitted with a session that already satisfies the flow",
+			messages: []kClient.UiText{{
+				Id:   ValidationGeneric,
+				Type: "error",
+				Text: "A valid session was detected and thus login is not possible. Did you forget to set `?refresh=true`?",
+			}},
+			expectErr:      "kratos error session_already_available: a valid session was detected and thus login is not possible",
+			expectKratosID: SESSION_ALREADY_AVAILABLE,
+		},
+		{
+			name: "the same refusal of a registration is not a login's",
+			messages: []kClient.UiText{{
+				Id:   ValidationGeneric,
+				Type: "error",
+				Text: "A valid session was detected and thus registration is not possible.",
+			}},
+			expectErr: "server error",
+			expectLog: true,
+		},
+		{
+			name:      "another generic validation error stays unknown",
+			messages:  []kClient.UiText{{Id: ValidationGeneric, Type: "error", Text: "something else"}},
+			expectErr: "server error",
+			expectLog: true,
 		},
 	}
 
